@@ -1,0 +1,80 @@
+{
+  "cursos": [
+    {
+      "id": "7basico",
+      "nombre": "7° básico",
+      "unidades": [
+        {
+          "id": "u1",
+          "numero": 1,
+          "titulo": "Números",
+          "temas": ["Números enteros: adición y sustracción", "Multiplicación y división de fracciones y decimales", "Porcentajes", "Potencias de base 10"],
+          "habilitada": true,
+          "materiales": []
+        },
+        {
+          "id": "u2",
+          "numero": 2,
+          "titulo": "Álgebra y funciones",
+          "temas": ["Lenguaje algebraico", "Expresiones algebraicas", "Proporcionalidad directa e inversa", "Ecuaciones e inecuaciones"],
+          "habilitada": false,
+          "materiales": []
+        },
+        {
+          "id": "u3",
+          "numero": 3,
+          "titulo": "Geometría",
+          "temas": ["Ángulos en polígonos", "El círculo: perímetro y área", "Construcciones geométricas", "Área de triángulos, paralelogramos y trapecios", "Plano cartesiano"],
+          "habilitada": false,
+          "materiales": []
+        },
+        {
+          "id": "u4",
+          "numero": 4,
+          "titulo": "Probabilidad y estadística",
+          "temas": ["Muestras y encuestas", "Tablas y gráficos", "Medidas de tendencia central y rango", "Probabilidad"],
+          "habilitada": false,
+          "materiales": []
+        }
+      ]
+    },
+    {
+      "id": "8basico",
+      "nombre": "8° básico",
+      "unidades": [
+        {
+          "id": "u1",
+          "numero": 1,
+          "titulo": "Números",
+          "temas": ["Multiplicación y división de números enteros", "Operaciones con números racionales", "Potencias", "Raíz cuadrada", "Variaciones porcentuales"],
+          "habilitada": true,
+          "materiales": []
+        },
+        {
+          "id": "u2",
+          "numero": 2,
+          "titulo": "Álgebra y funciones",
+          "temas": ["Expresiones algebraicas", "Concepto de función", "Ecuaciones e inecuaciones lineales", "Función lineal y función afín"],
+          "habilitada": false,
+          "materiales": []
+        },
+        {
+          "id": "u3",
+          "numero": 3,
+          "titulo": "Geometría",
+          "temas": ["Área y volumen de prismas y cilindros", "Teorema de Pitágoras", "Transformaciones isométricas"],
+          "habilitada": false,
+          "materiales": []
+        },
+        {
+          "id": "u4",
+          "numero": 4,
+          "titulo": "Probabilidad y estadística",
+          "temas": ["Medidas de posición", "Diagrama de cajón", "Principio multiplicativo", "Probabilidad"],
+          "habilitada": false,
+          "materiales": []
+        }
+      ]
+    }
+  ]
+}

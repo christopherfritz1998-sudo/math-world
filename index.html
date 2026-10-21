@@ -3,51 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Math World · Material pedagógico de matemáticas</title>
-  <meta name="description" content="Guías, presentaciones, controles y juegos de matemáticas para descargar.">
+  <title>Math World · Matemática 7° y 8° básico</title>
+  <meta name="description" content="Guías, presentaciones, controles y juegos de matemáticas para 7° y 8° básico, organizados por unidad.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="hero">
+  <header class="hero" id="hero">
     <nav class="nav">
-      <a class="logo" href="/">Math<span>World</span></a>
-      <a class="nav-link" href="#materiales">Materiales</a>
+      <a class="logo" href="#/">Math<span>World</span></a>
+      <div class="nav-links">
+        <a class="nav-link" href="#/7basico">7° básico</a>
+        <a class="nav-link" href="#/8basico">8° básico</a>
+      </div>
     </nav>
     <div class="hero-body">
-      <p class="kicker">Material pedagógico de matemáticas</p>
-      <h1>Aprender matemáticas,<br>un material a la vez.</h1>
-      <p class="lead">Guías, presentaciones, controles y juegos listos para descargar y usar en clases.</p>
-      <a class="btn" href="#materiales">Ver materiales</a>
+      <p class="kicker">Matemática · 7° y 8° básico</p>
+      <h1>Aprender matemáticas,<br>una unidad a la vez.</h1>
+      <p class="lead">Guías, presentaciones, controles y juegos organizados por unidad, que se van habilitando a medida que avanzamos en clases.</p>
     </div>
     <div class="shapes" aria-hidden="true">
       <span>π</span><span>∑</span><span>√</span><span>÷</span><span>∞</span>
     </div>
   </header>
 
-  <main id="materiales" class="wrap">
-    <h2>Materiales</h2>
-    <div class="filters">
-      <label>Curso
-        <select id="f-curso"><option value="">Todos</option></select>
-      </label>
-      <label>Tipo
-        <select id="f-tipo">
-          <option value="">Todos</option>
-          <option>Guía</option>
-          <option>Presentación</option>
-          <option>Control</option>
-          <option>Juego</option>
-        </select>
-      </label>
-      <label class="grow">Buscar
-        <input id="f-q" type="search" placeholder="Ej: fracciones, ecuaciones…">
-      </label>
-    </div>
-    <div id="grid" class="grid"></div>
-    <p id="empty" class="empty" hidden>Pronto habrá materiales aquí.</p>
-  </main>
+  <main id="app" class="wrap" aria-live="polite"></main>
 
   <footer class="footer">
     <p>© <span id="year"></span> Math World · mathworld.cl</p>

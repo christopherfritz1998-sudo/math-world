@@ -1,56 +1,103 @@
-// Carga materiales.json y los muestra con filtros por curso, tipo y búsqueda.
-const grid = document.getElementById('grid');
-const empty = document.getElementById('empty');
-const fCurso = document.getElementById('f-curso');
-const fTipo = document.getElementById('f-tipo');
-const fQ = document.getElementById('f-q');
+// Math World — navegación por curso y unidad.
+// Todo el contenido vive en contenido.json. Para habilitar una unidad,
+// cambiar "habilitada" a true; para agregar material, sumar un objeto a "materiales".
+
+const app = document.getElementById('app');
+const hero = document.getElementById('hero');
 document.getElementById('year').textContent = new Date().getFullYear();
 
-let materiales = [];
+const TIPOS = ['Guía', 'Presentación', 'Control', 'Juego'];
+let data = null;
 
-function norm(s) {
-  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+const esc = s => (s ?? '').toString()
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function vistaInicio() {
+  hero.classList.remove('compact');
+  app.innerHTML = `
+    <h2>Elige tu curso</h2>
+    <div class="cursos">
+      ${data.cursos.map(c => {
+        const activas = c.unidades.filter(u => u.habilitada).length;
+        return `
+        <a class="curso" href="#/${c.id}">
+          <span class="curso-num">${esc(c.nombre.split(' ')[0])}</span>
+          <span class="curso-txt">
+            <strong>${esc(c.nombre)}</strong>
+            <span>${activas} de ${c.unidades.length} unidades disponibles</span>
+          </span>
+          <span class="arrow" aria-hidden="true">→</span>
+        </a>`;
+      }).join('')}
+    </div>`;
 }
 
-function render() {
-  const curso = fCurso.value, tipo = fTipo.value, q = norm(fQ.value);
-  const lista = materiales.filter(m =>
-    (!curso || m.curso === curso) &&
-    (!tipo || m.tipo === tipo) &&
-    (!q || norm(m.titulo + ' ' + m.descripcion + ' ' + m.unidad).includes(q))
-  );
-  grid.innerHTML = '';
-  lista.forEach(m => {
-    const el = document.createElement('article');
-    el.className = 'card';
-    const esJuego = m.tipo === 'Juego';
-    el.innerHTML = `
-      <span class="tag ${m.tipo}">${m.tipo}</span>
-      <h3></h3>
-      <p></p>
-      <span class="meta"></span>
-      <a class="dl" ${esJuego ? 'target="_blank" rel="noopener"' : 'download'}>${esJuego ? 'Jugar' : 'Descargar'}</a>`;
-    el.querySelector('h3').textContent = m.titulo;
-    el.querySelector('p').textContent = m.descripcion || '';
-    el.querySelector('.meta').textContent = [m.curso, m.unidad].filter(Boolean).join(' · ');
-    el.querySelector('a').href = m.archivo;
-    grid.appendChild(el);
-  });
-  empty.hidden = lista.length > 0;
+function vistaCurso(curso) {
+  hero.classList.add('compact');
+  app.innerHTML = `
+    <p class="crumbs"><a href="#/">Inicio</a> / ${esc(curso.nombre)}</p>
+    <h2>${esc(curso.nombre)}</h2>
+    <div class="unidades">
+      ${curso.unidades.map(u => {
+        const n = u.materiales.length;
+        const inner = `
+          <span class="u-num">Unidad ${u.numero}</span>
+          <h3>${esc(u.titulo)}</h3>
+          <ul>${u.temas.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+          <span class="u-foot">${u.habilitada
+            ? `${n} ${n === 1 ? 'material' : 'materiales'} →`
+            : '🔒 Próximamente'}</span>`;
+        return u.habilitada
+          ? `<a class="unidad" href="#/${curso.id}/${u.id}">${inner}</a>`
+          : `<div class="unidad bloqueada" aria-disabled="true">${inner}</div>`;
+      }).join('')}
+    </div>`;
 }
 
-fetch('materiales.json')
+function tarjeta(m) {
+  const esJuego = m.tipo === 'Juego';
+  const attrs = esJuego ? 'target="_blank" rel="noopener"' : 'download';
+  return `
+    <article class="card">
+      <span class="tag t-${esc(m.tipo)}">${esc(m.tipo)}</span>
+      <h4>${esc(m.titulo)}</h4>
+      ${m.descripcion ? `<p>${esc(m.descripcion)}</p>` : '<p></p>'}
+      <a class="dl" href="${esc(m.archivo)}" ${attrs}>${esJuego ? 'Jugar' : 'Descargar'}</a>
+    </article>`;
+}
+
+function vistaUnidad(curso, u) {
+  hero.classList.add('compact');
+  if (!u.habilitada) return vistaCurso(curso);
+  const grupos = TIPOS
+    .map(t => [t, u.materiales.filter(m => m.tipo === t)])
+    .filter(([, l]) => l.length);
+  app.innerHTML = `
+    <p class="crumbs"><a href="#/">Inicio</a> / <a href="#/${curso.id}">${esc(curso.nombre)}</a> / Unidad ${u.numero}</p>
+    <h2><span class="u-num">Unidad ${u.numero}</span>${esc(u.titulo)}</h2>
+    <p class="temas">${u.temas.map(esc).join(' · ')}</p>
+    ${grupos.length ? grupos.map(([t, l]) => `
+      <section class="grupo">
+        <h3>${t === 'Guía' ? 'Guías' : t === 'Presentación' ? 'Presentaciones' : t === 'Control' ? 'Controles' : 'Juegos'}</h3>
+        <div class="grid">${l.map(tarjeta).join('')}</div>
+      </section>`).join('')
+      : '<p class="empty">Pronto habrá materiales en esta unidad.</p>'}`;
+}
+
+function router() {
+  if (!data) return;
+  const [, cId, uId] = location.hash.replace(/^#\/?/, '/').split('/');
+  const curso = data.cursos.find(c => c.id === cId);
+  const unidad = curso?.unidades.find(u => u.id === uId);
+  if (curso && unidad) vistaUnidad(curso, unidad);
+  else if (curso) vistaCurso(curso);
+  else vistaInicio();
+  window.scrollTo({ top: 0 });
+}
+
+fetch('contenido.json', { cache: 'no-cache' })
   .then(r => r.json())
-  .then(data => {
-    materiales = data;
-    [...new Set(data.map(m => m.curso))].forEach(c => {
-      const o = document.createElement('option');
-      o.textContent = c;
-      fCurso.appendChild(o);
-    });
-    render();
-  })
-  .catch(() => { empty.hidden = false; });
+  .then(d => { data = d; router(); })
+  .catch(() => { app.innerHTML = '<p class="empty">No se pudo cargar el contenido. Intenta recargar la página.</p>'; });
 
-[fCurso, fTipo].forEach(el => el.addEventListener('change', render));
-fQ.addEventListener('input', render);
+window.addEventListener('hashchange', router);
