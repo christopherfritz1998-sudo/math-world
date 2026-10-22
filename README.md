@@ -28,4 +28,14 @@ Dentro de `"materiales"` de la unidad:
 
 `tipo`: Guía, Presentación, Control o Juego.
 
+## Juego (`juego/`)
+
+Juego de mundo abierto en `mathworld.cl/juego/`, hecho con Phaser 3 (incluido en `juego/assets/vendor`, sin instalar nada).
+
+- `juego/juego.js` — mundo, personaje, recolección, base y menús.
+- `juego/preguntas.js` — generadores de desafíos por curso y unidad. Para agregar una unidad nueva, sumar sus temas en `BANCO`.
+- El mapa del juego lee `contenido.json`: las unidades habilitadas aparecen abiertas en el mapa.
+- El progreso se guarda en el navegador de cada estudiante (por curso y apodo).
+- Arte: personajes LPC (créditos en `juego/creditos.html`) y Roguelike Pack de Kenney (CC0).
+
 Cada cambio en `main` se publica automáticamente en Vercel.

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Math World · El juego</title>
+  <meta name="description" content="Juego de mundo abierto para aprender matemáticas de 7° y 8° básico: explora, recolecta recursos resolviendo desafíos y mejora a tu personaje.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="juego.css">
+</head>
+<body>
+  <div id="juego" aria-label="Mundo del juego"></div>
+
+  <!-- ===== Ingreso ===== -->
+  <section id="ingreso">
+    <div class="ingreso-wrap">
+      <div class="ingreso-intro">
+        <span class="chip">MATH WORLD · MATEMÁTICA 7° Y 8° BÁSICO</span>
+        <h1>Math<br>World</h1>
+        <p>Explora el bosque, recolecta recursos resolviendo desafíos matemáticos y mejora tus herramientas y tu base. Cada unidad que habilite tu profesor abre una nueva zona del mundo.</p>
+        <p style="font-size: 15px"><a href="../">← Volver a mathworld.cl</a> · <a href="creditos.html">Créditos del arte</a></p>
+      </div>
+
+      <form class="form" id="form-ingreso" novalidate>
+        <h2>Entrar al mundo</h2>
+
+        <fieldset>
+          <legend>Elige tu curso</legend>
+          <div class="cursos">
+            <button type="button" class="opcion" data-curso="7basico" aria-pressed="true"><strong>7°</strong>Básico</button>
+            <button type="button" class="opcion" data-curso="8basico" aria-pressed="false"><strong>8°</strong>Básico</button>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Elige tu personaje</legend>
+          <div class="personajes" id="personajes"></div>
+        </fieldset>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="apodo">Tu apodo en el juego</label>
+          <input id="apodo" type="text" maxlength="16" autocomplete="off" placeholder="Sin tu nombre real, ej: ZorroVeloz">
+        </div>
+
+        <p class="error oculto" id="error-ingreso"></p>
+        <button type="submit" class="btn-principal" id="btn-entrar">Entrar al mundo</button>
+        <p class="nota">Tu avance se guarda en este navegador con tu apodo. Si usas otro computador, empiezas de nuevo. No pedimos correo ni nombre real.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ===== HUD ===== -->
+  <div id="hud" class="oculto">
+    <div class="tarjeta-pj">
+      <div class="foto" id="hud-foto" role="img" aria-label="Tu personaje"></div>
+      <div class="datos">
+        <div class="fila"><span id="hud-apodo"></span><span class="nivel" id="hud-nivel"></span></div>
+        <div class="fila" style="font-size: 11px; color: #c9d3c6"><span>Experiencia</span><span id="hud-xp"></span></div>
+        <div class="barra"><i id="hud-xpbar" style="width: 0%"></i></div>
+      </div>
+    </div>
+    <div class="recursos" id="hud-recursos"></div>
+    <div class="aviso oculto" id="aviso"><kbd>E</kbd><span id="aviso-txt"></span></div>
+    <div class="herramientas" id="hud-herramientas"></div>
+    <div class="botones">
+      <button type="button" class="btn-hud" id="btn-base"><img class="px" src="assets/iconos/fogata.png" alt="">Base <kbd>B</kbd></button>
+      <button type="button" class="btn-hud" id="btn-mapa"><img class="px" src="assets/iconos/cofre.png" alt="">Mapa <kbd>M</kbd></button>
+    </div>
+  </div>
+
+  <div id="tactil" class="oculto">
+    <div class="palanca" id="palanca" aria-hidden="true"><i></i></div>
+    <button type="button" class="btn-accion" id="btn-accion">Acción</button>
+  </div>
+
+  <!-- ===== Modales ===== -->
+  <div class="capa oculto" id="capa" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+    <div class="modal" id="modal"></div>
+  </div>
+  <div id="toast" class="oculto" role="status"></div>
+
+  <script src="assets/vendor/phaser.min.js"></script>
+  <script src="preguntas.js"></script>
+  <script src="juego.js"></script>
+</body>
+</html>

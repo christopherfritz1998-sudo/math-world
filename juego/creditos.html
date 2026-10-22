@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Créditos del arte · Math World</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600&family=Nunito:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { margin: 0; background: #12201a; color: #f4eedf; font-family: "Nunito", system-ui, sans-serif; line-height: 1.6; overflow: auto; }
+    main { max-width: 860px; margin: 0 auto; padding: 32px 16px 64px; }
+    h1, h2 { font-family: "Fredoka", "Nunito", sans-serif; font-weight: 600; }
+    h1 { font-size: 36px; margin: 0 0 8px; }
+    a { color: #5cc8b8; }
+    .caja { padding: 18px 20px; border-radius: 16px; background: #1c2d25; border: 2px solid #2e4a3d; margin: 16px 0; }
+    .item { padding: 12px 0; border-top: 1px solid #2e4a3d; font-size: 14px; }
+    .item:first-child { border-top: 0; }
+    .item code { color: #f2b544; }
+    .muted { color: #c9d3c6; }
+  </style>
+</head>
+<body>
+  <main>
+    <p><a href="./">← Volver al juego</a></p>
+    <h1>Créditos del arte</h1>
+    <p class="muted">Math World usa arte libre creado por otras personas. Gracias a cada una de ellas.</p>
+
+    <section class="caja">
+      <h2>Mundo, objetos e íconos</h2>
+      <p><strong>Roguelike Pack</strong> de Kenney (<a href="https://kenney.nl" rel="noopener">kenney.nl</a>). Licencia CC0 (dominio público).</p>
+    </section>
+
+    <section class="caja">
+      <h2>Motor del juego</h2>
+      <p><strong>Phaser 3</strong> (<a href="https://phaser.io" rel="noopener">phaser.io</a>). Licencia MIT.</p>
+    </section>
+
+    <section class="caja">
+      <h2>Personajes y herramientas</h2>
+      <p>Hojas de personajes del <strong>Universal LPC Spritesheet Character Generator</strong> (Liberated Pixel Cup). Los colores de ropa, piel y pelo fueron ajustados para Math World; estas versiones modificadas se comparten bajo las mismas licencias. Autores y licencias de cada pieza:</p>
+      <div id="lpc">Cargando…</div>
+    </section>
+  </main>
+  <script>
+    const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    fetch('assets/creditos_lpc.json').then((r) => r.json()).then((lista) => {
+      document.getElementById('lpc').innerHTML = lista.map((c) => `
+        <div class="item">
+          <code>${esc(c.archivo)}</code><br>
+          <strong>Autores:</strong> ${c.autores.map(esc).join(', ')}<br>
+          <strong>Licencias:</strong> ${c.licencias.map(esc).join(', ')}<br>
+          <strong>Fuentes:</strong> ${c.enlaces.map((u) => `<a href="${esc(u)}" rel="noopener">${esc(u.replace(/^https?:\/\//, ''))}</a>`).join(' · ')}
+        </div>`).join('');
+    }).catch(() => { document.getElementById('lpc').textContent = 'No se pudo cargar la lista de créditos.'; });
+  </script>
+</body>
+</html>
