@@ -21,6 +21,12 @@
     button { font-family: inherit; }
     .btn { min-height: 42px; padding: 0 16px; border-radius: 10px; border: 2px solid currentColor; background: transparent; color: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
     .btn.claro { border-color: #5cc8b8; color: #5cc8b8; }
+    .btn.amarillo { background: #f2b544; border-color: #f2b544; color: #1b1a12; }
+    .opciones { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+    .opciones.dos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .op { min-height: 64px; border-radius: 12px; border: 2px solid var(--line); background: #fff; cursor: pointer; font-weight: 800; font-size: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 6px; }
+    .op[aria-pressed="true"] { border-color: var(--teal); background: #e3f1ee; }
+    .op .retrato { width: 64px; height: 64px; background-repeat: no-repeat; background-size: 576px 256px; background-position: 0 -128px; image-rendering: pixelated; }
     .btn.pri { background: var(--teal); color: #fff; border-color: var(--teal); }
     .btn.peligro { color: var(--coral); }
     main { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 18px; }
@@ -71,7 +77,7 @@
       <div class="acc">
         <span class="act" id="actualizado"></span>
         <button type="button" class="btn claro" id="btn-actualizar">Actualizar</button>
-        <a class="btn claro" href="./" style="display:inline-flex;align-items:center;text-decoration:none">Ir al juego</a>
+        <button type="button" class="btn amarillo" id="btn-jugar">Jugar con mi personaje</button>
         <button type="button" class="btn claro" id="btn-salir">Cerrar sesión</button>
       </div>
     </div>
@@ -93,6 +99,20 @@
     </section>
   </main>
   <dialog id="detalle" aria-labelledby="det-nombre"><div class="det" id="det"></div></dialog>
+  <dialog id="jugar" aria-labelledby="jugar-titulo"><div class="det">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div><h3 id="jugar-titulo">Entrar al juego como docente</h3><span class="muted">Tienes tu propia base, recursos ilimitados y fabricas sin resolver desafíos. Tu avance se guarda en el sistema.</span></div>
+      <button type="button" class="btn" id="jugar-cerrar">Cerrar</button>
+    </div>
+    <h4>Preguntas de</h4>
+    <div class="opciones dos" id="jugar-nivel">
+      <button type="button" class="op" data-n="7" aria-pressed="true">7° básico</button>
+      <button type="button" class="op" data-n="8" aria-pressed="false">8° básico</button>
+    </div>
+    <h4>Personaje</h4>
+    <div class="opciones" id="jugar-pj"></div>
+    <div style="display:flex;justify-content:flex-end"><button type="button" class="btn pri" id="jugar-ir">Entrar al juego</button></div>
+  </div></dialog>
 
   <script src="config.js"></script>
   <script src="nube.js"></script>

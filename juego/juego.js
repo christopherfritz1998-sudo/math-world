@@ -127,9 +127,11 @@
   const tiene = (id) => S.mejoras.includes(id);
   const vidaMax = () => 5 + (tiene('armadura') ? 2 : 0) + (tiene('armadura2') ? 2 : 0);
   const danio = () => (tiene('espada2') ? 3 : tiene('espada') ? 2 : 1);
-  const total = (r) => (S.mochila[r] || 0) + (S.cofre[r] || 0);
+  const esDocente = () => Boolean(S && S.docente);
+  const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
   const alcanza = (costo) => Object.entries(costo).every(([r, n]) => total(r) >= n);
   function pagar(costo) {
+    if (esDocente()) return;
     for (const [r, n] of Object.entries(costo)) {
       const delCofre = Math.min(S.cofre[r] || 0, n);
       S.cofre[r] -= delCofre;
@@ -145,12 +147,14 @@
   }
   // Sube el progreso solo si cambió desde la última vez que se guardó en el sistema.
   async function subir(keepalive = false) {
-    if (sesion.modo !== 'nube' || !S) return;
+    if ((sesion.modo !== 'nube' && sesion.modo !== 'docente') || !S) return;
     if (escena) S.zona = escena.zona;
     const txt = JSON.stringify(S);
     if (txt === sesion.ultimo) return;
     try {
-      const ok = await Nube.guardar(sesion.token, S, S.zona, keepalive);
+      const ok = sesion.modo === 'docente'
+        ? await Nube.docenteGuardar(sesion.token, S, S.zona, keepalive)
+        : await Nube.guardar(sesion.token, S, S.zona, keepalive);
       if (ok === false) { sesionVencida(); return; }
       sesion.ultimo = txt;
       sesion.avisoSinRed = false;
@@ -159,9 +163,10 @@
     }
   }
   function sesionVencida() {
-    ui.abrir(`<h2 id="modal-titulo">Tu sesión terminó</h2><p class="enunciado" style="font-size: 18px">Por seguridad, la sesión dura unas horas. Vuelve a entrar con tu RUT y tu clave para seguir donde quedaste.</p>
+    const docente = sesion.modo === 'docente';
+    ui.abrir(`<h2 id="modal-titulo">Tu sesión terminó</h2><p class="enunciado" style="font-size: 18px">Por seguridad, la sesión dura unas horas. Vuelve a entrar ${docente ? 'al portal docente con tu RUT y tu código' : 'con tu RUT y tu clave'} para seguir donde quedaste.</p>
       <div class="acciones"><span></span><button type="button" class="btn pri" id="sv-ok" data-foco>Volver a entrar</button></div>`);
-    $('sv-ok').addEventListener('click', () => location.reload());
+    $('sv-ok').addEventListener('click', () => { if (docente) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.href = './'; } else location.reload(); });
   }
   setInterval(() => subir(), 10000);
   setInterval(() => { if (sesion.modo === 'nube' && S) Nube.ping(sesion.token, escena ? escena.zona : 'base').catch(() => {}); }, 25000);
@@ -215,6 +220,7 @@
       $('btn-entrar').textContent = 'Entrar al mundo';
     }
     $('rut').addEventListener('input', reiniciarPaso);
+    entrarComoDocente();
     $('form-estudiante').addEventListener('submit', enviarEstudiante);
     $('form-docente').addEventListener('submit', enviarDocente);
   }
@@ -284,6 +290,32 @@
     } finally { btn.disabled = false; }
   }
 
+  // Entrada del docente al juego desde el portal: docente.html → ./?docente=7&pj=zorro
+  async function entrarComoDocente() {
+    const q = new URLSearchParams(location.search);
+    const nivel = q.get('docente');
+    if (!nivel || !Nube.activo) return;
+    let token = null;
+    try { token = sessionStorage.getItem('mw_docente'); } catch (e) { /* */ }
+    if (!token) { history.replaceState(null, '', './'); return; }
+    $('ingreso').classList.add('oculto');
+    try {
+      const p = await Nube.docenteProgreso(token);
+      if (p === null) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.replace('./'); return; }
+      const curso = nivel === '8' ? '8basico' : '7basico';
+      const pj = PERSONAJES.some((x) => x.id === q.get('pj')) ? q.get('pj') : (p.pj || 'zorro');
+      sesion.modo = 'docente'; sesion.token = token;
+      S = normalizar(p, curso, 'Profe', pj);
+      S.curso = curso; S.pj = pj; S.docente = true; S.seccion = 'Docente'; S.nombre = 'Profe';
+      history.replaceState(null, '', './');
+      guardar(true);
+      empezar();
+    } catch (e) {
+      $('ingreso').classList.remove('oculto');
+      error('No hay conexión con el servidor.', 'error-ingreso');
+    }
+  }
+
   async function enviarDocente(ev) {
     ev.preventDefault();
     const rut = Nube.rut($('rut-docente').value);
@@ -306,7 +338,7 @@
     S.vida = Math.min(S.vida || vidaMax(), vidaMax());
     pintarHUD();
     iniciarPhaser(S.zona && (S.zona === 'base' || MUNDOS[S.zona]) ? S.zona : 'base');
-    setTimeout(() => toast(S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`), 700);
+    setTimeout(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`), 700);
   }
 
   // ===================================================================
@@ -323,10 +355,10 @@
     $('hud-xpbar').style.width = `${Math.round((S.xp / xpPara(S.nivel)) * 100)}%`;
     $('hud-zona').textContent = escena ? nombreZona(escena.zona) : '';
     const fuente = enBase ? S.cofre : S.mochila;
-    $('hud-recursos').innerHTML = `<span class="rot">${enBase ? 'Cofre' : 'Mochila'}</span>` + RECURSOS.map((r) => `
+    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? 'Cofre' : 'Mochila'}</span>` + RECURSOS.map((r) => `
       <div class="recurso" data-r="${r.id}">
         <img class="px" src="${ICONO(r.id)}" alt="">
-        <span><small>${r.nombre}</small><b>${fuente[r.id] || 0}</b></span>
+        <span><small>${r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}</b></span>
       </div>`).join('');
     const ranuras = [
       { id: 'hacha', icono: 'axe', tecla: '1', ok: true, nombre: tiene('hacha2') ? 'Hacha de hierro' : 'Hacha' },
@@ -538,13 +570,15 @@
     document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => abrirFabricar(b.dataset.p)));
     document.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
       const m = MEJORAS.find((x) => x.id === b.dataset.m);
-      abrirDesafio({ accion: `Fabricar: ${m.nombre}`, dif: difPara(2), premio: 'Premio: la mejora', onOk: () => {
-        if (!alcanza(m.costo)) return;
+      const hacer = () => {
+        if (!alcanza(m.costo) || tiene(m.id)) return;
         pagar(m.costo); S.mejoras.push(m.id);
         if (m.id === 'armadura' || m.id === 'armadura2') S.vida = vidaMax();
         guardar(true); pintarHUD(); escena.celebrar();
         toast(`¡Fabricaste: ${m.nombre}!`);
-      } });
+      };
+      if (esDocente()) { hacer(); abrirFabricar('equipo'); return; }
+      abrirDesafio({ accion: `Fabricar: ${m.nombre}`, dif: difPara(2), premio: 'Premio: la mejora', onOk: hacer });
     }));
     document.querySelectorAll('[data-o]').forEach((b) => b.addEventListener('click', () => {
       const o = OBJ[b.dataset.o];
@@ -642,11 +676,12 @@
       <div class="modal-cab"><div><span class="etq">${S.curso === '7basico' ? '7°' : '8°'} básico${S.seccion ? ' · ' + esc(S.seccion.slice(1)) : ''}</span><h2 id="modal-titulo">Tu avance</h2></div><button type="button" class="btn" id="m-cerrar">Cerrar</button></div>
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <div class="unidades-avance">${bloques}</div>
-      <div class="acciones"><span class="nota">${sesion.modo === 'nube' ? 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.' : 'Modo sin conexión: el avance se guarda solo en este navegador.'}</span>
-        <button type="button" class="btn sec" id="m-salir">Cerrar sesión</button></div>`);
+      <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
+        <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></div>`);
     $('m-cerrar').addEventListener('click', () => ui.cerrar());
     $('m-salir').addEventListener('click', async () => {
       guardar(true); await subir();
+      if (esDocente()) { location.href = 'docente.html'; return; }
       if (sesion.modo === 'nube') { try { await Nube.salir(sesion.token); } catch (e) { /* */ } }
       try { localStorage.removeItem('mathworld2:cache'); } catch (e) { /* */ }
       location.reload();

@@ -183,3 +183,29 @@ grant execute on function
   public.mw_docente_entrar(text, text), public.mw_docente_resumen(uuid),
   public.mw_docente_restablecer(uuid, uuid), public.mw_docente_cargar(uuid, jsonb)
 to anon;
+
+-- Partida propia del docente (base y personaje, con recursos ilimitados en el juego)
+alter table public.docentes add column if not exists progreso jsonb not null default '{}'::jsonb;
+alter table public.docentes add column if not exists zona text;
+alter table public.docentes add column if not exists ultimo_ping timestamptz;
+
+create or replace function public.mw_docente_progreso(p_token uuid)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare r text := mw_sesion_docente(p_token);
+begin
+  if r is null then return null; end if;
+  return (select progreso from docentes where rut = r);
+end $$;
+
+create or replace function public.mw_docente_guardar(p_token uuid, p_progreso jsonb, p_zona text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare r text := mw_sesion_docente(p_token);
+begin
+  if r is null then return false; end if;
+  if pg_column_size(p_progreso) > 200000 then return false; end if;
+  update docentes set progreso = p_progreso, zona = left(p_zona, 20), ultimo_ping = now() where rut = r;
+  return true;
+end $$;
+
+revoke all on function public.mw_docente_progreso(uuid), public.mw_docente_guardar(uuid, jsonb, text) from public, authenticated;
+grant execute on function public.mw_docente_progreso(uuid), public.mw_docente_guardar(uuid, jsonb, text) to anon;

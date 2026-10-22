@@ -41,5 +41,7 @@
     docenteEntrar: (r, clave) => rpc('mw_docente_entrar', { p_rut: r, p_clave: clave }),
     docenteResumen: (token) => rpc('mw_docente_resumen', { p_token: token }),
     docenteRestablecer: (token, id) => rpc('mw_docente_restablecer', { p_token: token, p_id: id }),
+    docenteProgreso: (token) => rpc('mw_docente_progreso', { p_token: token }),
+    docenteGuardar: (token, progreso, zona, keepalive) => rpc('mw_docente_guardar', { p_token: token, p_progreso: progreso, p_zona: zona }, { keepalive }),
   };
 })(window);
