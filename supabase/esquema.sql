@@ -88,7 +88,6 @@ begin
   else
     update estudiantes set fallos = 0, bloqueado_hasta = null where id = e.id;
   end if;
-  delete from sesiones where expira < now();
   insert into sesiones (estudiante_id, expira) values (e.id, now() + interval '12 hours') returning token into t;
   update estudiantes set ultimo_ping = now() where id = e.id;
   return json_build_object('ok', true, 'token', t, 'nombre', e.nombre, 'curso', e.curso, 'progreso', e.progreso);
@@ -118,7 +117,7 @@ returns void language plpgsql security definer set search_path = public as $$
 begin
   update estudiantes set ultimo_ping = now() - interval '1 hour'
    where id = (select estudiante_id from sesiones where token = p_token);
-  delete from sesiones where token = p_token;
+  update sesiones set expira = now() where token = p_token;
 end $$;
 
 create or replace function public.mw_docente_entrar(p_rut text, p_clave text)
@@ -160,7 +159,7 @@ returns boolean language plpgsql security definer set search_path = public as $$
 begin
   if mw_sesion_docente(p_token) is null then return false; end if;
   update estudiantes set clave_hash = null, fallos = 0, bloqueado_hasta = null where id = p_id;
-  delete from sesiones where estudiante_id = p_id;
+  update sesiones set expira = now() where estudiante_id = p_id and expira > now();
   return true;
 end $$;
 
