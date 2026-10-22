@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Portal docente · Math World</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg: #f6f3ea; --card: #ffffff; --line: #ddd6c6; --text: #1e2a24; --muted: #4d5a52; --teal: #1f6f64; --amber: #8a5a00; --coral: #b23b26; --ok: #1f7a3a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Nunito", system-ui, sans-serif; }
+    header { background: #1c2d25; color: #f4eedf; }
+    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+    .cab { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 16px 0; }
+    .logo { font-family: "Fredoka", sans-serif; font-size: 24px; font-weight: 700; }
+    .logo small { font-family: "Nunito", sans-serif; font-size: 13px; font-weight: 800; background: #2e4a3d; padding: 4px 10px; border-radius: 999px; margin-left: 8px; }
+    .cab .acc { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .cab .act { font-size: 13px; color: #c9d3c6; }
+    button { font-family: inherit; }
+    .btn { min-height: 42px; padding: 0 16px; border-radius: 10px; border: 2px solid currentColor; background: transparent; color: inherit; font-weight: 800; font-size: 14px; cursor: pointer; }
+    .btn.claro { border-color: #5cc8b8; color: #5cc8b8; }
+    .btn.pri { background: var(--teal); color: #fff; border-color: var(--teal); }
+    .btn.peligro { color: var(--coral); }
+    main { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 18px; }
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+    .tab { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-weight: 800; font-size: 16px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
+    .tab[aria-selected="true"] { border-color: var(--teal); background: #e3f1ee; }
+    .punto { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); display: inline-block; }
+    .punto.off { background: #b9b3a5; }
+    .tarjetas { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+    .tarjeta { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+    .tarjeta span { font-size: 13px; font-weight: 800; color: var(--muted); }
+    .tarjeta b { font-family: "Fredoka", sans-serif; font-size: 32px; font-weight: 600; }
+    .tarjeta small { color: var(--muted); }
+    .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+    .panel h2 { margin: 0 0 12px; font-family: "Fredoka", sans-serif; font-size: 22px; font-weight: 600; }
+    .filtros { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+    .filtros input[type=search] { height: 42px; padding: 0 12px; border: 1px solid #c9c0ae; border-radius: 10px; font-size: 15px; min-width: 220px; font-family: inherit; }
+    .filtros label { font-weight: 700; font-size: 14px; display: flex; gap: 6px; align-items: center; }
+    .tabla { overflow-x: auto; }
+    table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 15px; }
+    th { text-align: left; font-size: 13px; color: var(--muted); padding: 10px; border-bottom: 2px solid var(--line); white-space: nowrap; }
+    td { padding: 11px 10px; border-bottom: 1px solid #ece6d8; vertical-align: middle; }
+    tr.fila { cursor: pointer; }
+    tr.fila:hover td { background: #faf8f2; }
+    .est { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+    .barra { height: 8px; width: 90px; border-radius: 4px; background: #ece6d8; overflow: hidden; display: inline-block; vertical-align: middle; margin-right: 6px; }
+    .barra i { display: block; height: 100%; background: var(--teal); }
+    .muted { color: var(--muted); }
+    .vacio { padding: 24px; text-align: center; color: var(--muted); }
+    dialog { width: min(760px, calc(100% - 24px)); border: 0; border-radius: 16px; padding: 0; box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+    dialog::backdrop { background: rgba(20, 28, 24, .55); }
+    .det { padding: 22px 24px; display: flex; flex-direction: column; gap: 14px; }
+    .det h3 { margin: 0; font-family: "Fredoka", sans-serif; font-size: 24px; font-weight: 600; }
+    .det h4 { margin: 6px 0 0; font-size: 15px; }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { padding: 5px 10px; border-radius: 999px; background: #efeadf; font-size: 13px; font-weight: 800; }
+    .temas { display: flex; flex-direction: column; gap: 8px; }
+    .tema { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 14px; }
+    .tema .barra { width: 120px; }
+    .msg { padding: 10px 12px; border-radius: 10px; background: #fdf3e1; color: #6a4500; font-weight: 700; }
+    .err { padding: 16px; border-radius: 12px; background: #fde8e4; color: var(--coral); font-weight: 800; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap cab">
+      <div class="logo">Math World <small>Portal docente</small></div>
+      <div class="acc">
+        <span class="act" id="actualizado"></span>
+        <button type="button" class="btn claro" id="btn-actualizar">Actualizar</button>
+        <a class="btn claro" href="./" style="display:inline-flex;align-items:center;text-decoration:none">Ir al juego</a>
+        <button type="button" class="btn claro" id="btn-salir">Cerrar sesión</button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div id="error" class="err" hidden></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="tarjetas" id="tarjetas"></div>
+    <section class="panel">
+      <h2 id="titulo-lista">Estudiantes</h2>
+      <div class="filtros">
+        <input type="search" id="buscar" placeholder="Buscar por nombre o RUT" aria-label="Buscar estudiante">
+        <label><input type="checkbox" id="solo-online"> Solo conectados</label>
+      </div>
+      <div class="tabla"><table>
+        <thead><tr><th>Estudiante</th><th>Estado</th><th>Dónde está</th><th>Nivel</th><th>Acierto</th><th>Tema más débil</th><th>Vencidos</th><th>Derrotas</th></tr></thead>
+        <tbody id="filas"></tbody>
+      </table></div>
+    </section>
+  </main>
+  <dialog id="detalle" aria-labelledby="det-nombre"><div class="det" id="det"></div></dialog>
+
+  <script src="config.js"></script>
+  <script src="nube.js"></script>
+  <script src="preguntas.js"></script>
+  <script src="preguntas_u234.js"></script>
+  <script src="docente.js"></script>
+</body>
+</html>

@@ -156,3 +156,48 @@ img.px, .px { image-rendering: pixelated; }
   .aviso { bottom: 84px; font-size: 13px; }
   .herramientas .ranura { width: 46px; height: 46px; }
 }
+
+/* ---------- v2: sesión, vida, combate, base ---------- */
+.form form { display: flex; flex-direction: column; gap: 16px; }
+.campo { display: flex; flex-direction: column; gap: 8px; }
+.form input[type="password"] { height: 48px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--text); font-size: 17px; font-family: inherit; }
+.form input[type="password"]:focus { outline: 3px solid var(--teal); outline-offset: 1px; }
+.saludo { margin: 0 0 10px; font-weight: 800; color: var(--amber); line-height: 1.4; }
+.pestanas { display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: var(--bg); }
+.pestanas button { flex: 1; min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-weight: 800; font-size: 15px; cursor: pointer; }
+.pestanas button[aria-selected="true"] { background: var(--panel-2); color: var(--text); box-shadow: inset 0 0 0 2px var(--teal); }
+.corazones { display: flex; gap: 2px; flex-wrap: wrap; }
+.cor { width: 16px; height: 14px; fill: var(--coral); }
+.cor.vacio { fill: #3b2a28; }
+.zona-actual { position: absolute; left: 12px; top: 92px; padding: 4px 10px; border-radius: 8px; background: rgba(18, 32, 26, .85); font-size: 13px; font-weight: 800; color: var(--amber); pointer-events: none; }
+.recursos .rot { align-self: center; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #b4bfb2; padding: 0 4px; }
+#toast.alerta { background: #3a2420; border-color: var(--coral); }
+.modal.combate { border-color: var(--coral); }
+.combate-cab { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: center; }
+.luchador { display: flex; gap: 14px; align-items: center; flex: 1; min-width: 260px; }
+.luchador img { width: 72px; height: 72px; border-radius: 14px; background: var(--bg); padding: 6px; object-fit: contain; }
+.luchador > div { flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.barra.enemigo { height: 12px; }
+.barra.enemigo > i { background: var(--coral); }
+.tu-vida { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.tu-vida .cor { width: 20px; height: 18px; }
+.objetos { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.obj { min-height: 110px; padding: 10px; border-radius: 14px; border: 2px solid var(--line); background: var(--bg); color: var(--text); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-weight: 800; font-size: 14px; }
+button.obj { cursor: pointer; }
+button.obj:hover { border-color: var(--amber); }
+.obj img { width: 48px; height: 48px; object-fit: contain; }
+.obj small { color: var(--muted); }
+button.zona { text-align: left; color: var(--text); font: inherit; cursor: pointer; }
+button.zona:disabled { cursor: default; }
+button.zona:not(:disabled):hover { border-color: var(--amber); }
+.unidades-avance { display: flex; flex-direction: column; gap: 10px; }
+.unidades-avance details { padding: 12px 14px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); }
+.unidades-avance summary { cursor: pointer; font-size: 16px; }
+.unidades-avance .avance { margin-top: 12px; }
+@media (max-width: 760px) {
+  .zona-actual { top: 84px; }
+  .luchador img { width: 56px; height: 56px; }
+}
+
+#bloque-clave { display: flex; flex-direction: column; gap: 14px; }
+#bloque-clave .saludo { margin: 0; }

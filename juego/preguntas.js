@@ -39,7 +39,7 @@
     const set = [correcta];
     for (const d of distractores) if (d != null && !set.includes(d)) set.push(d);
     let k = 1;
-    while (set.length < 4 && k < 50) {
+    while (relleno && set.length < 4 && k < 50) {
       const extra = relleno(k++);
       if (extra != null && !set.includes(extra)) set.push(extra);
     }
@@ -415,7 +415,7 @@
     return t ? Object.fromEntries(Object.entries(t).map(([k, v]) => [k, v.titulo])) : {};
   };
 
-  const api = { nuevo, titulos, BANCO, _num: num };
+  const api = { nuevo, titulos, BANCO, _num: num, h: { rnd, pick, gcd, shuffle, redondear, num, par, frac, fracTxt, opciones, cerca, desafio } };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.Preguntas = api;
 })(typeof window !== 'undefined' ? window : globalThis);
