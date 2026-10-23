@@ -37,6 +37,7 @@ Juego de mundo abierto en `mathworld.cl/juego/`, hecho con Phaser 3 (incluido en
 - El mapa del juego lee `contenido.json`: las unidades habilitadas aparecen abiertas en el mapa.
 - Cada estudiante tiene su base propia (fogata para fabricar, cofre y portal) y viaja por el portal a los mundos de las unidades habilitadas.
 - Enemigos (arbustos, niebla, arañas que caen de los árboles): cada acierto les quita vida y cada error quita un corazón al jugador. Si pierde, vuelve a su base sin lo que llevaba en la mochila; lo guardado en el cofre se conserva.
+- Modo cooperativo (Supabase Realtime, `juego/coop.js`): al viajar, cada estudiante elige un grupo (1 a 8, máximo 6) y ve a sus compañeros del mismo nivel en ese mundo. Árboles, rocas y cofres son compartidos. Cada mundo tiene un jefe final que se enfrenta con al menos 4 jugadores del grupo en su guarida: la vida del jefe es compartida y todos reciben la recompensa.
 - Desafíos de las 4 unidades de 7° y 8° en `preguntas.js` (Unidad 1) y `preguntas_u234.js` (Unidades 2 a 4).
 - Inicio de sesión con RUT y clave propia, y portal docente (`juego/docente.html`), usando Supabase. La conexión se configura en `juego/config.js` y el esquema está en `supabase/esquema.sql`. Si `config.js` está vacío, el juego funciona sin conexión (progreso local con apodo).
 - Las listas de estudiantes y la cuenta docente se cargan directamente en la base de datos: nunca se suben a este repositorio, que es público.

@@ -69,6 +69,14 @@
     bicho: { nombre: 'Araña del árbol', vida: 2, dif: 1, botin: { madera: 2 }, xp: 10, vel: 85 },
   };
   const xpPara = (nivel) => 60 + 40 * nivel;
+  const JEFES = {
+    u1: { nombre: 'Guardián del Cero', color: '#7d8a7a' },
+    u2: { nombre: 'Coloso de la Incógnita', color: '#8a93a6' },
+    u3: { nombre: 'Titán de las Formas', color: '#c9a46b' },
+    u4: { nombre: 'Hidra de los Datos', color: '#5d7b55' },
+  };
+  const JEFE_MIN = 4, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000;
+  const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
   // ===================================================================
   // Utilidades
@@ -153,8 +161,8 @@
     if (txt === sesion.ultimo) return;
     try {
       const ok = sesion.modo === 'docente'
-        ? await Nube.docenteGuardar(sesion.token, S, S.zona, keepalive)
-        : await Nube.guardar(sesion.token, S, S.zona, keepalive);
+        ? await Nube.docenteGuardar(sesion.token, S, zonaRed(), keepalive)
+        : await Nube.guardar(sesion.token, S, zonaRed(), keepalive);
       if (ok === false) { sesionVencida(); return; }
       sesion.ultimo = txt;
       sesion.avisoSinRed = false;
@@ -169,7 +177,15 @@
     $('sv-ok').addEventListener('click', () => { if (docente) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.href = './'; } else location.reload(); });
   }
   setInterval(() => subir(), 10000);
-  setInterval(() => { if (sesion.modo === 'nube' && S) Nube.ping(sesion.token, escena ? escena.zona : 'base').catch(() => {}); }, 25000);
+  setInterval(() => { if (sesion.modo === 'nube' && S) Nube.ping(sesion.token, zonaRed()).catch(() => {}); }, 25000);
+  // Zona que ve el docente: "base", "u1" (solo) o "u1-g3" (grupo 3)
+  function zonaRed() {
+    const z = escena ? escena.zona : (S && S.zona) || 'base';
+    return z !== 'base' && S && S.grupo ? `${z}-g${S.grupo}` : z;
+  }
+  const idJuego = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now();
+  const coopActivo = () => Boolean(window.Coop && Coop.disponible && (sesion.modo === 'nube' || sesion.modo === 'docente'));
+  const nivelNum = () => (S.curso === '8basico' ? '8' : '7');
   window.addEventListener('pagehide', () => { guardar(); subir(true); });
 
   function sumar(recurso, n) {
@@ -540,6 +556,117 @@
     pintar();
   }
 
+  // ---------- Jefe final cooperativo ----------
+  let jefeUI = null;
+  function abrirInfoJefe(zona) {
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq" style="color: var(--coral)">Jefe final</span><h2 id="modal-titulo">${esc(JEFES[zona].nombre)}</h2></div></div>
+      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y reúnan al menos <strong>${JEFE_MIN} jugadores</strong> en su guarida. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="ij-ok" data-foco>Entendido</button></div>`, 'jefe');
+    $('ij-ok').addEventListener('click', () => ui.cerrar());
+  }
+  function abrirJefe() {
+    const e = escena, J0 = JEFES[e.zona];
+    const dif = difPara(2);
+    const nuevo = () => Preguntas.nuevo(S.curso, e.zona, dif, S.stats);
+    let d = nuevo(), elegida = null, ultimo = '', fase = 'pregunta', pagado = false;
+    const retrato = e.textures.getBase64(`jefe_${e.zona}`);
+    const equipoHTML = () => e.jefe.part.map((id) => `<span class="pildora">${esc(e.nombreJugador(id))}</span>`).join('');
+    const barra = () => { const J = e.jefe; return J.max ? Math.max(0, (J.hp / J.max) * 100) : 0; };
+    const pintar = () => {
+      let cuerpo;
+      if (fase === 'victoria') {
+        cuerpo = `<div class="mensaje bien" role="status">¡Su grupo venció al ${esc(J0.nombre.toLowerCase())}! Cada participante gana ${Object.entries(JEFE_PREMIO).map(([r, n]) => `${n} ${r}`).join(', ')} y 80 de experiencia.</div>
+          <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>¡Celebrar!</button></div>`;
+      } else if (fase === 'caido') {
+        cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Tu grupo sigue luchando; tú vuelves a tu base y pierdes lo que llevabas en la mochila.</div>
+          <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Volver a mi base</button></div>`;
+      } else if (fase === 'fin') {
+        cuerpo = `<div class="mensaje pista" role="status">El combate terminó porque el grupo se separó. Pueden volver a intentarlo cuando estén ${JEFE_MIN} en la guarida.</div>
+          <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Cerrar</button></div>`;
+      } else {
+        cuerpo = `${ultimo}
+          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${alternativasHTML(d, elegida, new Set(), false)}
+          <div class="acciones">
+            <div><button type="button" class="btn" id="j-salir">Retirarse</button></div>
+            <div><button type="button" class="btn pri" id="j-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div>
+          </div>`;
+      }
+      ui.abrir(`
+        <div class="combate-cab">
+          <div class="luchador">
+            <img class="px" src="${retrato}" alt="" width="72" height="72">
+            <div><span class="etq" style="color: var(--coral)">Jefe final · ${esc(d.titulo)}</span><h2 id="modal-titulo">${esc(J0.nombre)}</h2>
+              <div class="barra enemigo" role="img" aria-label="Vida del jefe"><i id="jefe-barra" style="width: ${barra()}%"></i></div>
+              <span class="nota" id="jefe-hp">Vida: ${e.jefe.hp} de ${e.jefe.max}</span></div>
+          </div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
+        </div>
+        <div class="pildoras" id="jefe-equipo">${equipoHTML()}</div>
+        ${cuerpo}`, 'combate');
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+      on('j-ok', atacar);
+      on('j-salir', () => { e.salirDelJefe(); jefeUI = null; ui.cerrar(); });
+      on('j-fin', terminar);
+      ui.teclas = (ev) => {
+        if (fase !== 'pregunta') { if (ev.key === 'Enter') { ev.preventDefault(); terminar(); } return; }
+        if (/^[1-4]$/.test(ev.key)) { elegida = Number(ev.key) - 1; pintar(); } else if (ev.key === 'Enter') { ev.preventDefault(); atacar(); }
+      };
+    };
+    const terminar = () => {
+      const f = fase; jefeUI = null; e.enJefe = false; ui.cerrar();
+      if (f === 'caido') morir(J0.nombre.toLowerCase());
+    };
+    const atacar = () => {
+      if (elegida === null || fase !== 'pregunta') return;
+      const ok = elegida === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) { ganarXP(4 + 2 * dif); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; e.golpeLocal(danio()); }
+      else {
+        S.vida -= 1; e.dolor(); pintarHUD();
+        ultimo = `<div class="mensaje mal" role="status">¡El jefe te golpeó! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        if (S.vida <= 0) { fase = 'caido'; e.salirDelJefe(); }
+      }
+      guardar();
+      d = nuevo(); elegida = null;
+      if (fase === 'pregunta') revisar(); else pintar();
+    };
+    const revisar = () => {
+      const J = e.jefe;
+      if (fase === 'pregunta' && J.estado === 'vencido') {
+        fase = 'victoria';
+        if (!pagado) {
+          pagado = true;
+          Object.entries(JEFE_PREMIO).forEach(([r, n]) => sumar(r, n));
+          ganarXP(80); S.jefes = S.jefes || {}; S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1; guardar(true);
+          e.celebrar(e.jefeSpr ? e.jefeSpr.x : undefined, e.jefeSpr ? e.jefeSpr.y - 60 : undefined);
+        }
+        pintar(); return;
+      }
+      if (fase === 'pregunta' && (J.estado === 'libre' || !J.part.includes(idJuego))) { fase = 'fin'; e.enJefe = false; pintar(); return; }
+      pintar();
+    };
+    jefeUI = () => {
+      const b = $('jefe-barra'), t = $('jefe-hp'), q = $('jefe-equipo');
+      if (b) b.style.width = `${barra()}%`;
+      if (t) t.textContent = `Vida: ${e.jefe.hp} de ${e.jefe.max}`;
+      if (q) q.innerHTML = equipoHTML();
+      if (fase === 'pregunta' && (e.jefe.estado !== 'combate' || !e.jefe.part.includes(idJuego))) revisar();
+    };
+    pintar();
+  }
+  function actualizarJefeUI() { if (jefeUI) jefeUI(); }
+  function pintarCoop() {
+    const el = $('hud-coop'); if (!el) return;
+    const e = escena;
+    if (!e || e.zona === 'base') { el.classList.add('oculto'); return; }
+    el.classList.remove('oculto');
+    if (!e.canal) { el.textContent = 'Explorando solo'; return; }
+    el.textContent = e.canal.est === 'ok' ? `Grupo ${S.grupo} · ${1 + e.otros.size} en este mundo` : `Grupo ${S.grupo} · conectando…`;
+  }
+
   // ---------- Fabricar (en la base) ----------
   function costoHTML(costo) {
     return Object.entries(costo).map(([r, n]) => `<span class="${total(r) < n ? 'falta' : ''}"><img class="px" src="${ICONO(r)}" alt="">${n} ${r}</span>`).join('');
@@ -634,10 +761,31 @@
     $('p-cerrar').addEventListener('click', () => ui.cerrar());
     const pb = $('p-base');
     if (pb) pb.addEventListener('click', () => { ui.alCerrar = () => viajar('base'); ui.cerrar(); });
-    document.querySelectorAll('[data-z]').forEach((b) => b.addEventListener('click', () => { ui.alCerrar = () => viajar(b.dataset.z); ui.cerrar(); }));
+    document.querySelectorAll('[data-z]').forEach((b) => b.addEventListener('click', () => {
+      if (coopActivo()) elegirGrupo(b.dataset.z);
+      else { ui.alCerrar = () => viajar(b.dataset.z, 0); ui.cerrar(); }
+    }));
   }
-  function viajar(zona) {
+  const MAX_GRUPO = 6, N_GRUPOS = 8;
+  async function elegirGrupo(zona) {
+    let cuentas = {};
+    try { cuentas = (await Nube.grupos(sesion.token, nivelNum())) || {}; } catch (e) { /* sin datos: igual se puede elegir */ }
+    const botones = Array.from({ length: N_GRUPOS }, (_, i) => {
+      const g = i + 1, n = cuentas[`${zona}-g${g}`] || 0, lleno = n >= MAX_GRUPO && !esDocente();
+      return `<button type="button" class="obj grupo" data-g="${g}" ${lleno ? 'disabled' : ''}><strong>Grupo ${g}</strong><small>${lleno ? 'Lleno' : n === 0 ? 'Vacío' : `${n} ${n === 1 ? 'jugador' : 'jugadores'}`}</small></button>`;
+    }).join('');
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">${esc(nombreZona(zona))}</span><h2 id="modal-titulo">¿Con qué grupo vas?</h2></div><button type="button" class="btn" id="gr-volver">Volver</button></div>
+      <p class="nota">Verás y jugarás con los compañeros de ${S.curso === '8basico' ? '8°' : '7°'} básico que elijan el mismo grupo (máximo ${MAX_GRUPO}). Para enfrentar al jefe final necesitan ser al menos 4 en su guarida.</p>
+      <div class="objetos">${botones}</div>
+      <div class="acciones"><span></span><button type="button" class="btn sec" id="gr-solo">Explorar solo</button></div>`);
+    $('gr-volver').addEventListener('click', () => abrirPortal());
+    $('gr-solo').addEventListener('click', () => { ui.alCerrar = () => viajar(zona, 0); ui.cerrar(); });
+    document.querySelectorAll('[data-g]').forEach((b) => b.addEventListener('click', () => { ui.alCerrar = () => viajar(zona, Number(b.dataset.g)); ui.cerrar(); }));
+  }
+  function viajar(zona, grupo = 0) {
     const desde = escena.zona;
+    S.grupo = zona === 'base' ? 0 : grupo;
     if (zona === 'base') {
       const guardado = RECURSOS.map((r) => [r.id, S.mochila[r.id] || 0]).filter(([, n]) => n > 0);
       guardado.forEach(([r, n]) => { S.cofre[r] += n; S.mochila[r] = 0; });
@@ -654,7 +802,7 @@
     RECURSOS.forEach((r) => { S.mochila[r.id] = 0; });
     S.muertes = (S.muertes || 0) + 1;
     S.vida = vidaMax();
-    S.zona = 'base';
+    S.zona = 'base'; S.grupo = 0;
     guardar(true);
     escena.scene.restart({ zona: 'base', desde: 'muerte' });
     setTimeout(() => toast(perdido.length ? `El ${enemigo} te venció. Perdiste: ${perdido.map(([r, n]) => `${n} ${r}`).join(', ')}.` : `El ${enemigo} te venció. Vuelves a tu base.`, 'alerta'), 700);
@@ -744,6 +892,7 @@
   const COLS = 57;
   const fr = (c, r) => r * COLS + c;
   const DIRS = { up: 0, left: 1, down: 2, right: 3 };
+  const GUARIDA = { x: 49, y: 8 };
   const PASTO = [fr(5, 0), fr(5, 1), fr(7, 0), fr(8, 0)];
   const CAMINO = fr(6, 0);
 
@@ -762,8 +911,9 @@
 
     preload() {
       if (!this.textures.exists('kenney')) this.load.image('kenney', 'assets/kenney_roguelike.png');
-      for (const h of ['nada', 'hacha', 'pico']) {
-        if (!this.textures.exists(`pj_${h}`)) this.load.spritesheet(`pj_${h}`, `assets/pj/${S.pj}_${h}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const p of PERSONAJES) for (const h of ['nada', 'hacha', 'pico']) {
+        const key = `pj_${p.id}_${h}`;
+        if (!this.textures.exists(key)) this.load.spritesheet(key, `assets/pj/${p.id}_${h}.png`, { frameWidth: 64, frameHeight: 64 });
       }
     }
 
@@ -798,8 +948,14 @@
       if (this.zona !== 'base') {
         this.time.addEvent({ delay: 40000, loop: true, callback: () => { if (S.vida < vidaMax() && !this.enCombate) { S.vida += 1; pintarHUD(); } } });
       }
+      this.otros = new Map();
+      this.cambios = new Map();
+      this.canal = null;
+      if (this.zona !== 'base' && S.grupo && coopActivo()) this.iniciarCoop();
+      this.events.once('shutdown', () => { if (this.canal) { this.canal.salir(); this.canal = null; } pintarCoop(); });
       pintarHUD();
-      if (sesion.modo === 'nube') Nube.ping(sesion.token, this.zona).catch(() => {});
+      pintarCoop();
+      if (sesion.modo === 'nube') Nube.ping(sesion.token, zonaRed()).catch(() => {});
     }
 
     // ---------- texturas ----------
@@ -847,6 +1003,11 @@
         '..x......x..', '...x....x...', 'x...xxxx...x', '.x.xxxxxx.x.', '..xxrxxrxx..',
         '..xxxxxxxx..', '.x.xxxxxx.x.', 'x...xxxx...x', '...x....x...', '..x......x..',
       ], { x: '#2b1f2e', r: '#ff5a4d' });
+      for (const [z, J] of Object.entries(JEFES)) this.pixeles(`jefe_${z}`, [
+        '.....xxxxxxxx.....', '...xxggggggggxx...', '..xggggggggggggx..', '.xggeeggggggeeggx.', '.xggeeggggggeeggx.',
+        '.xggggggggggggggx.', '.xgggmmmmmmmmgggx.', '..xggggggggggggx..', 'xxxxggggggggggxxxx', 'xggxggggggggggxggx',
+        'xggxgggxxxxgggxggx', 'xggxggx....xggxggx', '.xx.xgx....xgx.xx.', '....xgx....xgx....', '...xggx....xggx...', '...xxxx....xxxx...',
+      ], { x: '#1b1a12', g: J.color, e: '#ffd23f', m: '#3a1f22' });
       this.pixeles('hilo', ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'], { x: '#e8e8e8' });
       this.pixeles('niebla', [
         '......wwwwww........', '....wwwwwwwwww......', '...wwwwwwwwwwwww....', '..wwwwwwwwwwwwwwww..',
@@ -875,10 +1036,10 @@
     retrato(clase) { return this.textures.getBase64(clase === 'arbusto' ? 'arbusto_vivo' : clase); }
 
     crearAnimaciones() {
-      for (const h of ['nada', 'hacha', 'pico']) {
+      for (const p of PERSONAJES) for (const h of ['nada', 'hacha', 'pico']) {
         for (const [d, fila] of Object.entries(DIRS)) {
-          const key = `pj_${h}_${d}`;
-          if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pj_${h}`, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
+          const key = `pj_${p.id}_${h}_${d}`;
+          if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pj_${p.id}_${h}`, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
         }
       }
     }
@@ -1017,6 +1178,7 @@
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
       for (let i = 0; i < M.lagos; i++) {
         const w = 5 + Math.floor(this.rnd() * 5), h = 4 + Math.floor(this.rnd() * 3);
         for (let t = 0; t < 60; t++) {
@@ -1030,6 +1192,7 @@
       if (M.tinte) this.add.rectangle(0, 0, this.ancho * TILE, this.alto * TILE, M.tinte[0], M.tinte[1]).setOrigin(0).setDepth(-9);
       this.bordes();
       this.portal(P.x, P.y);
+      this.crearGuarida();
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
 
       const lugar = (alto = 2) => {
@@ -1070,6 +1233,7 @@
         this.sprite(deco, p[0], p[1]).setDepth(deco.startsWith('flor') ? -5 : (p[1] + 1) * TILE);
         this.marcar(p[0], p[1]);
       }
+      this.objetos.forEach((o, i) => { o.idx = i; });
       // Enemigos: arbustos vivos escondidos y nieblas
       for (let i = 0; i < M.arbustos; i++) {
         const p = lugar(1); if (!p) break;
@@ -1087,6 +1251,19 @@
         this.enemigos.push(this.nuevoEnemigo('niebla', s, { despierto: true }));
       }
     }
+    crearGuarida() {
+      const J = JEFES[this.zona], gx = GUARIDA.x, gy = GUARIDA.y;
+      const anillo = [[-3, -1], [-2, -3], [0, -3], [2, -3], [3, -1], [3, 2], [-3, 2]];
+      for (const [dx, dy] of anillo) { const r = this.sprite('roca_musgo3', gx + dx, gy + dy); this.solido(r.x, r.y - 10, 26, 16); }
+      const cx = gx * TILE + 16, cy = gy * TILE + 30;
+      this.add.particles(cx, cy - 20, 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
+      this.jefeSpr = this.add.image(cx, cy, `jefe_${this.zona}`).setOrigin(0.5, 1).setScale(4).setDepth(cy);
+      this.tweens.add({ targets: this.jefeSpr, scaleY: 4.15, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.solido(cx, cy - 18, 60, 30);
+      this.jefeTag = this.add.text(cx, cy - 104, J.nombre, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(cy + 1);
+      this.guarida = { x: cx, y: cy - 20 };
+      this.objetos.push({ tipo: 'jefe', x: cx, y: cy + 4, activo: true });
+    }
     nuevoEnemigo(clase, s, extra = {}) {
       const E = ENEMIGOS[clase];
       return { clase, s, vida: E.vida, vidaMax: E.vida, origen: { x: s.x, y: s.y }, activo: true, aturdido: 0, ...extra };
@@ -1094,14 +1271,14 @@
 
     // ---------- jugador ----------
     crearJugador() {
-      this.jugador = this.physics.add.sprite(this.inicio.x, this.inicio.y, `pj_${S.herramienta === 'pico' && tiene('pico') ? 'pico' : 'hacha'}`, DIRS.down * 9);
+      this.jugador = this.physics.add.sprite(this.inicio.x, this.inicio.y, `pj_${S.pj}_${S.herramienta === 'pico' && tiene('pico') ? 'pico' : 'hacha'}`, DIRS.down * 9);
       this.jugador.setOrigin(0.5, 0.9);
       this.jugador.body.setSize(18, 10).setOffset(23, 50);
       this.jugador.setCollideWorldBounds(true);
       this.physics.add.collider(this.jugador, this.obstaculos);
     }
     ponerHerramienta(h) {
-      const key = `pj_${h === 'pico' ? 'pico' : 'hacha'}`;
+      const key = `pj_${S.pj}_${h === 'pico' ? 'pico' : 'hacha'}`;
       if (!this.jugador || this.jugador.texture.key === key) return;
       const anim = this.jugador.anims.isPlaying;
       this.jugador.setTexture(key, DIRS[this.dir] * 9);
@@ -1132,6 +1309,7 @@
       } else { j.setVelocity(0, 0); j.anims.stop(); j.setFrame(DIRS[this.dir] * 9); }
       j.setDepth(j.y);
       if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
+      if (this.canal) { this.enviarMovimiento(len > 0.15); this.moverOtros(dt / 1000); this.revisarGuarida(); }
     }
 
     // ---------- enemigos ----------
@@ -1171,7 +1349,7 @@
       this.time.delayedCall(120000, () => { arbol.bicho = true; });
     }
     empezarCombate(e) {
-      if (this.enCombate) return;
+      if (this.enCombate || this.enJefe) return;
       this.enCombate = true;
       this.jugador.setVelocity(0, 0);
       this.cameras.main.shake(150, 0.004);
@@ -1214,7 +1392,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = ['fogata', 'portal', 'cofre_base'].includes(o.tipo) ? 50 : 36;
+        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base'].includes(o.tipo) ? 50 : 36;
         if (d < lim && d - lim < puntaje) { mejor = o; puntaje = d - lim; }
       }
       if (!mejor) {
@@ -1237,6 +1415,7 @@
         case 'fogata': return 'Fabricar y descansar';
         case 'cofre_base': return 'Ver tu cofre';
         case 'portal': return 'Usar el portal';
+        case 'jefe': return this.textoJefe();
         case 'colocado': return `Guardar ${o.nombre.toLowerCase()}`;
         default: return null;
       }
@@ -1253,6 +1432,7 @@
       if (o.tipo === 'fogata') { if (S.vida < vidaMax()) { S.vida = vidaMax(); pintarHUD(); toast('Descansaste junto al fuego: recuperaste tu vida.'); } return abrirFabricar(); }
       if (o.tipo === 'cofre_base') return abrirCofre();
       if (o.tipo === 'portal') return abrirPortal();
+      if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'colocado') return this.quitar(o);
       if (o.tipo === 'arbol') {
         if (o.estado !== 'arbol') return toast('Este árbol todavía está creciendo.');
@@ -1288,25 +1468,228 @@
         sumar('cristal', 1);
         this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, '+1 cristal', '#9ff0e4'));
       }
-      if (o.tipo === 'arbol') {
-        o.estado = 'tocon';
-        this.time.delayedCall(250, () => { o.s.setTexture('tocon'); this.add.particles(o.x, o.y - 30, 'p_hoja', { speed: { min: 40, max: 110 }, lifespan: 700, gravityY: 200, emitting: false }).setDepth(o.y + 50).explode(14); });
-        this.time.delayedCall(45000, () => { o.estado = 'brote'; o.s.setTexture('brote'); });
-        this.time.delayedCall(90000, () => { o.estado = 'arbol'; o.s.setTexture(o.key); });
-      } else if (o.tipo === 'roca') {
-        o.nivel -= 1;
-        if (o.nivel > 0) o.s.setTexture(`${o.base}${o.nivel}`);
-        else {
-          o.activo = false; o.s.setVisible(false); o.z.body.enable = false;
-          this.time.delayedCall(90000, () => { o.nivel = 3; o.s.setTexture(`${o.base}3`).setVisible(true); o.z.body.enable = true; o.activo = true; });
-        }
-      } else if (o.tipo === 'cofre') {
-        o.activo = false;
-        this.tweens.add({ targets: o.s, alpha: 0, duration: 500, onComplete: () => { o.s.setVisible(false); o.z.body.enable = false; } });
-        this.time.delayedCall(150000, () => { o.s.setAlpha(1).setVisible(true); o.z.body.enable = true; o.activo = true; });
+      if (o.tipo === 'arbol' || o.tipo === 'roca' || o.tipo === 'cofre') {
+        const n = o.tipo === 'roca' ? Math.max(0, o.nivel - 1) : o.tipo === 'arbol' ? 'tocon' : 'abierto';
+        if (o.tipo === 'arbol') this.time.delayedCall(250, () => this.add.particles(o.x, o.y - 30, 'p_hoja', { speed: { min: 40, max: 110 }, lifespan: 700, gravityY: 200, emitting: false }).setDepth(o.y + 50).explode(14));
+        this.aplicarNodo(o, n, 0);
+        this.compartirNodo(o, n);
       }
       guardar();
     }
+    // Estado de árboles, rocas y cofres; "edad" = ms desde que ocurrió (para compañeros que llegan tarde)
+    aplicarNodo(o, n, edad = 0) {
+      (o.timers || []).forEach((t) => t.remove(false));
+      o.timers = [];
+      const espera = (ms, f) => { if (ms > 0) o.timers.push(this.time.delayedCall(ms, f)); else f(); };
+      if (o.tipo === 'arbol') {
+        const aBrote = 45000 - edad, aArbol = 90000 - edad;
+        if (aArbol <= 0) { o.estado = 'arbol'; o.s.setTexture(o.key); return; }
+        o.estado = aBrote > 0 ? 'tocon' : 'brote';
+        o.s.setTexture(o.estado);
+        if (aBrote > 0) espera(aBrote, () => { o.estado = 'brote'; o.s.setTexture('brote'); });
+        espera(aArbol, () => { o.estado = 'arbol'; o.s.setTexture(o.key); });
+      } else if (o.tipo === 'roca') {
+        const volver = () => { o.nivel = 3; o.s.setTexture(`${o.base}3`).setVisible(true); o.z.body.enable = true; o.activo = true; };
+        o.nivel = n;
+        if (n > 0) { o.s.setTexture(`${o.base}${n}`).setVisible(true); o.z.body.enable = true; o.activo = true; }
+        else if (90000 - edad <= 0) volver();
+        else { o.activo = false; o.s.setVisible(false); o.z.body.enable = false; espera(90000 - edad, volver); }
+      } else if (o.tipo === 'cofre') {
+        const volver = () => { o.s.setAlpha(1).setVisible(true); o.z.body.enable = true; o.activo = true; };
+        if (150000 - edad <= 0) { volver(); return; }
+        o.activo = false; o.z.body.enable = false;
+        this.tweens.add({ targets: o.s, alpha: 0, duration: 500, onComplete: () => { if (!o.activo) o.s.setVisible(false); } });
+        espera(150000 - edad, volver);
+      }
+    }
+    // ---------- modo cooperativo ----------
+    iniciarCoop() {
+      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente) };
+      this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
+      this.enGuarida = new Set(); this.yoEnGuarida = false; this.enJefe = false;
+      this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
+      this.primeraPresencia = true;
+      const c = new Coop.Canal(`mw-${nivelNum()}-${this.zona}-g${S.grupo}`, idJuego, meta);
+      this.canal = c;
+      c.alEstado = (e) => {
+        if (e === 'ok') { c.emitir('hola', { id: idJuego }); this.ultimoMov.t = 0; if (this.yoEnGuarida) c.emitir('guarida', { id: idJuego, dentro: true }); }
+        if (e === 'error') toast('No se pudo conectar con tu grupo: por ahora juegas solo.', 'alerta');
+        pintarCoop();
+      };
+      c.alCambiarPresencia = (p) => this.sincronizarPresencia(p);
+      c.on('mov', (d) => this.recibirMov(d));
+      c.on('nodo', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i) { this.cambios.set(d.i, { n: d.n, t: Date.now() }); this.aplicarNodo(o, d.n, 0); } });
+      c.on('hola', (d) => {
+        this.ultimoMov.t = 0;
+        if (this.yoEnGuarida) c.emitir('guarida', { id: idJuego, dentro: true });
+        const otros = Object.keys(c.presencia).filter((k) => k !== d.id).concat(idJuego).sort();
+        if (otros[0] !== idJuego) return;
+        c.emitir('estado', { para: d.id, nodos: [...this.cambios].map(([i, v]) => [i, v.n, Date.now() - v.t]).filter((x) => x[2] < 150000), jefe: this.jefeParaEnviar() });
+      });
+      c.on('estado', (d) => {
+        if (d.para !== idJuego) return;
+        (d.nodos || []).forEach(([i, n, e]) => { const o = this.objetos[i]; if (o && o.idx === i) { this.cambios.set(i, { n, t: Date.now() - e }); this.aplicarNodo(o, n, e); } });
+        if (d.jefe) this.recibirJefe(d.jefe);
+      });
+      c.on('guarida', (d) => { if (d.dentro) this.enGuarida.add(d.id); else this.enGuarida.delete(d.id); });
+      c.on('jefe', (d) => this.recibirJefe(d));
+      c.on('jefe_pedir', () => this.iniciarJefeSiLider());
+      c.on('golpe', (d) => this.golpeAlJefe(d.dmg));
+      c.on('caido', (d) => this.sacarDelJefe(d.id));
+    }
+    sincronizarPresencia(p) {
+      const ids = new Set(Object.keys(p));
+      if (this.primeraPresencia) {
+        this.primeraPresencia = false;
+        const otrosEst = Object.entries(p).filter(([id, m]) => id !== idJuego && !m.docente).length;
+        if (otrosEst >= MAX_GRUPO && !S.docente) {
+          toast(`El grupo ${S.grupo} ya tiene ${MAX_GRUPO} jugadores: exploras solo. Usa el portal para elegir otro grupo.`, 'alerta');
+          this.canal.salir(); this.canal = null; S.grupo = 0; pintarCoop(); guardar(true);
+          return;
+        }
+      }
+      for (const [id, meta] of Object.entries(p)) if (id !== idJuego && !this.otros.has(id)) this.crearOtro(id, meta);
+      for (const id of [...this.otros.keys()]) if (!ids.has(id)) this.quitarOtro(id);
+      for (const id of [...this.enGuarida]) if (!ids.has(id)) this.enGuarida.delete(id);
+      const J = this.jefe;
+      if (J && J.estado === 'combate') {
+        const antes = J.lider;
+        J.part = J.part.filter((x) => ids.has(x) || x === idJuego);
+        if (!J.part.includes(J.lider)) J.lider = [...J.part].sort()[0] || null;
+        if (J.lider === idJuego && antes !== idJuego) { if (!J.part.length) J.estado = 'libre'; this.publicarJefe(); }
+      }
+      pintarCoop();
+    }
+    crearOtro(id, meta) {
+      const pj = PERSONAJES.some((x) => x.id === meta.pj) ? meta.pj : 'zorro';
+      const spr = this.add.sprite(this.inicio.x, this.inicio.y, `pj_${pj}_hacha`, DIRS.down * 9).setOrigin(0.5, 0.9).setAlpha(0);
+      const tag = this.add.text(spr.x, spr.y - 60, String(meta.nombre || 'Compañero').slice(0, 28), {
+        fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: meta.docente ? '#ffd27a' : '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 },
+      }).setOrigin(0.5).setResolution(3).setDepth(99990).setAlpha(0);
+      this.otros.set(id, { spr, tag, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', m: false, visto: false });
+    }
+    quitarOtro(id) {
+      const o = this.otros.get(id); if (!o) return;
+      o.spr.destroy(); o.tag.destroy(); this.otros.delete(id);
+    }
+    recibirMov(d) {
+      const o = this.otros.get(d.id); if (!o) return;
+      const h = d.h === 'pico' ? 'pico' : 'hacha';
+      if (h !== o.h) { o.h = h; o.spr.setTexture(`pj_${o.pj}_${h}`, DIRS[o.dir] * 9); }
+      o.obj = { x: Number(d.x) || 0, y: Number(d.y) || 0 }; o.dir = DIRS[d.d] !== undefined ? d.d : 'down'; o.m = Boolean(d.m);
+      if (!o.visto || Phaser.Math.Distance.Between(o.spr.x, o.spr.y, o.obj.x, o.obj.y) > 400) { o.spr.setPosition(o.obj.x, o.obj.y); o.visto = true; o.spr.setAlpha(1); o.tag.setAlpha(1); }
+    }
+    moverOtros(seg) {
+      for (const o of this.otros.values()) {
+        if (!o.visto) continue;
+        const dx = o.obj.x - o.spr.x, dy = o.obj.y - o.spr.y, dist = Math.hypot(dx, dy);
+        if (dist > 2) {
+          const paso = Math.min(dist, 170 * seg);
+          o.spr.x += (dx / dist) * paso; o.spr.y += (dy / dist) * paso;
+          const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+          o.spr.anims.play(`pj_${o.pj}_${o.h}_${dir}`, true);
+        } else if (!o.m) { o.spr.anims.stop(); o.spr.setFrame(DIRS[o.dir] * 9); }
+        o.spr.setDepth(o.spr.y);
+        o.tag.setPosition(o.spr.x, o.spr.y - 62);
+      }
+    }
+    enviarMovimiento(moviendo) {
+      const c = this.canal; if (!c || c.est !== 'ok') return;
+      const u = this.ultimoMov, j = this.jugador, ahora = this.time.now;
+      const n = 1 + this.otros.size;
+      const intervalo = Math.max(400, Math.min(2000, (1000 * n * n * 0.5) / 12));
+      if (u.t && ahora - u.t < intervalo) return;
+      const dist = Math.hypot(j.x - u.x, j.y - u.y);
+      if (u.t && !moviendo && !u.m && dist < 2) return;
+      if (u.t && moviendo && dist < 4) return;
+      u.t = ahora; u.x = j.x; u.y = j.y; u.m = moviendo;
+      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: j.texture.key.endsWith('pico') ? 'pico' : 'hacha', m: moviendo });
+    }
+    compartirNodo(o, n) {
+      if (!this.canal || o.idx === undefined) return;
+      this.cambios.set(o.idx, { n, t: Date.now() });
+      this.canal.emitir('nodo', { i: o.idx, n });
+    }
+
+    // ---------- jefe final cooperativo ----------
+    revisarGuarida() {
+      if (!this.guarida || !this.canal) return;
+      const dentro = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 170;
+      if (dentro !== this.yoEnGuarida) { this.yoEnGuarida = dentro; this.canal.emitir('guarida', { id: idJuego, dentro }); }
+    }
+    jugadoresEnGuarida() {
+      const ids = [...this.enGuarida].filter((id) => this.otros.has(id));
+      if (this.yoEnGuarida) ids.push(idJuego);
+      return ids;
+    }
+    jefeDisponible() { const J = this.jefe; return J && (J.estado === 'libre' || (J.estado === 'vencido' && J.hasta <= Date.now())); }
+    textoJefe() {
+      if (!this.canal) return 'Jefe final: viaja con un grupo';
+      const J = this.jefe;
+      if (J.estado === 'combate') return J.part.includes(idJuego) ? 'Volver al combate' : 'Tu grupo está luchando';
+      if (!this.jefeDisponible()) return `Jefe derrotado: vuelve en ${Math.ceil((J.hasta - Date.now()) / 60000)} min`;
+      const n = this.jugadoresEnGuarida().length;
+      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores`;
+    }
+    pedirJefe() {
+      if (!this.canal) return abrirInfoJefe(this.zona);
+      const J = this.jefe;
+      if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); } return; }
+      if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
+      const n = this.jugadoresEnGuarida().length;
+      if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} en la guarida para desafiar al jefe.`);
+      this.canal.emitir('jefe_pedir', { id: idJuego });
+      this.iniciarJefeSiLider();
+    }
+    iniciarJefeSiLider() {
+      if (!this.jefeDisponible()) return;
+      const part = this.jugadoresEnGuarida().sort();
+      if (part.length < JEFE_MIN || part[0] !== idJuego) return;
+      const max = JEFE_VIDA_POR_JUGADOR * part.length;
+      this.jefe = { estado: 'combate', hp: max, max, part, lider: idJuego, hasta: 0 };
+      this.publicarJefe();
+    }
+    jefeParaEnviar() { const J = this.jefe; return { estado: J.estado, hp: J.hp, max: J.max, part: J.part, lider: J.lider, resta: Math.max(0, J.hasta - Date.now()) }; }
+    publicarJefe() { if (this.canal) this.canal.emitir('jefe', this.jefeParaEnviar()); this.alCambiarJefe(); }
+    recibirJefe(d) {
+      this.jefe = { estado: d.estado, hp: d.hp, max: d.max, part: d.part || [], lider: d.lider, hasta: Date.now() + (d.resta || 0) };
+      this.alCambiarJefe();
+    }
+    alCambiarJefe() {
+      const J = this.jefe;
+      if (J.estado === 'combate' && J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); }
+      if (this.jefeSpr) this.jefeSpr.setTint(J.estado === 'vencido' && J.hasta > Date.now() ? 0x666666 : 0xffffff);
+      actualizarJefeUI();
+    }
+    golpeLocal(dmg) {
+      if (this.jefe.lider === idJuego) this.golpeAlJefe(dmg);
+      else { this.canal.emitir('golpe', { id: idJuego, dmg }); this.jefe.hp = Math.max(0, this.jefe.hp - dmg); actualizarJefeUI(); }
+      if (this.jefeSpr) { this.tweens.add({ targets: this.jefeSpr, x: this.jefeSpr.x + 5, duration: 50, yoyo: true, repeat: 2 }); this.flotante(this.jefeSpr.x, this.jefeSpr.y - 90, `−${dmg}`, '#ffd27a'); }
+    }
+    golpeAlJefe(dmg) {
+      const J = this.jefe;
+      if (J.lider !== idJuego || J.estado !== 'combate') return;
+      J.hp = Math.max(0, J.hp - (Number(dmg) || 0));
+      if (J.hp === 0) { J.estado = 'vencido'; J.hasta = Date.now() + JEFE_DESCANSO; }
+      this.publicarJefe();
+    }
+    sacarDelJefe(id) {
+      const J = this.jefe;
+      if (J.estado !== 'combate' || J.lider !== idJuego) return;
+      J.part = J.part.filter((x) => x !== id);
+      if (!J.part.length) J.estado = 'libre';
+      else if (!J.part.includes(J.lider)) J.lider = [...J.part].sort()[0];
+      this.publicarJefe();
+    }
+    salirDelJefe() {
+      this.enJefe = false;
+      if (!this.canal) return;
+      if (this.jefe.lider === idJuego) this.sacarDelJefe(idJuego);
+      else this.canal.emitir('caido', { id: idJuego });
+      this.jefe.part = this.jefe.part.filter((x) => x !== idJuego);
+    }
+    nombreJugador(id) { if (id === idJuego) return 'Tú'; const o = this.otros.get(id); return o ? String(o.meta.nombre || 'Compañero') : 'Compañero'; }
+
     flotante(x, y, txt, color = '#ffffff') {
       const t = this.add.text(x, y, txt, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '15px', fontStyle: 'bold', color, stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(100000);
       this.tweens.add({ targets: t, y: y - 34, alpha: 0, duration: 1400, ease: 'Cubic.out', onComplete: () => t.destroy() });

@@ -4,7 +4,9 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   const CURSOS = [{ id: '7A', nombre: '7° A', nivel: '7basico' }, { id: '7B', nombre: '7° B', nivel: '7basico' }, { id: '8A', nombre: '8° A', nivel: '8basico' }, { id: '8B', nombre: '8° B', nivel: '8basico' }];
-  const ZONAS = { base: 'En su base', u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' };
+  const ZONAS_BASE = { base: 'En su base', u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' };
+  // "u1-g3" -> "Unidad 1 · Grupo 3"
+  const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
   const MEJORAS = { pico: 'Pico', balde: 'Balde', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal' };
   let token = null, datos = [], curso = '7A';
   try { token = sessionStorage.getItem('mw_docente'); } catch (e) { /* */ }

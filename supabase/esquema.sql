@@ -209,3 +209,16 @@ end $$;
 
 revoke all on function public.mw_docente_progreso(uuid), public.mw_docente_guardar(uuid, jsonb, text) from public, authenticated;
 grant execute on function public.mw_docente_progreso(uuid), public.mw_docente_guardar(uuid, jsonb, text) to anon;
+
+-- Cuántos estudiantes conectados hay en cada mundo y grupo de un nivel (para elegir grupo)
+create or replace function public.mw_grupos(p_token uuid, p_nivel text)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_estudiante(p_token) is null and mw_sesion_docente(p_token) is null then return null; end if;
+  return (select coalesce(json_object_agg(zona, n), '{}'::json) from (
+    select zona, count(*) as n from estudiantes
+     where left(curso, 1) = p_nivel and ultimo_ping > now() - interval '75 seconds' and zona like 'u_-g%'
+     group by zona) t);
+end $$;
+revoke all on function public.mw_grupos(uuid, text) from public, authenticated;
+grant execute on function public.mw_grupos(uuid, text) to anon;

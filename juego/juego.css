@@ -201,3 +201,10 @@ button.zona:not(:disabled):hover { border-color: var(--amber); }
 
 #bloque-clave { display: flex; flex-direction: column; gap: 14px; }
 #bloque-clave .saludo { margin: 0; }
+
+/* ---------- cooperativo ---------- */
+.zona-actual.coop { top: 124px; color: var(--teal); }
+.obj.grupo { min-height: 84px; }
+.obj.grupo strong { font-family: "Fredoka", "Nunito", sans-serif; font-size: 18px; font-weight: 600; }
+.obj.grupo:disabled { opacity: .45; cursor: not-allowed; }
+@media (max-width: 760px) { .zona-actual.coop { top: 112px; } }
