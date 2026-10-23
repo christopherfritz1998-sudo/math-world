@@ -107,6 +107,7 @@
   // Estado, sesión y guardado
   // ===================================================================
   let S = null;            // progreso del jugador (se guarda completo)
+  let juegoCerrado = false; // el docente cerró el juego para este curso
   let escena = null;
   const sesion = { modo: 'local', token: null, claveLocal: null, ultimo: '', avisoSinRed: false };
 
@@ -177,7 +178,23 @@
     $('sv-ok').addEventListener('click', () => { if (docente) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.href = './'; } else location.reload(); });
   }
   setInterval(() => subir(), 10000);
-  setInterval(() => { if (sesion.modo === 'nube' && S) Nube.ping(sesion.token, zonaRed()).catch(() => {}); }, 25000);
+  setInterval(() => latir(), 20000);
+  // Latido: mantiene "en línea" al estudiante y lo saca del juego si el docente cierra su curso.
+  async function latir() {
+    if (sesion.modo !== 'nube' || !S || juegoCerrado) return;
+    try { const r = await Nube.latido(sesion.token, zonaRed()); if (r && r.abierto === false) cerrarPorDocente(); } catch (e) { /* sin red: se reintenta */ }
+  }
+  async function cerrarPorDocente() {
+    if (juegoCerrado) return;
+    juegoCerrado = true;
+    if (escena && escena.canal) { escena.canal.salir(); escena.canal = null; }
+    guardar(true);
+    await subir();
+    ui.abrir(`<h2 id="modal-titulo">El juego está cerrado</h2>
+      <p class="enunciado" style="font-size: 18px">Tu profesor cerró el juego para tu curso. Tu avance quedó guardado: podrás seguir donde quedaste cuando lo vuelva a abrir.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="jc-ok" data-foco>Salir</button></div>`, 'bloqueo');
+    $('jc-ok').addEventListener('click', () => location.reload());
+  }
   // Zona que ve el docente: "base", "u1" (solo) o "u1-g3" (grupo 3)
   function zonaRed() {
     const z = escena ? escena.zona : (S && S.zona) || 'base';
@@ -274,6 +291,7 @@
       if (!ingreso.estado || ingreso.rut !== rut) {
         const est = await Nube.estado(rut, ingreso.nivel);
         if (!est || !est.existe) return error(`Tu RUT no está en las listas de ${ingreso.nivel}° básico. Revisa el curso elegido o habla con tu profesor.`);
+        if (est.abierto === false) return error(`El juego de ${est.curso[0]}°${est.curso[1]} está cerrado en este momento. Tu profesor lo abrirá en clases.`);
         ingreso.estado = est; ingreso.rut = rut;
         $('saludo').textContent = est.tiene_clave ? `Hola, ${est.nombre}. Escribe tu clave.` : `Hola, ${est.nombre}. Es tu primera vez: crea una clave de al menos 4 caracteres y elige tu personaje.`;
         $('bloque-clave').classList.remove('oculto');
@@ -291,7 +309,7 @@
       }
       const r = await Nube.entrar(rut, ingreso.nivel, clave);
       if (!r || !r.ok) {
-        const msg = { clave_incorrecta: 'Clave incorrecta. Si la olvidaste, pide a tu profesor que la restablezca.', bloqueado: 'Demasiados intentos fallidos. Espera 10 minutos.', clave_corta: 'La clave debe tener al menos 4 caracteres.' };
+        const msg = { clave_incorrecta: 'Clave incorrecta. Si la olvidaste, pide a tu profesor que la restablezca.', bloqueado: 'Demasiados intentos fallidos. Espera 10 minutos.', clave_corta: 'La clave debe tener al menos 4 caracteres.', cerrado: 'El juego de tu curso está cerrado en este momento. Tu profesor lo abrirá en clases.' };
         return error(msg[r && r.error] || 'No se pudo entrar. Inténtalo otra vez.');
       }
       sesion.modo = 'nube'; sesion.token = r.token;
@@ -402,6 +420,7 @@
   const ui = {
     abierto: false, alCerrar: null, teclas: null,
     abrir(html, clase = '', alCerrar = null) {
+      if (juegoCerrado && clase !== 'bloqueo') return;
       const m = $('modal');
       m.className = 'modal ' + clase;
       m.innerHTML = html;
@@ -848,7 +867,7 @@
   document.addEventListener('keydown', (e) => {
     if (!S || $('hud').classList.contains('oculto')) return;
     if (ui.abierto) {
-      if (e.key === 'Escape' && !$('modal').classList.contains('combate')) ui.cerrar();
+      if (e.key === 'Escape' && !$('modal').classList.contains('combate') && !$('modal').classList.contains('bloqueo')) ui.cerrar();
       else if (ui.teclas) ui.teclas(e);
       return;
     }
@@ -863,7 +882,7 @@
   $('btn-base').addEventListener('click', () => abrirFabricar());
   $('btn-decorar').addEventListener('click', abrirDecorar);
   $('btn-mapa').addEventListener('click', abrirMapa);
-  $('capa').addEventListener('click', (e) => { if (e.target === $('capa') && !$('modal').classList.contains('combate')) ui.cerrar(); });
+  $('capa').addEventListener('click', (e) => { if (e.target === $('capa') && !$('modal').classList.contains('combate') && !$('modal').classList.contains('bloqueo')) ui.cerrar(); });
 
   const palanca = { x: 0, y: 0 };
   (() => {
@@ -955,7 +974,7 @@
       this.events.once('shutdown', () => { if (this.canal) { this.canal.salir(); this.canal = null; } pintarCoop(); });
       pintarHUD();
       pintarCoop();
-      if (sesion.modo === 'nube') Nube.ping(sesion.token, zonaRed()).catch(() => {});
+      latir();
     }
 
     // ---------- texturas ----------

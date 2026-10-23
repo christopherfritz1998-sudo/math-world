@@ -8,7 +8,7 @@
   // "u1-g3" -> "Unidad 1 · Grupo 3"
   const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
   const MEJORAS = { pico: 'Pico', balde: 'Balde', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal' };
-  let token = null, datos = [], curso = '7A';
+  let token = null, datos = [], curso = '7A', abiertos = null;
   try { token = sessionStorage.getItem('mw_docente'); } catch (e) { /* */ }
   if (!token || !Nube.activo) { location.replace('./'); return; }
 
@@ -37,9 +37,10 @@
 
   async function cargar() {
     try {
-      const r = await Nube.docenteResumen(token);
+      const [r, a] = await Promise.all([Nube.docenteResumen(token), Nube.docenteCursos(token).catch(() => null)]);
       if (r === null) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.replace('./'); return; }
-      datos = r; $('error').hidden = true;
+      datos = r; if (a) abiertos = a; $('error').hidden = true;
+      pintarAcceso();
       $('actualizado').textContent = `Actualizado ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
       pintar();
     } catch (e) {
@@ -51,7 +52,8 @@
   function pintar() {
     $('tabs').innerHTML = CURSOS.map((c) => {
       const on = datos.filter((e) => e.curso === c.id && e.conectado).length;
-      return `<button type="button" class="tab" role="tab" data-c="${c.id}" aria-selected="${c.id === curso}">${c.nombre} <span class="punto ${on ? '' : 'off'}" aria-hidden="true"></span><span class="muted" style="font-size:13px">${on} en línea</span></button>`;
+      const cerrado = abiertos && abiertos[c.id] === false;
+      return `<button type="button" class="tab" role="tab" data-c="${c.id}" aria-selected="${c.id === curso}">${c.nombre} <span class="punto ${on ? '' : 'off'}" aria-hidden="true"></span><span class="muted" style="font-size:13px">${on} en línea</span>${cerrado ? '<span class="cerrado-chip">· Cerrado</span>' : ''}</button>`;
     }).join('');
     document.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => { curso = b.dataset.c; pintar(); }));
 
@@ -157,6 +159,41 @@
   $('btn-jugar').addEventListener('click', () => $('jugar').showModal());
   $('jugar-cerrar').addEventListener('click', () => $('jugar').close());
   $('jugar-ir').addEventListener('click', () => { location.href = `./?docente=${eleccion.n}&pj=${eleccion.pj}`; });
+
+  // Abrir y cerrar el juego por curso
+  function pintarAcceso() {
+    const cont = $('acceso-cursos');
+    if (!abiertos) { cont.innerHTML = '<span class="muted">No se pudo leer el estado de los cursos.</span>'; return; }
+    cont.innerHTML = CURSOS.map((c) => {
+      const ab = abiertos[c.id] !== false;
+      const on = datos.filter((e) => e.curso === c.id && e.conectado).length;
+      return `<div class="curso-acc ${ab ? 'abierto' : 'cerrado'}">
+        <div><strong>${c.nombre}</strong><br><span class="est">${ab ? `Abierto · ${on} en línea` : 'Cerrado'}</span></div>
+        <button type="button" class="interruptor" role="switch" aria-checked="${ab}" aria-label="Juego de ${c.nombre}: ${ab ? 'abierto' : 'cerrado'}" data-acc="${c.id}"></button>
+      </div>`;
+    }).join('');
+    cont.querySelectorAll('[data-acc]').forEach((b) => b.addEventListener('click', () => cambiarAcceso([b.dataset.acc], abiertos[b.dataset.acc] === false)));
+  }
+  async function cambiarAcceso(cursos, abrir) {
+    if (!abrir) {
+      const n = datos.filter((e) => cursos.includes(e.curso) && e.conectado).length;
+      const nombres = cursos.map((id) => CURSOS.find((c) => c.id === id).nombre).join(', ');
+      if (!confirm(`¿Cerrar el juego para ${nombres}?${n ? `\n\n${n} ${n === 1 ? 'estudiante está jugando y saldrá' : 'estudiantes están jugando y saldrán'} en unos segundos. Su avance queda guardado.` : ''}`)) return;
+    }
+    document.querySelectorAll('[data-acc], #abrir-todos, #cerrar-todos').forEach((b) => { b.disabled = true; });
+    try {
+      const r = await Nube.docenteAbrir(token, cursos, abrir);
+      if (r) abiertos = r;
+      $('error').hidden = true;
+    } catch (e) {
+      $('error').textContent = 'No se pudo cambiar el acceso. Revisa tu conexión e inténtalo otra vez.';
+      $('error').hidden = false;
+    }
+    document.querySelectorAll('#abrir-todos, #cerrar-todos').forEach((b) => { b.disabled = false; });
+    pintarAcceso(); pintar();
+  }
+  $('abrir-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), true));
+  $('cerrar-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), false));
 
   $('buscar').addEventListener('input', pintar);
   $('solo-online').addEventListener('change', pintar);

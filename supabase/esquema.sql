@@ -222,3 +222,101 @@ begin
 end $$;
 revoke all on function public.mw_grupos(uuid, text) from public, authenticated;
 grant execute on function public.mw_grupos(uuid, text) to anon;
+
+-- Abrir y cerrar el juego por curso desde el portal docente
+create table if not exists public.cursos (
+  curso text primary key check (curso in ('7A', '7B', '8A', '8B')),
+  abierto boolean not null default true,
+  actualizado timestamptz not null default now()
+);
+alter table public.cursos enable row level security;
+revoke all on public.cursos from anon, authenticated;
+insert into public.cursos (curso) values ('7A'), ('7B'), ('8A'), ('8B') on conflict (curso) do nothing;
+
+create or replace function public.mw_curso_abierto(p_curso text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce((select abierto from cursos where curso = p_curso), true);
+$$;
+
+create or replace function public.mw_estudiante_estado(p_rut text, p_nivel text)
+returns json language plpgsql security definer set search_path = public as $$
+declare e estudiantes;
+begin
+  select * into e from estudiantes where rut = mw_rut(p_rut) and left(curso, 1) = p_nivel;
+  if not found then return json_build_object('existe', false); end if;
+  return json_build_object('existe', true, 'tiene_clave', e.clave_hash is not null,
+    'nombre', split_part(e.nombre, ' ', 3), 'curso', e.curso, 'abierto', mw_curso_abierto(e.curso));
+end $$;
+
+create or replace function public.mw_estudiante_entrar(p_rut text, p_nivel text, p_clave text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare e estudiantes; t uuid;
+begin
+  select * into e from estudiantes where rut = mw_rut(p_rut) and left(curso, 1) = p_nivel;
+  if not found then return json_build_object('ok', false, 'error', 'no_esta'); end if;
+  if not mw_curso_abierto(e.curso) then return json_build_object('ok', false, 'error', 'cerrado'); end if;
+  if e.bloqueado_hasta is not null and e.bloqueado_hasta > now() then
+    return json_build_object('ok', false, 'error', 'bloqueado');
+  end if;
+  if e.clave_hash is null then
+    if length(coalesce(p_clave, '')) < 4 then return json_build_object('ok', false, 'error', 'clave_corta'); end if;
+    update estudiantes set clave_hash = crypt(p_clave, gen_salt('bf')), fallos = 0 where id = e.id;
+  elsif e.clave_hash <> crypt(coalesce(p_clave, ''), e.clave_hash) then
+    update estudiantes set fallos = fallos + 1,
+      bloqueado_hasta = case when fallos + 1 >= 5 then now() + interval '10 minutes' else null end
+    where id = e.id;
+    return json_build_object('ok', false, 'error', 'clave_incorrecta');
+  else
+    update estudiantes set fallos = 0, bloqueado_hasta = null where id = e.id;
+  end if;
+  insert into sesiones (estudiante_id, expira) values (e.id, now() + interval '12 hours') returning token into t;
+  update estudiantes set ultimo_ping = now() where id = e.id;
+  return json_build_object('ok', true, 'token', t, 'nombre', e.nombre, 'curso', e.curso, 'progreso', e.progreso);
+end $$;
+
+-- Guardar sigue funcionando con el juego cerrado (para no perder avance), pero no marca "en línea".
+create or replace function public.mw_guardar(p_token uuid, p_progreso jsonb, p_zona text)
+returns boolean language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token);
+begin
+  if id_e is null then return false; end if;
+  if pg_column_size(p_progreso) > 200000 then return false; end if;
+  update estudiantes set progreso = p_progreso, zona = left(p_zona, 20), actualizado = now(),
+    ultimo_ping = case when mw_curso_abierto(curso) then now() else ultimo_ping end
+  where id = id_e;
+  return true;
+end $$;
+
+-- Latido del juego: marca en línea y avisa si el docente cerró el curso.
+create or replace function public.mw_latido(p_token uuid, p_zona text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select curso into c from estudiantes where id = id_e;
+  if not mw_curso_abierto(c) then
+    update estudiantes set ultimo_ping = now() - interval '1 hour' where id = id_e;
+    return json_build_object('ok', true, 'abierto', false);
+  end if;
+  update estudiantes set zona = left(p_zona, 20), ultimo_ping = now() where id = id_e;
+  return json_build_object('ok', true, 'abierto', true);
+end $$;
+
+create or replace function public.mw_docente_cursos(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return (select json_object_agg(curso, abierto) from cursos);
+end $$;
+
+create or replace function public.mw_docente_abrir(p_token uuid, p_cursos text[], p_abierto boolean)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  update cursos set abierto = p_abierto, actualizado = now() where curso = any (p_cursos);
+  return (select json_object_agg(curso, abierto) from cursos);
+end $$;
+
+revoke all on function public.mw_curso_abierto(text) from public, anon, authenticated;
+revoke all on function public.mw_latido(uuid, text), public.mw_docente_cursos(uuid), public.mw_docente_abrir(uuid, text[], boolean) from public, authenticated;
+grant execute on function public.mw_latido(uuid, text), public.mw_docente_cursos(uuid), public.mw_docente_abrir(uuid, text[], boolean) to anon;

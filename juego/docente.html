@@ -29,6 +29,23 @@
     .op .retrato { width: 64px; height: 64px; background-repeat: no-repeat; background-size: 576px 256px; background-position: 0 -128px; image-rendering: pixelated; }
     .btn.pri { background: var(--teal); color: #fff; border-color: var(--teal); }
     .btn.peligro { color: var(--coral); }
+    .acceso { display: flex; flex-direction: column; gap: 14px; }
+    .acceso h2 { margin: 0 0 4px; }
+    .acceso-cab { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: flex-start; }
+    .acceso-cab > div:first-child { flex: 1 1 380px; }
+    .acceso-todos { display: flex; gap: 8px; flex-wrap: wrap; }
+    .acceso-cursos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+    .curso-acc { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #faf8f2; }
+    .curso-acc.abierto { border-color: #9fd1b0; background: #eef8f1; }
+    .curso-acc.cerrado { border-color: #e7b4a8; background: #fdf0ec; }
+    .curso-acc strong { font-family: "Fredoka", sans-serif; font-size: 20px; font-weight: 600; }
+    .curso-acc .est { font-size: 13px; }
+    .interruptor { position: relative; width: 58px; height: 32px; flex-shrink: 0; border-radius: 999px; border: 0; cursor: pointer; background: #b9b3a5; transition: background .2s; }
+    .interruptor::after { content: ""; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform .2s; }
+    .interruptor[aria-checked="true"] { background: var(--ok); }
+    .interruptor[aria-checked="true"]::after { transform: translateX(26px); }
+    .interruptor:disabled { opacity: .5; cursor: wait; }
+    .tab .cerrado-chip { font-size: 12px; font-weight: 800; color: var(--coral); }
     main { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 18px; }
     .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-weight: 800; font-size: 16px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
@@ -84,6 +101,13 @@
   </header>
   <main class="wrap">
     <div id="error" class="err" hidden></div>
+    <section class="panel acceso" aria-labelledby="acceso-titulo">
+      <div class="acceso-cab">
+        <div><h2 id="acceso-titulo">Acceso al juego</h2><span class="muted">Cuando cierras un curso, nadie de ese curso puede entrar y quienes están jugando salen en unos segundos. Su avance queda guardado.</span></div>
+        <div class="acceso-todos"><button type="button" class="btn pri" id="abrir-todos">Abrir todos</button><button type="button" class="btn peligro" id="cerrar-todos">Cerrar todos</button></div>
+      </div>
+      <div class="acceso-cursos" id="acceso-cursos"></div>
+    </section>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="tarjetas" id="tarjetas"></div>
     <section class="panel">
