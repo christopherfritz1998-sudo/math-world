@@ -608,6 +608,12 @@
         const msg = { clave_incorrecta: 'Clave incorrecta. Si la olvidaste, pide a tu profesor que la restablezca.', bloqueado: 'Demasiados intentos fallidos. Espera 10 minutos.', clave_corta: 'La clave debe tener al menos 4 caracteres.', cerrado: 'El juego de tu curso está cerrado en este momento. Tu profesor lo abrirá en clases.' };
         return error(msg[r && r.error] || 'No se pudo entrar. Inténtalo otra vez.');
       }
+      // Partida reiniciada (o sin avance) y aún no elige personaje: se le muestra el selector antes de entrar
+      if ((!r.progreso || !r.progreso.v) && $('bloque-pj').classList.contains('oculto')) {
+        $('bloque-pj').classList.remove('oculto');
+        $('saludo').textContent = `Hola, ${ingreso.estado.nombre}. Comienzas una aventura nueva: elige tu personaje y presiona Entrar al mundo.`;
+        return error('');
+      }
       sesion.modo = 'nube'; sesion.token = r.token;
       const primerNombre = (r.nombre || '').split(' ')[2] || (r.nombre || '').split(' ')[0] || 'Explorador';
       S = normalizar(r.progreso, curso, primerNombre, ingreso.pj);
