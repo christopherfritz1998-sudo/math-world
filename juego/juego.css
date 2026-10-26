@@ -222,3 +222,56 @@ button.zona:not(:disabled):hover { border-color: var(--amber); }
 .obj.mano:disabled { opacity: .4; cursor: not-allowed; }
 .mejora.puesta { border-color: var(--amber); }
 .personajes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* ---------- v4: misiones, decorativos, pieza, premios de nivel ---------- */
+.hud-misiones { position: absolute; left: 12px; top: 158px; width: 270px; padding: 8px 10px; border-radius: 12px; background: rgba(18, 32, 26, .88); border: 2px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.hud-misiones:empty { display: none; }
+.hud-misiones:hover { border-color: var(--amber); }
+.hud-misiones strong { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--amber); margin-top: 2px; }
+.hud-misiones ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.hud-misiones li { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }
+.hud-misiones li b { color: var(--text); white-space: nowrap; }
+.hud-misiones li.ok { color: var(--ok); text-decoration: line-through; }
+.hud-misiones li.ok b { color: var(--ok); }
+.btn-hud.alerta { border-color: var(--amber); box-shadow: 0 0 0 3px rgba(242, 181, 68, .35); animation: latido 1.4s ease-in-out infinite; }
+@keyframes latido { 50% { box-shadow: 0 0 0 7px rgba(242, 181, 68, .1); } }
+.btn-portal { position: absolute; left: 12px; bottom: 12px; min-height: 48px; padding: 0 16px; border-radius: 12px; border: 2px solid var(--amber); background: #f2b544; color: #1b1a12; font: inherit; font-weight: 800; font-size: 15px; cursor: pointer; }
+.btn-portal:disabled { opacity: .6; cursor: wait; }
+.modal.ancho { width: min(920px, 100%); }
+h3.cat { margin: 4px 0 -4px; font-family: "Fredoka", "Nunito", sans-serif; font-size: 18px; font-weight: 600; color: var(--amber); }
+.catalogo { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.catalogo .item { padding: 10px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.catalogo .item.excl { border-color: #8a5cf6; background: #1d1a33; }
+.catalogo .item > img { width: 56px; height: 56px; object-fit: contain; }
+.catalogo .item strong { font-size: 15px; line-height: 1.2; }
+.catalogo .item small { color: var(--muted); font-size: 12px; min-height: 14px; }
+.catalogo .item .costo { justify-content: center; }
+.catalogo .item .nota { font-size: 12px; color: #c7b6ff; font-weight: 800; }
+.btn.chico { min-height: 38px; font-size: 15px; padding: 0 14px; margin-top: 4px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.tarjeta-mision { padding: 14px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); display: flex; flex-direction: column; gap: 8px; }
+.tarjeta-mision.diaria { border-color: var(--amber); }
+.tarjeta-mision .fila, .misiones .fila { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.tarjeta-mision small { color: var(--muted); }
+.tarjeta-mision .barra, .misiones .barra { height: 10px; }
+.tarjeta-mision .barra > i { background: var(--amber); }
+.tarjeta-mision .btn { align-self: flex-start; }
+ul.misiones { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+ul.misiones li.ok .fila span { color: var(--ok); }
+.unidades-avance details ul.misiones { margin-top: 10px; }
+.premios { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.premio-op { padding: 16px 12px; border-radius: 16px; border: 3px solid var(--line); background: var(--bg); color: var(--text); font: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; transition: transform .12s, border-color .12s; }
+.premio-op:hover, .premio-op:focus-visible { border-color: var(--amber); transform: translateY(-3px); }
+.premio-op.excl { border-color: #8a5cf6; background: #1d1a33; }
+.premio-op small { font-size: 11px; font-weight: 800; letter-spacing: .06em; color: var(--amber); }
+.premio-op.excl small { color: #c7b6ff; }
+.premio-op .iconos { display: flex; gap: 6px; min-height: 72px; align-items: center; }
+.premio-op .iconos img { width: 40px; height: 40px; }
+.premio-op .iconos img:only-child { width: 72px; height: 72px; object-fit: contain; }
+.premio-op strong { font-family: "Fredoka", "Nunito", sans-serif; font-size: 18px; font-weight: 600; }
+@media (max-width: 760px) {
+  .hud-misiones { top: 140px; width: 210px; }
+  .hud-misiones li { font-size: 12px; }
+  .premios { grid-template-columns: minmax(0, 1fr); }
+  .btn-portal { bottom: 232px; min-height: 40px; font-size: 13px; }
+}

@@ -38,18 +38,96 @@
   const cuerpoDe = (pj) => (pj === 'luna' || pj === 'copihue' ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
-  // Objetos para decorar la base (se pueden fabricar varias veces)
+  // Banco de decorativos y muebles (se pueden fabricar varias veces).
+  // t: [columna, fila, ancho, alto] en la hoja ('o' = exterior, 'i' = interior). lugar: base, pieza o ambos.
+  // pie: filas que ocupa en el suelo · piso: alfombra (se pisa) · pared: se cuelga · paso: se puede caminar encima
+  // excl: solo se obtiene como premio al subir de nivel
+  const D = (id, nombre, cat, lugar, h, t, costo, extra = {}) => ({ id, nombre, cat, lugar, h, t, costo, tex: `d_${id}`, ...extra });
   const OBJETOS = [
-    { id: 'carpa_b', nombre: 'Carpa', tex: 'carpa_b', costo: { madera: 20, piedra: 5 }, solido: [56, 28], ancho: 2 },
-    { id: 'carpa_v', nombre: 'Carpa verde', tex: 'carpa_v', costo: { madera: 20, agua: 5 }, solido: [56, 28], ancho: 2 },
-    { id: 'cerco', nombre: 'Cerco', tex: 'cerco', costo: { madera: 2 } },
-    { id: 'lena', nombre: 'Leña', tex: 'lena', costo: { madera: 3 } },
-    { id: 'antorcha', nombre: 'Antorcha', tex: 'antorcha', costo: { madera: 2, cristal: 1 }, solido: [10, 10] },
-    { id: 'barril', nombre: 'Barril', tex: 'barril', costo: { madera: 6 }, solido: [22, 14] },
-    { id: 'flores', nombre: 'Flores', tex: 'flor1', costo: { agua: 1 } },
-    { id: 'arbusto', nombre: 'Arbusto', tex: 'arbusto', costo: { agua: 2 } },
-    { id: 'manzano', nombre: 'Manzano', tex: 'arbol_manzano', costo: { madera: 2, agua: 4 }, solido: [18, 12] },
-    { id: 'roca', nombre: 'Roca decorativa', tex: 'roca_musgo', costo: { piedra: 4 }, solido: [26, 16] },
+    // ----- Base (exterior)
+    D('carpa_b', 'Carpa', 'Carpas', 'base', 'o', [48, 10, 2, 2], { madera: 20, piedra: 5 }, { carpa: true, pie: 1 }),
+    D('carpa_v', 'Carpa verde', 'Carpas', 'base', 'o', [46, 10, 2, 2], { madera: 20, agua: 5 }, { carpa: true, pie: 1 }),
+    D('flores', 'Flores rojas', 'Jardín', 'base', 'o', [29, 9, 1, 1], { agua: 1 }, { paso: true }),
+    D('flor_a', 'Flores azules', 'Jardín', 'base', 'o', [28, 9, 1, 1], { agua: 1 }, { paso: true }),
+    D('flor_m', 'Flores moradas', 'Jardín', 'base', 'o', [30, 9, 1, 1], { agua: 1 }, { paso: true }),
+    D('flor_b', 'Flores blancas', 'Jardín', 'base', 'o', [31, 9, 1, 1], { agua: 1 }, { paso: true }),
+    D('hongo', 'Hongo', 'Jardín', 'base', 'o', [48, 2, 1, 1], { agua: 1 }, { paso: true }),
+    D('hongo2', 'Hongo moteado', 'Jardín', 'base', 'o', [48, 4, 1, 1], { agua: 2 }, { paso: true }),
+    D('arbusto', 'Arbusto', 'Jardín', 'base', 'o', [19, 9, 1, 1], { agua: 2 }),
+    D('arbusto_o', 'Arbusto otoñal', 'Jardín', 'base', 'o', [20, 9, 1, 1], { agua: 2 }),
+    D('arbusto_f', 'Arbusto con frutos', 'Jardín', 'base', 'o', [24, 9, 1, 1], { agua: 3 }),
+    D('arbusto_fl', 'Arbusto florido', 'Jardín', 'base', 'o', [25, 10, 1, 1], { agua: 3 }),
+    D('manzano', 'Manzano', 'Árboles y rocas', 'base', 'o', [23, 10, 1, 2], { madera: 2, agua: 4 }),
+    D('pino', 'Pino', 'Árboles y rocas', 'base', 'o', [18, 10, 1, 2], { madera: 2, agua: 3 }),
+    D('arce', 'Arce otoñal', 'Árboles y rocas', 'base', 'o', [14, 10, 1, 2], { madera: 2, agua: 4 }),
+    D('cactus', 'Cactus', 'Árboles y rocas', 'base', 'o', [22, 9, 1, 1], { agua: 2, piedra: 1 }),
+    D('roca', 'Roca con musgo', 'Árboles y rocas', 'base', 'o', [54, 22, 1, 1], { piedra: 4 }),
+    D('roca_gris', 'Roca gris', 'Árboles y rocas', 'base', 'o', [54, 21, 1, 1], { piedra: 3 }),
+    D('cerco', 'Cerco', 'Construcción', 'base', 'o', [52, 23, 1, 1], { madera: 2 }),
+    D('poste', 'Poste', 'Construcción', 'base', 'o', [50, 23, 1, 1], { madera: 1 }),
+    D('letrero', 'Letrero', 'Construcción', 'base', 'o', [19, 0, 1, 1], { madera: 3 }),
+    D('lena', 'Leña', 'Construcción', 'base', 'o', [13, 8, 1, 1], { madera: 3 }),
+    D('barril', 'Barril', 'Construcción', 'ambos', 'o', [23, 0, 1, 1], { madera: 6 }),
+    D('barril2', 'Barril pequeño', 'Construcción', 'ambos', 'o', [24, 0, 1, 1], { madera: 4 }),
+    D('cajon', 'Cajón', 'Construcción', 'ambos', 'o', [27, 1, 1, 1], { madera: 5 }),
+    D('mesa_ext', 'Mesa de trabajo', 'Construcción', 'base', 'o', [16, 0, 1, 1], { madera: 5 }),
+    D('yunque', 'Yunque', 'Taller', 'base', 'o', [15, 0, 1, 1], { piedra: 8 }),
+    D('horno', 'Horno de piedra', 'Taller', 'base', 'o', [13, 0, 1, 1], { piedra: 10, madera: 2 }),
+    D('antorcha', 'Antorcha', 'Luces y fuego', 'base', 'o', [17, 8, 1, 1], { madera: 2, cristal: 1 }),
+    D('fogata2', 'Fogata', 'Luces y fuego', 'base', 'o', [14, 8, 1, 1], { madera: 6, piedra: 2 }),
+    D('candelabro', 'Candelabro', 'Luces y fuego', 'ambos', 'o', [19, 8, 1, 1], { piedra: 3, cristal: 1 }),
+    D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
+    D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
+    D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
+    D('cristal_g', 'Cristal gigante', 'Exclusivos', 'base', 'o', [50, 9, 1, 1], {}, { excl: true }),
+    D('oro', 'Montón de oro', 'Exclusivos', 'ambos', 'o', [43, 11, 1, 1], {}, { excl: true }),
+    // ----- Pieza (interior de la carpa)
+    D('cama_n', 'Cama naranja', 'Camas', 'pieza', 'i', [14, 9, 1, 2], { madera: 12, agua: 4 }, { pie: 2 }),
+    D('cama_v', 'Cama verde', 'Camas', 'pieza', 'i', [14, 11, 1, 2], { madera: 12, agua: 4 }, { pie: 2 }),
+    D('mesa_oval', 'Mesa ovalada', 'Mesas y sillas', 'pieza', 'i', [3, 0, 2, 1], { madera: 10 }),
+    D('mesa_larga', 'Mesa larga', 'Mesas y sillas', 'pieza', 'i', [0, 0, 3, 1], { madera: 14 }),
+    D('mesa_red', 'Mesa redonda', 'Mesas y sillas', 'pieza', 'i', [7, 0, 1, 1], { madera: 6 }),
+    D('escritorio', 'Escritorio', 'Mesas y sillas', 'pieza', 'i', [13, 12, 1, 1], { madera: 8 }),
+    D('silla', 'Silla', 'Mesas y sillas', 'pieza', 'i', [0, 2, 1, 1], { madera: 3 }, { paso: true }),
+    D('silla_l', 'Silla de lado', 'Mesas y sillas', 'pieza', 'i', [2, 2, 1, 1], { madera: 3 }, { paso: true }),
+    D('sillon', 'Sillón', 'Mesas y sillas', 'pieza', 'i', [0, 6, 1, 1], { madera: 6, agua: 1 }),
+    D('silla_b', 'Silla blanca', 'Mesas y sillas', 'pieza', 'i', [0, 8, 1, 1], { piedra: 3, madera: 1 }, { paso: true }),
+    D('cocina', 'Cocina', 'Cocina', 'pieza', 'i', [14, 15, 1, 1], { piedra: 8, cristal: 1 }),
+    D('lavaplatos', 'Lavaplatos', 'Cocina', 'pieza', 'i', [8, 12, 1, 1], { piedra: 6, agua: 3 }),
+    D('encimera', 'Mueble con frascos', 'Cocina', 'pieza', 'i', [5, 12, 1, 1], { madera: 6, agua: 1 }),
+    D('mueble', 'Mueble de cocina', 'Cocina', 'pieza', 'i', [0, 13, 1, 1], { madera: 6 }),
+    D('refri', 'Refrigerador', 'Cocina', 'pieza', 'i', [25, 8, 1, 2], { piedra: 8, cristal: 2 }),
+    D('olla', 'Olla', 'Cocina', 'pieza', 'i', [21, 4, 1, 1], { piedra: 2 }, { paso: true }),
+    D('vela', 'Vela', 'Lámparas', 'pieza', 'i', [16, 6, 1, 1], { madera: 1, cristal: 1 }, { paso: true }),
+    D('cand_mesa', 'Lámpara de tres velas', 'Lámparas', 'pieza', 'i', [16, 7, 1, 1], { piedra: 2, cristal: 1 }),
+    D('cand_pl', 'Lámpara de plata', 'Lámparas', 'pieza', 'i', [19, 0, 1, 1], { piedra: 3, cristal: 1 }),
+    D('pie_pl', 'Lámpara de pie', 'Lámparas', 'pieza', 'i', [19, 4, 1, 2], { piedra: 4, cristal: 2 }),
+    D('ant_pared', 'Antorcha de pared', 'Lámparas', 'pieza', 'i', [21, 6, 1, 1], { madera: 2, cristal: 1 }, { pared: true }),
+    D('alf_n', 'Alfombra naranja', 'Alfombras', 'pieza', 'i', [16, 8, 3, 2], { agua: 4, madera: 2 }, { piso: true }),
+    D('alf_v', 'Alfombra verde', 'Alfombras', 'pieza', 'i', [16, 10, 3, 2], { agua: 4, madera: 2 }, { piso: true }),
+    D('alf_oval', 'Alfombra ovalada', 'Alfombras', 'pieza', 'i', [19, 8, 2, 1], { agua: 3 }, { piso: true }),
+    D('alf_ovalv', 'Alfombra ovalada verde', 'Alfombras', 'pieza', 'i', [19, 10, 2, 1], { agua: 3 }, { piso: true }),
+    D('tapiz', 'Alfombra turquesa', 'Alfombras', 'pieza', 'i', [16, 14, 3, 1], { agua: 3, cristal: 1 }, { piso: true }),
+    D('tapiz_n', 'Alfombra dorada', 'Alfombras', 'pieza', 'i', [16, 15, 3, 1], { agua: 3, cristal: 1 }, { piso: true }),
+    D('tapiz_v', 'Alfombra de hojas', 'Alfombras', 'pieza', 'i', [16, 16, 3, 1], { agua: 3, cristal: 1 }, { piso: true }),
+    D('cuadro_v', 'Cuadro de paisaje', 'Para la pared', 'pieza', 'i', [19, 12, 1, 1], { madera: 2, agua: 2 }, { pared: true }),
+    D('cuadro_n', 'Cuadro del atardecer', 'Para la pared', 'pieza', 'i', [19, 13, 1, 1], { madera: 2, agua: 2 }, { pared: true }),
+    D('cuadro_t', 'Cuadro del mar', 'Para la pared', 'pieza', 'i', [19, 14, 1, 1], { madera: 2, agua: 2 }, { pared: true }),
+    D('escudo', 'Escudo redondo', 'Para la pared', 'pieza', 'i', [22, 8, 1, 1], { piedra: 4 }, { pared: true }),
+    D('reloj', 'Reloj cucú', 'Para la pared', 'pieza', 'o', [26, 8, 1, 1], { madera: 6, cristal: 1 }, { pared: true }),
+    D('chimenea', 'Chimenea', 'Para la pared', 'pieza', 'o', [54, 8, 1, 1], { piedra: 12, madera: 4 }, { pared: true }),
+    D('planta', 'Planta', 'Adornos', 'pieza', 'i', [16, 0, 1, 1], { agua: 3 }),
+    D('planta2', 'Helecho', 'Adornos', 'pieza', 'i', [17, 0, 1, 1], { agua: 3 }),
+    D('libros', 'Estante con libros', 'Adornos', 'pieza', 'i', [20, 17, 1, 1], { madera: 8 }),
+    D('libros2', 'Librero', 'Adornos', 'pieza', 'i', [21, 17, 1, 1], { madera: 8 }),
+    D('jarron', 'Jarrón de cobre', 'Adornos', 'pieza', 'i', [16, 4, 1, 1], { piedra: 2, agua: 1 }),
+    D('cama_doble', 'Cama doble', 'Exclusivos', 'pieza', 'i', [14, 6, 2, 2], {}, { excl: true, pie: 2 }),
+    D('piano', 'Piano', 'Exclusivos', 'pieza', 'i', [23, 8, 2, 2], {}, { excl: true, pie: 2 }),
+    D('pie_or', 'Lámpara de oro', 'Exclusivos', 'pieza', 'i', [20, 4, 1, 2], {}, { excl: true }),
+    D('jarron_p', 'Jarrón de plata', 'Exclusivos', 'pieza', 'i', [17, 4, 1, 1], {}, { excl: true }),
+    D('mapa', 'Mapa enmarcado', 'Exclusivos', 'pieza', 'i', [20, 12, 2, 1], {}, { excl: true, pared: true }),
+    D('espejo', 'Espejo', 'Exclusivos', 'pieza', 'i', [22, 14, 1, 2], {}, { excl: true, pared: true }),
+    D('escudo2', 'Escudo real', 'Exclusivos', 'pieza', 'i', [22, 10, 1, 1], {}, { excl: true, pared: true }),
   ];
   const OBJ = Object.fromEntries(OBJETOS.map((o) => [o.id, o]));
 
@@ -68,7 +146,7 @@
       suelo: [[5, 1, 1], [5, 0, 0.3]], arboles: ['arbol_redondo', 'arbol_pino', 'arbol_manzano'], nArboles: 95,
       rocas: ['roca_musgo3', 'roca3'], nRocas: 30, lagos: 5, cofres: 6, arbustos: 8, nieblas: 9, bichos: 0.15, tinte: [0x0f3020, 0.38] },
   };
-  const nombreZona = (z) => (z === 'base' ? 'Tu base' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
+  const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
   const ENEMIGOS = {
     arbusto: { nombre: 'Arbusto gruñón', vida: 3, dif: 1, botin: { madera: 3 }, xp: 15, vel: 58 },
@@ -123,7 +201,8 @@
       v: 2, curso, nombre, pj, seccion: '',
       mochila: { madera: 0, piedra: 0, agua: 0, cristal: 0 },
       cofre: { madera: 0, piedra: 0, agua: 0, cristal: 0 },
-      mejoras: [], herramienta: 'hacha', arma: null, armadura: null, inventario: {}, colocados: [],
+      mejoras: [], herramienta: 'hacha', arma: null, armadura: null, inventario: {}, colocados: [], pieza: [],
+      misiones: {}, diaria: null, premiosNivel: 0, ofertaNivel: null,
       vida: 5, xp: 0, nivel: 1, stats: {}, vencidos: 0, muertes: 0, zona: 'base', creado: Date.now(),
     };
   }
@@ -227,11 +306,214 @@
   }
   function ganarXP(n) {
     S.xp += n;
-    while (S.xp >= xpPara(S.nivel)) { S.xp -= xpPara(S.nivel); S.nivel += 1; toast(`¡Subiste a nivel ${S.nivel}!`); }
+    let subio = false;
+    while (S.xp >= xpPara(S.nivel)) {
+      S.xp -= xpPara(S.nivel); S.nivel += 1; subio = true;
+      S.premiosNivel = (S.premiosNivel || 0) + 1;
+      toast(`¡Subiste a nivel ${S.nivel}! Elige tu recompensa.`);
+    }
+    if (subio) premioPospuesto = false;
     pintarHUD();
+    if (subio) revisarPendientes();
   }
   const difPara = (base) => Math.min(3, base + (S.nivel >= 6 ? 1 : 0));
-  const unidadActual = () => (escena && escena.zona !== 'base' ? escena.zona : 'u1');
+  const unidadActual = () => (escena && MUNDOS[escena.zona] ? escena.zona : 'u1');
+  const enCasa = () => !escena || escena.zona === 'base' || escena.zona === 'pieza';
+
+  // ===================================================================
+  // Misiones: 3 al azar por mundo (abren al jefe final) y una misión diaria
+  // ===================================================================
+  const TIPOS_MISION = {
+    talar: { n: [4, 6], txt: (m) => `Tala ${m.n} árboles` },
+    picar: { n: [3, 5], txt: (m) => `Pica ${m.n} rocas`, req: () => tiene('pico') },
+    agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde') },
+    cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
+    arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} arbustos gruñones` },
+    niebla: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 niebla' : `Vence ${m.n} nieblas`) },
+    bicho: { n: [1, 1], txt: () => 'Vence 1 bicho que cae de los árboles' },
+    acierto: { n: [3, 4], txt: (m) => `Responde bien ${m.n} ejercicios de: ${m.titulo}` },
+  };
+  const azarEntre = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
+  const mezclar = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  function nuevasMisiones(u) {
+    const tipos = mezclar(Object.keys(TIPOS_MISION).filter((t) => !TIPOS_MISION[t].req || TIPOS_MISION[t].req())).slice(0, 3);
+    return { lista: tipos.map((t) => {
+      const m = { t, n: azarEntre(TIPOS_MISION[t].n), p: 0 };
+      if (t === 'acierto') {
+        const temas = Object.entries(Preguntas.titulos(S.curso, u));
+        const [tema, titulo] = temas[Math.floor(Math.random() * temas.length)] || ['', 'esta unidad'];
+        m.tema = tema; m.titulo = titulo;
+      }
+      return m;
+    }), ok: false };
+  }
+  function misionesDe(u) {
+    S.misiones = S.misiones || {};
+    if (!S.misiones[u]) S.misiones[u] = nuevasMisiones(u);
+    return S.misiones[u];
+  }
+  const textoMision = (m) => TIPOS_MISION[m.t].txt(m);
+  const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
+
+  const TIPOS_DIARIA = {
+    talar: { n: 6, txt: 'Tala 6 árboles en cualquier mundo' },
+    picar: { n: 5, txt: 'Pica 5 rocas', req: () => tiene('pico') },
+    agua: { n: 3, txt: 'Saca agua del lago 3 veces', req: () => tiene('balde') },
+    vencer: { n: 4, txt: 'Vence a 4 enemigos' },
+    acierto: { n: 8, txt: 'Responde bien 8 ejercicios' },
+    cofre: { n: 2, txt: 'Abre 2 cofres en los mundos' },
+    fabricar: { n: 2, txt: 'Fabrica 2 decorativos o muebles' },
+    decorar: { n: 3, txt: 'Coloca 3 objetos en tu base o tu pieza' },
+  };
+  const PREMIOS_DIARIA = [{ madera: 15, piedra: 10 }, { cristal: 4 }, { agua: 8, madera: 10 }, { piedra: 12, cristal: 2 }];
+  const hoy = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+  function diaria() {
+    const f = hoy();
+    if (!S.diaria || S.diaria.fecha !== f) {
+      const tipos = Object.keys(TIPOS_DIARIA).filter((t) => !TIPOS_DIARIA[t].req || TIPOS_DIARIA[t].req());
+      const t = tipos[Math.floor(Math.random() * tipos.length)];
+      const normales = OBJETOS.filter((o) => !o.excl);
+      S.diaria = { fecha: f, t, n: TIPOS_DIARIA[t].n, p: 0, cobrada: false,
+        premio: { rec: PREMIOS_DIARIA[Math.floor(Math.random() * PREMIOS_DIARIA.length)], obj: normales[Math.floor(Math.random() * normales.length)].id, xp: 50 } };
+    }
+    return S.diaria;
+  }
+  // Se llama cada vez que el jugador hace algo que puede contar para una misión
+  function avanzarMision(ev, tema) {
+    if (!S) return;
+    const u = escena && MUNDOS[escena.zona] ? escena.zona : null;
+    if (u) {
+      const M = misionesDe(u);
+      if (!M.ok) {
+        let cambio = false;
+        for (const m of M.lista) {
+          if (m.p >= m.n || m.t !== ev || (ev === 'acierto' && m.tema !== tema)) continue;
+          m.p += 1; cambio = true;
+          if (m.p >= m.n) toast(`Misión cumplida: ${textoMision(m)}`);
+        }
+        if (cambio && M.lista.every((m) => m.p >= m.n)) {
+          M.ok = true;
+          setTimeout(() => toast(`¡Completaste las misiones! El jefe ${JEFES[u].nombre} ya te puede enfrentar.`), 1200);
+          ganarXP(30);
+          if (escena) { escena.celebrar(); escena.avisarGuarida(); }
+        }
+      }
+    }
+    const Dd = diaria();
+    const cuenta = Dd.t === ev || (Dd.t === 'vencer' && ENEMIGOS[ev]);
+    if (cuenta && Dd.p < Dd.n) {
+      Dd.p += 1;
+      if (Dd.p >= Dd.n) setTimeout(() => toast('¡Misión diaria cumplida! Reclama tu recompensa en Misiones (tecla N).'), 900);
+    }
+    pintarMisiones();
+  }
+  function pintarMisiones() {
+    const el = $('hud-misiones');
+    if (!el || !S) return;
+    const u = escena && MUNDOS[escena.zona] ? escena.zona : null;
+    const Dd = diaria();
+    const fila = (txt, p, n) => `<li class="${p >= n ? 'ok' : ''}"><span>${esc(txt)}</span><b>${Math.min(p, n)}/${n}</b></li>`;
+    let html = '';
+    if (u) {
+      const M = misionesDe(u);
+      html += `<strong>${M.ok ? 'Jefe final desbloqueado' : 'Misiones para el jefe'}</strong><ul>${M.lista.map((m) => fila(textoMision(m), m.p, m.n)).join('')}</ul>`;
+    }
+    html += `<strong>Misión diaria${Dd.cobrada ? ' · cobrada' : Dd.p >= Dd.n ? ' · ¡reclámala!' : ''}</strong><ul>${fila(TIPOS_DIARIA[Dd.t].txt, Dd.p, Dd.n)}</ul>`;
+    el.innerHTML = html;
+    const pend = (Dd.p >= Dd.n && !Dd.cobrada) || (S.premiosNivel || 0) > 0;
+    $('btn-misiones').classList.toggle('alerta', pend);
+  }
+  const recHTML = (rec) => Object.entries(rec).map(([r, n]) => `<span class="pildora premio"><img class="px" src="${ICONO(r)}" alt="">+${n} ${r}</span>`).join('');
+  function sumarCofre(rec) { Object.entries(rec).forEach(([r, n]) => { S.cofre[r] = (S.cofre[r] || 0) + n; }); pintarHUD(); }
+  function abrirMisiones() {
+    const Dd = diaria();
+    const u = escena && MUNDOS[escena.zona] ? escena.zona : null;
+    const barra = (p, n) => `<div class="barra"><i style="width: ${Math.round((Math.min(p, n) / n) * 100)}%"></i></div>`;
+    const lista = (M) => `<ul class="misiones">${M.lista.map((m) => `<li class="${m.p >= m.n ? 'ok' : ''}"><div class="fila"><span>${esc(textoMision(m))}</span><b>${Math.min(m.p, m.n)}/${m.n}</b></div>${barra(m.p, m.n)}</li>`).join('')}</ul>`;
+    const mundos = Object.keys(MUNDOS).filter((z) => z !== u && S.misiones && S.misiones[z]).map((z) => `
+      <details><summary><strong>${esc(nombreZona(z))}</strong> · ${S.misiones[z].ok ? '<span class="estado-ok">Jefe desbloqueado</span>' : `${S.misiones[z].lista.filter((m) => m.p >= m.n).length} de 3`}</summary>${lista(S.misiones[z])}</details>`).join('');
+    const p = Dd.premio;
+    const premioD = `${recHTML(p.rec)}<span class="pildora premio"><img class="px" src="${escena.imagenTex(OBJ[p.obj].tex)}" alt="">${esc(OBJ[p.obj].nombre)}</span><span class="pildora premio">+${p.xp} XP</span>`;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Misiones</span><h2 id="modal-titulo">Tus misiones</h2></div><button type="button" class="btn" id="mi-cerrar">Cerrar</button></div>
+      ${(S.premiosNivel || 0) > 0 ? `<div class="mensaje pista" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><span>Tienes ${S.premiosNivel === 1 ? 'una recompensa' : `${S.premiosNivel} recompensas`} de nivel por elegir.</span><button type="button" class="btn pri" id="mi-nivel">Elegir</button></div>` : ''}
+      <section class="tarjeta-mision diaria">
+        <div class="fila"><strong>Misión diaria</strong><small>Se renueva cada día</small></div>
+        <div class="fila"><span>${esc(TIPOS_DIARIA[Dd.t].txt)}</span><b>${Math.min(Dd.p, Dd.n)}/${Dd.n}</b></div>${barra(Dd.p, Dd.n)}
+        <div class="pildoras">${premioD}</div>
+        ${Dd.cobrada ? '<span class="estado-ok">Recompensa cobrada. Vuelve mañana por una nueva misión.</span>'
+          : `<button type="button" class="btn pri" id="mi-cobrar" ${Dd.p >= Dd.n ? '' : 'disabled'}>${Dd.p >= Dd.n ? 'Reclamar recompensa' : 'Cúmplela para reclamar'}</button>`}
+      </section>
+      ${u ? `<section class="tarjeta-mision"><div class="fila"><strong>${esc(nombreZona(u))}: misiones para el jefe final</strong></div>
+        <p class="nota">${misionesListas(u) ? `¡Listo! Ve a la guarida de ${esc(JEFES[u].nombre)} con tu grupo (mínimo ${JEFE_MIN} jugadores con sus misiones cumplidas).` : `Cumple tus 3 misiones para poder enfrentar a ${esc(JEFES[u].nombre)}. Cada jugador recibe misiones distintas.`}</p>
+        ${lista(misionesDe(u))}</section>`
+        : '<p class="nota">Al entrar a cada mundo recibes 3 misiones al azar. Cúmplelas para poder enfrentar al jefe final junto a tu grupo.</p>'}
+      ${mundos ? `<div class="unidades-avance">${mundos}</div>` : ''}`);
+    $('mi-cerrar').addEventListener('click', () => ui.cerrar());
+    const bn = $('mi-nivel'); if (bn) bn.addEventListener('click', () => { premioPospuesto = false; abrirPremioNivel(); });
+    const bc = $('mi-cobrar');
+    if (bc) bc.addEventListener('click', () => {
+      if (Dd.cobrada || Dd.p < Dd.n) return;
+      Dd.cobrada = true;
+      sumarCofre(p.rec);
+      S.inventario[p.obj] = (S.inventario[p.obj] || 0) + 1;
+      guardar(true); escena.celebrar();
+      toast(`Recompensa en tu cofre y ${OBJ[p.obj].nombre} en tus objetos. ¡Bien hecho!`);
+      ganarXP(p.xp);
+      pintarMisiones();
+      if (ui.abierto) abrirMisiones();
+    });
+  }
+
+  // ---------- Recompensa al subir de nivel: elegir 1 de 3 ----------
+  let premioPospuesto = false;
+  const cuantos = (id) => (S.inventario[id] || 0) + (S.colocados || []).filter((c) => c.k === id).length + (S.pieza || []).filter((c) => c.k === id).length;
+  function nuevaOferta() {
+    const L = S.nivel;
+    const paquetes = mezclar([
+      { madera: 12 + 3 * L, piedra: 8 + 2 * L }, { cristal: 2 + Math.floor(L / 2) },
+      { agua: 8 + 2 * L, madera: 6 + L }, { piedra: 12 + 3 * L, cristal: 1 },
+    ]);
+    const excl = mezclar(OBJETOS.filter((o) => o.excl && cuantos(o.id) === 0));
+    const normales = mezclar(OBJETOS.filter((o) => !o.excl && !o.carpa));
+    const ops = [{ tipo: 'rec', rec: paquetes[0] }];
+    ops.push(excl.length ? { tipo: 'obj', id: excl[0].id, n: 1, excl: true } : { tipo: 'rec', rec: paquetes[1] });
+    const o = normales[0];
+    ops.push({ tipo: 'obj', id: o.id, n: Object.values(o.costo).reduce((a, b) => a + b, 0) <= 4 ? 3 : 1 });
+    return mezclar(ops);
+  }
+  function abrirPremioNivel() {
+    if (!(S.premiosNivel > 0)) return;
+    if (!S.ofertaNivel) { S.ofertaNivel = nuevaOferta(); guardar(); }
+    const ops = S.ofertaNivel;
+    const tarjeta = (op, i) => {
+      if (op.tipo === 'rec') return `<button type="button" class="premio-op" data-op="${i}"><small>RECURSOS AL COFRE</small><div class="iconos">${Object.keys(op.rec).map((r) => `<img class="px" src="${ICONO(r)}" alt="">`).join('')}</div><strong>${Object.entries(op.rec).map(([r, n]) => `${n} ${r}`).join(' + ')}</strong></button>`;
+      const o = OBJ[op.id];
+      return `<button type="button" class="premio-op ${op.excl ? 'excl' : ''}" data-op="${i}"><small>${op.excl ? 'OBJETO EXCLUSIVO' : 'OBJETO'} · ${o.lugar === 'pieza' ? 'PARA TU PIEZA' : 'PARA TU BASE'}</small><div class="iconos"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""></div><strong>${op.n > 1 ? `${op.n} × ` : ''}${esc(o.nombre)}</strong></button>`;
+    };
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Recompensa del nivel ${S.nivel - S.premiosNivel + 1}</span><h2 id="modal-titulo">¡Subiste de nivel! Elige tu recompensa</h2></div></div>
+      <p class="nota">Solo puedes quedarte con una. Los objetos exclusivos no se pueden fabricar: solo se ganan subiendo de nivel.</p>
+      <div class="premios">${ops.map(tarjeta).join('')}</div>
+      <div class="acciones"><span class="nota">${S.premiosNivel > 1 ? `Te quedan ${S.premiosNivel} recompensas por elegir.` : ''}</span><button type="button" class="btn" id="pn-luego">Elegir más tarde</button></div>`);
+    $('pn-luego').addEventListener('click', () => { premioPospuesto = true; ui.cerrar(); pintarMisiones(); });
+    document.querySelectorAll('[data-op]').forEach((b) => b.addEventListener('click', () => {
+      const op = ops[Number(b.dataset.op)];
+      if (op.tipo === 'rec') { sumarCofre(op.rec); toast(`¡Recompensa guardada en tu cofre: ${Object.entries(op.rec).map(([r, n]) => `${n} ${r}`).join(', ')}!`); }
+      else { S.inventario[op.id] = (S.inventario[op.id] || 0) + op.n; toast(`¡Ganaste: ${OBJ[op.id].nombre}! Colócalo con Decorar (G).`); }
+      S.premiosNivel -= 1; S.ofertaNivel = null;
+      guardar(true); escena.celebrar(); pintarMisiones();
+      ui.cerrar();
+    }));
+  }
+  // Muestra lo que esté pendiente (recompensa de nivel) cuando no haya otra ventana abierta
+  function revisarPendientes() {
+    clearTimeout(revisarPendientes._t);
+    revisarPendientes._t = setTimeout(() => {
+      if (!S || ui.abierto || !escena || !escena.jugador || escena.enCombate || escena.enJefe || juegoCerrado || premioPospuesto) return;
+      if ((S.premiosNivel || 0) > 0) abrirPremioNivel();
+    }, 600);
+  }
 
   // ===================================================================
   // Ingreso
@@ -385,7 +667,7 @@
     }
     S.vida = Math.min(S.vida || vidaMax(), vidaMax());
     pintarHUD();
-    iniciarPhaser(S.zona && (S.zona === 'base' || MUNDOS[S.zona]) ? S.zona : 'base');
+    iniciarPhaser(S.zona && (S.zona === 'base' || S.zona === 'pieza' || MUNDOS[S.zona]) ? S.zona : 'base');
     setTimeout(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`), 700);
   }
 
@@ -394,7 +676,7 @@
   // ===================================================================
   function pintarHUD() {
     if (!S) return;
-    const enBase = !escena || escena.zona === 'base';
+    const enBase = enCasa();
     $('hud-foto').style.backgroundImage = `url('assets/pj/${S.pj}_${texArmadura(S.armadura)}.png')`;
     $('hud-apodo').textContent = S.nombre;
     $('hud-nivel').textContent = `Nivel ${S.nivel}`;
@@ -420,6 +702,8 @@
       </div>`).join('');
     $('btn-base').classList.toggle('oculto', !enBase);
     $('btn-decorar').classList.toggle('oculto', !enBase);
+    $('btn-portal').classList.toggle('oculto', !esDocente());
+    pintarMisiones();
   }
   // Lo que lleva en la mano: hacha, pico o la espada equipada
   function equipar(h) {
@@ -510,12 +794,14 @@
       this.abierto = false; this.teclas = null;
       const f = this.alCerrar; this.alCerrar = null;
       if (f) f();
+      revisarPendientes();
     },
   };
   const unaVez = (f) => { let hecho = false; return (...a) => { if (!hecho) { hecho = true; f(...a); } }; };
   function registrar(tema, acierto) {
     const st = S.stats[tema] || (S.stats[tema] = { a: 0, i: 0 });
     st.i += 1; if (acierto) st.a += 1;
+    if (acierto) avanzarMision('acierto', tema);
   }
   function alternativasHTML(d, elegida, fallidas, resuelto) {
     return `<div class="alternativas">${d.opciones.map((o, i) => {
@@ -655,7 +941,7 @@
   function abrirInfoJefe(zona) {
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq" style="color: var(--coral)">Jefe final</span><h2 id="modal-titulo">${esc(JEFES[zona].nombre)}</h2></div></div>
-      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y reúnan al menos <strong>${JEFE_MIN} jugadores</strong> en su guarida. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
+      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y reúnan al menos <strong>${JEFE_MIN} jugadores</strong> en su guarida, cada uno con sus misiones de este mundo cumplidas. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
       <div class="acciones"><span></span><button type="button" class="btn pri" id="ij-ok" data-foco>Entendido</button></div>`, 'jefe');
     $('ij-ok').addEventListener('click', () => ui.cerrar());
   }
@@ -734,7 +1020,10 @@
         if (!pagado) {
           pagado = true;
           Object.entries(JEFE_PREMIO).forEach(([r, n]) => sumar(r, n));
-          ganarXP(80); S.jefes = S.jefes || {}; S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1; guardar(true);
+          S.jefes = S.jefes || {}; S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1;
+          S.misiones[e.zona] = nuevasMisiones(e.zona);
+          ganarXP(80); guardar(true);
+          setTimeout(() => { toast('Recibiste nuevas misiones para volver a enfrentar al jefe.'); e.avisarGuarida(); pintarMisiones(); }, 2500);
           e.celebrar(e.jefeSpr ? e.jefeSpr.x : undefined, e.jefeSpr ? e.jefeSpr.y - 60 : undefined);
         }
         pintar(); return;
@@ -755,7 +1044,7 @@
   function pintarCoop() {
     const el = $('hud-coop'); if (!el) return;
     const e = escena;
-    if (!e || e.zona === 'base') { el.classList.add('oculto'); return; }
+    if (!e || !MUNDOS[e.zona]) { el.classList.add('oculto'); return; }
     el.classList.remove('oculto');
     if (!e.canal) { el.textContent = 'Explorando solo'; return; }
     el.textContent = e.canal.est === 'ok' ? `Grupo ${S.grupo} · ${1 + e.otros.size} en este mundo` : `Grupo ${S.grupo} · conectando…`;
@@ -765,7 +1054,19 @@
   function costoHTML(costo) {
     return Object.entries(costo).map(([r, n]) => `<span class="${total(r) < n ? 'falta' : ''}"><img class="px" src="${ICONO(r)}" alt="">${n} ${r}</span>`).join('');
   }
-  function abrirFabricar(pestana = 'equipo') {
+  const lugarDe = (o) => (o.lugar === 'ambos' ? ['base', 'pieza'] : [o.lugar]);
+  function catalogoHTML(lugar) {
+    const items = OBJETOS.filter((o) => lugarDe(o).includes(lugar)).sort((x, y) => (x.lugar === 'ambos') - (y.lugar === 'ambos'));
+    const cats = [...new Set(items.map((o) => o.cat))];
+    return cats.map((cat) => `<h3 class="cat">${esc(cat)}</h3><div class="catalogo">${items.filter((o) => o.cat === cat).map((o) => {
+      const n = S.inventario[o.id] || 0;
+      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : 'Premio al subir de nivel'}</span>`
+        : `<div class="costo">${costoHTML(o.costo)}</div><button type="button" class="btn pri chico" data-o="${o.id}" ${alcanza(o.costo) ? '' : 'disabled'}>Fabricar</button>`;
+      return `<div class="item ${o.excl ? 'excl' : ''}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><strong>${esc(o.nombre)}</strong><small>${n ? `${n} sin colocar` : ' '}</small>${der}</div>`;
+    }).join('')}</div>`).join('');
+  }
+  function abrirFabricar(pestana) {
+    if (!pestana) pestana = escena && escena.zona === 'pieza' ? 'pieza' : 'equipo';
     const filasEquipo = MEJORAS.map((m) => {
       const hecha = tiene(m.id), bloq = m.requiere && !tiene(m.requiere);
       const equipable = ARMAS[m.id] || ARMADURAS[m.id];
@@ -777,19 +1078,19 @@
       return `<div class="mejora ${hecha ? 'hecha' : ''}"><img class="ico px" src="${ICONO(m.icono)}" alt="">
         <div class="info"><strong>${esc(m.nombre)}</strong><span>${esc(m.desc)}</span><div class="costo">${costoHTML(m.costo)}</div></div>${der}</div>`;
     }).join('');
-    const filasObjetos = OBJETOS.map((o) => `<div class="mejora"><img class="ico px" src="${escena.imagenTex(o.tex)}" alt="">
-        <div class="info"><strong>${esc(o.nombre)}</strong><span>Tienes ${S.inventario[o.id] || 0} sin colocar</span><div class="costo">${costoHTML(o.costo)}</div></div>
-        <button type="button" class="btn pri" data-o="${o.id}" ${alcanza(o.costo) ? '' : 'disabled'}>Fabricar</button></div>`).join('');
+    const cuerpo = pestana === 'equipo' ? `<div class="mejoras">${filasEquipo}</div>`
+      : `<p class="nota">${pestana === 'base' ? 'Decora el exterior de tu base. Si fabricas una carpa, podrás entrar a tu propia pieza.' : 'Muebles para tu pieza: entra a una carpa de tu base para colocarlos.'} Los objetos fabricados se colocan con Decorar (G).</p>${catalogoHTML(pestana)}`;
     ui.abrir(`
       <div class="modal-cab">
-        <div><span class="etq">Tu base · Los recursos se toman del cofre y la mochila</span><h2 id="modal-titulo">Fabricar</h2></div>
+        <div><span class="etq">${escena.zona === 'pieza' ? 'Tu pieza' : 'Tu base'} · Los recursos se toman del cofre y la mochila</span><h2 id="modal-titulo">Fabricar</h2></div>
         <button type="button" class="btn" id="f-cerrar">Cerrar</button>
       </div>
       <div class="pestanas" role="tablist">
-        <button type="button" role="tab" data-p="equipo" aria-selected="${pestana === 'equipo'}">Herramientas y equipo</button>
-        <button type="button" role="tab" data-p="objetos" aria-selected="${pestana === 'objetos'}">Objetos para tu base</button>
+        <button type="button" role="tab" data-p="equipo" aria-selected="${pestana === 'equipo'}">Equipo</button>
+        <button type="button" role="tab" data-p="base" aria-selected="${pestana === 'base'}">Decorativos</button>
+        <button type="button" role="tab" data-p="pieza" aria-selected="${pestana === 'pieza'}">Muebles</button>
       </div>
-      <div class="mejoras">${pestana === 'equipo' ? filasEquipo : filasObjetos}</div>`);
+      ${cuerpo}`, 'ancho');
     $('f-cerrar').addEventListener('click', () => ui.cerrar());
     document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => abrirFabricar(b.dataset.p)));
     document.querySelectorAll('[data-eq]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.eq); abrirFabricar('equipo'); }));
@@ -806,27 +1107,36 @@
     }));
     document.querySelectorAll('[data-o]').forEach((b) => b.addEventListener('click', () => {
       const o = OBJ[b.dataset.o];
-      if (!alcanza(o.costo)) return;
+      if (!o || o.excl || !alcanza(o.costo)) return;
+      const scroll = $('modal').scrollTop;
       pagar(o.costo);
       S.inventario[o.id] = (S.inventario[o.id] || 0) + 1;
       guardar(true); pintarHUD();
-      toast(`Fabricaste: ${o.nombre}. Colócalo con Decorar.`);
-      abrirFabricar('objetos');
+      toast(`Fabricaste: ${o.nombre}. Colócalo con Decorar (G).`);
+      avanzarMision('fabricar');
+      abrirFabricar(pestana);
+      $('modal').scrollTop = scroll;
     }));
   }
 
   // ---------- Decorar ----------
   function abrirDecorar() {
-    const items = OBJETOS.filter((o) => S.inventario[o.id] > 0);
+    const lugar = escena.zona === 'pieza' ? 'pieza' : 'base';
+    const items = OBJETOS.filter((o) => S.inventario[o.id] > 0 && lugarDe(o).includes(lugar));
+    const otros = OBJETOS.filter((o) => S.inventario[o.id] > 0 && !lugarDe(o).includes(lugar)).length;
+    const obj = escena.objetivo && escena.objetivo.tipo === 'colocado' ? escena.objetivo : null;
     ui.abrir(`
-      <div class="modal-cab"><div><span class="etq">Tu base</span><h2 id="modal-titulo">Decorar</h2></div><button type="button" class="btn" id="g-cerrar">Cerrar</button></div>
-      <p class="nota">Elige un objeto: se colocará justo delante de tu personaje. Para guardar un objeto colocado, acércate y presiona E.</p>
+      <div class="modal-cab"><div><span class="etq">${lugar === 'pieza' ? 'Tu pieza' : 'Tu base'}</span><h2 id="modal-titulo">Decorar</h2></div><button type="button" class="btn" id="g-cerrar">Cerrar</button></div>
+      <p class="nota">Elige un objeto: se colocará justo delante de tu personaje.${lugar === 'pieza' ? ' Los cuadros, espejos y antorchas se cuelgan: párate junto a la pared de arriba mirándola.' : ''} Para guardar un objeto colocado, mira hacia él y presiona R.</p>
+      ${obj ? `<button type="button" class="btn sec" id="g-guardar">Guardar ${esc(obj.nombre.toLowerCase())} (el que tienes al frente)</button>` : ''}
       ${items.length ? `<div class="objetos">${items.map((o) => `<button type="button" class="obj" data-o="${o.id}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><span>${esc(o.nombre)}</span><small>× ${S.inventario[o.id]}</small></button>`).join('')}</div>`
-        : '<div class="mensaje pista">No tienes objetos sin colocar. Fabrícalos en la fogata, pestaña "Objetos para tu base".</div>'}`);
+        : `<div class="mensaje pista">No tienes objetos para ${lugar === 'pieza' ? 'tu pieza' : 'tu base'}. Fabrícalos con B, pestaña "${lugar === 'pieza' ? 'Muebles' : 'Decorativos'}".</div>`}
+      ${otros ? `<p class="nota">Tienes ${otros} ${otros === 1 ? 'objeto' : 'objetos'} para ${lugar === 'pieza' ? 'el exterior de tu base' : 'tu pieza (entra a una carpa)'}.</p>` : ''}`);
     $('g-cerrar').addEventListener('click', () => ui.cerrar());
-    document.querySelectorAll('.obj').forEach((b) => b.addEventListener('click', () => {
+    const bg = $('g-guardar'); if (bg) bg.addEventListener('click', () => { ui.alCerrar = () => escena.quitar(obj); ui.cerrar(); });
+    document.querySelectorAll('.obj[data-o]').forEach((b) => b.addEventListener('click', () => {
       const id = b.dataset.o;
-      ui.alCerrar = () => { if (escena.colocar(id)) { S.inventario[id] -= 1; guardar(true); } };
+      ui.alCerrar = () => { if (escena.colocar(id)) { S.inventario[id] -= 1; guardar(true); avanzarMision('decorar'); } };
       ui.cerrar();
     }));
   }
@@ -915,7 +1225,7 @@
         const pct = s.i ? Math.round((s.a / s.i) * 100) : 0;
         return `<div><div class="fila"><span>${esc(t)}</span><span>${s.i ? `${s.a} de ${s.i} (${pct} %)` : 'Sin intentos'}</span></div><div class="barra"><i style="width: ${pct}%"></i></div></div>`;
       }).join('');
-      return `<details ${escena.zona === u.id || (escena.zona === 'base' && u.id === 'u1') ? 'open' : ''}><summary><strong>Unidad ${u.numero} · ${esc(u.titulo)}</strong> ${u.habilitada ? '' : '<span class="nota">(cerrada)</span>'}</summary><div class="avance">${filas}</div></details>`;
+      return `<details ${escena.zona === u.id || (enCasa() && u.id === 'u1') ? 'open' : ''}><summary><strong>Unidad ${u.numero} · ${esc(u.titulo)}</strong> ${u.habilitada ? '' : '<span class="nota">(cerrada)</span>'}</summary><div class="avance">${filas}</div></details>`;
     }).join('');
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">${S.curso === '7basico' ? '7°' : '8°'} básico${S.seccion ? ' · ' + esc(S.seccion.slice(1)) : ''}</span><h2 id="modal-titulo">Tu avance</h2></div><button type="button" class="btn" id="m-cerrar">Cerrar</button></div>
@@ -926,7 +1236,7 @@
     $('m-cerrar').addEventListener('click', () => ui.cerrar());
     $('m-salir').addEventListener('click', async () => {
       guardar(true); await subir();
-      if (esDocente()) { location.href = 'docente.html'; return; }
+      if (esDocente()) { volverAlPortal(); return; }
       if (sesion.modo === 'nube') { try { await Nube.salir(sesion.token); } catch (e) { /* */ } }
       try { localStorage.removeItem('mathworld2:cache'); } catch (e) { /* */ }
       location.reload();
@@ -950,9 +1260,11 @@
       return;
     }
     const k = e.key.toLowerCase();
-    const enBase = escena && escena.zona === 'base';
+    const enBase = escena && enCasa();
     if (k === 'b' && enBase) abrirFabricar();
     else if (k === 'g' && enBase) abrirDecorar();
+    else if (k === 'n') abrirMisiones();
+    else if (k === 'r' && escena && escena.objetivo && escena.objetivo.tipo === 'colocado') escena.quitar(escena.objetivo);
     else if (k === 'm') abrirMapa();
     else if (k === '1') equipar('hacha');
     else if (k === '2') equipar('pico');
@@ -963,6 +1275,14 @@
   $('btn-base').addEventListener('click', () => abrirFabricar());
   $('btn-decorar').addEventListener('click', abrirDecorar);
   $('btn-mapa').addEventListener('click', abrirMapa);
+  $('btn-misiones').addEventListener('click', abrirMisiones);
+  $('hud-misiones').addEventListener('click', abrirMisiones);
+  $('btn-portal').addEventListener('click', volverAlPortal);
+  async function volverAlPortal() {
+    const b = $('btn-portal'); b.disabled = true;
+    guardar(true); await subir();
+    location.href = 'docente.html';
+  }
   $('capa').addEventListener('click', (e) => { if (e.target === $('capa') && !$('modal').classList.contains('combate') && !$('modal').classList.contains('bloqueo')) ui.cerrar(); });
 
   const palanca = { x: 0, y: 0 };
@@ -989,6 +1309,7 @@
   // Escena (Phaser): base o mundo según la zona
   // ===================================================================
   const TILE = 32;
+  let ultimaCarpa = null;
   const COLS = 57;
   const fr = (c, r) => r * COLS + c;
   const DIRS = { up: 0, left: 1, down: 2, right: 3 };
@@ -1007,10 +1328,11 @@
 
   class Juego extends Phaser.Scene {
     constructor() { super('juego'); }
-    init(data) { this.zona = (data && data.zona) || 'base'; this.desde = data && data.desde; }
+    init(data) { this.zona = (data && data.zona) || 'base'; this.desde = data && data.desde; this.carpa = data && data.carpa; }
 
     preload() {
       if (!this.textures.exists('kenney')) this.load.image('kenney', 'assets/kenney_roguelike.png');
+      if (!this.textures.exists('kenney_in')) this.load.image('kenney_in', 'assets/kenney_indoor.png');
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of ['nada', 'cuero', 'cristal']) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -1025,13 +1347,14 @@
       this.enemigos = [];
       this.lagos = [];
       this.ocupado = new Set();
-      if (this.zona === 'base') this.crearBase(); else this.crearMundo(MUNDOS[this.zona]);
+      if (!MUNDOS[this.zona] && this.zona !== 'pieza') this.zona = 'base';
+      if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else this.crearMundo(MUNDOS[this.zona]);
       this.crearJugador();
       this.physics.world.setBounds(0, 0, this.ancho * TILE, this.alto * TILE);
       this.cameras.main.setBounds(0, 0, this.ancho * TILE, this.alto * TILE);
       this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15);
       this.cameras.main.setRoundPixels(true);
-      this.cameras.main.setBackgroundColor(this.zona === 'base' ? '#2f6b47' : MUNDOS[this.zona].fondo);
+      this.cameras.main.setBackgroundColor(this.zona === 'base' ? '#2f6b47' : this.zona === 'pieza' ? '#140d09' : MUNDOS[this.zona].fondo);
       this.cameras.main.fadeIn(350, 18, 32, 26);
       this.ajustarZoom();
       this.scale.on('resize', this.ajustarZoom, this);
@@ -1044,23 +1367,27 @@
       this.objetivo = null;
       this.enCombate = false;
       this.time.addEvent({ delay: 120, loop: true, callback: () => this.buscarObjetivo() });
-      if (this.zona !== 'base') {
+      if (MUNDOS[this.zona]) {
+        misionesDe(this.zona);
         this.time.addEvent({ delay: 40000, loop: true, callback: () => { if (S.vida < vidaMax() && !this.enCombate) { S.vida += 1; pintarHUD(); } } });
       }
       this.otros = new Map();
       this.cambios = new Map();
       this.canal = null;
-      if (this.zona !== 'base' && S.grupo && coopActivo()) this.iniciarCoop();
+      if (MUNDOS[this.zona] && S.grupo && coopActivo()) this.iniciarCoop();
       this.events.once('shutdown', () => { if (this.canal) { this.canal.salir(); this.canal = null; } pintarCoop(); });
       pintarHUD();
       pintarCoop();
       latir();
+      if (MUNDOS[this.zona]) this.actualizarSello();
+      if (this.zona === 'pieza' && !(S.pieza || []).length) setTimeout(() => toast('¡Esta es tu pieza! Fabrica muebles con B (pestaña Muebles) y colócalos con G.'), 700);
+      revisarPendientes();
     }
 
     // ---------- texturas ----------
-    tex(key, w, h, partes) {
+    tex(key, w, h, partes, hoja = 'kenney') {
       if (this.textures.exists(key)) return;
-      const src = this.textures.get('kenney').getSourceImage();
+      const src = this.textures.get(hoja).getSourceImage();
       const t = this.textures.createCanvas(key, w * 16, h * 16);
       for (const [c, r, dx, dy] of partes) t.context.drawImage(src, c * 17, r * 17, 16, 16, dx * 16, dy * 16, 16, 16);
       t.refresh();
@@ -1088,6 +1415,13 @@
       T('cofre', 37, 9); T('fogata', 14, 8); T('lena', 13, 8); T('cerco', 52, 23); T('letrero', 19, 0);
       T('arbusto', 19, 9); T('arbusto2', 24, 9); T('antorcha', 17, 8); T('barril', 23, 0);
       [28, 29, 30, 31].forEach((c, i) => T(`flor${i}`, c, 9));
+      // Decorativos y muebles del catálogo
+      for (const o of OBJETOS) {
+        const [c, r, w, h] = o.t, partes = [];
+        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
+        this.tex(o.tex, w, h, partes, o.h === 'i' ? 'kenney_in' : 'kenney');
+      }
+      this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       // Arbusto vivo: el mismo arbusto con ojos y boca
       if (!this.textures.exists('arbusto_vivo')) {
         const src = this.textures.get('kenney').getSourceImage();
@@ -1216,40 +1550,125 @@
       this.portal(21, 11);
       for (let x = 2; x < this.ancho - 2; x++) this.marcar(x, 11);
       // objetos colocados por el estudiante
+      this.limites = { x0: 2, y0: 2, x1: this.ancho - 3, y1: this.alto - 3 };
+      this.ocupadoPiso = new Set(); this.ocupadoPared = new Set();
       (S.colocados || []).forEach((c) => this.dibujarColocado(c));
       this.inicio = this.desde && this.desde !== 'muerte' ? { x: 20 * TILE + 16, y: 12 * TILE + 24 } : { x: 12 * TILE + 16, y: 9 * TILE + 20 };
+      if (this.desde === 'pieza' && this.carpa && !this.ocupado.has(`${this.carpa.x},${this.carpa.y + 1}`) && this.carpa.y + 1 <= this.limites.y1) {
+        this.inicio = { x: this.carpa.x * TILE, y: (this.carpa.y + 1) * TILE + 26 };
+      }
     }
+
+    // ---------- pieza (dentro de la carpa) ----------
+    crearPieza() {
+      this.ancho = 14; this.alto = 11;
+      this.rnd = azar(9);
+      const PISO = fr(8, 2), PX = 7;
+      const data = [];
+      for (let y = 0; y < this.alto; y++) {
+        const fila = [];
+        for (let x = 0; x < this.ancho; x++) fila.push((x >= 1 && x <= 12 && y >= 3 && y <= 9) || (x === PX && y === 10) ? PISO : -1);
+        data.push(fila);
+      }
+      this.suelo(data);
+      const W = this.ancho * TILE, H = this.alto * TILE;
+      // paredes: tapiz arriba, madera oscura alrededor
+      for (let y = 1; y <= 2; y++) for (let x = 1; x <= 12; x++) this.add.image(x * TILE + 16, y * TILE + 16, 'tapiz_pared').setScale(2).setDepth(-9);
+      const g = this.add.graphics().setDepth(-8);
+      g.fillStyle(0x3b2618, 1);
+      g.fillRect(0, 0, W, TILE); g.fillRect(0, 0, TILE, H); g.fillRect(W - TILE, 0, TILE, H);
+      g.fillRect(0, 10 * TILE, PX * TILE, TILE); g.fillRect((PX + 1) * TILE, 10 * TILE, W - (PX + 1) * TILE, TILE);
+      g.fillStyle(0x24160d, 1); g.fillRect(TILE, 3 * TILE - 4, 12 * TILE, 5);
+      g.fillStyle(0x5a3a22, 1); g.fillRect(TILE - 4, TILE - 4, 12 * TILE + 8, 4); g.fillRect(TILE - 4, TILE - 4, 4, 9 * TILE + 8); g.fillRect(13 * TILE, TILE - 4, 4, 9 * TILE + 8);
+      g.fillRect(TILE - 4, 10 * TILE, (PX - 1) * TILE + 4, 4); g.fillRect((PX + 1) * TILE, 10 * TILE, 5 * TILE + 4, 4);
+      // salida
+      this.add.image(PX * TILE + 16, 10 * TILE + 16, 'd_alf_oval').setScale(1.4, 2).setDepth(-7).setAlpha(0.9);
+      this.add.text(PX * TILE + 16, 10 * TILE + 16, 'SALIDA', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#fff3d6', stroke: '#24160d', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(-6);
+      this.solido(W / 2, (3 * TILE - 6) / 2, W, 3 * TILE - 6);
+      this.solido(TILE / 2, H / 2, TILE, H); this.solido(W - TILE / 2, H / 2, TILE, H);
+      this.solido((PX * TILE) / 2, 10.5 * TILE, PX * TILE, TILE); this.solido((W + (PX + 1) * TILE) / 2, 10.5 * TILE, W - (PX + 1) * TILE, TILE);
+      this.objetos.push({ tipo: 'puerta', x: PX * TILE + 16, y: 10 * TILE + 6, activo: true });
+      this.limites = { x0: 1, y0: 3, x1: 12, y1: 9 };
+      this.ocupadoPiso = new Set(); this.ocupadoPared = new Set();
+      this.marcar(PX, 9); this.ocupadoPiso.add(`${PX},9`);
+      (S.pieza || []).forEach((c) => this.dibujarColocado(c));
+      this.inicio = { x: PX * TILE + 16, y: 9 * TILE + 26 };
+    }
+
+    // ---------- objetos colocados (base y pieza) ----------
+    // (x, y) es la casilla de abajo a la derecha del objeto
+    celdas(o, x, y) {
+      const [, , w, h] = o.t, filas = o.pared ? h : o.piso ? h : (o.pie || 1), out = [];
+      for (let dy = 0; dy < filas; dy++) for (let dx = 0; dx < w; dx++) out.push([x - dx, y - dy]);
+      return out;
+    }
+    conjunto(o) { return o.pared ? this.ocupadoPared : o.piso ? this.ocupadoPiso : this.ocupado; }
     dibujarColocado(c) {
       const o = OBJ[c.k]; if (!o) return;
-      const s = this.sprite(o.tex, c.x, c.y, o.ancho === 2 ? 0.75 : 0.5);
-      const z = o.solido ? this.solido(s.x - (o.ancho === 2 ? 16 : 0), s.y - o.solido[1] / 2 - 2, o.solido[0], o.solido[1]) : null;
-      this.objetos.push({ tipo: 'colocado', c, s, z, x: s.x - (o.ancho === 2 ? 16 : 0), y: s.y - 10, activo: true, nombre: o.nombre });
-      this.marcar(c.x, c.y); if (o.ancho === 2) this.marcar(c.x - 1, c.y);
+      const [, , w, h] = o.t, pie = o.pie || 1;
+      const s = this.sprite(o.tex, c.x, c.y, 1 - 1 / (2 * w));
+      if (o.piso) s.setDepth(-5); else if (o.pared) s.setDepth(-6);
+      const cx = (c.x + 1) * TILE - w * 16;
+      let z = null;
+      if (!o.piso && !o.pared && !o.paso) {
+        const alto = o.carpa ? 28 : pie * TILE - 12;
+        z = this.solido(cx, (c.y + 1) * TILE - 2 - alto / 2, o.carpa ? 56 : Math.max(20, w * TILE - 10), alto);
+      }
+      const celdas = this.celdas(o, c.x, c.y), set = this.conjunto(o);
+      celdas.forEach(([x, y]) => set.add(`${x},${y}`));
+      const y = o.pared ? 3 * TILE - 4 : o.piso ? (c.y + 1) * TILE - (h * TILE) / 2 : (c.y + 1) * TILE - 10 - (pie - 1) * 16;
+      this.objetos.push({ tipo: 'colocado', c, s, z, x: cx, y, activo: true, nombre: o.nombre, carpa: Boolean(o.carpa), piso: Boolean(o.piso), celdas, set });
     }
     colocar(id) {
       const o = OBJ[id];
-      const v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[this.dir];
-      const tx = Math.floor(this.jugador.x / TILE) + v[0], ty = Math.floor((this.jugador.y - 4) / TILE) + v[1];
-      const libre = (x, y) => x >= 2 && y >= 2 && x < this.ancho - 2 && y < this.alto - 2 && !this.ocupado.has(`${x},${y}`);
-      if (!libre(tx, ty) || (o.ancho === 2 && !libre(tx - 1, ty)) || (OBJ[id].tex.startsWith('arbol') && !libre(tx, ty - 1))) {
-        toast('No hay espacio libre justo delante. Muévete a un lugar despejado.', 'alerta');
+      const [, , w, h] = o.t;
+      const L = this.limites;
+      const lista = this.zona === 'pieza' ? (S.pieza = S.pieza || []) : (S.colocados = S.colocados || []);
+      const tjx = Math.floor(this.jugador.x / TILE), tjy = Math.floor((this.jugador.y - 4) / TILE);
+      let tx, ty;
+      if (o.pared) {
+        if (this.zona !== 'pieza' || tjy !== L.y0 || this.dir !== 'up') { toast('Esto se cuelga en la pared: párate junto a la pared de arriba y mira hacia ella.', 'alerta'); return false; }
+        tx = tjx; ty = 2;
+        if (tx - w + 1 < L.x0 && tx + w - 1 <= L.x1) tx = L.x0 + w - 1;
+      } else {
+        const filas = o.piso ? h : (o.pie || 1);
+        tx = this.dir === 'right' ? tjx + w : this.dir === 'left' ? tjx - 1 : tjx + Math.floor((w - 1) / 2);
+        ty = this.dir === 'up' ? tjy - 1 : this.dir === 'down' ? tjy + filas : tjy;
+      }
+      const celdas = this.celdas(o, tx, ty), set = this.conjunto(o);
+      const fuera = ([x, y]) => x < L.x0 || x > L.x1 || (o.pared ? y < 1 || y > 2 : y < L.y0 || y > L.y1);
+      const bloqueada = ([x, y]) => set.has(`${x},${y}`) || (!o.piso && !o.pared && Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y - 6, x * TILE + 16, y * TILE + 16) < 18);
+      if (celdas.some(fuera) || celdas.some(bloqueada) || (!o.piso && !o.pared && ty - h + 1 < 1)) {
+        toast(o.pared ? 'No hay espacio en esa parte de la pared. Muévete un poco.' : 'No hay espacio libre justo delante. Muévete a un lugar despejado.', 'alerta');
         return false;
       }
       const c = { k: id, x: tx, y: ty };
-      S.colocados.push(c);
+      lista.push(c);
       this.dibujarColocado(c);
-      this.celebrar(this.jugador.x + v[0] * 30, this.jugador.y + v[1] * 30);
+      this.celebrar((tx + 1) * TILE - w * 16, (ty + 1) * TILE - 20);
       return true;
     }
     quitar(obj) {
-      S.colocados = S.colocados.filter((c) => c !== obj.c);
+      if (!obj || !obj.activo) return;
+      if (this.zona === 'pieza') S.pieza = (S.pieza || []).filter((c) => c !== obj.c);
+      else S.colocados = S.colocados.filter((c) => c !== obj.c);
       S.inventario[obj.c.k] = (S.inventario[obj.c.k] || 0) + 1;
       obj.s.destroy(); if (obj.z) obj.z.destroy();
       obj.activo = false;
-      this.ocupado.delete(`${obj.c.x},${obj.c.y}`);
-      if (OBJ[obj.c.k].ancho === 2) this.ocupado.delete(`${obj.c.x - 1},${obj.c.y}`);
+      obj.celdas.forEach(([x, y]) => obj.set.delete(`${x},${y}`));
       guardar(true);
-      toast(`Guardaste: ${obj.nombre}.`);
+      toast(`Guardaste: ${obj.nombre}. Puedes volver a colocarlo con Decorar (G).`);
+    }
+    entrarPieza(obj) {
+      ultimaCarpa = { x: obj.c.x, y: obj.c.y };
+      S.zona = 'pieza';
+      guardar(true);
+      this.scene.restart({ zona: 'pieza', desde: 'base' });
+    }
+    salirPieza() {
+      S.zona = 'base';
+      guardar(true);
+      this.scene.restart({ zona: 'base', desde: 'pieza', carpa: ultimaCarpa });
     }
 
     // ---------- mundos ----------
@@ -1408,7 +1827,14 @@
     }
     ajustarZoom() {
       const { width, height } = this.scale;
-      this.cameras.main.setZoom(Math.max(1, Math.min(3, Math.floor(Math.min(width / 560, height / 315) * 2) / 2)));
+      const cam = this.cameras.main;
+      cam.setZoom(Math.max(1, Math.min(3, Math.floor(Math.min(width / 560, height / 315) * 2) / 2)));
+      if (this.zona === 'pieza' && this.jugador) {
+        // La pieza es pequeña: si cabe en pantalla, se centra; si no, la cámara sigue al jugador
+        const W = this.ancho * TILE, H = this.alto * TILE;
+        if (W * cam.zoom <= width && H * cam.zoom <= height - 40) { cam.stopFollow(); cam.removeBounds(); cam.centerOn(W / 2, H / 2 - 10); }
+        else { cam.setBounds(0, 0, W, H); cam.startFollow(this.jugador, true, 0.15, 0.15); }
+      }
     }
 
     update(t, dt) {
@@ -1485,6 +1911,7 @@
           Object.entries(E.botin).forEach(([r, n], i) => { sumar(r, n); this.time.delayedCall(i * 300, () => this.flotante(e.s.x, e.s.y - 40 - i * 18, `+${n} ${r}`)); });
           S.vencidos = (S.vencidos || 0) + 1;
           ganarXP(E.xp);
+          avanzarMision(e.clase);
           this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 60, max: 160 }, lifespan: 700, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
           this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
           if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(e.clase === 'niebla' ? 0.85 : 1).setScale(2).setVisible(true); if (e.clase === 'arbusto') { e.despierto = false; e.s.setTexture('arbusto'); } e.vida = e.vidaMax; e.activo = true; });
@@ -1516,8 +1943,9 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base'].includes(o.tipo) ? 50 : 36;
-        if (d < lim && d - lim < puntaje) { mejor = o; puntaje = d - lim; }
+        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const pena = o.piso ? 30 : 0;
+        if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
       if (!mejor) {
         for (const L of this.lagos) {
@@ -1540,7 +1968,8 @@
         case 'cofre_base': return 'Ver tu cofre';
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
-        case 'colocado': return `Guardar ${o.nombre.toLowerCase()}`;
+        case 'colocado': return o.carpa ? 'Entrar a tu pieza (R: guardar la carpa)' : `Guardar ${o.nombre.toLowerCase()}`;
+        case 'puerta': return 'Salir a tu base';
         default: return null;
       }
     }
@@ -1557,7 +1986,8 @@
       if (o.tipo === 'cofre_base') return abrirCofre();
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'jefe') return this.pedirJefe();
-      if (o.tipo === 'colocado') return this.quitar(o);
+      if (o.tipo === 'colocado') return o.carpa ? this.entrarPieza(o) : this.quitar(o);
+      if (o.tipo === 'puerta') return this.salirPieza();
       if (o.tipo === 'arbol') {
         if (o.estado !== 'arbol') return toast('Este árbol todavía está creciendo.');
         equipar('hacha');
@@ -1588,6 +2018,7 @@
       if (o.s) this.tweens.add({ targets: o.s, x: o.s.x + 3, duration: 50, yoyo: true, repeat: 3 });
       sumar(recurso, cant);
       this.flotante(o.x, o.y - 40, `+${cant} ${recurso}`);
+      avanzarMision({ arbol: 'talar', roca: 'picar', agua: 'agua', cofre: 'cofre' }[o.tipo]);
       if (o.tipo === 'roca' && this.rnd() < (tiene('pico2') ? 0.35 : 0.15)) {
         sumar('cristal', 1);
         this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, '+1 cristal', '#9ff0e4'));
@@ -1630,13 +2061,13 @@
     iniciarCoop() {
       const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente) };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
-      this.enGuarida = new Set(); this.yoEnGuarida = false; this.enJefe = false;
+      this.enGuarida = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
       this.primeraPresencia = true;
       const c = new Coop.Canal(`mw-${nivelNum()}-${this.zona}-g${S.grupo}`, idJuego, meta);
       this.canal = c;
       c.alEstado = (e) => {
-        if (e === 'ok') { c.emitir('hola', { id: idJuego }); this.ultimoMov.t = 0; if (this.yoEnGuarida) c.emitir('guarida', { id: idJuego, dentro: true }); }
+        if (e === 'ok') { c.emitir('hola', { id: idJuego }); this.ultimoMov.t = 0; if (this.yoEnGuarida) this.avisarGuarida(); }
         if (e === 'error') toast('No se pudo conectar con tu grupo: por ahora juegas solo.', 'alerta');
         pintarCoop();
       };
@@ -1645,7 +2076,7 @@
       c.on('nodo', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i) { this.cambios.set(d.i, { n: d.n, t: Date.now() }); this.aplicarNodo(o, d.n, 0); } });
       c.on('hola', (d) => {
         this.ultimoMov.t = 0;
-        if (this.yoEnGuarida) c.emitir('guarida', { id: idJuego, dentro: true });
+        if (this.yoEnGuarida) this.avisarGuarida();
         const otros = Object.keys(c.presencia).filter((k) => k !== d.id).concat(idJuego).sort();
         if (otros[0] !== idJuego) return;
         c.emitir('estado', { para: d.id, nodos: [...this.cambios].map(([i, v]) => [i, v.n, Date.now() - v.t]).filter((x) => x[2] < 150000), jefe: this.jefeParaEnviar() });
@@ -1655,7 +2086,7 @@
         (d.nodos || []).forEach(([i, n, e]) => { const o = this.objetos[i]; if (o && o.idx === i) { this.cambios.set(i, { n, t: Date.now() - e }); this.aplicarNodo(o, n, e); } });
         if (d.jefe) this.recibirJefe(d.jefe);
       });
-      c.on('guarida', (d) => { if (d.dentro) this.enGuarida.add(d.id); else this.enGuarida.delete(d.id); });
+      c.on('guarida', (d) => { if (d.dentro) this.enGuarida.set(d.id, d.listo !== false); else this.enGuarida.delete(d.id); });
       c.on('jefe', (d) => this.recibirJefe(d));
       c.on('jefe_pedir', () => this.iniciarJefeSiLider());
       c.on('golpe', (d) => this.golpeAlJefe(d.dmg));
@@ -1743,30 +2174,44 @@
     revisarGuarida() {
       if (!this.guarida || !this.canal) return;
       const dentro = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 170;
-      if (dentro !== this.yoEnGuarida) { this.yoEnGuarida = dentro; this.canal.emitir('guarida', { id: idJuego, dentro }); }
+      if (dentro !== this.yoEnGuarida) { this.yoEnGuarida = dentro; this.avisarGuarida(); }
     }
+    // Avisa al grupo si estoy en la guarida y si ya cumplí mis misiones
+    avisarGuarida() {
+      this.actualizarSello();
+      if (this.canal && this.guarida) this.canal.emitir('guarida', { id: idJuego, dentro: this.yoEnGuarida, listo: misionesListas(this.zona) });
+    }
+    actualizarSello() {
+      if (!this.jefeTag || !MUNDOS[this.zona]) return;
+      const listo = misionesListas(this.zona);
+      this.jefeTag.setText(listo ? JEFES[this.zona].nombre : `${JEFES[this.zona].nombre}\n(sellado: cumple tus misiones)`).setAlign('center');
+      if (this.jefeSpr) this.jefeSpr.setAlpha(listo ? 1 : 0.55);
+    }
+    // Solo cuentan los jugadores que ya cumplieron sus misiones
     jugadoresEnGuarida() {
-      const ids = [...this.enGuarida].filter((id) => this.otros.has(id));
-      if (this.yoEnGuarida) ids.push(idJuego);
+      const ids = [...this.enGuarida].filter(([id, listo]) => listo && this.otros.has(id)).map(([id]) => id);
+      if (this.yoEnGuarida && misionesListas(this.zona)) ids.push(idJuego);
       return ids;
     }
     jefeDisponible() { const J = this.jefe; return J && (J.estado === 'libre' || (J.estado === 'vencido' && J.hasta <= Date.now())); }
     textoJefe() {
+      if (!misionesListas(this.zona)) { const M = misionesDe(this.zona); return `Jefe sellado: misiones ${M.lista.filter((m) => m.p >= m.n).length} de ${M.lista.length}`; }
       if (!this.canal) return 'Jefe final: viaja con un grupo';
       const J = this.jefe;
       if (J.estado === 'combate') return J.part.includes(idJuego) ? 'Volver al combate' : 'Tu grupo está luchando';
       if (!this.jefeDisponible()) return `Jefe derrotado: vuelve en ${Math.ceil((J.hasta - Date.now()) / 60000)} min`;
       const n = this.jugadoresEnGuarida().length;
-      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores`;
+      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores listos`;
     }
     pedirJefe() {
+      if (!misionesListas(this.zona)) { toast('El jefe está sellado: primero cumple tus 3 misiones de este mundo.', 'alerta'); return abrirMisiones(); }
       if (!this.canal) return abrirInfoJefe(this.zona);
       const J = this.jefe;
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
       if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); } return; }
       if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
       const n = this.jugadoresEnGuarida().length;
-      if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} en la guarida para desafiar al jefe.`);
+      if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} en la guarida con sus misiones cumplidas para desafiar al jefe.`);
       this.canal.emitir('jefe_pedir', { id: idJuego });
       this.iniciarJefeSiLider();
     }
@@ -1839,7 +2284,7 @@
   }
 
   // Acceso para pruebas y depuración desde la consola del navegador.
-  window.MathWorld = { escena: () => escena, estado: () => S, sesion: () => sesion };
+  window.MathWorld = { escena: () => escena, estado: () => S, sesion: () => sesion, mision: (ev, tema) => avanzarMision(ev, tema), xp: (n) => ganarXP(n) };
 
   prepararIngreso();
 })();
