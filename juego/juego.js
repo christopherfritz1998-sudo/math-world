@@ -160,6 +160,7 @@
     u3: { nombre: 'Titán de las Formas', color: '#c9a46b' },
     u4: { nombre: 'Hidra de los Datos', color: '#5d7b55' },
   };
+  const VIDA_HUIR = 1, VIDA_COFRE = 2;
   const JEFE_MIN = 4, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
@@ -741,7 +742,7 @@
     if (ARMAS[id]) { S.arma = id; S.herramienta = 'espada'; toast(`Equipaste: ${ARMAS[id].nombre}. Tu golpe quita ${danio()}.`); }
     else if (ARMADURAS[id]) {
       const antes = vidaMax(); S.armadura = id;
-      S.vida = Math.min(vidaMax(), S.vida + Math.max(0, vidaMax() - antes));
+      S.vida = enCasa() ? Math.min(vidaMax(), S.vida + Math.max(0, vidaMax() - antes)) : Math.min(S.vida, vidaMax());
       toast(`Equipaste: ${ARMADURAS[id].nombre}. Vida máxima: ${vidaMax()} corazones.`);
     }
     if (escena) escena.vestirJugador();
@@ -906,7 +907,7 @@
           ${alternativasHTML(d, elegida, fallidas, false)}
           ${pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : ''}
           <div class="acciones">
-            <div><button type="button" class="btn sec" id="c-pista">${pista ? 'Ocultar pista' : 'Ver pista'}</button><button type="button" class="btn" id="c-huir">Huir</button></div>
+            <div><button type="button" class="btn sec" id="c-pista">${pista ? 'Ocultar pista' : 'Ver pista'}</button><button type="button" class="btn" id="c-huir" title="Huir te quita ${VIDA_HUIR} corazón">Huir (−${VIDA_HUIR} ❤)</button></div>
             <div><button type="button" class="btn pri" id="c-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div>
           </div>`;
       }
@@ -1191,7 +1192,7 @@
       <div class="modal-cab"><div><span class="etq">Portal</span><h2 id="modal-titulo">¿A dónde quieres ir?</h2></div><button type="button" class="btn" id="p-cerrar">Cerrar</button></div>
       ${enBase ? '' : `<button type="button" class="zona" id="p-base"><small>TU BASE</small><strong>Volver a tu base</strong><span>Lo que llevas en la mochila se guarda en tu cofre y recuperas toda tu vida.</span></button>`}
       <div class="zonas">${tarjetas}</div>
-      ${enBase ? '' : '<p class="nota">Si pierdes un combate en un mundo, vuelves a tu base sin lo que llevabas en la mochila.</p>'}`);
+      ${enBase ? '' : '<p class="nota">En los mundos tu vida no se recupera sola: vuelve a tu base o abre los cofres con corazón. Huir de un enemigo te quita 1 corazón. Si pierdes un combate, vuelves a tu base sin lo que llevabas en la mochila.</p>'}`);
     $('p-cerrar').addEventListener('click', () => ui.cerrar());
     const pb = $('p-base');
     if (pb) pb.addEventListener('click', () => { ui.alCerrar = () => viajar('base'); ui.cerrar(); });
@@ -1400,7 +1401,7 @@
       this.time.addEvent({ delay: 120, loop: true, callback: () => this.buscarObjetivo() });
       if (MUNDOS[this.zona]) {
         misionesDe(this.zona);
-        this.time.addEvent({ delay: 40000, loop: true, callback: () => { if (S.vida < vidaMax() && !this.enCombate) { S.vida += 1; pintarHUD(); } } });
+        setTimeout(() => toast('Cuida tu vida: aquí no se recupera sola. Vuelve a tu base o busca cofres con corazón.'), 2600);
       }
       this.otros = new Map();
       this.cambios = new Map();
@@ -1472,6 +1473,7 @@
         '.xggggggggggggggx.', '.xgggmmmmmmmmgggx.', '..xggggggggggggx..', 'xxxxggggggggggxxxx', 'xggxggggggggggxggx',
         'xggxgggxxxxgggxggx', 'xggxggx....xggxggx', '.xx.xgx....xgx.xx.', '....xgx....xgx....', '...xggx....xggx...', '...xxxx....xxxx...',
       ], { x: '#1b1a12', g: J.color, e: '#ffd23f', m: '#3a1f22' });
+      this.pixeles('corazon', ['.rr.rr.', 'rwrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'], { r: '#e8524a', w: '#ffd0c8' });
       this.pixeles('hilo', ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'], { x: '#e8e8e8' });
       this.pixeles('niebla', [
         '......wwwwww........', '....wwwwwwwwww......', '...wwwwwwwwwwwww....', '..wwwwwwwwwwwwwwww..',
@@ -1777,7 +1779,13 @@
         const s = this.sprite('cofre', p[0], p[1]);
         const z = this.solido(s.x, s.y - 10, 26, 14);
         reservar(p[0], p[1]);
-        this.objetos.push({ tipo: 'cofre', s, z, x: s.x, y: s.y - 6, activo: true });
+        const conVida = i % 2 === 0;
+        let corazon = null;
+        if (conVida) {
+          corazon = this.add.image(s.x, s.y - 44, 'corazon').setScale(2).setDepth(s.y + 1);
+          this.tweens.add({ targets: corazon, y: s.y - 50, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        }
+        this.objetos.push({ tipo: 'cofre', s, z, x: s.x, y: s.y - 6, activo: true, vida: conVida, corazon });
       }
       for (let i = 0; i < 60; i++) {
         const p = lugar(1); if (!p) break;
@@ -1967,6 +1975,10 @@
           this.vencerEnemigo(e);
           guardar(true);
         } else if (resultado === 'huir') {
+          S.vida = Math.max(0, S.vida - VIDA_HUIR); pintarHUD(); this.dolor();
+          if (S.vida <= 0) { morir(E.nombre.toLowerCase()); return; }
+          toast(`Huiste, pero el ${E.nombre.toLowerCase()} te alcanzó a golpear: −${VIDA_HUIR} corazón.`, 'alerta');
+          guardar();
           e.aturdido = this.time.now + 4000;
           const ang = Phaser.Math.Angle.Between(e.s.x, e.s.y, this.jugador.x, this.jugador.y);
           this.jugador.x += Math.cos(ang) * 40; this.jugador.y += Math.sin(ang) * 40;
@@ -2022,7 +2034,7 @@
         case 'arbol': return o.estado === 'arbol' ? `Talar ${o.nombre}` : o.estado === 'tocon' ? 'Tocón: volverá a crecer' : 'Brote: está creciendo';
         case 'roca': return tiene('pico') ? 'Picar roca' : 'Roca: necesitas un pico';
         case 'agua': return tiene('balde') ? 'Sacar agua' : 'Lago: necesitas un balde';
-        case 'cofre': return 'Abrir cofre';
+        case 'cofre': return o.vida ? 'Abrir cofre (tiene vida)' : 'Abrir cofre';
         case 'fogata': return 'Fabricar y descansar';
         case 'cofre_base': return 'Ver tu cofre';
         case 'portal': return 'Usar el portal';
@@ -2064,7 +2076,13 @@
         return abrirDesafio({ accion: 'Sacar agua del lago', dif: difPara(1), premio: 'Premio: 2 agua', onOk: () => this.golpe(o, 'agua', 2) });
       }
       if (o.tipo === 'cofre') {
-        return abrirDesafio({ accion: 'Abrir cofre', dif: 3, premio: 'Premio: 2 cristal + 4 madera', onOk: () => { this.golpe(o, 'cristal', 2); sumar('madera', 4); } });
+        return abrirDesafio({ accion: o.vida ? 'Abrir cofre con vida' : 'Abrir cofre', dif: 3, premio: `Premio: 2 cristal + 4 madera${o.vida ? ` + ${VIDA_COFRE} corazones` : ''}`, onOk: () => {
+          this.golpe(o, 'cristal', 2); sumar('madera', 4);
+          if (o.vida) {
+            const antes = S.vida; S.vida = Math.min(vidaMax(), S.vida + VIDA_COFRE); pintarHUD();
+            this.time.delayedCall(600, () => this.flotante(o.x, o.y - 76, S.vida > antes ? `+${S.vida - antes} ❤` : 'Vida al máximo', '#ff9c8a'));
+          }
+        } });
       }
     }
 
@@ -2109,9 +2127,10 @@
         else if (90000 - edad <= 0) volver();
         else { o.activo = false; o.s.setVisible(false); o.z.body.enable = false; espera(90000 - edad, volver); }
       } else if (o.tipo === 'cofre') {
-        const volver = () => { o.s.setAlpha(1).setVisible(true); o.z.body.enable = true; o.activo = true; };
+        const volver = () => { o.s.setAlpha(1).setVisible(true); o.z.body.enable = true; o.activo = true; if (o.corazon) o.corazon.setVisible(true); };
         if (150000 - edad <= 0) { volver(); return; }
         o.activo = false; o.z.body.enable = false;
+        if (o.corazon) o.corazon.setVisible(false);
         this.tweens.add({ targets: o.s, alpha: 0, duration: 500, onComplete: () => { if (!o.activo) o.s.setVisible(false); } });
         espera(150000 - edad, volver);
       }
