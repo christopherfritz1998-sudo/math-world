@@ -280,3 +280,9 @@ ul.misiones li.ok .fila span { color: var(--ok); }
   .premios { grid-template-columns: minmax(0, 1fr); }
   .btn-portal { bottom: 232px; min-height: 40px; font-size: 13px; }
 }
+
+/* ---------- v6: desierto, jefe con fases ---------- */
+.modal.combate.furia { border-color: #ff9f1c; box-shadow: 0 0 0 4px rgba(255, 159, 28, .25), 0 0 40px rgba(255, 159, 28, .35); }
+.mensaje.furia { background: #3d2a0e; border: 2px solid #ff9f1c; color: #ffe2b0; }
+.recursos.muchos .recurso { padding: 3px 8px 3px 3px; }
+.recursos.muchos .recurso img { width: 28px; height: 28px; }

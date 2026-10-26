@@ -14,10 +14,15 @@
     { id: 'condor', nombre: 'Cóndor' }, { id: 'huemul', nombre: 'Huemul' },
     { id: 'pudu', nombre: 'Pudú' }, { id: 'lobo', nombre: 'Lobo' },
   ];
+  // Cada mundo tiene sus propios recursos (los mundos sin recursos propios usan los de la Unidad 1)
   const RECURSOS = [
-    { id: 'madera', nombre: 'Madera' }, { id: 'piedra', nombre: 'Piedra' },
-    { id: 'agua', nombre: 'Agua' }, { id: 'cristal', nombre: 'Cristal' },
+    { id: 'madera', nombre: 'Madera', grupo: 'u1' }, { id: 'piedra', nombre: 'Piedra', grupo: 'u1' },
+    { id: 'agua', nombre: 'Agua', grupo: 'u1' }, { id: 'cristal', nombre: 'Cristal', grupo: 'u1' },
+    { id: 'fibra', nombre: 'Fibra de cactus', corto: 'Fibra', grupo: 'u2' }, { id: 'arenisca', nombre: 'Arenisca', grupo: 'u2' },
+    { id: 'cobre', nombre: 'Cobre', grupo: 'u2' }, { id: 'oro', nombre: 'Oro', grupo: 'u2' },
   ];
+  const REC = Object.fromEntries(RECURSOS.map((r) => [r.id, r]));
+  const nombreRec = (id) => (REC[id] ? REC[id].nombre.toLowerCase() : id);
   const ICONO = (id) => `assets/iconos/${id}.png`;
 
   // Herramientas y equipo (se fabrican una vez)
@@ -30,11 +35,17 @@
     { id: 'pico2', nombre: 'Pico reforzado', desc: 'Más piedra y más cristales al picar rocas.', icono: 'pickaxe', costo: { madera: 20, piedra: 25, cristal: 2 }, requiere: 'hacha2' },
     { id: 'espada2', nombre: 'Espada de cristal', desc: 'Equipada, cada acierto en combate quita 3 de vida.', icono: 'espada', costo: { piedra: 20, cristal: 6 }, requiere: 'armadura' },
     { id: 'armadura2', nombre: 'Armadura de cristal', desc: 'Equipada, tu vida máxima sube a 9 corazones.', icono: 'armadura', costo: { agua: 12, cristal: 8 }, requiere: 'espada2' },
+    // Equipo del desierto (Unidad 2)
+    { id: 'cantimplora', nombre: 'Cantimplora', desc: 'Siempre activa: +1 corazón de vida máxima.', icono: 'cantimplora', costo: { fibra: 12, cobre: 4 }, requiere: 'pico' },
+    { id: 'pico3', nombre: 'Pico de cobre', desc: 'Permite extraer oro de las vetas doradas y saca más arenisca y cobre.', icono: 'pickaxe', costo: { cobre: 10, arenisca: 15, fibra: 6 }, requiere: 'pico2' },
+    { id: 'espada3', nombre: 'Espada de oro', desc: 'Equipada, cada acierto en combate quita 4 de vida.', icono: 'espada', costo: { oro: 8, cobre: 10 }, requiere: 'espada2' },
+    { id: 'armadura3', nombre: 'Armadura de oro', desc: 'Equipada, tu vida máxima sube a 11 corazones.', icono: 'armadura', costo: { oro: 12, arenisca: 20, fibra: 10 }, requiere: 'armadura2' },
   ];
   const NOMBRE_MEJORA = Object.fromEntries(MEJORAS.map((m) => [m.id, m.nombre]));
   // Equipo que se ve en el personaje
-  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 } };
-  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' } };
+  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 } };
+  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' } };
+  const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro'];
   const cuerpoDe = (pj) => (pj === 'luna' || pj === 'copihue' ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
@@ -76,6 +87,22 @@
     D('antorcha', 'Antorcha', 'Luces y fuego', 'base', 'o', [17, 8, 1, 1], { madera: 2, cristal: 1 }),
     D('fogata2', 'Fogata', 'Luces y fuego', 'base', 'o', [14, 8, 1, 1], { madera: 6, piedra: 2 }),
     D('candelabro', 'Candelabro', 'Luces y fuego', 'ambos', 'o', [19, 8, 1, 1], { piedra: 3, cristal: 1 }),
+    // Desierto (se fabrican con los recursos de la Unidad 2)
+    D('cactus_d', 'Cactus', 'Desierto', 'base', 'o', [22, 9, 1, 1], { fibra: 3 }),
+    D('cactus_fruto', 'Cactus con fruto', 'Desierto', 'base', 'o', [26, 10, 1, 1], { fibra: 4, agua: 1 }),
+    D('arbol_seco', 'Árbol seco', 'Desierto', 'base', 'o', [27, 9, 1, 1], { fibra: 2, arenisca: 2 }),
+    D('roca_duna', 'Roca del desierto', 'Desierto', 'base', 'c', [3, 1, 1, 1], { arenisca: 5 }),
+    D('aguja', 'Aguja de roca', 'Desierto', 'base', 'c', [0, 0, 1, 1], { arenisca: 4 }),
+    D('columna', 'Columna de arenisca', 'Desierto', 'base', 'o', [13, 19, 1, 2], { arenisca: 8 }),
+    D('columna_rota', 'Columna rota', 'Desierto', 'base', 'o', [14, 19, 1, 2], { arenisca: 6 }),
+    D('escombros', 'Escombros de arenisca', 'Desierto', 'base', 'o', [13, 18, 1, 1], { arenisca: 3 }),
+    D('calavera', 'Calavera', 'Desierto', 'base', 'c', [0, 2, 1, 1], { arenisca: 1, fibra: 1 }, { paso: true }),
+    D('huesos', 'Huesos antiguos', 'Desierto', 'base', 'c', [3, 2, 1, 1], { arenisca: 2, fibra: 1 }, { paso: true }),
+    D('brasero', 'Brasero de cobre', 'Desierto', 'ambos', 'c', [14, 17, 1, 1], { cobre: 4, arenisca: 2 }),
+    D('vasija', 'Vasija de barro', 'Desierto', 'ambos', 'c', [14, 15, 1, 1], { arenisca: 4, cobre: 1 }),
+    D('saco_oro', 'Saco de oro', 'Desierto', 'ambos', 'o', [43, 10, 1, 1], { oro: 3, fibra: 2 }),
+    D('lingotes', 'Lingotes de oro', 'Desierto', 'ambos', 'o', [45, 11, 1, 1], { oro: 4, cobre: 2 }),
+    D('monedas_oro', 'Monedas de oro', 'Desierto', 'ambos', 'o', [45, 10, 1, 1], { oro: 2 }, { paso: true }),
     D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
     D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
     D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
@@ -120,7 +147,9 @@
     D('planta2', 'Helecho', 'Adornos', 'pieza', 'i', [17, 0, 1, 1], { agua: 3 }),
     D('libros', 'Estante con libros', 'Adornos', 'pieza', 'i', [20, 17, 1, 1], { madera: 8 }),
     D('libros2', 'Librero', 'Adornos', 'pieza', 'i', [21, 17, 1, 1], { madera: 8 }),
-    D('jarron', 'Jarrón de cobre', 'Adornos', 'pieza', 'i', [16, 4, 1, 1], { piedra: 2, agua: 1 }),
+    D('jarron', 'Jarrón de cobre', 'Adornos', 'pieza', 'i', [16, 4, 1, 1], { cobre: 2, agua: 1 }),
+    D('tapiz_fibra', 'Alfombra de fibra', 'Alfombras', 'pieza', 'i', [0, 9, 3, 1], { fibra: 6 }, { piso: true }),
+    D('lampara_cobre', 'Lámpara de cobre', 'Lámparas', 'pieza', 'i', [16, 7, 1, 1], { cobre: 3, cristal: 1 }),
     D('cama_doble', 'Cama doble', 'Exclusivos', 'pieza', 'i', [14, 6, 2, 2], {}, { excl: true, pie: 2 }),
     D('piano', 'Piano', 'Exclusivos', 'pieza', 'i', [23, 8, 2, 2], {}, { excl: true, pie: 2 }),
     D('pie_or', 'Lámpara de oro', 'Exclusivos', 'pieza', 'i', [20, 4, 1, 2], {}, { excl: true }),
@@ -136,9 +165,10 @@
     u1: { nombre: { '7basico': 'Bosque de los Enteros', '8basico': 'Bosque de las Potencias' }, semilla: 11, fondo: '#2f6b47',
       suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 110,
       rocas: ['roca3'], nRocas: 30, lagos: 2, cofres: 6, arbustos: 9, nieblas: 3, bichos: 0.18 },
-    u2: { nombre: 'Cumbres Algebraicas', semilla: 22, fondo: '#5d6b6f',
-      suelo: [[5, 0, 1], [7, 0, 0.35], [5, 1, 0.1]], arboles: ['arbol_pino', 'arbol_pino', 'arbol_redondo'], nArboles: 85,
-      rocas: ['roca3', 'roca3', 'roca_cafe3'], nRocas: 55, lagos: 1, cofres: 6, arbustos: 6, nieblas: 7, bichos: 0.12, tinte: [0x506070, 0.18] },
+    // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
+    u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
+      suelo: [[8, 22, 1], [3, 19, 0.07]], nCactus: 75, nRocas: 42, vetasCobre: 12, vetasOro: 6, oasis: 3, cofres: 7,
+      escorpiones: 10, remolinos: 6, esqueletos: 8, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
     u3: { nombre: 'Valle de las Formas', semilla: 33, fondo: '#c9b27a',
       suelo: [[8, 0, 1], [5, 0, 0.3], [5, 1, 0.08]], arboles: ['arbol_otono', 'arbol_redondo', 'cactus'], nArboles: 80,
       rocas: ['roca_cafe3', 'roca3'], nRocas: 40, lagos: 1, cofres: 7, arbustos: 10, nieblas: 3, bichos: 0.2 },
@@ -146,17 +176,23 @@
       suelo: [[5, 1, 1], [5, 0, 0.3]], arboles: ['arbol_redondo', 'arbol_pino', 'arbol_manzano'], nArboles: 95,
       rocas: ['roca_musgo3', 'roca3'], nRocas: 30, lagos: 5, cofres: 6, arbustos: 8, nieblas: 9, bichos: 0.15, tinte: [0x0f3020, 0.38] },
   };
+  const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g); };
   const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
+  // oculto: espera escondido y despierta al acercarse · flota: atraviesa obstáculos · anim: hoja animada (LPC)
   const ENEMIGOS = {
-    arbusto: { nombre: 'Arbusto gruñón', vida: 3, dif: 1, botin: { madera: 3 }, xp: 15, vel: 58 },
-    niebla: { nombre: 'Niebla confusa', vida: 4, dif: 2, botin: { agua: 3, cristal: 1 }, xp: 22, vel: 42 },
-    bicho: { nombre: 'Araña del árbol', vida: 2, dif: 1, botin: { madera: 2 }, xp: 10, vel: 85 },
+    arbusto: { nombre: 'Arbusto gruñón', vida: 3, dif: 1, botin: { madera: 3 }, xp: 15, vel: 58, oculto: true, tex: 'arbusto', texVivo: 'arbusto_vivo', retrato: 'arbusto_vivo', radio: 240 },
+    niebla: { nombre: 'Niebla confusa', vida: 4, dif: 2, botin: { agua: 3, cristal: 1 }, xp: 22, vel: 42, flota: true, alfa: 0.85, radio: 150 },
+    bicho: { nombre: 'Araña del árbol', vida: 2, dif: 1, botin: { madera: 2 }, xp: 10, vel: 85, radio: 240 },
+    // Desierto (Unidad 2)
+    escorpion: { nombre: 'Escorpión de las dunas', vida: 4, dif: 2, botin: { fibra: 2, cobre: 1 }, xp: 20, vel: 78, oculto: true, tex: 'monticulo', texVivo: 'escorpion', retrato: 'escorpion', radio: 220 },
+    remolino: { nombre: 'Remolino de arena', vida: 5, dif: 2, botin: { arenisca: 3, oro: 1 }, xp: 26, vel: 50, flota: true, alfa: 0.9, radio: 170 },
+    esqueleto: { nombre: 'Esqueleto del desierto', vida: 6, dif: 3, botin: { cobre: 2, oro: 1 }, xp: 32, vel: 62, anim: 'esqueleto', retrato: 'esqueleto_retrato', radio: 210 },
   };
   const xpPara = (nivel) => 60 + 40 * nivel;
   const JEFES = {
     u1: { nombre: 'Guardián del Cero', color: '#7d8a7a' },
-    u2: { nombre: 'Coloso de la Incógnita', color: '#8a93a6' },
+    u2: { nombre: 'Rey Lagarto de las Dunas', color: '#c9a46b', lpc: true, retrato: 'jefe_u2_retrato', vida: 9, fases: true, premio: { oro: 6, cobre: 8, arenisca: 10 } },
     u3: { nombre: 'Titán de las Formas', color: '#c9a46b' },
     u4: { nombre: 'Hidra de los Datos', color: '#5d7b55' },
   };
@@ -200,8 +236,8 @@
   function estadoNuevo(curso, nombre, pj) {
     return {
       v: 2, curso, nombre, pj, seccion: '',
-      mochila: { madera: 0, piedra: 0, agua: 0, cristal: 0 },
-      cofre: { madera: 0, piedra: 0, agua: 0, cristal: 0 },
+      mochila: Object.fromEntries(RECURSOS.map((r) => [r.id, 0])),
+      cofre: Object.fromEntries(RECURSOS.map((r) => [r.id, 0])),
       mejoras: [], herramienta: 'hacha', arma: null, armadura: null, inventario: {}, colocados: [], pieza: [],
       misiones: {}, diaria: null, premiosNivel: 0, ofertaNivel: null,
       vida: 5, xp: 0, nivel: 1, stats: {}, vencidos: 0, muertes: 0, zona: 'base', creado: Date.now(),
@@ -228,7 +264,7 @@
   }
 
   const tiene = (id) => S.mejoras.includes(id);
-  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0);
+  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0);
   const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1);
   const esDocente = () => Boolean(S && S.docente);
   const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
@@ -332,22 +368,28 @@
   // ===================================================================
   // Misiones: 3 al azar por mundo (abren al jefe final) y una misión diaria
   // ===================================================================
+  // mundos: en qué mundos puede salir la misión (sin "mundos" = en todos). El desierto tiene sus propias misiones.
+  const desierto = (u) => Boolean(MUNDOS[u] && MUNDOS[u].tipo === 'desierto');
   const TIPOS_MISION = {
-    talar: { n: [4, 6], txt: (m) => `Tala ${m.n} árboles` },
-    picar: { n: [3, 5], txt: (m) => `Pica ${m.n} rocas`, req: () => tiene('pico') },
-    agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde') },
+    talar: { n: [4, 6], txt: (m) => (desierto(m.u) ? `Corta ${m.n} cactus` : `Tala ${m.n} árboles`) },
+    picar: { n: [3, 5], txt: (m) => (desierto(m.u) ? `Pica ${m.n} rocas de arenisca` : `Pica ${m.n} rocas`), req: () => tiene('pico') },
+    agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde'), mundos: (u) => !desierto(u) },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
-    arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} arbustos gruñones` },
-    niebla: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 niebla' : `Vence ${m.n} nieblas`) },
-    bicho: { n: [1, 1], txt: () => 'Vence 1 bicho que cae de los árboles' },
+    arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} arbustos gruñones`, mundos: (u) => !desierto(u) },
+    niebla: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 niebla' : `Vence ${m.n} nieblas`), mundos: (u) => !desierto(u) },
+    bicho: { n: [1, 1], txt: () => 'Vence 1 bicho que cae de los árboles', mundos: (u) => !desierto(u) },
+    escorpion: { n: [2, 3], txt: (m) => `Vence ${m.n} escorpiones de las dunas`, mundos: desierto },
+    remolino: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 remolino de arena' : `Vence ${m.n} remolinos de arena`), mundos: desierto },
+    esqueleto: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 esqueleto del desierto' : `Vence ${m.n} esqueletos del desierto`), mundos: desierto },
+    veta: { n: [2, 3], txt: (m) => `Extrae cobre de ${m.n} vetas`, req: () => tiene('pico'), mundos: desierto },
     acierto: { n: [3, 4], txt: (m) => `Responde bien ${m.n} ejercicios de: ${m.titulo}` },
   };
   const azarEntre = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
   const mezclar = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   function nuevasMisiones(u) {
-    const tipos = mezclar(Object.keys(TIPOS_MISION).filter((t) => !TIPOS_MISION[t].req || TIPOS_MISION[t].req())).slice(0, 3);
+    const tipos = mezclar(Object.keys(TIPOS_MISION).filter((t) => (!TIPOS_MISION[t].req || TIPOS_MISION[t].req()) && (!TIPOS_MISION[t].mundos || TIPOS_MISION[t].mundos(u)))).slice(0, 3);
     return { lista: tipos.map((t) => {
-      const m = { t, n: azarEntre(TIPOS_MISION[t].n), p: 0 };
+      const m = { t, n: azarEntre(TIPOS_MISION[t].n), p: 0, u };
       if (t === 'acierto') {
         const temas = Object.entries(Preguntas.titulos(S.curso, u));
         const [tema, titulo] = temas[Math.floor(Math.random() * temas.length)] || ['', 'esta unidad'];
@@ -365,7 +407,7 @@
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
 
   const TIPOS_DIARIA = {
-    talar: { n: 6, txt: 'Tala 6 árboles en cualquier mundo' },
+    talar: { n: 6, txt: 'Tala 6 árboles o cactus en cualquier mundo' },
     picar: { n: 5, txt: 'Pica 5 rocas', req: () => tiene('pico') },
     agua: { n: 3, txt: 'Saca agua del lago 3 veces', req: () => tiene('balde') },
     vencer: { n: 4, txt: 'Vence a 4 enemigos' },
@@ -374,7 +416,7 @@
     fabricar: { n: 2, txt: 'Fabrica 2 decorativos o muebles' },
     decorar: { n: 3, txt: 'Coloca 3 objetos en tu base o tu pieza' },
   };
-  const PREMIOS_DIARIA = [{ madera: 15, piedra: 10 }, { cristal: 4 }, { agua: 8, madera: 10 }, { piedra: 12, cristal: 2 }];
+  const PREMIOS_DIARIA = [{ madera: 15, piedra: 10 }, { cristal: 4 }, { agua: 8, madera: 10 }, { piedra: 12, cristal: 2 }, { cobre: 5, arenisca: 8 }, { oro: 2, fibra: 6 }];
   const hoy = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
   function diaria() {
     const f = hoy();
@@ -409,7 +451,7 @@
       }
     }
     const Dd = diaria();
-    const cuenta = Dd.t === ev || (Dd.t === 'vencer' && ENEMIGOS[ev]);
+    const cuenta = Dd.t === ev || (Dd.t === 'vencer' && ENEMIGOS[ev]) || (Dd.t === 'picar' && ev === 'veta');
     if (cuenta && Dd.p < Dd.n) {
       Dd.p += 1;
       if (Dd.p >= Dd.n) setTimeout(() => toast('¡Misión diaria cumplida! Reclama tu recompensa en Misiones (tecla N).'), 900);
@@ -439,7 +481,7 @@
     const pend = (Dd.p >= Dd.n && !Dd.cobrada) || (S.premiosNivel || 0) > 0;
     $('btn-misiones').classList.toggle('alerta', pend);
   }
-  const recHTML = (rec) => Object.entries(rec).map(([r, n]) => `<span class="pildora premio"><img class="px" src="${ICONO(r)}" alt="">+${n} ${r}</span>`).join('');
+  const recHTML = (rec) => Object.entries(rec).map(([r, n]) => `<span class="pildora premio"><img class="px" src="${ICONO(r)}" alt="">+${n} ${nombreRec(r)}</span>`).join('');
   function sumarCofre(rec) { Object.entries(rec).forEach(([r, n]) => { S.cofre[r] = (S.cofre[r] || 0) + n; }); pintarHUD(); }
   function abrirMisiones() {
     const Dd = diaria();
@@ -489,6 +531,7 @@
     const paquetes = mezclar([
       { madera: 12 + 3 * L, piedra: 8 + 2 * L }, { cristal: 2 + Math.floor(L / 2) },
       { agua: 8 + 2 * L, madera: 6 + L }, { piedra: 12 + 3 * L, cristal: 1 },
+      ...(recursosVisibles().some((r) => r.grupo === 'u2') ? [{ cobre: 4 + L, arenisca: 10 + 2 * L }, { oro: 2 + Math.floor(L / 3), fibra: 6 + L }] : []),
     ]);
     const excl = mezclar(OBJETOS.filter((o) => o.excl && cuantos(o.id) === 0));
     const normales = mezclar(OBJETOS.filter((o) => !o.excl && !o.carpa));
@@ -503,7 +546,7 @@
     if (!S.ofertaNivel) { S.ofertaNivel = nuevaOferta(); guardar(); }
     const ops = S.ofertaNivel;
     const tarjeta = (op, i) => {
-      if (op.tipo === 'rec') return `<button type="button" class="premio-op" data-op="${i}"><small>RECURSOS AL COFRE</small><div class="iconos">${Object.keys(op.rec).map((r) => `<img class="px" src="${ICONO(r)}" alt="">`).join('')}</div><strong>${Object.entries(op.rec).map(([r, n]) => `${n} ${r}`).join(' + ')}</strong></button>`;
+      if (op.tipo === 'rec') return `<button type="button" class="premio-op" data-op="${i}"><small>RECURSOS AL COFRE</small><div class="iconos">${Object.keys(op.rec).map((r) => `<img class="px" src="${ICONO(r)}" alt="">`).join('')}</div><strong>${Object.entries(op.rec).map(([r, n]) => `${n} ${nombreRec(r)}`).join(' + ')}</strong></button>`;
       const o = OBJ[op.id];
       return `<button type="button" class="premio-op ${op.excl ? 'excl' : ''}" data-op="${i}"><small>${op.excl ? 'OBJETO EXCLUSIVO' : 'OBJETO'} · ${o.lugar === 'pieza' ? 'PARA TU PIEZA' : 'PARA TU BASE'}</small><div class="iconos"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""></div><strong>${op.n > 1 ? `${op.n} × ` : ''}${esc(o.nombre)}</strong></button>`;
     };
@@ -515,7 +558,7 @@
     $('pn-luego').addEventListener('click', () => { premioPospuesto = true; ui.cerrar(); pintarMisiones(); });
     document.querySelectorAll('[data-op]').forEach((b) => b.addEventListener('click', () => {
       const op = ops[Number(b.dataset.op)];
-      if (op.tipo === 'rec') { sumarCofre(op.rec); toast(`¡Recompensa guardada en tu cofre: ${Object.entries(op.rec).map(([r, n]) => `${n} ${r}`).join(', ')}!`); }
+      if (op.tipo === 'rec') { sumarCofre(op.rec); toast(`¡Recompensa guardada en tu cofre: ${Object.entries(op.rec).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}!`); }
       else { S.inventario[op.id] = (S.inventario[op.id] || 0) + op.n; toast(`¡Ganaste: ${OBJ[op.id].nombre}! Colócalo con Decorar (G).`); }
       S.premiosNivel -= 1; S.ofertaNivel = null;
       guardar(true); escena.celebrar(); pintarMisiones();
@@ -696,6 +739,14 @@
   // ===================================================================
   // HUD
   // ===================================================================
+  // En un mundo se ven sus recursos; en la base, los de la Unidad 1 y los de otros mundos ya abiertos o con algo guardado
+  function recursosVisibles() {
+    if (escena && MUNDOS[escena.zona]) return recursosDe(escena.zona);
+    const grupos = new Set(['u1']);
+    for (const r of RECURSOS) if ((S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0) grupos.add(r.grupo);
+    for (const z of Object.keys(MUNDOS)) if (MUNDOS[z].recursos && mundoAbierto({ id: z, habilitada: false })) grupos.add(MUNDOS[z].recursos);
+    return RECURSOS.filter((r) => grupos.has(r.grupo));
+  }
   function pintarHUD() {
     if (!S) return;
     const enBase = enCasa();
@@ -707,10 +758,12 @@
     $('hud-xpbar').style.width = `${Math.round((S.xp / xpPara(S.nivel)) * 100)}%`;
     $('hud-zona').textContent = escena ? nombreZona(escena.zona) : '';
     const fuente = enBase ? S.cofre : S.mochila;
-    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? 'Cofre' : 'Mochila'}</span>` + RECURSOS.map((r) => `
-      <div class="recurso" data-r="${r.id}">
+    const lista = recursosVisibles();
+    $('hud-recursos').classList.toggle('muchos', lista.length > 4);
+    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? 'Cofre' : 'Mochila'}</span>` + lista.map((r) => `
+      <div class="recurso" data-r="${r.id}" title="${esc(r.nombre)}">
         <img class="px" src="${ICONO(r.id)}" alt="">
-        <span><small>${r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}</b></span>
+        <span><small>${r.corto || r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}</b></span>
       </div>`).join('');
     const ranuras = [
       { id: 'hacha', icono: 'axe', tecla: '1', ok: true, nombre: tiene('hacha2') ? 'Hacha de hierro' : 'Hacha' },
@@ -767,7 +820,7 @@
   function abrirEquipo() {
     const fila = (id, info, puesto, tipo) => `
       <div class="mejora ${puesto ? 'puesta' : ''}"><img class="ico px" src="${ICONO(tipo === 'arma' ? 'espada' : 'armadura')}" alt="">
-        <div class="info"><strong>${esc(info.nombre)}</strong><span>${tipo === 'arma' ? `Cada acierto en combate quita ${info.danio} de vida` : `Vida máxima: ${5 + info.vida} corazones`}</span></div>
+        <div class="info"><strong>${esc(info.nombre)}</strong><span>${tipo === 'arma' ? `Cada acierto en combate quita ${info.danio} de vida` : `Vida máxima: ${5 + info.vida + (tiene('cantimplora') ? 1 : 0)} corazones`}</span></div>
         ${puesto ? `<button type="button" class="btn" data-quitar="${tipo}">Quitar</button>` : `<button type="button" class="btn pri" data-poner="${id}">Equipar</button>`}
       </div>`;
     const armas = Object.entries(ARMAS).filter(([id]) => tiene(id));
@@ -895,7 +948,7 @@
       const vidaE = Math.max(0, enemigo.vida);
       let cuerpo;
       if (fase === 'victoria') {
-        cuerpo = `<div class="mensaje bien" role="status">¡Venciste al ${esc(E.nombre.toLowerCase())}! Ganas ${Object.entries(E.botin).map(([r, n]) => `${n} ${r}`).join(' y ')} y ${E.xp} de experiencia.</div>
+        cuerpo = `<div class="mensaje bien" role="status">¡Venciste al ${esc(E.nombre.toLowerCase())}! Ganas ${Object.entries(E.botin).map(([r, n]) => `${n} ${nombreRec(r)}`).join(' y ')} y ${E.xp} de experiencia.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="c-fin" data-foco>¡Seguir!</button></div>`;
       } else if (fase === 'derrota') {
         cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Volverás a tu base y perderás lo que llevabas en la mochila.</div>
@@ -969,16 +1022,21 @@
   }
   function abrirJefe() {
     const e = escena, J0 = JEFES[e.zona];
-    const dif = difPara(2);
-    const nuevo = () => Preguntas.nuevo(S.curso, e.zona, dif, S.stats);
+    // Jefes con fases: bajo la mitad de vida se enfurecen (preguntas más difíciles y golpes más fuertes)
+    const enFuria = () => Boolean(J0.fases && e.jefe.max && e.jefe.hp <= e.jefe.max / 2 && e.jefe.hp > 0);
+    const difAhora = () => (enFuria() ? 3 : difPara(2));
+    const danioJefe = () => (enFuria() ? JEFE_DANIO + 1 : JEFE_DANIO);
+    let furiaVista = enFuria();
+    const nuevo = () => Preguntas.nuevo(S.curso, e.zona, difAhora(), S.stats);
     let d = nuevo(), elegida = null, ultimo = '', fase = 'pregunta', pagado = false;
-    const retrato = e.textures.getBase64(`jefe_${e.zona}`);
+    const retrato = e.textures.getBase64(J0.retrato || `jefe_${e.zona}`);
+    const dif = difPara(2);
     const equipoHTML = () => e.jefe.part.map((id) => `<span class="pildora">${esc(e.nombreJugador(id))}</span>`).join('');
     const barra = () => { const J = e.jefe; return J.max ? Math.max(0, (J.hp / J.max) * 100) : 0; };
     const pintar = () => {
       let cuerpo;
       if (fase === 'victoria') {
-        cuerpo = `<div class="mensaje bien" role="status">¡Su grupo venció al ${esc(J0.nombre.toLowerCase())}! Cada participante gana ${Object.entries(JEFE_PREMIO).map(([r, n]) => `${n} ${r}`).join(', ')} y 80 de experiencia.</div>
+        cuerpo = `<div class="mensaje bien" role="status">¡Su grupo venció al ${esc(J0.nombre.toLowerCase())}! Cada participante gana ${Object.entries(J0.premio || JEFE_PREMIO).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y 80 de experiencia.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>¡Celebrar!</button></div>`;
       } else if (fase === 'caido') {
         cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Tu grupo sigue luchando; tú vuelves a tu base y pierdes lo que llevabas en la mochila. Para volver a enfrentar al jefe tendrás que cumplir nuevas misiones.</div>
@@ -1003,10 +1061,11 @@
               <div class="barra enemigo" role="img" aria-label="Vida del jefe"><i id="jefe-barra" style="width: ${barra()}%"></i></div>
               <span class="nota" id="jefe-hp">Vida: ${e.jefe.hp} de ${e.jefe.max}</span></div>
           </div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()} · si fallas pierdes ${JEFE_DANIO}</span></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()} · si fallas pierdes ${danioJefe()}</span></div>
         </div>
         <div class="pildoras" id="jefe-equipo">${equipoHTML()}</div>
-        ${cuerpo}`, 'combate');
+        ${enFuria() && fase === 'pregunta' ? `<div class="mensaje furia" role="status"><strong>¡Tormenta de arena!</strong> ${esc(J0.nombre)} está furioso: las preguntas son más difíciles y si fallas pierdes ${danioJefe()} corazones.</div>` : ''}
+        ${cuerpo}`, enFuria() ? 'combate furia' : 'combate');
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('j-ok', atacar);
@@ -1027,8 +1086,9 @@
       registrar(d.tema, ok);
       if (ok) { ganarXP(4 + 2 * dif); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; e.golpeLocal(danio()); }
       else {
-        S.vida = Math.max(0, S.vida - JEFE_DANIO); e.dolor(); pintarHUD();
-        ultimo = `<div class="mensaje mal" role="status">¡El jefe te dio un golpe doble (−${JEFE_DANIO} corazones)! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        const dj = danioJefe();
+        S.vida = Math.max(0, S.vida - dj); e.dolor(); pintarHUD();
+        ultimo = `<div class="mensaje mal" role="status">¡El jefe te dio un golpe ${dj > JEFE_DANIO ? 'furioso' : 'doble'} (−${dj} corazones)! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
         if (S.vida <= 0) { fase = 'caido'; e.salirDelJefe(); e.perderContraJefe(); }
       }
       guardar();
@@ -1041,7 +1101,7 @@
         fase = 'victoria';
         if (!pagado) {
           pagado = true;
-          Object.entries(JEFE_PREMIO).forEach(([r, n]) => sumar(r, n));
+          Object.entries(J0.premio || JEFE_PREMIO).forEach(([r, n]) => sumar(r, n));
           S.jefes = S.jefes || {}; S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1;
           S.misiones[e.zona] = nuevasMisiones(e.zona);
           ganarXP(80); guardar(true);
@@ -1058,7 +1118,8 @@
       if (b) b.style.width = `${barra()}%`;
       if (t) t.textContent = `Vida: ${e.jefe.hp} de ${e.jefe.max}`;
       if (q) q.innerHTML = equipoHTML();
-      if (fase === 'pregunta' && (e.jefe.estado !== 'combate' || !e.jefe.part.includes(idJuego))) revisar();
+      if (fase === 'pregunta' && (e.jefe.estado !== 'combate' || !e.jefe.part.includes(idJuego))) { revisar(); return; }
+      if (fase === 'pregunta' && !furiaVista && enFuria()) { furiaVista = true; e.furiaJefe(); d = nuevo(); elegida = null; pintar(); }
     };
     pintar();
   }
@@ -1074,7 +1135,7 @@
 
   // ---------- Fabricar (en la base) ----------
   function costoHTML(costo) {
-    return Object.entries(costo).map(([r, n]) => `<span class="${total(r) < n ? 'falta' : ''}"><img class="px" src="${ICONO(r)}" alt="">${n} ${r}</span>`).join('');
+    return Object.entries(costo).map(([r, n]) => `<span class="${total(r) < n ? 'falta' : ''}"><img class="px" src="${ICONO(r)}" alt="">${n} ${nombreRec(r)}</span>`).join('');
   }
   const lugarDe = (o) => (o.lugar === 'ambos' ? ['base', 'pieza'] : [o.lugar]);
   function catalogoHTML(lugar) {
@@ -1225,7 +1286,7 @@
       const guardado = RECURSOS.map((r) => [r.id, S.mochila[r.id] || 0]).filter(([, n]) => n > 0);
       guardado.forEach(([r, n]) => { S.cofre[r] += n; S.mochila[r] = 0; });
       S.vida = vidaMax();
-      if (guardado.length) setTimeout(() => toast(`Guardaste en tu cofre: ${guardado.map(([r, n]) => `${n} ${r}`).join(', ')}.`), 600);
+      if (guardado.length) setTimeout(() => toast(`Guardaste en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`), 600);
     }
     S.zona = zona;
     guardar(true);
@@ -1240,7 +1301,7 @@
     S.zona = 'base'; S.grupo = 0;
     guardar(true);
     escena.scene.restart({ zona: 'base', desde: 'muerte' });
-    setTimeout(() => toast(perdido.length ? `El ${enemigo} te venció. Perdiste: ${perdido.map(([r, n]) => `${n} ${r}`).join(', ')}.` : `El ${enemigo} te venció. Vuelves a tu base.`, 'alerta'), 700);
+    setTimeout(() => toast(perdido.length ? `El ${enemigo} te venció. Perdiste: ${perdido.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.` : `El ${enemigo} te venció. Vuelves a tu base.`, 'alerta'), 700);
   }
 
   // ---------- Mapa y avance ----------
@@ -1275,7 +1336,7 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Tu base</span><h2 id="modal-titulo">Cofre</h2></div><button type="button" class="btn" id="k-cerrar">Cerrar</button></div>
       <p class="nota">Aquí se guarda todo lo que traes de los mundos. Lo del cofre está a salvo aunque pierdas un combate.</p>
-      <div class="objetos">${RECURSOS.map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${r.nombre}</span><small>${S.cofre[r.id] || 0}</small></div>`).join('')}</div>`);
+      <div class="objetos">${recursosVisibles().map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${r.nombre}</span><small>${S.cofre[r.id] || 0}</small></div>`).join('')}</div>`);
     $('k-cerrar').addEventListener('click', () => ui.cerrar());
   }
 
@@ -1365,9 +1426,12 @@
     preload() {
       if (!this.textures.exists('kenney')) this.load.image('kenney', 'assets/kenney_roguelike.png');
       if (!this.textures.exists('kenney_in')) this.load.image('kenney_in', 'assets/kenney_indoor.png');
+      if (!this.textures.exists('kenney_cueva')) this.load.image('kenney_cueva', 'assets/kenney_cueva.png');
+      if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
+      if (!this.textures.exists('esqueleto_hoja')) this.load.spritesheet('esqueleto_hoja', 'assets/enemigos/esqueleto.png', { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
-      for (const p of PERSONAJES) for (const a of ['nada', 'cuero', 'cristal']) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
-      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
+      for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
+      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
     }
 
     create() {
@@ -1449,11 +1513,12 @@
       [28, 29, 30, 31].forEach((c, i) => T(`flor${i}`, c, 9));
       // Decorativos y muebles del catálogo
       for (const o of OBJETOS) {
-        const [c, r, w, h] = o.t, partes = [];
-        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, o.h === 'i' ? 'kenney_in' : 'kenney');
+        const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
+        if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
+      this.crearTexturasDesierto();
       // Arbusto vivo: el mismo arbusto con ojos y boca
       if (!this.textures.exists('arbusto_vivo')) {
         const src = this.textures.get('kenney').getSourceImage();
@@ -1498,11 +1563,45 @@
       }
       g.destroy();
     }
+    // Arte del desierto (Unidad 2)
+    crearTexturasDesierto() {
+      const T = (key, c, r, hoja = 'kenney') => this.tex(key, 1, 1, [[c, r, 0, 0]], hoja);
+      T('cactus_brote1', 22, 11); T('cactus_brote2', 22, 10); T('monticulo', 5, 2, 'kenney_cueva');
+      T('veta_cobre1', 12, 13, 'kenney_cueva'); T('veta_cobre2', 12, 13, 'kenney_cueva');
+      T('veta_oro1', 13, 12, 'kenney_cueva'); T('veta_oro2', 13, 12, 'kenney_cueva');
+      this.pixeles('escorpion', [
+        '.....ss.......', '....s..s......', '.......s......', '......ss......', '.....bbbb.....', '..l.bbbbbb.l..', '.l.lbbbbbbl.l.',
+        'l..bbbbbbbb..l', '..lbbrbbrbbl..', '.l.bbbbbbbb.l.', 'cc..bbbbbb..cc', 'c.c..bbbb..c.c', 'cc..........cc',
+      ], { b: '#8a4b1f', s: '#4a250c', r: '#ffd23f', l: '#5a2e10', c: '#b8652a' });
+      this.pixeles('remolino', [
+        '..wwwwwwwwwwww..', '.wwddwwwwwwddww.', 'wwwwkwwwwwwkwwww', '.wwwwddwwwwwww..', '..wwwwwwwwddww..', '...wwwwwwwwww...',
+        '....wwddwwww....', '.....wwwwwww....', '......wwwdw.....', '......wwwww.....', '.......www......', '.......ww.......', '.......w........',
+      ], { w: 'rgba(232,208,152,0.95)', d: '#b8935a', k: '#3a2a14' });
+      const cuadro = (key, hoja, col, fila) => {
+        if (this.textures.exists(key) || !this.textures.exists(hoja)) return;
+        const src = this.textures.get(hoja).getSourceImage();
+        const t = this.textures.createCanvas(key, 64, 64);
+        t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
+      };
+      cuadro('esqueleto_retrato', 'esqueleto_hoja', 0, 2);
+      cuadro('jefe_u2_retrato', 'jefe_u2_hoja', 0, 2);
+      for (const [k, h] of [['esqueleto', 'esqueleto_hoja'], ['jefe_u2', 'jefe_u2_hoja']]) {
+        for (const [d, fila] of Object.entries(DIRS)) {
+          if (!this.anims.exists(`${k}_${d}`)) this.anims.create({ key: `${k}_${d}`, frames: this.anims.generateFrameNumbers(h, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: k === 'jefe_u2' ? 7 : 10, repeat: -1 });
+        }
+      }
+      const g = this.add.graphics();
+      [['p_arena', 0xe3c88a], ['p_cobre', 0xd9772b]].forEach(([k, col]) => {
+        if (this.textures.exists(k)) return;
+        g.clear(); g.fillStyle(col, 1); g.fillRect(0, 0, 4, 4); g.generateTexture(k, 4, 4);
+      });
+      g.destroy();
+    }
     imagenTex(key) { return this.textures.getBase64(key); }
-    retrato(clase) { return this.textures.getBase64(clase === 'arbusto' ? 'arbusto_vivo' : clase); }
+    retrato(clase) { return this.textures.getBase64((ENEMIGOS[clase] && ENEMIGOS[clase].retrato) || clase); }
 
     crearAnimaciones() {
-      for (const p of PERSONAJES) for (const a of ['nada', 'cuero', 'cristal']) {
+      for (const p of PERSONAJES) for (const a of TEX_ARMADURA) {
         for (const [d, fila] of Object.entries(DIRS)) {
           const key = `pj_${p.id}_${a}_${d}`;
           if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pj_${p.id}_${a}`, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
@@ -1521,7 +1620,7 @@
     libre(x, y) {
       if (x < 2 || y < 2 || x >= this.ancho - 2 || y >= this.alto - 2) return false;
       if (this.ocupado.has(`${x},${y}`)) return false;
-      return PASTO.includes(this.terreno[y][x]);
+      return (this.pisables || PASTO).includes(this.terreno[y][x]);
     }
     sprite(key, tx, ty, ox = 0.5) {
       const s = this.add.image(tx * TILE + TILE / 2, (ty + 1) * TILE, key).setOrigin(ox, 1).setScale(2);
@@ -1537,13 +1636,13 @@
       this.solido(W / 2, TILE, W, TILE * 2); this.solido(W / 2, H - TILE, W, TILE * 2);
       this.solido(TILE, H / 2, TILE * 2, H); this.solido(W - TILE, H / 2, TILE * 2, H);
     }
-    lago(data, lx, ly, w, h) {
+    lago(data, lx, ly, w, h, interactivo = true) {
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const tx = x === 0 ? 0 : x === w - 1 ? 2 : 1, ty = y === 0 ? 0 : y === h - 1 ? 2 : 1;
         data[ly + y][lx + x] = fr(2 + tx, ty);
       }
       this.obstaculos.add(this.add.zone((lx + w / 2) * TILE, (ly + h / 2) * TILE, w * TILE - 24, h * TILE - 24));
-      this.lagos.push({ x: lx * TILE, y: ly * TILE, w: w * TILE, h: h * TILE });
+      if (interactivo) this.lagos.push({ x: lx * TILE, y: ly * TILE, w: w * TILE, h: h * TILE });
       for (let y = ly - 1; y <= ly + h; y++) for (let x = lx - 1; x <= lx + w; x++) this.marcar(x, y);
     }
     portal(tx, ty) {
@@ -1709,6 +1808,7 @@
 
     // ---------- mundos ----------
     crearMundo(M) {
+      if (M.tipo === 'desierto') return this.crearDesierto(M);
       this.ancho = 56; this.alto = 40;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       // suelo: el primero es la base y los demás se pintan en manchas redondeadas
@@ -1811,16 +1911,213 @@
         this.enemigos.push(this.nuevoEnemigo('niebla', s, { despierto: true, k: `n${i}` }));
       }
     }
+    // ---------- mundo del desierto (Unidad 2) ----------
+    crearDesierto(M) {
+      this.ancho = 56; this.alto = 40;
+      this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
+      const ARENA = fr(M.suelo[0][0], M.suelo[0][1]);
+      this.pisables = [ARENA, ...M.suelo.slice(1).map(([c, r]) => fr(c, r))];
+      const data = [];
+      for (let y = 0; y < this.alto; y++) { const fila = []; for (let x = 0; x < this.ancho; x++) fila.push(ARENA); data.push(fila); }
+      for (const [c, r, p] of M.suelo.slice(1)) {
+        let pintado = 0;
+        const meta = p * this.ancho * this.alto;
+        while (pintado < meta) {
+          const cx = Math.floor(this.rnd() * this.ancho), cy = Math.floor(this.rnd() * this.alto), rad = 2 + this.rnd() * 3;
+          for (let y = Math.floor(cy - rad); y <= cy + rad; y++) for (let x = Math.floor(cx - rad); x <= cx + rad; x++) {
+            if (y < 0 || x < 0 || y >= this.alto || x >= this.ancho) continue;
+            if (Math.hypot(x - cx, y - cy) <= rad + (this.rnd() - 0.5)) { if (data[y][x] !== fr(c, r)) pintado++; data[y][x] = fr(c, r); }
+          }
+        }
+      }
+      // ruta de caravanas
+      const P = { x: 6, y: 20 };
+      for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = CAMINO;
+      for (let y = 3; y < this.alto - 3; y++) data[y][28] = CAMINO;
+      this.terreno = data;
+      for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
+      for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
+      // oasis (decorativos: el agua del desierto no se puede recolectar)
+      const oasis = [];
+      for (let i = 0; i < M.oasis; i++) {
+        const w = 4 + Math.floor(this.rnd() * 3), h = 3 + Math.floor(this.rnd() * 2);
+        for (let t = 0; t < 60; t++) {
+          const lx = 4 + Math.floor(this.rnd() * (this.ancho - w - 8)), ly = 4 + Math.floor(this.rnd() * (this.alto - h - 8));
+          let ok = true;
+          for (let y = ly - 2; y <= ly + h + 1 && ok; y++) for (let x = lx - 2; x <= lx + w + 1 && ok; x++) if (this.ocupado.has(`${x},${y}`)) ok = false;
+          if (ok) { this.lago(data, lx, ly, w, h, false); oasis.push({ lx, ly, w, h }); break; }
+        }
+      }
+      this.suelo(data);
+      if (M.tinte) this.add.rectangle(0, 0, this.ancho * TILE, this.alto * TILE, M.tinte[0], M.tinte[1]).setOrigin(0).setDepth(-9);
+      this.bordesDesierto();
+      this.portal(P.x, P.y);
+      this.crearGuarida();
+      this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
+
+      const lugar = (alto = 1) => {
+        for (let i = 0; i < 400; i++) {
+          const x = 2 + Math.floor(this.rnd() * (this.ancho - 4)), y = 3 + Math.floor(this.rnd() * (this.alto - 5));
+          if (this.libre(x, y) && (alto < 2 || this.libre(x, y - 1))) return [x, y];
+        }
+        return null;
+      };
+      const reservar = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) this.marcar(x + dx, y + dy); };
+      const elegir = (lista) => lista[Math.floor(this.rnd() * lista.length)];
+      // vegetación alrededor de los oasis
+      for (const L of oasis) {
+        for (let k = 0; k < 8; k++) {
+          const x = L.lx - 2 + Math.floor(this.rnd() * (L.w + 4)), y = this.rnd() < 0.5 ? L.ly - 2 : L.ly + L.h + 1;
+          if (!this.libre(x, y)) continue;
+          const key = elegir(['arbusto', 'arbusto2', 'd_cactus_fruto', 'flor1', 'flor3', 'arbol_redondo']);
+          const sp = this.sprite(key, x, y);
+          if (key.startsWith('flor')) sp.setDepth(-5); else this.solido(sp.x, sp.y - 10, 18, 12);
+          this.marcar(x, y);
+        }
+      }
+      // ruinas de arenisca
+      for (let i = 0; i < 5; i++) {
+        const p = lugar(2); if (!p) break;
+        for (let k = 0; k < 7; k++) {
+          const x = p[0] - 2 + Math.floor(this.rnd() * 5), y = p[1] - 1 + Math.floor(this.rnd() * 4);
+          if (!this.libre(x, y) || !this.libre(x, y - 1)) continue;
+          const key = elegir(['d_columna', 'd_columna', 'd_columna_rota', 'd_escombros', 'd_escombros']);
+          const sp = this.sprite(key, x, y);
+          this.solido(sp.x, sp.y - 10, 20, 14);
+          this.marcar(x, y); this.marcar(x, y - 1);
+        }
+      }
+      // campamento de caravana abandonado
+      {
+        const p = lugar(2);
+        if (p && this.libre(p[0] - 1, p[1]) && this.libre(p[0] - 1, p[1] - 1)) {
+          const carpa = this.sprite('carpa_b', p[0], p[1], 0.75); this.solido(carpa.x - 16, carpa.y - 16, 56, 28);
+          for (const [dx, dy] of [[-1, 0], [0, 0], [-1, -1], [0, -1]]) this.marcar(p[0] + dx, p[1] + dy);
+          for (const [dx, dy, key] of [[2, 0, 'barril'], [2, 1, 'd_vasija'], [-2, 1, 'd_brasero'], [1, 1, 'lena']]) {
+            const x = p[0] + dx, y = p[1] + dy;
+            if (!this.libre(x, y)) continue;
+            const sp = this.sprite(key, x, y); this.solido(sp.x, sp.y - 8, 20, 12); this.marcar(x, y);
+          }
+        }
+      }
+      // cactus: dan fibra de cactus (se cortan con el hacha y vuelven a crecer)
+      for (let i = 0; i < M.nCactus; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('cactus', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 18, 12);
+        reservar(p[0], p[1]);
+        this.objetos.push({ tipo: 'arbol', key: 'cactus', nombre: 'cactus', rec: 'fibra', texTocon: 'cactus_brote1', texBrote: 'cactus_brote2', s: sp, z, x: sp.x, y: sp.y - 6, estado: 'arbol', activo: true, bicho: false });
+      }
+      // rocas de arenisca (pueden soltar cobre)
+      for (let i = 0; i < M.nRocas; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('roca_cafe3', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 26, 16);
+        reservar(p[0], p[1]);
+        this.objetos.push({ tipo: 'roca', base: 'roca_cafe', rec: 'arenisca', extra: 'cobre', nombre: 'roca de arenisca', s: sp, z, x: sp.x, y: sp.y - 6, nivel: 3, nivelMax: 3, activo: true });
+      }
+      // vetas de cobre y de oro (el oro necesita el pico de cobre)
+      for (const [n, base, rec, req, nombre] of [[M.vetasCobre, 'veta_cobre', 'cobre', null, 'veta de cobre'], [M.vetasOro, 'veta_oro', 'oro', 'pico3', 'veta de oro']]) {
+        for (let i = 0; i < n; i++) {
+          const p = lugar(1); if (!p) break;
+          const sp = this.sprite(`${base}2`, p[0], p[1]);
+          const z = this.solido(sp.x, sp.y - 14, 28, 22);
+          reservar(p[0], p[1]);
+          this.objetos.push({ tipo: 'roca', base, rec, req, evento: 'veta', nombre, s: sp, z, x: sp.x, y: sp.y - 8, nivel: 2, nivelMax: 2, activo: true });
+        }
+      }
+      // cofres (la mitad tiene vida)
+      for (let i = 0; i < M.cofres; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('cofre', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 26, 14);
+        reservar(p[0], p[1]);
+        const conVida = i % 2 === 0;
+        let corazon = null;
+        if (conVida) {
+          corazon = this.add.image(sp.x, sp.y - 44, 'corazon').setScale(2).setDepth(sp.y + 1);
+          this.tweens.add({ targets: corazon, y: sp.y - 50, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        }
+        this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
+      }
+      // adornos: huesos, calaveras, árboles secos y agujas de roca
+      for (let i = 0; i < 34; i++) {
+        const p = lugar(1); if (!p) break;
+        const key = elegir(['d_calavera', 'd_huesos', 'd_huesos', 'd_arbol_seco', 'd_aguja', 'd_roca_duna', 'escombros_suelo']);
+        if (key === 'escombros_suelo') { this.sprite('monticulo', p[0], p[1]).setDepth(-5); continue; }
+        const sp = this.sprite(key, p[0], p[1]);
+        if (key === 'd_calavera' || key === 'd_huesos') sp.setDepth(-5); else { this.solido(sp.x, sp.y - 10, 20, 14); this.marcar(p[0], p[1]); }
+      }
+      this.objetos.forEach((o, i) => { o.idx = i; });
+      // enemigos del desierto
+      const lejos = (p, r) => Math.abs(p[0] - P.x) >= r || Math.abs(p[1] - P.y) >= r;
+      for (let i = 0; i < M.escorpiones; i++) {
+        const p = lugar(1); if (!p) break;
+        if (!lejos(p, 8)) continue;
+        const sp = this.sprite('monticulo', p[0], p[1]);
+        this.marcar(p[0], p[1]);
+        this.enemigos.push(this.nuevoEnemigo('escorpion', sp, { despierto: false, k: `e${i}` }));
+      }
+      for (let i = 0; i < M.remolinos; i++) {
+        const p = lugar(1); if (!p) break;
+        if (!lejos(p, 10)) continue;
+        const sp = this.add.image(p[0] * TILE + 16, p[1] * TILE + 16, 'remolino').setScale(2).setAlpha(0.9).setDepth(9000);
+        this.add.particles(0, 0, 'p_arena', { x: { min: -26, max: 26 }, y: { min: -10, max: 24 }, lifespan: 900, frequency: 90, speedX: { min: -40, max: 40 }, speedY: { min: -30, max: 0 }, scale: { start: 1.2, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(9001).startFollow(sp);
+        this.tweens.add({ targets: sp, scaleX: 2.2, duration: 260, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.enemigos.push(this.nuevoEnemigo('remolino', sp, { despierto: true, k: `r${i}` }));
+      }
+      for (let i = 0; i < M.esqueletos; i++) {
+        const p = lugar(1); if (!p) break;
+        if (!lejos(p, 10)) continue;
+        const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'esqueleto_hoja', DIRS.down * 9).setOrigin(0.5, 0.9);
+        sp.setDepth(sp.y);
+        this.enemigos.push(this.nuevoEnemigo('esqueleto', sp, { despierto: true, k: `q${i}` }));
+      }
+    }
+    bordesDesierto() {
+      const claves = ['d_roca_duna', 'd_aguja', 'roca_cafe3', 'd_arbol_seco', 'cactus'];
+      for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) {
+        if (x < 2 || y < 2 || x >= this.ancho - 2 || y >= this.alto - 2) {
+          if (this.rnd() < 0.82) this.sprite(claves[Math.floor(this.rnd() * claves.length)], x, y);
+        }
+      }
+      const W = this.ancho * TILE, H = this.alto * TILE;
+      this.solido(W / 2, TILE, W, TILE * 2); this.solido(W / 2, H - TILE, W, TILE * 2);
+      this.solido(TILE, H / 2, TILE * 2, H); this.solido(W - TILE, H / 2, TILE * 2, H);
+    }
+    // Fase de furia del jefe del desierto: tormenta de arena
+    furiaJefe() {
+      toast(`¡${JEFES[this.zona].nombre} desató una tormenta de arena! Las preguntas son más difíciles.`, 'alerta');
+      this.cameras.main.shake(500, 0.008); this.cameras.main.flash(300, 230, 170, 60);
+      if (this.jefeSpr) this.jefeSpr.setTint(0xffc07a);
+      if (!this.tormenta) {
+        const cam = this.cameras.main;
+        this.tormenta = this.add.particles(0, 0, 'p_arena', { x: { min: 0, max: cam.width }, y: { min: 0, max: cam.height }, lifespan: 1400, frequency: 25, speedX: { min: 160, max: 320 }, speedY: { min: -20, max: 40 }, scale: { start: 1.6, end: 0.4 }, alpha: { start: 0.7, end: 0 } }).setScrollFactor(0).setDepth(99998);
+        this.time.delayedCall(20000, () => { if (this.tormenta) { this.tormenta.destroy(); this.tormenta = null; } });
+      }
+    }
     crearGuarida() {
-      const J = JEFES[this.zona], gx = GUARIDA.x, gy = GUARIDA.y;
+      const J = JEFES[this.zona], gx = GUARIDA.x, gy = GUARIDA.y, des = desierto(this.zona);
       const anillo = [[-3, -1], [-2, -3], [0, -3], [2, -3], [3, -1], [3, 2], [-3, 2]];
-      for (const [dx, dy] of anillo) { const r = this.sprite('roca_musgo3', gx + dx, gy + dy); this.solido(r.x, r.y - 10, 26, 16); }
+      for (const [dx, dy] of anillo) {
+        const r = this.sprite(des ? (dx + dy) % 2 ? 'd_columna_rota' : 'd_columna' : 'roca_musgo3', gx + dx, gy + dy);
+        this.solido(r.x, r.y - 10, des ? 18 : 26, 16);
+      }
       const cx = gx * TILE + 16, cy = gy * TILE + 30;
-      this.add.particles(cx, cy - 20, 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
-      this.jefeSpr = this.add.image(cx, cy, `jefe_${this.zona}`).setOrigin(0.5, 1).setScale(4).setDepth(cy);
+      this.add.particles(cx, cy - 20, des ? 'p_arena' : 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
+      if (J.lpc) {
+        // Jefe animado (LPC): más grande y caminando en su lugar
+        this.jefeEscala = 2.2;
+        this.jefeSpr = this.add.sprite(cx, cy + 6, 'jefe_u2_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.2).setDepth(cy);
+        this.jefeSpr.anims.play('jefe_u2_down');
+      } else {
+        this.jefeEscala = 4;
+        this.jefeSpr = this.add.image(cx, cy, `jefe_${this.zona}`).setOrigin(0.5, 1).setScale(4).setDepth(cy);
+      }
       this.jefeSpr.setVisible(false).setAlpha(0); this.jefeVisto = false;   // oculto hasta cumplir los requisitos
       this.solido(cx, cy - 18, 60, 30);
-      this.jefeTag = this.add.text(cx, cy - 104, J.nombre, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(cy + 1);
+      this.jefeTag = this.add.text(cx, cy - (J.lpc ? 128 : 104), J.nombre, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(cy + 1);
       this.guarida = { x: cx, y: cy - 20 };
       this.objetos.push({ tipo: 'jefe', x: cx, y: cy + 4, activo: true });
     }
@@ -1922,16 +2219,21 @@
         if (obj) d = Phaser.Math.Distance.Between(obj.x, obj.y - 16, e.s.x, e.s.y - 10);
         else for (const t of todos) { const dd = Phaser.Math.Distance.Between(t.x, t.y - 16, e.s.x, e.s.y - 10); if (dd < d) { d = dd; obj = t; } }
         if (!obj) continue;
-        if (e.clase === 'arbusto' && !e.despierto) {
-          if (d < 80) { e.despierto = true; e.s.setTexture('arbusto_vivo'); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); this.flotante(e.s.x, e.s.y - 40, '¡Grrr!', '#ffb4a3'); }
+        if (E.oculto && !e.despierto) {
+          if (d < 80) { e.despierto = true; e.s.setTexture(E.texVivo); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); this.flotante(e.s.x, e.s.y - 40, e.clase === 'escorpion' ? '¡Sssh!' : '¡Grrr!', '#ffb4a3'); }
           continue;
         }
-        const persigue = e.ocupado ? true : d < (e.clase === 'niebla' ? 150 : 240);
+        const persigue = e.ocupado ? true : d < (E.radio || 240);
         const destino = persigue ? { x: obj.x, y: obj.y - 8 } : e.origen;
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
-        if (l > (e.ocupado ? 26 : 4)) { e.s.x += (dx / l) * E.vel * seg; e.s.y += (dy / l) * E.vel * seg; }
-        if (e.clase !== 'niebla') e.s.setDepth(e.s.y);
-        if (!persigue && e.clase === 'arbusto' && l < 6) { e.despierto = false; e.s.setTexture('arbusto'); }
+        const mueve = l > (e.ocupado ? 26 : 4);
+        if (mueve) { e.s.x += (dx / l) * E.vel * seg; e.s.y += (dy / l) * E.vel * seg; }
+        if (E.anim) {
+          if (mueve) e.s.anims.play(`${E.anim}_${Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down')}`, true);
+          else { e.s.anims.stop(); e.s.setFrame(DIRS.down * 9); }
+        }
+        if (!E.flota) e.s.setDepth(e.s.y);
+        if (!persigue && E.oculto && l < 6) { e.despierto = false; e.s.setTexture(E.tex); }
         if (persigue && obj.yo && !e.ocupado && d < 30) this.empezarCombate(e);
       }
       // bichos que caen de los árboles cuando pasa cualquier jugador del grupo
@@ -1993,7 +2295,8 @@
       e.activo = false; e.ocupado = null;
       this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 60, max: 160 }, lifespan: 700, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
       this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
-      if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(e.clase === 'niebla' ? 0.85 : 1).setScale(2).setVisible(true); if (e.clase === 'arbusto') { e.despierto = false; e.s.setTexture('arbusto'); } e.vida = e.vidaMax; e.activo = true; });
+      const E = ENEMIGOS[e.clase];
+      if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(E.alfa || 1).setScale(E.anim ? 1 : 2).setVisible(true); if (E.oculto) { e.despierto = false; e.s.setTexture(E.tex); } e.vida = e.vidaMax; e.activo = true; });
     }
     enemigo(k) { return this.enemigos.find((x) => x.k === k); }
     golpeEnemigo(e, n) {
@@ -2031,8 +2334,12 @@
     }
     textoAccion(o) {
       switch (o.tipo) {
-        case 'arbol': return o.estado === 'arbol' ? `Talar ${o.nombre}` : o.estado === 'tocon' ? 'Tocón: volverá a crecer' : 'Brote: está creciendo';
-        case 'roca': return tiene('pico') ? 'Picar roca' : 'Roca: necesitas un pico';
+        case 'arbol':
+          if (o.rec === 'fibra') return o.estado === 'arbol' ? 'Cortar cactus' : 'Cactus pequeño: está creciendo';
+          return o.estado === 'arbol' ? `Talar ${o.nombre}` : o.estado === 'tocon' ? 'Tocón: volverá a crecer' : 'Brote: está creciendo';
+        case 'roca':
+          if (o.req && !tiene(o.req)) return `${o.nombre}: necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}`;
+          return tiene('pico') ? `Picar ${o.nombre || 'roca'}` : `${o.nombre || 'Roca'}: necesitas un pico`;
         case 'agua': return tiene('balde') ? 'Sacar agua' : 'Lago: necesitas un balde';
         case 'cofre': return o.vida ? 'Abrir cofre (tiene vida)' : 'Abrir cofre';
         case 'fogata': return 'Fabricar y descansar';
@@ -2059,6 +2366,20 @@
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'colocado') return o.carpa ? this.entrarPieza(o) : this.quitar(o);
       if (o.tipo === 'puerta') return this.salirPieza();
+      if (o.tipo === 'arbol' && o.rec === 'fibra') {
+        if (o.estado !== 'arbol') return toast('Este cactus todavía está creciendo.');
+        equipar('hacha');
+        const dif = difPara(1), cant = 2 + (tiene('hacha2') ? 1 : 0) + dif - 1;
+        return abrirDesafio({ accion: 'Cortar cactus', dif, premio: `Premio: ${cant} fibra de cactus`, onOk: () => this.golpe(o, 'fibra', cant) });
+      }
+      if (o.tipo === 'roca' && o.rec) {
+        if (!tiene('pico')) return toast('Necesitas un pico. Fabrícalo en la fogata de tu base.');
+        if (o.req && !tiene(o.req)) return toast(`Para picar esta veta necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}. Fabrícalo en tu base.`, 'alerta');
+        equipar('pico');
+        const extra = o.rec === 'arenisca' ? 2 : 1;
+        const cant = (o.rec === 'oro' ? 1 : 2) + (tiene('pico3') ? extra : 0);
+        return abrirDesafio({ accion: `Picar ${o.nombre}`, dif: o.rec === 'arenisca' ? difPara(2) : 3, premio: `Premio: ${cant} ${nombreRec(o.rec)}${o.extra ? ` + posible ${nombreRec(o.extra)}` : ''}`, onOk: () => this.golpe(o, o.rec, cant) });
+      }
       if (o.tipo === 'arbol') {
         if (o.estado !== 'arbol') return toast('Este árbol todavía está creciendo.');
         equipar('hacha');
@@ -2076,8 +2397,9 @@
         return abrirDesafio({ accion: 'Sacar agua del lago', dif: difPara(1), premio: 'Premio: 2 agua', onOk: () => this.golpe(o, 'agua', 2) });
       }
       if (o.tipo === 'cofre') {
-        return abrirDesafio({ accion: o.vida ? 'Abrir cofre con vida' : 'Abrir cofre', dif: 3, premio: `Premio: 2 cristal + 4 madera${o.vida ? ` + ${VIDA_COFRE} corazones` : ''}`, onOk: () => {
-          this.golpe(o, 'cristal', 2); sumar('madera', 4);
+        const premio = Object.entries((MUNDOS[this.zona] && MUNDOS[this.zona].cofre) || { cristal: 2, madera: 4 });
+        return abrirDesafio({ accion: o.vida ? 'Abrir cofre con vida' : 'Abrir cofre', dif: 3, premio: `Premio: ${premio.map(([r, n]) => `${n} ${nombreRec(r)}`).join(' + ')}${o.vida ? ` + ${VIDA_COFRE} corazones` : ''}`, onOk: () => {
+          this.golpe(o, premio[0][0], premio[0][1]); premio.slice(1).forEach(([r, n]) => sumar(r, n));
           if (o.vida) {
             const antes = S.vida; S.vida = Math.min(vidaMax(), S.vida + VIDA_COFRE); pintarHUD();
             this.time.delayedCall(600, () => this.flotante(o.x, o.y - 76, S.vida > antes ? `+${S.vida - antes} ❤` : 'Vida al máximo', '#ff9c8a'));
@@ -2090,15 +2412,16 @@
       this.mirarA(o);
       const j = this.jugador;
       this.tweens.add({ targets: j, y: j.y - 3, duration: 80, yoyo: true, repeat: 1 });
-      const px = { madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo' }[recurso];
+      const px = { madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo' }[recurso];
       this.add.particles(o.x, o.y - 14, px, { speed: { min: 60, max: 150 }, angle: { min: 200, max: 340 }, gravityY: 320, lifespan: 600, scale: { start: 1.4, end: 0.4 }, emitting: false }).setDepth(o.y + 50).explode(16);
       if (o.s) this.tweens.add({ targets: o.s, x: o.s.x + 3, duration: 50, yoyo: true, repeat: 3 });
       sumar(recurso, cant);
-      this.flotante(o.x, o.y - 40, `+${cant} ${recurso}`);
-      avanzarMision({ arbol: 'talar', roca: 'picar', agua: 'agua', cofre: 'cofre' }[o.tipo]);
-      if (o.tipo === 'roca' && this.rnd() < (tiene('pico2') ? 0.35 : 0.15)) {
-        sumar('cristal', 1);
-        this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, '+1 cristal', '#9ff0e4'));
+      this.flotante(o.x, o.y - 40, `+${cant} ${nombreRec(recurso)}`);
+      avanzarMision(o.evento || { arbol: 'talar', roca: 'picar', agua: 'agua', cofre: 'cofre' }[o.tipo]);
+      const extra = o.rec ? o.extra : 'cristal';
+      if (o.tipo === 'roca' && extra && this.rnd() < (tiene(o.rec ? 'pico3' : 'pico2') ? 0.35 : 0.15)) {
+        sumar(extra, 1);
+        this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, `+1 ${nombreRec(extra)}`, extra === 'cobre' ? '#ffb27a' : '#9ff0e4'));
       }
       if (o.tipo === 'arbol' || o.tipo === 'roca' || o.tipo === 'cofre') {
         const n = o.tipo === 'roca' ? Math.max(0, o.nivel - 1) : o.tipo === 'arbol' ? 'tocon' : 'abierto';
@@ -2117,11 +2440,11 @@
         const aBrote = 45000 - edad, aArbol = 90000 - edad;
         if (aArbol <= 0) { o.estado = 'arbol'; o.s.setTexture(o.key); return; }
         o.estado = aBrote > 0 ? 'tocon' : 'brote';
-        o.s.setTexture(o.estado);
-        if (aBrote > 0) espera(aBrote, () => { o.estado = 'brote'; o.s.setTexture('brote'); });
+        o.s.setTexture(o.estado === 'tocon' ? (o.texTocon || 'tocon') : (o.texBrote || 'brote'));
+        if (aBrote > 0) espera(aBrote, () => { o.estado = 'brote'; o.s.setTexture(o.texBrote || 'brote'); });
         espera(aArbol, () => { o.estado = 'arbol'; o.s.setTexture(o.key); });
       } else if (o.tipo === 'roca') {
-        const volver = () => { o.nivel = 3; o.s.setTexture(`${o.base}3`).setVisible(true); o.z.body.enable = true; o.activo = true; };
+        const volver = () => { o.nivel = o.nivelMax || 3; o.s.setTexture(`${o.base}${o.nivel}`).setVisible(true); o.z.body.enable = true; o.activo = true; };
         o.nivel = n;
         if (n > 0) { o.s.setTexture(`${o.base}${n}`).setVisible(true); o.z.body.enable = true; o.activo = true; }
         else if (90000 - edad <= 0) volver();
@@ -2168,7 +2491,7 @@
       c.on('jefe', (d) => this.recibirJefe(d));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
-      c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; if (e.clase === 'arbusto' && !e.despierto) { e.despierto = true; e.s.setTexture('arbusto_vivo'); } } });
+      c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; const E = ENEMIGOS[e.clase]; if (E.oculto && !e.despierto) { e.despierto = true; e.s.setTexture(E.texVivo); } } });
       c.on('libre', (d) => { const e = this.enemigo(d.k); if (e) { e.ocupado = null; e.aturdido = this.time.now + 3000; } });
       c.on('vencido', (d) => { const e = this.enemigo(d.k); if (e && !(this.enCombate && combateActual === e)) this.vencerEnemigo(e); });
       c.on('jefe_pedir', () => this.iniciarJefeSiLider());
@@ -2291,9 +2614,9 @@
         this.jefeVisto = vis;
         this.tweens.killTweensOf(this.jefeSpr);
         if (vis) {
-          this.jefeSpr.setVisible(true).setAlpha(0).setScale(4);
+          this.jefeSpr.setVisible(true).setAlpha(0).setScale(this.jefeEscala);
           this.tweens.add({ targets: this.jefeSpr, alpha: 1, duration: 900 });
-          this.tweens.add({ targets: this.jefeSpr, scaleY: 4.15, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+          this.tweens.add({ targets: this.jefeSpr, scaleY: this.jefeEscala * 1.04, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
           if (Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 500) this.cameras.main.shake(400, 0.006);
           toast(`¡${nombre} apareció en su guarida! Reúnanse ahí para enfrentarlo.`);
         } else {
@@ -2342,7 +2665,7 @@
       if (!this.jefeDisponible()) return;
       const part = this.jugadoresEnGuarida().sort();
       if (part.length < JEFE_MIN || part[0] !== idJuego) return;
-      const max = JEFE_VIDA_POR_JUGADOR * part.length;
+      const max = (JEFES[this.zona].vida || JEFE_VIDA_POR_JUGADOR) * part.length;
       this.jefe = { estado: 'combate', hp: max, max, part, lider: idJuego, hasta: 0 };
       this.publicarJefe();
     }

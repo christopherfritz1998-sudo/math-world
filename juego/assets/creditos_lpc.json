@@ -549,5 +549,225 @@
    "https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
    "https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
   ]
+ },
+ {
+  "archivo": "body/bodies/muscular/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "JaidynReiman",
+   "Evert",
+   "TheraHedwig",
+   "MuffinElZangano",
+   "Durrani",
+   "Sander Frenken (castelonia)",
+   "Benjamin K. Smith (BenCreating)",
+   "Eliza Wyatt (ElizaWy)",
+   "dalonedrau",
+   "Stephen Challener (Redshrike)"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+   "https://opengameart.org/content/lpc-barbarian-sprite-base",
+   "https://opengameart.org/content/lpc-muscular-swing-animation",
+   "https://opengameart.org/content/lpc-muscular-hurt-animation",
+   "https://opengameart.org/content/lpc-jump-expanded",
+   "https://opengameart.org/content/lpc-revised-character-basics",
+   "https://opengameart.org/content/lpc-be-seated",
+   "https://opengameart.org/content/lpc-jump-expanded",
+   "https://opengameart.org/content/lpc-character-bases",
+   "https://opengameart.org/content/lpc-male-jumping-animation-by-durrani"
+  ]
+ },
+ {
+  "archivo": "body/bodies/skeleton/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "Napsio",
+   "JaidynReiman",
+   "Johannes Sjölund (wulax)",
+   "Stephen Challener (Redshrike)"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-skeleton",
+   "https://opengameart.org/content/lpc-character-bases"
+  ]
+ },
+ {
+  "archivo": "cape/solid/bg/walk.png",
+  "autores": [
+   "Nila122",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+   "https://opengameart.org/content/lpc-roman-armor"
+  ]
+ },
+ {
+  "archivo": "cape/solid/fg/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+   "https://opengameart.org/content/lpc-roman-armor",
+   "http://opengameart.org/content/lpc-clothing-updates"
+  ]
+ },
+ {
+  "archivo": "cape/tattered/bg/walk.png",
+  "autores": [
+   "Nila122",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+   "https://opengameart.org/content/lpc-roman-armor"
+  ]
+ },
+ {
+  "archivo": "cape/tattered/fg/walk.png",
+  "autores": [
+   "Nila122",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-curly-hair-elven-ears-white-cape-with-blue-trim-and-more",
+   "https://opengameart.org/content/lpc-roman-armor"
+  ]
+ },
+ {
+  "archivo": "hat/formal/crown/adult/walk/gold.png",
+  "autores": [
+   "DarkwallLKE",
+   "Charles Sanchez (CharlesGabriel)"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+   "https://opengameart.org/content/lpc-crown",
+   "https://opengameart.org/content/lpc-expanded-hats-facial-helmets"
+  ]
+ },
+ {
+  "archivo": "head/heads/lizard/male/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "Benjamin K. Smith (BenCreating)",
+   "Nila122"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/drakes-and-lizardfolk",
+   "https://opengameart.org/content/lpc-character-bases"
+  ]
+ },
+ {
+  "archivo": "head/heads/skeleton/adult/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "Napsio",
+   "JaidynReiman",
+   "Johannes Sjölund (wulax)",
+   "Stephen Challener (Redshrike)"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-skeleton",
+   "https://opengameart.org/content/lpc-character-bases"
+  ]
+ },
+ {
+  "archivo": "legs/armour/plate/male/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "JaidynReiman",
+   "Michael Whitlock (bigbeargames)",
+   "Matthew Krohn (makrohn)",
+   "Johannes Sjölund (wulax)"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
+  ]
+ },
+ {
+  "archivo": "weapon/polearm/dragonspear/background/walk/gold.png",
+  "autores": [
+   "Daniel Eddeland (daneeklu)",
+   "gr3yh47",
+   "Johannes Sjölund (wulax)"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-weapons-two-bows-a-spear-and-a-trident",
+   "https://opengameart.org/content/lpc-extended-weapon-animations"
+  ]
+ },
+ {
+  "archivo": "weapon/polearm/dragonspear/foreground/walk/gold.png",
+  "autores": [
+   "Daniel Eddeland (daneeklu)",
+   "gr3yh47",
+   "Johannes Sjölund (wulax)"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-weapons-two-bows-a-spear-and-a-trident",
+   "https://opengameart.org/content/lpc-extended-weapon-animations"
+  ]
  }
 ]
