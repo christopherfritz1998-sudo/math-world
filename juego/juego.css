@@ -224,9 +224,14 @@ button.zona:not(:disabled):hover { border-color: var(--amber); }
 .personajes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
 /* ---------- v4: misiones, decorativos, pieza, premios de nivel ---------- */
-.hud-misiones { position: absolute; left: 12px; top: 158px; width: 270px; padding: 8px 10px; border-radius: 12px; background: rgba(18, 32, 26, .88); border: 2px solid var(--line); color: var(--text); font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.hud-misiones { position: absolute; left: 12px; top: 158px; width: 270px; padding: 6px 10px 8px; border-radius: 12px; background: rgba(18, 32, 26, .88); border: 2px solid var(--line); color: var(--text); display: flex; flex-direction: column; gap: 2px; }
 .hud-misiones:empty { display: none; }
-.hud-misiones:hover { border-color: var(--amber); }
+.hud-misiones.plegado { width: auto; padding: 4px 6px 4px 10px; }
+.hm-cab { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #b4bfb2; }
+.hm-plegar { border: 1px solid var(--line); background: var(--panel); color: var(--teal); border-radius: 8px; font: inherit; font-size: 11px; font-weight: 800; padding: 3px 8px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+.hm-plegar:hover { border-color: var(--teal); }
+.hm-cuerpo { border: 0; background: none; padding: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; display: flex; flex-direction: column; gap: 2px; }
+.hm-cuerpo:hover strong { text-decoration: underline; }
 .hud-misiones strong { font-size: 12px; letter-spacing: .05em; text-transform: uppercase; color: var(--amber); margin-top: 2px; }
 .hud-misiones ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
 .hud-misiones li { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); }

@@ -29,7 +29,7 @@
     (dif, T, k) => {
       const a = pick([2, 3, 5, 7, 10]), m = rnd(2, 5), n = rnd(2, 4);
       return desafio(k, T, `Escribe como una sola potencia: (${pot(a, m)})^${n}`,
-        pot(a, m * n), [pot(a, m + n), pot(a, m ** n === m * n ? m * n + 1 : m ** n), pot(a * n, m)], (j) => pot(a, m * n + j),
+        pot(a, m * n), [pot(a, m + n), pot(a, m ** n === m * n ? m * n + 1 : m ** n), pot(a * n, m * n)], (j) => pot(a, m * n + j),
         'Potencia de una potencia: se conserva la base y se multiplican los exponentes.',
         `(${pot(a, m)})^${n} = ${pot(a, m * n)}, porque ${m} · ${n} = ${m * n}.`);
     },
@@ -144,7 +144,7 @@
     (dif, T, k) => {
       const m = rnd(2, 4), n = rnd(2, 3);
       return desafio(k, T, `Escribe como una sola potencia: (10^${m})^${n}`,
-        `10^${m * n}`, [`10^${m + n}`, `100^${m}`, `10^${m ** n}`], (j) => `10^${m * n + j}`,
+        `10^${m * n}`, [`10^${m + n === m * n ? m * n + 1 : m + n}`, `${10 * n}^${m}`, `10^${m ** n === m * n ? m * n + 2 : m ** n}`], (j) => `10^${m * n + j}`,
         'Potencia de una potencia: se multiplican los exponentes.', `(10^${m})^${n} = 10^${m * n}.`);
     },
     (dif, T, k) => desafio(k, T, '¿Cuánto es 10^0?', '1', ['0', '10', '100'], null,

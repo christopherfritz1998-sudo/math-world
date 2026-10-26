@@ -46,6 +46,14 @@
     .interruptor[aria-checked="true"]::after { transform: translateX(26px); }
     .interruptor:disabled { opacity: .5; cursor: wait; }
     .tab .cerrado-chip { font-size: 12px; font-weight: 800; color: var(--coral); }
+    .mundos-tabla { overflow-x: auto; }
+    .mundos-tabla table { min-width: 620px; }
+    .mundos-tabla td, .mundos-tabla th { text-align: center; }
+    .mundos-tabla td:first-child, .mundos-tabla th:first-child { text-align: left; }
+    .mundos-tabla th small { display: block; font-weight: 700; color: var(--muted); }
+    .mundos-tabla .siempre { font-size: 13px; font-weight: 800; color: var(--ok); }
+    .mundos-tabla .todos { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .btn.mini { min-height: 32px; padding: 0 10px; font-size: 12px; }
     main { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 18px; }
     .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-weight: 800; font-size: 16px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
@@ -107,6 +115,12 @@
         <div class="acceso-todos"><button type="button" class="btn pri" id="abrir-todos">Abrir todos</button><button type="button" class="btn peligro" id="cerrar-todos">Cerrar todos</button></div>
       </div>
       <div class="acceso-cursos" id="acceso-cursos"></div>
+    </section>
+    <section class="panel acceso" aria-labelledby="mundos-titulo">
+      <div class="acceso-cab">
+        <div><h2 id="mundos-titulo">Mundos del juego</h2><span class="muted">La Unidad 1 siempre está abierta. Abre las demás unidades por curso cuando quieras que tus estudiantes puedan viajar a ese mundo desde el portal de su base.</span></div>
+      </div>
+      <div class="mundos-tabla" id="mundos"></div>
     </section>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="tarjetas" id="tarjetas"></div>

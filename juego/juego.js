@@ -160,7 +160,7 @@
     u3: { nombre: 'Titán de las Formas', color: '#c9a46b' },
     u4: { nombre: 'Hidra de los Datos', color: '#5d7b55' },
   };
-  const JEFE_MIN = 4, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000;
+  const JEFE_MIN = 4, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
   // ===================================================================
@@ -275,7 +275,15 @@
   // Latido: mantiene "en línea" al estudiante y lo saca del juego si el docente cierra su curso.
   async function latir() {
     if (sesion.modo !== 'nube' || !S || juegoCerrado) return;
-    try { const r = await Nube.latido(sesion.token, zonaRed()); if (r && r.abierto === false) cerrarPorDocente(); } catch (e) { /* sin red: se reintenta */ }
+    try {
+      const r = await Nube.latido(sesion.token, zonaRed());
+      if (r && r.abierto === false) cerrarPorDocente();
+      else if (r && Array.isArray(r.mundos)) {
+        const nuevos = r.mundos.filter((u) => !(sesion.mundos || []).includes(u) && MUNDOS[u]);
+        sesion.mundos = r.mundos;
+        if (nuevos.length) toast(`¡Tu profesor abrió un mundo nuevo: ${nuevos.map((u) => nombreZona(u)).join(', ')}! Viaja por el portal de tu base.`);
+      }
+    } catch (e) { /* sin red: se reintenta */ }
   }
   async function cerrarPorDocente() {
     if (juegoCerrado) return;
@@ -407,6 +415,8 @@
     }
     pintarMisiones();
   }
+  let misionesPlegadas = false;
+  function misionesOcultas() { try { const v = localStorage.getItem('mw_misiones_ocultas'); return v === null ? misionesPlegadas : v === '1'; } catch (e) { return misionesPlegadas; } }
   function pintarMisiones() {
     const el = $('hud-misiones');
     if (!el || !S) return;
@@ -419,7 +429,12 @@
       html += `<strong>${M.ok ? 'Jefe final desbloqueado' : 'Misiones para el jefe'}</strong><ul>${M.lista.map((m) => fila(textoMision(m), m.p, m.n)).join('')}</ul>`;
     }
     html += `<strong>Misión diaria${Dd.cobrada ? ' · cobrada' : Dd.p >= Dd.n ? ' · ¡reclámala!' : ''}</strong><ul>${fila(TIPOS_DIARIA[Dd.t].txt, Dd.p, Dd.n)}</ul>`;
-    el.innerHTML = html;
+    const oculto = misionesOcultas();
+    const hechas = u ? misionesDe(u).lista.filter((m) => m.p >= m.n).length : null;
+    const resumen = u ? `${hechas}/3` : Dd.p >= Dd.n ? (Dd.cobrada ? '✓' : '¡lista!') : `${Math.min(Dd.p, Dd.n)}/${Dd.n}`;
+    el.classList.toggle('plegado', oculto);
+    el.innerHTML = `<div class="hm-cab"><span>Misiones${oculto ? ` · ${resumen}` : ''}</span><button type="button" class="hm-plegar" data-plegar aria-expanded="${!oculto}">${oculto ? 'Mostrar' : 'Ocultar'}</button></div>`
+      + (oculto ? '' : `<button type="button" class="hm-cuerpo" data-ver-misiones aria-label="Ver detalle de tus misiones">${html}</button>`);
     const pend = (Dd.p >= Dd.n && !Dd.cobrada) || (S.premiosNivel || 0) > 0;
     $('btn-misiones').classList.toggle('alerta', pend);
   }
@@ -614,7 +629,7 @@
         $('saludo').textContent = `Hola, ${ingreso.estado.nombre}. Comienzas una aventura nueva: elige tu personaje y presiona Entrar al mundo.`;
         return error('');
       }
-      sesion.modo = 'nube'; sesion.token = r.token;
+      sesion.modo = 'nube'; sesion.token = r.token; sesion.mundos = Array.isArray(r.mundos) ? r.mundos : null;
       const primerNombre = (r.nombre || '').split(' ')[2] || (r.nombre || '').split(' ')[0] || 'Explorador';
       S = normalizar(r.progreso, curso, primerNombre, ingreso.pj);
       S.seccion = r.curso;
@@ -965,7 +980,7 @@
         cuerpo = `<div class="mensaje bien" role="status">¡Su grupo venció al ${esc(J0.nombre.toLowerCase())}! Cada participante gana ${Object.entries(JEFE_PREMIO).map(([r, n]) => `${n} ${r}`).join(', ')} y 80 de experiencia.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>¡Celebrar!</button></div>`;
       } else if (fase === 'caido') {
-        cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Tu grupo sigue luchando; tú vuelves a tu base y pierdes lo que llevabas en la mochila.</div>
+        cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Tu grupo sigue luchando; tú vuelves a tu base y pierdes lo que llevabas en la mochila. Para volver a enfrentar al jefe tendrás que cumplir nuevas misiones.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Volver a mi base</button></div>`;
       } else if (fase === 'fin') {
         cuerpo = `<div class="mensaje pista" role="status">El combate terminó porque el grupo se separó. Pueden volver a intentarlo cuando estén ${JEFE_MIN} en la guarida.</div>
@@ -987,14 +1002,14 @@
               <div class="barra enemigo" role="img" aria-label="Vida del jefe"><i id="jefe-barra" style="width: ${barra()}%"></i></div>
               <span class="nota" id="jefe-hp">Vida: ${e.jefe.hp} de ${e.jefe.max}</span></div>
           </div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()} · si fallas pierdes ${JEFE_DANIO}</span></div>
         </div>
         <div class="pildoras" id="jefe-equipo">${equipoHTML()}</div>
         ${cuerpo}`, 'combate');
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('j-ok', atacar);
-      on('j-salir', () => { e.salirDelJefe(); jefeUI = null; ui.cerrar(); });
+      on('j-salir', () => { e.salirDelJefe(); e.perderContraJefe(); jefeUI = null; ui.cerrar(); });
       on('j-fin', terminar);
       ui.teclas = (ev) => {
         if (fase !== 'pregunta') { if (ev.key === 'Enter') { ev.preventDefault(); terminar(); } return; }
@@ -1011,9 +1026,9 @@
       registrar(d.tema, ok);
       if (ok) { ganarXP(4 + 2 * dif); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; e.golpeLocal(danio()); }
       else {
-        S.vida -= 1; e.dolor(); pintarHUD();
-        ultimo = `<div class="mensaje mal" role="status">¡El jefe te golpeó! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
-        if (S.vida <= 0) { fase = 'caido'; e.salirDelJefe(); }
+        S.vida = Math.max(0, S.vida - JEFE_DANIO); e.dolor(); pintarHUD();
+        ultimo = `<div class="mensaje mal" role="status">¡El jefe te dio un golpe doble (−${JEFE_DANIO} corazones)! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        if (S.vida <= 0) { fase = 'caido'; e.salirDelJefe(); e.perderContraJefe(); }
       }
       guardar();
       d = nuevo(); elegida = null;
@@ -1149,6 +1164,12 @@
 
   // ---------- Portal ----------
   let contenido = null;
+  // Mundos abiertos: los decide el docente por curso (la Unidad 1 siempre está abierta). El docente los ve todos.
+  function mundoAbierto(u) {
+    if (u.id === 'u1' || esDocente()) return true;
+    if (sesion.modo === 'nube' && Array.isArray(sesion.mundos)) return sesion.mundos.includes(u.id);
+    return Boolean(u.habilitada);
+  }
   async function cargarContenido() {
     if (!contenido) {
       try { contenido = await (await fetch('../contenido.json', { cache: 'no-cache' })).json(); } catch (e) { contenido = { cursos: [] }; }
@@ -1160,7 +1181,7 @@
     const unidades = await cargarContenido();
     const enBase = escena.zona === 'base';
     const tarjetas = unidades.map((u) => {
-      const ok = u.habilitada && MUNDOS[u.id];
+      const ok = mundoAbierto(u) && MUNDOS[u.id];
       const aqui = escena.zona === u.id;
       return `<button type="button" class="zona ${ok ? '' : 'cerrada'} ${aqui ? 'aqui' : ''}" data-z="${u.id}" ${ok && !aqui ? '' : 'disabled'}>
         <small>UNIDAD ${u.numero} · ${esc(u.titulo).toUpperCase()}</small><strong>${esc(MUNDOS[u.id] ? nombreZona(u.id) : 'Zona nueva')}</strong>
@@ -1231,7 +1252,7 @@
         const pct = s.i ? Math.round((s.a / s.i) * 100) : 0;
         return `<div><div class="fila"><span>${esc(t)}</span><span>${s.i ? `${s.a} de ${s.i} (${pct} %)` : 'Sin intentos'}</span></div><div class="barra"><i style="width: ${pct}%"></i></div></div>`;
       }).join('');
-      return `<details ${escena.zona === u.id || (enCasa() && u.id === 'u1') ? 'open' : ''}><summary><strong>Unidad ${u.numero} · ${esc(u.titulo)}</strong> ${u.habilitada ? '' : '<span class="nota">(cerrada)</span>'}</summary><div class="avance">${filas}</div></details>`;
+      return `<details ${escena.zona === u.id || (enCasa() && u.id === 'u1') ? 'open' : ''}><summary><strong>Unidad ${u.numero} · ${esc(u.titulo)}</strong> ${mundoAbierto(u) ? '' : '<span class="nota">(cerrada)</span>'}</summary><div class="avance">${filas}</div></details>`;
     }).join('');
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">${S.curso === '7basico' ? '7°' : '8°'} básico${S.seccion ? ' · ' + esc(S.seccion.slice(1)) : ''}</span><h2 id="modal-titulo">Tu avance</h2></div><button type="button" class="btn" id="m-cerrar">Cerrar</button></div>
@@ -1282,7 +1303,10 @@
   $('btn-decorar').addEventListener('click', abrirDecorar);
   $('btn-mapa').addEventListener('click', abrirMapa);
   $('btn-misiones').addEventListener('click', abrirMisiones);
-  $('hud-misiones').addEventListener('click', abrirMisiones);
+  $('hud-misiones').addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-plegar]')) { try { localStorage.setItem('mw_misiones_ocultas', misionesOcultas() ? '0' : '1'); } catch (e) { misionesPlegadas = !misionesPlegadas; } pintarMisiones(); }
+    else if (ev.target.closest('[data-ver-misiones]')) abrirMisiones();
+  });
   $('btn-portal').addEventListener('click', volverAlPortal);
   async function volverAlPortal() {
     const b = $('btn-portal'); b.disabled = true;
@@ -1316,6 +1340,7 @@
   // ===================================================================
   const TILE = 32;
   let ultimaCarpa = null;
+  let combateActual = null;
   const COLS = 57;
   const fr = (c, r) => r * COLS + c;
   const DIRS = { up: 0, left: 1, down: 2, right: 3 };
@@ -1567,38 +1592,41 @@
 
     // ---------- pieza (dentro de la carpa) ----------
     crearPieza() {
-      this.ancho = 14; this.alto = 11;
+      // Pieza amplia: el suelo va de x = 1..X1 e y = 3..Y1; la salida está abajo al centro
+      const X1 = 24, Y1 = 15;
+      this.ancho = X1 + 2; this.alto = Y1 + 2;
       this.rnd = azar(9);
-      const PISO = fr(8, 2), PX = 7;
+      const PISO = fr(8, 2), PX = Math.floor(this.ancho / 2) - 1, YP = Y1 + 1;
       const data = [];
       for (let y = 0; y < this.alto; y++) {
         const fila = [];
-        for (let x = 0; x < this.ancho; x++) fila.push((x >= 1 && x <= 12 && y >= 3 && y <= 9) || (x === PX && y === 10) ? PISO : -1);
+        for (let x = 0; x < this.ancho; x++) fila.push((x >= 1 && x <= X1 && y >= 3 && y <= Y1) || (x === PX && y === YP) ? PISO : -1);
         data.push(fila);
       }
       this.suelo(data);
       const W = this.ancho * TILE, H = this.alto * TILE;
       // paredes: tapiz arriba, madera oscura alrededor
-      for (let y = 1; y <= 2; y++) for (let x = 1; x <= 12; x++) this.add.image(x * TILE + 16, y * TILE + 16, 'tapiz_pared').setScale(2).setDepth(-9);
+      for (let y = 1; y <= 2; y++) for (let x = 1; x <= X1; x++) this.add.image(x * TILE + 16, y * TILE + 16, 'tapiz_pared').setScale(2).setDepth(-9);
       const g = this.add.graphics().setDepth(-8);
       g.fillStyle(0x3b2618, 1);
       g.fillRect(0, 0, W, TILE); g.fillRect(0, 0, TILE, H); g.fillRect(W - TILE, 0, TILE, H);
-      g.fillRect(0, 10 * TILE, PX * TILE, TILE); g.fillRect((PX + 1) * TILE, 10 * TILE, W - (PX + 1) * TILE, TILE);
-      g.fillStyle(0x24160d, 1); g.fillRect(TILE, 3 * TILE - 4, 12 * TILE, 5);
-      g.fillStyle(0x5a3a22, 1); g.fillRect(TILE - 4, TILE - 4, 12 * TILE + 8, 4); g.fillRect(TILE - 4, TILE - 4, 4, 9 * TILE + 8); g.fillRect(13 * TILE, TILE - 4, 4, 9 * TILE + 8);
-      g.fillRect(TILE - 4, 10 * TILE, (PX - 1) * TILE + 4, 4); g.fillRect((PX + 1) * TILE, 10 * TILE, 5 * TILE + 4, 4);
+      g.fillRect(0, YP * TILE, PX * TILE, TILE); g.fillRect((PX + 1) * TILE, YP * TILE, W - (PX + 1) * TILE, TILE);
+      g.fillStyle(0x24160d, 1); g.fillRect(TILE, 3 * TILE - 4, X1 * TILE, 5);
+      g.fillStyle(0x5a3a22, 1);
+      g.fillRect(TILE - 4, TILE - 4, X1 * TILE + 8, 4); g.fillRect(TILE - 4, TILE - 4, 4, (YP - 1) * TILE + 8); g.fillRect((X1 + 1) * TILE, TILE - 4, 4, (YP - 1) * TILE + 8);
+      g.fillRect(TILE - 4, YP * TILE, (PX - 1) * TILE + 4, 4); g.fillRect((PX + 1) * TILE, YP * TILE, (X1 - PX) * TILE + 4, 4);
       // salida
-      this.add.image(PX * TILE + 16, 10 * TILE + 16, 'd_alf_oval').setScale(1.4, 2).setDepth(-7).setAlpha(0.9);
-      this.add.text(PX * TILE + 16, 10 * TILE + 16, 'SALIDA', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#fff3d6', stroke: '#24160d', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(-6);
+      this.add.image(PX * TILE + 16, YP * TILE + 16, 'd_alf_oval').setScale(1.4, 2).setDepth(-7).setAlpha(0.9);
+      this.add.text(PX * TILE + 16, YP * TILE + 16, 'SALIDA', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#fff3d6', stroke: '#24160d', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(-6);
       this.solido(W / 2, (3 * TILE - 6) / 2, W, 3 * TILE - 6);
       this.solido(TILE / 2, H / 2, TILE, H); this.solido(W - TILE / 2, H / 2, TILE, H);
-      this.solido((PX * TILE) / 2, 10.5 * TILE, PX * TILE, TILE); this.solido((W + (PX + 1) * TILE) / 2, 10.5 * TILE, W - (PX + 1) * TILE, TILE);
-      this.objetos.push({ tipo: 'puerta', x: PX * TILE + 16, y: 10 * TILE + 6, activo: true });
-      this.limites = { x0: 1, y0: 3, x1: 12, y1: 9 };
+      this.solido((PX * TILE) / 2, (YP + 0.5) * TILE, PX * TILE, TILE); this.solido((W + (PX + 1) * TILE) / 2, (YP + 0.5) * TILE, W - (PX + 1) * TILE, TILE);
+      this.objetos.push({ tipo: 'puerta', x: PX * TILE + 16, y: YP * TILE + 6, activo: true });
+      this.limites = { x0: 1, y0: 3, x1: X1, y1: Y1 };
       this.ocupadoPiso = new Set(); this.ocupadoPared = new Set();
-      this.marcar(PX, 9); this.ocupadoPiso.add(`${PX},9`);
+      this.marcar(PX, Y1); this.ocupadoPiso.add(`${PX},${Y1}`);
       (S.pieza || []).forEach((c) => this.dibujarColocado(c));
-      this.inicio = { x: PX * TILE + 16, y: 9 * TILE + 26 };
+      this.inicio = { x: PX * TILE + 16, y: Y1 * TILE + 26 };
     }
 
     // ---------- objetos colocados (base y pieza) ----------
@@ -1764,7 +1792,7 @@
         if (Math.abs(p[0] - P.x) < 8 && Math.abs(p[1] - P.y) < 8) continue;
         const s = this.sprite('arbusto', p[0], p[1]);
         this.marcar(p[0], p[1]);
-        this.enemigos.push(this.nuevoEnemigo('arbusto', s, { despierto: false }));
+        this.enemigos.push(this.nuevoEnemigo('arbusto', s, { despierto: false, k: `a${i}` }));
       }
       for (let i = 0; i < M.nieblas; i++) {
         const p = lugar(1); if (!p) break;
@@ -1772,7 +1800,7 @@
         const s = this.add.image(p[0] * TILE + 16, p[1] * TILE + 16, 'niebla').setScale(2).setAlpha(0.85);
         this.add.particles(s.x, s.y, 'humo', { x: { min: -90, max: 90 }, y: { min: -60, max: 60 }, lifespan: 4000, frequency: 450, scale: { start: 1.2, end: 2.2 }, alpha: { start: 0.5, end: 0 }, speed: 6 }).setDepth(9000);
         this.tweens.add({ targets: s, y: s.y - 6, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
-        this.enemigos.push(this.nuevoEnemigo('niebla', s, { despierto: true }));
+        this.enemigos.push(this.nuevoEnemigo('niebla', s, { despierto: true, k: `n${i}` }));
       }
     }
     crearGuarida() {
@@ -1782,7 +1810,7 @@
       const cx = gx * TILE + 16, cy = gy * TILE + 30;
       this.add.particles(cx, cy - 20, 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
       this.jefeSpr = this.add.image(cx, cy, `jefe_${this.zona}`).setOrigin(0.5, 1).setScale(4).setDepth(cy);
-      this.tweens.add({ targets: this.jefeSpr, scaleY: 4.15, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.jefeSpr.setVisible(false).setAlpha(0); this.jefeVisto = false;   // oculto hasta cumplir los requisitos
       this.solido(cx, cy - 18, 60, 30);
       this.jefeTag = this.add.text(cx, cy - 104, J.nombre, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(cy + 1);
       this.guarida = { x: cx, y: cy - 20 };
@@ -1836,10 +1864,10 @@
       const cam = this.cameras.main;
       cam.setZoom(Math.max(1, Math.min(3, Math.floor(Math.min(width / 560, height / 315) * 2) / 2)));
       if (this.zona === 'pieza' && this.jugador) {
-        // La pieza es pequeña: si cabe en pantalla, se centra; si no, la cámara sigue al jugador
+        // La pieza siempre llena la pantalla: si hace falta se acerca la cámara, que sigue al jugador
         const W = this.ancho * TILE, H = this.alto * TILE;
-        if (W * cam.zoom <= width && H * cam.zoom <= height - 40) { cam.stopFollow(); cam.removeBounds(); cam.centerOn(W / 2, H / 2 - 10); }
-        else { cam.setBounds(0, 0, W, H); cam.startFollow(this.jugador, true, 0.15, 0.15); }
+        cam.setZoom(Math.max(cam.zoom, width / W, height / H));
+        cam.setBounds(0, 0, W, H); cam.startFollow(this.jugador, true, 0.15, 0.15);
       }
     }
 
@@ -1868,35 +1896,51 @@
     }
 
     // ---------- enemigos ----------
+    // Posiciones de todos los jugadores del grupo en este mundo (yo + compañeros visibles)
+    jugadoresCerca() {
+      const j = this.jugador, lista = [{ id: idJuego, x: j.x, y: j.y, yo: true }];
+      if (this.otros) for (const [id, o] of this.otros) if (o.visto) lista.push({ id, x: o.spr.x, y: o.spr.y, yo: false });
+      return lista;
+    }
     moverEnemigos(seg) {
-      const j = this.jugador, ahora = this.time.now;
+      const ahora = this.time.now, todos = this.jugadoresCerca();
       for (const e of this.enemigos) {
         if (!e.activo || e.cayendo) continue;
-        const d = Phaser.Math.Distance.Between(j.x, j.y - 16, e.s.x, e.s.y - 10);
         if (e.aturdido > ahora) continue;
         const E = ENEMIGOS[e.clase];
+        // objetivo: si está luchando con un compañero, se queda con él; si no, persigue al jugador más cercano
+        let obj = null, d = Infinity;
+        if (e.ocupado) { obj = todos.find((t) => t.id === e.ocupado) || null; if (!obj) e.ocupado = null; }
+        if (obj) d = Phaser.Math.Distance.Between(obj.x, obj.y - 16, e.s.x, e.s.y - 10);
+        else for (const t of todos) { const dd = Phaser.Math.Distance.Between(t.x, t.y - 16, e.s.x, e.s.y - 10); if (dd < d) { d = dd; obj = t; } }
+        if (!obj) continue;
         if (e.clase === 'arbusto' && !e.despierto) {
           if (d < 80) { e.despierto = true; e.s.setTexture('arbusto_vivo'); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); this.flotante(e.s.x, e.s.y - 40, '¡Grrr!', '#ffb4a3'); }
           continue;
         }
-        const persigue = d < (e.clase === 'niebla' ? 150 : 240);
-        const destino = persigue ? { x: j.x, y: j.y - 8 } : e.origen;
+        const persigue = e.ocupado ? true : d < (e.clase === 'niebla' ? 150 : 240);
+        const destino = persigue ? { x: obj.x, y: obj.y - 8 } : e.origen;
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
-        if (l > 4) { e.s.x += (dx / l) * E.vel * seg; e.s.y += (dy / l) * E.vel * seg; }
+        if (l > (e.ocupado ? 26 : 4)) { e.s.x += (dx / l) * E.vel * seg; e.s.y += (dy / l) * E.vel * seg; }
         if (e.clase !== 'niebla') e.s.setDepth(e.s.y);
         if (!persigue && e.clase === 'arbusto' && l < 6) { e.despierto = false; e.s.setTexture('arbusto'); }
-        if (persigue && d < 30) this.empezarCombate(e);
+        if (persigue && obj.yo && !e.ocupado && d < 30) this.empezarCombate(e);
       }
-      // arañas que caen de los árboles
+      // bichos que caen de los árboles cuando pasa cualquier jugador del grupo
       for (const o of this.objetos) {
         if (o.tipo !== 'arbol' || !o.bicho || o.estado !== 'arbol') continue;
-        if (Phaser.Math.Distance.Between(j.x, j.y, o.x, o.y) < 56) { o.bicho = false; this.soltarBicho(o); }
+        const t = todos.find((p) => Phaser.Math.Distance.Between(p.x, p.y, o.x, o.y) < 56);
+        if (t) { this.soltarBicho(o); if (t.yo && this.canal) this.canal.emitir('bicho', { i: o.idx }); }
       }
     }
     soltarBicho(arbol) {
+      if (!arbol.bicho) return;
+      arbol.bicho = false;
       const s = this.add.image(arbol.x, arbol.y - 70, 'bicho').setScale(2).setDepth(arbol.y + 60);
       const hilo = this.add.image(arbol.x, arbol.y - 76, 'hilo').setOrigin(0.5, 0).setScale(1, 1).setDepth(arbol.y + 59);
-      const e = this.nuevoEnemigo('bicho', s, { cayendo: true });
+      const viejo = this.enemigos.findIndex((x) => x.k === `b${arbol.idx}`);
+      if (viejo >= 0) this.enemigos.splice(viejo, 1);
+      const e = this.nuevoEnemigo('bicho', s, { cayendo: true, k: `b${arbol.idx}` });
       this.enemigos.push(e);
       this.flotante(arbol.x, arbol.y - 90, '¡Cuidado!', '#ffb4a3');
       this.tweens.add({ targets: s, y: arbol.y + 4, duration: 650, ease: 'Bounce.out', onUpdate: () => { hilo.setScale(1, Math.max(1, (s.y - hilo.y) / 8 * 2)); },
@@ -1909,18 +1953,18 @@
       this.enCombate = true;
       this.jugador.setVelocity(0, 0);
       this.cameras.main.shake(150, 0.004);
+      if (this.canal && e.k) this.canal.emitir('lucha', { k: e.k, id: idJuego });
+      combateActual = e;
       abrirCombate(e, (resultado) => {
-        this.enCombate = false;
+        this.enCombate = false; combateActual = null;
         const E = ENEMIGOS[e.clase];
+        if (this.canal && e.k) this.canal.emitir(resultado === 'victoria' ? 'vencido' : 'libre', { k: e.k });
         if (resultado === 'victoria') {
-          e.activo = false;
           Object.entries(E.botin).forEach(([r, n], i) => { sumar(r, n); this.time.delayedCall(i * 300, () => this.flotante(e.s.x, e.s.y - 40 - i * 18, `+${n} ${r}`)); });
           S.vencidos = (S.vencidos || 0) + 1;
           ganarXP(E.xp);
           avanzarMision(e.clase);
-          this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 60, max: 160 }, lifespan: 700, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
-          this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
-          if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(e.clase === 'niebla' ? 0.85 : 1).setScale(2).setVisible(true); if (e.clase === 'arbusto') { e.despierto = false; e.s.setTexture('arbusto'); } e.vida = e.vidaMax; e.activo = true; });
+          this.vencerEnemigo(e);
           guardar(true);
         } else if (resultado === 'huir') {
           e.aturdido = this.time.now + 4000;
@@ -1931,6 +1975,15 @@
         }
       });
     }
+    // El enemigo desaparece (lo venció este jugador o un compañero) y reaparece más tarde
+    vencerEnemigo(e) {
+      if (!e.activo) return;
+      e.activo = false; e.ocupado = null;
+      this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 60, max: 160 }, lifespan: 700, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
+      this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
+      if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(e.clase === 'niebla' ? 0.85 : 1).setScale(2).setVisible(true); if (e.clase === 'arbusto') { e.despierto = false; e.s.setTexture('arbusto'); } e.vida = e.vidaMax; e.activo = true; });
+    }
+    enemigo(k) { return this.enemigos.find((x) => x.k === k); }
     golpeEnemigo(e, n) {
       this.flotante(e.s.x, e.s.y - 36, `−${n}`, '#ffd27a');
       this.tweens.add({ targets: e.s, x: e.s.x + 4, duration: 50, yoyo: true, repeat: 2 });
@@ -2067,13 +2120,13 @@
     iniciarCoop() {
       const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente) };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
-      this.enGuarida = new Map(); this.yoEnGuarida = false; this.enJefe = false;
+      this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
       this.primeraPresencia = true;
       const c = new Coop.Canal(`mw-${nivelNum()}-${this.zona}-g${S.grupo}`, idJuego, meta);
       this.canal = c;
       c.alEstado = (e) => {
-        if (e === 'ok') { c.emitir('hola', { id: idJuego }); this.ultimoMov.t = 0; if (this.yoEnGuarida) this.avisarGuarida(); }
+        if (e === 'ok') { c.emitir('hola', { id: idJuego }); this.ultimoMov.t = 0; this.avisarGuarida(); }
         if (e === 'error') toast('No se pudo conectar con tu grupo: por ahora juegas solo.', 'alerta');
         pintarCoop();
       };
@@ -2082,7 +2135,7 @@
       c.on('nodo', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i) { this.cambios.set(d.i, { n: d.n, t: Date.now() }); this.aplicarNodo(o, d.n, 0); } });
       c.on('hola', (d) => {
         this.ultimoMov.t = 0;
-        if (this.yoEnGuarida) this.avisarGuarida();
+        this.avisarGuarida();
         const otros = Object.keys(c.presencia).filter((k) => k !== d.id).concat(idJuego).sort();
         if (otros[0] !== idJuego) return;
         c.emitir('estado', { para: d.id, nodos: [...this.cambios].map(([i, v]) => [i, v.n, Date.now() - v.t]).filter((x) => x[2] < 150000), jefe: this.jefeParaEnviar() });
@@ -2092,8 +2145,13 @@
         (d.nodos || []).forEach(([i, n, e]) => { const o = this.objetos[i]; if (o && o.idx === i) { this.cambios.set(i, { n, t: Date.now() - e }); this.aplicarNodo(o, n, e); } });
         if (d.jefe) this.recibirJefe(d.jefe);
       });
-      c.on('guarida', (d) => { if (d.dentro) this.enGuarida.set(d.id, d.listo !== false); else this.enGuarida.delete(d.id); });
+      c.on('guarida', (d) => { if (d && d.id) this.estadoJug.set(d.id, { dentro: Boolean(d.dentro), listo: d.listo === true }); });
       c.on('jefe', (d) => this.recibirJefe(d));
+      // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
+      c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
+      c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; if (e.clase === 'arbusto' && !e.despierto) { e.despierto = true; e.s.setTexture('arbusto_vivo'); } } });
+      c.on('libre', (d) => { const e = this.enemigo(d.k); if (e) { e.ocupado = null; e.aturdido = this.time.now + 3000; } });
+      c.on('vencido', (d) => { const e = this.enemigo(d.k); if (e && !(this.enCombate && combateActual === e)) this.vencerEnemigo(e); });
       c.on('jefe_pedir', () => this.iniciarJefeSiLider());
       c.on('golpe', (d) => this.golpeAlJefe(d.dmg));
       c.on('caido', (d) => this.sacarDelJefe(d.id));
@@ -2111,7 +2169,7 @@
       }
       for (const [id, meta] of Object.entries(p)) if (id !== idJuego && !this.otros.has(id)) this.crearOtro(id, meta);
       for (const id of [...this.otros.keys()]) if (!ids.has(id)) this.quitarOtro(id);
-      for (const id of [...this.enGuarida]) if (!ids.has(id)) this.enGuarida.delete(id);
+      for (const id of [...this.estadoJug.keys()]) if (!ids.has(id)) this.estadoJug.delete(id);
       const J = this.jefe;
       if (J && J.estado === 'combate') {
         const antes = J.lider;
@@ -2181,33 +2239,72 @@
       if (!this.guarida || !this.canal) return;
       const dentro = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 170;
       if (dentro !== this.yoEnGuarida) { this.yoEnGuarida = dentro; this.avisarGuarida(); }
+      this.actualizarSello();
     }
     // Avisa al grupo si estoy en la guarida y si ya cumplí mis misiones
     avisarGuarida() {
       this.actualizarSello();
-      if (this.canal && this.guarida) this.canal.emitir('guarida', { id: idJuego, dentro: this.yoEnGuarida, listo: misionesListas(this.zona) });
+      if (this.canal && this.guarida) this.canal.emitir('guarida', { id: idJuego, dentro: Boolean(this.yoEnGuarida), listo: misionesListas(this.zona) });
     }
-    actualizarSello() {
-      if (!this.jefeTag || !MUNDOS[this.zona]) return;
-      const listo = misionesListas(this.zona);
-      this.jefeTag.setText(listo ? JEFES[this.zona].nombre : `${JEFES[this.zona].nombre}\n(sellado: cumple tus misiones)`).setAlign('center');
-      if (this.jefeSpr) this.jefeSpr.setAlpha(listo ? 1 : 0.55);
+    // Jugadores del grupo (en este mundo) que ya cumplieron sus misiones
+    jugadoresListos() {
+      const ids = [...this.estadoJug].filter(([id, st]) => st.listo && this.otros.has(id)).map(([id]) => id);
+      if (misionesListas(this.zona)) ids.push(idJuego);
+      return ids;
     }
     // Solo cuentan los jugadores que ya cumplieron sus misiones
     jugadoresEnGuarida() {
-      const ids = [...this.enGuarida].filter(([id, listo]) => listo && this.otros.has(id)).map(([id]) => id);
+      const ids = [...this.estadoJug].filter(([id, st]) => st.listo && st.dentro && this.otros.has(id)).map(([id]) => id);
       if (this.yoEnGuarida && misionesListas(this.zona)) ids.push(idJuego);
       return ids;
     }
+    // El jefe está oculto hasta que al menos JEFE_MIN jugadores del grupo cumplan sus misiones
+    jefeVisible() {
+      const J = this.jefe;
+      if (!this.canal || !J) return false;
+      if (J.estado === 'combate') return true;
+      return this.jefeDisponible() && this.jugadoresListos().length >= JEFE_MIN;
+    }
+    actualizarSello() {
+      if (!this.jefeTag || !MUNDOS[this.zona]) return;
+      const vis = this.jefeVisible(), nombre = JEFES[this.zona].nombre;
+      if (vis !== this.jefeVisto) {
+        this.jefeVisto = vis;
+        this.tweens.killTweensOf(this.jefeSpr);
+        if (vis) {
+          this.jefeSpr.setVisible(true).setAlpha(0).setScale(4);
+          this.tweens.add({ targets: this.jefeSpr, alpha: 1, duration: 900 });
+          this.tweens.add({ targets: this.jefeSpr, scaleY: 4.15, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+          if (Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 500) this.cameras.main.shake(400, 0.006);
+          toast(`¡${nombre} apareció en su guarida! Reúnanse ahí para enfrentarlo.`);
+        } else {
+          this.add.particles(this.jefeSpr.x, this.jefeSpr.y - 40, 'p_morado', { speed: { min: 40, max: 140 }, lifespan: 800, scale: { start: 1.6, end: 0 }, emitting: false }).setDepth(this.jefeSpr.depth + 1).explode(30);
+          this.jefeSpr.setVisible(false).setAlpha(0);
+        }
+      }
+      const n = this.canal ? this.jugadoresListos().length : (misionesListas(this.zona) ? 1 : 0);
+      const txt = vis ? nombre : `Guarida de ${nombre}\n(oculto · ${Math.min(n, JEFE_MIN)} de ${JEFE_MIN} jugadores listos)`;
+      if (txt !== this.jefeTagTxt) { this.jefeTagTxt = txt; this.jefeTag.setText(txt).setAlign('center'); }
+    }
+    // Perder contra el jefe (quedarse sin corazones o retirarse): hay que volver a cumplir misiones
+    perderContraJefe() {
+      if (esDocente() || !MUNDOS[this.zona]) return;
+      S.misiones[this.zona] = nuevasMisiones(this.zona);
+      guardar(true);
+      this.avisarGuarida();
+      pintarMisiones();
+      setTimeout(() => toast('El jefe te venció y desapareció para ti. Cumple tus nuevas misiones para que vuelva a aparecer.', 'alerta'), 1500);
+    }
     jefeDisponible() { const J = this.jefe; return J && (J.estado === 'libre' || (J.estado === 'vencido' && J.hasta <= Date.now())); }
     textoJefe() {
-      if (!misionesListas(this.zona)) { const M = misionesDe(this.zona); return `Jefe sellado: misiones ${M.lista.filter((m) => m.p >= m.n).length} de ${M.lista.length}`; }
-      if (!this.canal) return 'Jefe final: viaja con un grupo';
+      if (!misionesListas(this.zona)) { const M = misionesDe(this.zona); return `Guarida sellada: cumple tus misiones (${M.lista.filter((m) => m.p >= m.n).length} de ${M.lista.length})`; }
+      if (!this.canal) return 'Guarida sellada: viaja con un grupo';
       const J = this.jefe;
       if (J.estado === 'combate') return J.part.includes(idJuego) ? 'Volver al combate' : 'Tu grupo está luchando';
       if (!this.jefeDisponible()) return `Jefe derrotado: vuelve en ${Math.ceil((J.hasta - Date.now()) / 60000)} min`;
+      if (!this.jefeVisible()) return `Guarida sellada: ${this.jugadoresListos().length} de ${JEFE_MIN} jugadores listos`;
       const n = this.jugadoresEnGuarida().length;
-      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores listos`;
+      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores en la guarida`;
     }
     pedirJefe() {
       if (!misionesListas(this.zona)) { toast('El jefe está sellado: primero cumple tus 3 misiones de este mundo.', 'alerta'); return abrirMisiones(); }
@@ -2216,6 +2313,7 @@
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
       if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); } return; }
       if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
+      if (!this.jefeVisible()) return toast(`El jefe sigue oculto: aparecerá cuando ${JEFE_MIN} jugadores de tu grupo cumplan sus misiones (van ${this.jugadoresListos().length}).`);
       const n = this.jugadoresEnGuarida().length;
       if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} en la guarida con sus misiones cumplidas para desafiar al jefe.`);
       this.canal.emitir('jefe_pedir', { id: idJuego });
@@ -2238,7 +2336,7 @@
     alCambiarJefe() {
       const J = this.jefe;
       if (J.estado === 'combate' && J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); }
-      if (this.jefeSpr) this.jefeSpr.setTint(J.estado === 'vencido' && J.hasta > Date.now() ? 0x666666 : 0xffffff);
+      this.actualizarSello();
       actualizarJefeUI();
     }
     golpeLocal(dmg) {

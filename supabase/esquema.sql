@@ -320,3 +320,74 @@ end $$;
 revoke all on function public.mw_curso_abierto(text) from public, anon, authenticated;
 revoke all on function public.mw_latido(uuid, text), public.mw_docente_cursos(uuid), public.mw_docente_abrir(uuid, text[], boolean) from public, authenticated;
 grant execute on function public.mw_latido(uuid, text), public.mw_docente_cursos(uuid), public.mw_docente_abrir(uuid, text[], boolean) to anon;
+
+-- Mundos (unidades) habilitados por curso desde el portal docente. La Unidad 1 siempre está abierta.
+alter table public.cursos add column if not exists mundos text[] not null default '{u1}';
+
+create or replace function public.mw_curso_mundos(p_curso text) returns text[]
+language sql stable security definer set search_path = public as $$
+  select coalesce((select mundos from cursos where curso = p_curso), '{u1}');
+$$;
+
+create or replace function public.mw_estudiante_entrar(p_rut text, p_nivel text, p_clave text)
+returns json language plpgsql security definer set search_path = public, extensions as $$
+declare e estudiantes; t uuid;
+begin
+  select * into e from estudiantes where rut = mw_rut(p_rut) and left(curso, 1) = p_nivel;
+  if not found then return json_build_object('ok', false, 'error', 'no_esta'); end if;
+  if not mw_curso_abierto(e.curso) then return json_build_object('ok', false, 'error', 'cerrado'); end if;
+  if e.bloqueado_hasta is not null and e.bloqueado_hasta > now() then
+    return json_build_object('ok', false, 'error', 'bloqueado');
+  end if;
+  if e.clave_hash is null then
+    if length(coalesce(p_clave, '')) < 4 then return json_build_object('ok', false, 'error', 'clave_corta'); end if;
+    update estudiantes set clave_hash = crypt(p_clave, gen_salt('bf')), fallos = 0 where id = e.id;
+  elsif e.clave_hash <> crypt(coalesce(p_clave, ''), e.clave_hash) then
+    update estudiantes set fallos = fallos + 1,
+      bloqueado_hasta = case when fallos + 1 >= 5 then now() + interval '10 minutes' else null end
+    where id = e.id;
+    return json_build_object('ok', false, 'error', 'clave_incorrecta');
+  else
+    update estudiantes set fallos = 0, bloqueado_hasta = null where id = e.id;
+  end if;
+  insert into sesiones (estudiante_id, expira) values (e.id, now() + interval '12 hours') returning token into t;
+  update estudiantes set ultimo_ping = now() where id = e.id;
+  return json_build_object('ok', true, 'token', t, 'nombre', e.nombre, 'curso', e.curso, 'progreso', e.progreso, 'mundos', mw_curso_mundos(e.curso));
+end $$;
+
+create or replace function public.mw_latido(p_token uuid, p_zona text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select curso into c from estudiantes where id = id_e;
+  if not mw_curso_abierto(c) then
+    update estudiantes set ultimo_ping = now() - interval '1 hour' where id = id_e;
+    return json_build_object('ok', true, 'abierto', false);
+  end if;
+  update estudiantes set zona = left(p_zona, 20), ultimo_ping = now() where id = id_e;
+  return json_build_object('ok', true, 'abierto', true, 'mundos', mw_curso_mundos(c));
+end $$;
+
+create or replace function public.mw_docente_mundos(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return (select json_object_agg(curso, mundos) from cursos);
+end $$;
+
+create or replace function public.mw_docente_mundo(p_token uuid, p_cursos text[], p_unidad text, p_abierta boolean)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  if p_unidad not in ('u2', 'u3', 'u4') then return (select json_object_agg(curso, mundos) from cursos); end if;
+  update cursos set actualizado = now(), mundos = case when p_abierta
+      then array(select distinct x from unnest(array_append(mundos, p_unidad)) as x order by x)
+      else array_remove(mundos, p_unidad) end
+   where curso = any (p_cursos);
+  return (select json_object_agg(curso, mundos) from cursos);
+end $$;
+
+revoke all on function public.mw_curso_mundos(text) from public, anon, authenticated;
+revoke all on function public.mw_estudiante_entrar(text, text, text), public.mw_latido(uuid, text), public.mw_docente_mundos(uuid), public.mw_docente_mundo(uuid, text[], text, boolean) from public, authenticated;
+grant execute on function public.mw_estudiante_entrar(text, text, text), public.mw_latido(uuid, text), public.mw_docente_mundos(uuid), public.mw_docente_mundo(uuid, text[], text, boolean) to anon;

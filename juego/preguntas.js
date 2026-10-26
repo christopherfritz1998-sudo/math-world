@@ -35,14 +35,21 @@
   }
 
   // Arma las 4 alternativas: la correcta + distractores distintos entre sí.
+  // Valor de una potencia escrita como texto (p. ej. "100^2" y "10^4" valen lo mismo): evita alternativas equivalentes
+  function valorPotencia(o) {
+    const t = String(o).replace(/−/g, '-').replace(/\s/g, '');
+    let m = t.match(/^\(?(-?\d+)\)?\^(\d+)$/);
+    if (m && Number(m[2]) <= 80 && typeof BigInt === 'function') return 'n' + (BigInt(m[1]) ** BigInt(m[2])).toString();
+    m = t.match(/^\((-?\d+)\/(\d+)\)\^(\d+)$/);
+    if (m && Number(m[3]) <= 40 && typeof BigInt === 'function') return 'f' + (BigInt(m[1]) ** BigInt(m[3])) + '/' + (BigInt(m[2]) ** BigInt(m[3]));
+    return 't' + t;
+  }
   function opciones(correcta, distractores, relleno) {
-    const set = [correcta];
-    for (const d of distractores) if (d != null && !set.includes(d)) set.push(d);
+    const set = [correcta], valores = new Set([valorPotencia(correcta)]);
+    const agregar = (d) => { if (d == null) return; const v = valorPotencia(d); if (valores.has(v)) return; valores.add(v); set.push(d); };
+    for (const d of distractores) agregar(d);
     let k = 1;
-    while (relleno && set.length < 4 && k < 50) {
-      const extra = relleno(k++);
-      if (extra != null && !set.includes(extra)) set.push(extra);
-    }
+    while (relleno && set.length < 4 && k < 50) agregar(relleno(k++));
     const lista = shuffle(set.slice(0, 4));
     return { opciones: lista, correcta: lista.indexOf(correcta) };
   }

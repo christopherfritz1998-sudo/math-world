@@ -40,6 +40,8 @@
     latido: (token, zona) => rpc('mw_latido', { p_token: token, p_zona: zona }),
     docenteCursos: (token) => rpc('mw_docente_cursos', { p_token: token }),
     docenteAbrir: (token, cursos, abierto) => rpc('mw_docente_abrir', { p_token: token, p_cursos: cursos, p_abierto: abierto }),
+    docenteMundos: (token) => rpc('mw_docente_mundos', { p_token: token }),
+    docenteMundo: (token, cursos, unidad, abierta) => rpc('mw_docente_mundo', { p_token: token, p_cursos: cursos, p_unidad: unidad, p_abierta: abierta }),
     salir: (token) => rpc('mw_salir', { p_token: token }, { keepalive: true }),
     docenteEntrar: (r, clave) => rpc('mw_docente_entrar', { p_rut: r, p_clave: clave }),
     docenteResumen: (token) => rpc('mw_docente_resumen', { p_token: token }),

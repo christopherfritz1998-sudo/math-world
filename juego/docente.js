@@ -8,7 +8,7 @@
   // "u1-g3" -> "Unidad 1 · Grupo 3"
   const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
   const MEJORAS = { pico: 'Pico', balde: 'Balde', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal' };
-  let token = null, datos = [], curso = '7A', abiertos = null;
+  let token = null, datos = [], curso = '7A', abiertos = null, mundos = null;
   try { token = sessionStorage.getItem('mw_docente'); } catch (e) { /* */ }
   if (!token || !Nube.activo) { location.replace('./'); return; }
 
@@ -37,10 +37,10 @@
 
   async function cargar() {
     try {
-      const [r, a] = await Promise.all([Nube.docenteResumen(token), Nube.docenteCursos(token).catch(() => null)]);
+      const [r, a, m] = await Promise.all([Nube.docenteResumen(token), Nube.docenteCursos(token).catch(() => null), Nube.docenteMundos(token).catch(() => null)]);
       if (r === null) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.replace('./'); return; }
-      datos = r; if (a) abiertos = a; $('error').hidden = true;
-      pintarAcceso();
+      datos = r; if (a) abiertos = a; if (m) mundos = m; $('error').hidden = true;
+      pintarAcceso(); pintarMundos();
       $('actualizado').textContent = `Actualizado ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
       pintar();
     } catch (e) {
@@ -196,6 +196,39 @@
     document.querySelectorAll('#abrir-todos, #cerrar-todos').forEach((b) => { b.disabled = false; });
     pintarAcceso(); pintar();
   }
+  // Abrir y cerrar mundos (unidades) por curso
+  const UNIDADES = [
+    { id: 'u2', n: 2, t: { 7: 'Álgebra y funciones', 8: 'Álgebra y funciones' } },
+    { id: 'u3', n: 3, t: { 7: 'Geometría', 8: 'Geometría' } },
+    { id: 'u4', n: 4, t: { 7: 'Probabilidad y estadística', 8: 'Probabilidad y estadística' } },
+  ];
+  function pintarMundos() {
+    const cont = $('mundos');
+    if (!mundos) { cont.innerHTML = '<span class="muted">No se pudo leer qué mundos están abiertos.</span>'; return; }
+    const abierta = (c, u) => (mundos[c] || []).includes(u);
+    cont.innerHTML = `<table><thead><tr><th>Curso</th><th>Unidad 1</th>${UNIDADES.map((u) => `<th>Unidad ${u.n}<small>${esc(u.t[7])}</small></th>`).join('')}</tr></thead><tbody>
+      ${CURSOS.map((c) => `<tr><td><strong>${c.nombre}</strong></td><td><span class="siempre">Siempre abierta</span></td>${UNIDADES.map((u) => {
+        const on = abierta(c.id, u.id);
+        return `<td><button type="button" class="interruptor" role="switch" aria-checked="${on}" aria-label="Unidad ${u.n} de ${c.nombre}: ${on ? 'abierta' : 'cerrada'}" data-mc="${c.id}" data-mu="${u.id}"></button></td>`;
+      }).join('')}</tr>`).join('')}
+      <tr><td class="muted">Todos los cursos</td><td></td>${UNIDADES.map((u) => `<td><div class="todos"><button type="button" class="btn pri mini" data-tu="${u.id}" data-ta="1">Abrir</button><button type="button" class="btn peligro mini" data-tu="${u.id}" data-ta="0">Cerrar</button></div></td>`).join('')}</tr>
+      </tbody></table>`;
+    cont.querySelectorAll('[data-mc]').forEach((b) => b.addEventListener('click', () => cambiarMundo([b.dataset.mc], b.dataset.mu, !abierta(b.dataset.mc, b.dataset.mu))));
+    cont.querySelectorAll('[data-tu]').forEach((b) => b.addEventListener('click', () => cambiarMundo(CURSOS.map((c) => c.id), b.dataset.tu, b.dataset.ta === '1')));
+  }
+  async function cambiarMundo(cursos, unidad, abrir) {
+    $('mundos').querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    try {
+      const r = await Nube.docenteMundo(token, cursos, unidad, abrir);
+      if (r) mundos = r;
+      $('error').hidden = true;
+    } catch (e) {
+      $('error').textContent = 'No se pudo cambiar el mundo. Revisa tu conexión e inténtalo otra vez.';
+      $('error').hidden = false;
+    }
+    pintarMundos();
+  }
+
   $('abrir-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), true));
   $('cerrar-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), false));
 
