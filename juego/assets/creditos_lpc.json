@@ -100,7 +100,46 @@
   ]
  },
  {
+  "archivo": "hair/afro/adult/walk.png",
+  "autores": [
+   "bluecarrot16"
+  ],
+  "licencias": [
+   "CC0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-hair"
+  ]
+ },
+ {
   "archivo": "hair/bob/adult/walk.png",
+  "autores": [
+   "ElizaWy",
+   "bluecarrot16"
+  ],
+  "licencias": [
+   "CC0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-hair",
+   "https://github.com/ElizaWy/LPC/blob/main/Characters/Hair",
+   "https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
+  ]
+ },
+ {
+  "archivo": "hair/buzzcut/adult/walk.png",
+  "autores": [
+   "ElizaWy"
+  ],
+  "licencias": [
+   "OGA-BY 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-hair"
+  ]
+ },
+ {
+  "archivo": "hair/flat_top_fade/adult/walk.png",
   "autores": [
    "ElizaWy",
    "bluecarrot16"
@@ -160,6 +199,19 @@
   "enlaces": [
    "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
    "https://opengameart.org/content/lpc-expanded-hair"
+  ]
+ },
+ {
+  "archivo": "hair/spiked/adult/walk.png",
+  "autores": [
+   "kcilds/Rocetti/Eredah"
+  ],
+  "licencias": [
+   "CC-BY 4.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/eredah-rpg-character-base-48x64-ongoing",
+   "https://opengameart.org/content/lpc-hair"
   ]
  },
  {
@@ -326,6 +378,84 @@
   ]
  },
  {
+  "archivo": "torso/armour/leather/female/walk.png",
+  "autores": [
+   "Michael Whitlock (bigbeargames)",
+   "Matthew Krohn (makrohn)",
+   "Johannes Sjölund (wulax)",
+   "bluecarrot16",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-combat-armor-for-women",
+   "https://opengameart.org/content/lpc-clothing-updates",
+   "https://opengameart.org/content/lpc-expanded-armor"
+  ]
+ },
+ {
+  "archivo": "torso/armour/leather/male/walk.png",
+  "autores": [
+   "Johannes Sjölund (wulax)",
+   "bluecarrot16",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-clothing-updates",
+   "https://opengameart.org/content/lpc-expanded-armor"
+  ]
+ },
+ {
+  "archivo": "torso/armour/plate/female/walk.png",
+  "autores": [
+   "JaidynReiman",
+   "bluecarrot16",
+   "Michael Whitlock (bigbeargames)",
+   "Matthew Krohn (makrohn)",
+   "Johannes Sjölund (wulax)"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-combat-armor-for-women",
+   "http://opengameart.org/content/lpc-clothing-updates"
+  ]
+ },
+ {
+  "archivo": "torso/armour/plate/male/walk.png",
+  "autores": [
+   "Napsio (Vitruvian Studio)",
+   "JaidynReiman",
+   "bluecarrot16",
+   "Michael Whitlock (bigbeargames)",
+   "Johannes Sjölund (wulax)"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-combat-armor-for-women"
+  ]
+ },
+ {
   "archivo": "torso/clothes/longsleeve/longsleeve/female/walk.png",
   "autores": [
    "bluecarrot16",
@@ -366,6 +496,58 @@
    "https://github.com/ElizaWy/LPC/tree/main/Characters/Clothing",
    "https://opengameart.org/content/lpc-expanded-sit-run-jump-more",
    "https://opengameart.org/content/lpc-expanded-simple-shirts"
+  ]
+ },
+ {
+  "archivo": "weapon/sword/arming/universal/bg/walk/iron.png",
+  "autores": [
+   "ElizaWy; walk and down by JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0"
+  ],
+  "enlaces": [
+   "https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
+   "https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
+  ]
+ },
+ {
+  "archivo": "weapon/sword/arming/universal/bg/walk/steel.png",
+  "autores": [
+   "ElizaWy; walk and down by JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0"
+  ],
+  "enlaces": [
+   "https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
+   "https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
+  ]
+ },
+ {
+  "archivo": "weapon/sword/arming/universal/fg/walk/iron.png",
+  "autores": [
+   "ElizaWy; walk and down by JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0"
+  ],
+  "enlaces": [
+   "https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
+   "https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
+  ]
+ },
+ {
+  "archivo": "weapon/sword/arming/universal/fg/walk/steel.png",
+  "autores": [
+   "ElizaWy; walk and down by JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0"
+  ],
+  "enlaces": [
+   "https://github.com/ElizaWy/LPC/tree/main/Characters/Props/Sword%2001%20-%20Arming%20Sword",
+   "https://opengameart.org/content/lpc-expanded-sit-run-jump-more"
   ]
  }
 ]

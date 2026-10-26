@@ -11,6 +11,8 @@
   const PERSONAJES = [
     { id: 'zorro', nombre: 'Zorro' }, { id: 'luna', nombre: 'Luna' },
     { id: 'puma', nombre: 'Puma' }, { id: 'copihue', nombre: 'Copihue' },
+    { id: 'condor', nombre: 'Cóndor' }, { id: 'huemul', nombre: 'Huemul' },
+    { id: 'pudu', nombre: 'Pudú' }, { id: 'lobo', nombre: 'Lobo' },
   ];
   const RECURSOS = [
     { id: 'madera', nombre: 'Madera' }, { id: 'piedra', nombre: 'Piedra' },
@@ -22,14 +24,19 @@
   const MEJORAS = [
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
-    { id: 'espada', nombre: 'Espada de piedra', desc: 'Cada acierto en combate quita 2 de vida.', icono: 'espada', costo: { madera: 15, piedra: 10 }, requiere: 'pico' },
+    { id: 'espada', nombre: 'Espada de piedra', desc: 'Equipada, cada acierto en combate quita 2 de vida.', icono: 'espada', costo: { madera: 15, piedra: 10 }, requiere: 'pico' },
     { id: 'hacha2', nombre: 'Hacha de hierro', desc: 'Ganas 2 maderas más por cada árbol.', icono: 'axe', costo: { madera: 25, piedra: 15 }, requiere: 'pico' },
-    { id: 'armadura', nombre: 'Armadura de cuero', desc: 'Tu vida máxima sube a 7 corazones.', icono: 'armadura', costo: { piedra: 25, agua: 6, cristal: 2 }, requiere: 'espada' },
+    { id: 'armadura', nombre: 'Armadura de cuero', desc: 'Equipada, tu vida máxima sube a 7 corazones.', icono: 'armadura', costo: { piedra: 25, agua: 6, cristal: 2 }, requiere: 'espada' },
     { id: 'pico2', nombre: 'Pico reforzado', desc: 'Más piedra y más cristales al picar rocas.', icono: 'pickaxe', costo: { madera: 20, piedra: 25, cristal: 2 }, requiere: 'hacha2' },
-    { id: 'espada2', nombre: 'Espada de cristal', desc: 'Cada acierto en combate quita 3 de vida.', icono: 'espada', costo: { piedra: 20, cristal: 6 }, requiere: 'armadura' },
-    { id: 'armadura2', nombre: 'Armadura de cristal', desc: 'Tu vida máxima sube a 9 corazones.', icono: 'armadura', costo: { agua: 12, cristal: 8 }, requiere: 'espada2' },
+    { id: 'espada2', nombre: 'Espada de cristal', desc: 'Equipada, cada acierto en combate quita 3 de vida.', icono: 'espada', costo: { piedra: 20, cristal: 6 }, requiere: 'armadura' },
+    { id: 'armadura2', nombre: 'Armadura de cristal', desc: 'Equipada, tu vida máxima sube a 9 corazones.', icono: 'armadura', costo: { agua: 12, cristal: 8 }, requiere: 'espada2' },
   ];
   const NOMBRE_MEJORA = Object.fromEntries(MEJORAS.map((m) => [m.id, m.nombre]));
+  // Equipo que se ve en el personaje
+  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 } };
+  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' } };
+  const cuerpoDe = (pj) => (pj === 'luna' || pj === 'copihue' ? 'thin' : 'male');
+  const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
   // Objetos para decorar la base (se pueden fabricar varias veces)
   const OBJETOS = [
@@ -116,7 +123,7 @@
       v: 2, curso, nombre, pj, seccion: '',
       mochila: { madera: 0, piedra: 0, agua: 0, cristal: 0 },
       cofre: { madera: 0, piedra: 0, agua: 0, cristal: 0 },
-      mejoras: [], herramienta: 'hacha', inventario: {}, colocados: [],
+      mejoras: [], herramienta: 'hacha', arma: null, armadura: null, inventario: {}, colocados: [],
       vida: 5, xp: 0, nivel: 1, stats: {}, vencidos: 0, muertes: 0, zona: 'base', creado: Date.now(),
     };
   }
@@ -130,12 +137,19 @@
       return n;
     }
     const base = estadoNuevo(curso, nombre, pj);
-    return { ...base, ...p, mochila: { ...base.mochila, ...p.mochila }, cofre: { ...base.cofre, ...p.cofre }, nombre: nombre || p.nombre };
+    const n = { ...base, ...p, mochila: { ...base.mochila, ...p.mochila }, cofre: { ...base.cofre, ...p.cofre }, nombre: nombre || p.nombre };
+    // Partidas anteriores al panel de Equipo: se equipa lo mejor que ya tenían
+    const tieneN = (id) => (n.mejoras || []).includes(id);
+    if (n.arma === undefined) n.arma = tieneN('espada2') ? 'espada2' : tieneN('espada') ? 'espada' : null;
+    if (n.armadura === undefined) n.armadura = tieneN('armadura2') ? 'armadura2' : tieneN('armadura') ? 'armadura' : null;
+    if (n.herramienta === 'espada' && !n.arma) n.herramienta = 'hacha';
+    if (!PERSONAJES.some((x) => x.id === n.pj)) n.pj = 'zorro';
+    return n;
   }
 
   const tiene = (id) => S.mejoras.includes(id);
-  const vidaMax = () => 5 + (tiene('armadura') ? 2 : 0) + (tiene('armadura2') ? 2 : 0);
-  const danio = () => (tiene('espada2') ? 3 : tiene('espada') ? 2 : 1);
+  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0);
+  const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1);
   const esDocente = () => Boolean(S && S.docente);
   const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
   const alcanza = (costo) => Object.entries(costo).every(([r, n]) => total(r) >= n);
@@ -381,7 +395,7 @@
   function pintarHUD() {
     if (!S) return;
     const enBase = !escena || escena.zona === 'base';
-    $('hud-foto').style.backgroundImage = `url('assets/pj/${S.pj}_nada.png')`;
+    $('hud-foto').style.backgroundImage = `url('assets/pj/${S.pj}_${texArmadura(S.armadura)}.png')`;
     $('hud-apodo').textContent = S.nombre;
     $('hud-nivel').textContent = `Nivel ${S.nivel}`;
     $('hud-vida').innerHTML = corazones(S.vida, vidaMax());
@@ -397,7 +411,7 @@
     const ranuras = [
       { id: 'hacha', icono: 'axe', tecla: '1', ok: true, nombre: tiene('hacha2') ? 'Hacha de hierro' : 'Hacha' },
       { id: 'pico', icono: 'pickaxe', tecla: '2', ok: tiene('pico'), nombre: tiene('pico2') ? 'Pico reforzado' : 'Pico' },
-      { id: 'espada', icono: 'espada', tecla: '', ok: tiene('espada'), nombre: tiene('espada2') ? 'Espada de cristal' : 'Espada' },
+      { id: 'espada', icono: 'espada', tecla: '3', ok: Boolean(S.arma), nombre: S.arma ? ARMAS[S.arma].nombre : 'Espada (equípala en Equipo)' },
       { id: 'balde', icono: 'agua', tecla: '', ok: tiene('balde'), nombre: 'Balde' },
     ];
     $('hud-herramientas').innerHTML = ranuras.map((r) => `
@@ -407,11 +421,72 @@
     $('btn-base').classList.toggle('oculto', !enBase);
     $('btn-decorar').classList.toggle('oculto', !enBase);
   }
+  // Lo que lleva en la mano: hacha, pico o la espada equipada
   function equipar(h) {
     if (h === 'pico' && !tiene('pico')) { toast('Primero fabrica un pico en tu base.'); return; }
+    if (h === 'espada' && !S.arma) { toast('No tienes una espada equipada. Ábrela en Equipo (tecla Q).'); return; }
+    if (S.herramienta === h) return;
     S.herramienta = h;
-    if (escena) escena.ponerHerramienta(h);
+    if (escena) escena.vestirJugador();
     pintarHUD();
+  }
+  // Equipar o quitar armas y armaduras fabricadas
+  function ponerEquipo(id) {
+    if (id && !tiene(id)) return;
+    if (ARMAS[id]) { S.arma = id; S.herramienta = 'espada'; toast(`Equipaste: ${ARMAS[id].nombre}. Tu golpe quita ${danio()}.`); }
+    else if (ARMADURAS[id]) {
+      const antes = vidaMax(); S.armadura = id;
+      S.vida = Math.min(vidaMax(), S.vida + Math.max(0, vidaMax() - antes));
+      toast(`Equipaste: ${ARMADURAS[id].nombre}. Vida máxima: ${vidaMax()} corazones.`);
+    }
+    if (escena) escena.vestirJugador();
+    guardar(true); pintarHUD();
+  }
+  function quitarEquipo(tipo) {
+    if (tipo === 'arma') { S.arma = null; if (S.herramienta === 'espada') S.herramienta = 'hacha'; }
+    else { S.armadura = null; S.vida = Math.min(S.vida, vidaMax()); }
+    if (escena) escena.vestirJugador();
+    guardar(true); pintarHUD();
+  }
+  // Vista del personaje con su equipo (capas de la hoja, mirando al frente)
+  function figuraHTML(pj, armadura, mano, arma, tam = 128) {
+    const capa = (url) => `<span style="background-image:url('${url}');background-size:${tam * 9}px ${tam * 4}px;background-position:0 -${tam * 2}px"></span>`;
+    let html = '';
+    if (mano === 'espada' && arma) html += capa(`assets/capas/${arma}_bg.png`);
+    html += capa(`assets/pj/${pj}_${texArmadura(armadura)}.png`);
+    if (mano === 'espada' && arma) html += capa(`assets/capas/${arma}_fg.png`);
+    else if (mano === 'hacha' || mano === 'pico') html += capa(`assets/capas/${mano}_${cuerpoDe(pj)}.png`);
+    return `<div class="figura" style="width:${tam}px;height:${tam}px" role="img" aria-label="Tu personaje con su equipo">${html}</div>`;
+  }
+  function abrirEquipo() {
+    const fila = (id, info, puesto, tipo) => `
+      <div class="mejora ${puesto ? 'puesta' : ''}"><img class="ico px" src="${ICONO(tipo === 'arma' ? 'espada' : 'armadura')}" alt="">
+        <div class="info"><strong>${esc(info.nombre)}</strong><span>${tipo === 'arma' ? `Cada acierto en combate quita ${info.danio} de vida` : `Vida máxima: ${5 + info.vida} corazones`}</span></div>
+        ${puesto ? `<button type="button" class="btn" data-quitar="${tipo}">Quitar</button>` : `<button type="button" class="btn pri" data-poner="${id}">Equipar</button>`}
+      </div>`;
+    const armas = Object.entries(ARMAS).filter(([id]) => tiene(id));
+    const armaduras = Object.entries(ARMADURAS).filter(([id]) => tiene(id));
+    const manos = [['hacha', 'Hacha', 'axe', true], ['pico', 'Pico', 'pickaxe', tiene('pico')], ['espada', 'Espada', 'espada', Boolean(S.arma)]];
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Tu personaje</span><h2 id="modal-titulo">Equipo</h2></div><button type="button" class="btn" id="eq-cerrar">Cerrar</button></div>
+      <div class="equipo">
+        <div class="equipo-vista">
+          ${figuraHTML(S.pj, S.armadura, S.herramienta, S.arma, 160)}
+          <div class="pildoras"><span class="pildora">Golpe: ${danio()}</span><span class="pildora">Vida máx.: ${vidaMax()}</span></div>
+        </div>
+        <div class="equipo-listas">
+          <h3>En la mano</h3>
+          <div class="manos">${manos.map(([id, n, ico, ok]) => `<button type="button" class="obj mano" data-mano="${id}" aria-pressed="${S.herramienta === id}" ${ok ? '' : 'disabled'}><img class="px" src="${ICONO(ico)}" alt=""><span>${n}</span></button>`).join('')}</div>
+          <h3>Arma</h3>
+          ${armas.length ? armas.map(([id, a]) => fila(id, a, S.arma === id, 'arma')).join('') : '<p class="nota">Aún no tienes armas. Fabrica una espada en la fogata de tu base.</p>'}
+          <h3>Armadura</h3>
+          ${armaduras.length ? armaduras.map(([id, a]) => fila(id, a, S.armadura === id, 'armadura')).join('') : '<p class="nota">Aún no tienes armadura. Fabrícala en la fogata de tu base.</p>'}
+        </div>
+      </div>`);
+    $('eq-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-poner]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.poner); abrirEquipo(); }));
+    document.querySelectorAll('[data-quitar]').forEach((b) => b.addEventListener('click', () => { quitarEquipo(b.dataset.quitar); abrirEquipo(); }));
+    document.querySelectorAll('[data-mano]').forEach((b) => b.addEventListener('click', () => { equipar(b.dataset.mano); abrirEquipo(); }));
   }
 
   // ===================================================================
@@ -693,7 +768,10 @@
   function abrirFabricar(pestana = 'equipo') {
     const filasEquipo = MEJORAS.map((m) => {
       const hecha = tiene(m.id), bloq = m.requiere && !tiene(m.requiere);
-      const der = hecha ? '<span class="estado-ok">Fabricado</span>'
+      const equipable = ARMAS[m.id] || ARMADURAS[m.id];
+      const puesta = S.arma === m.id || S.armadura === m.id;
+      const der = hecha && equipable ? (puesta ? '<span class="estado-ok">Equipada</span>' : `<button type="button" class="btn sec" data-eq="${m.id}">Equipar</button>`)
+        : hecha ? '<span class="estado-ok">Fabricado</span>'
         : bloq ? `<span class="nota" style="max-width: 150px">Primero: ${esc(NOMBRE_MEJORA[m.requiere])}</span>`
           : `<button type="button" class="btn pri" data-m="${m.id}" ${alcanza(m.costo) ? '' : 'disabled'}>Fabricar</button>`;
       return `<div class="mejora ${hecha ? 'hecha' : ''}"><img class="ico px" src="${ICONO(m.icono)}" alt="">
@@ -714,14 +792,14 @@
       <div class="mejoras">${pestana === 'equipo' ? filasEquipo : filasObjetos}</div>`);
     $('f-cerrar').addEventListener('click', () => ui.cerrar());
     document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => abrirFabricar(b.dataset.p)));
+    document.querySelectorAll('[data-eq]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.eq); abrirFabricar('equipo'); }));
     document.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
       const m = MEJORAS.find((x) => x.id === b.dataset.m);
       const hacer = () => {
         if (!alcanza(m.costo) || tiene(m.id)) return;
         pagar(m.costo); S.mejoras.push(m.id);
-        if (m.id === 'armadura' || m.id === 'armadura2') S.vida = vidaMax();
         guardar(true); pintarHUD(); escena.celebrar();
-        toast(`¡Fabricaste: ${m.nombre}!`);
+        toast(ARMAS[m.id] || ARMADURAS[m.id] ? `¡Fabricaste: ${m.nombre}! Equípala con el botón Equipar.` : `¡Fabricaste: ${m.nombre}!`);
       };
       if (esDocente()) { hacer(); abrirFabricar('equipo'); return; }
       abrirDesafio({ accion: `Fabricar: ${m.nombre}`, dif: difPara(2), premio: 'Premio: la mejora', onOk: hacer });
@@ -878,7 +956,10 @@
     else if (k === 'm') abrirMapa();
     else if (k === '1') equipar('hacha');
     else if (k === '2') equipar('pico');
+    else if (k === '3') equipar('espada');
+    else if (k === 'q') abrirEquipo();
   });
+  $('btn-equipo').addEventListener('click', abrirEquipo);
   $('btn-base').addEventListener('click', () => abrirFabricar());
   $('btn-decorar').addEventListener('click', abrirDecorar);
   $('btn-mapa').addEventListener('click', abrirMapa);
@@ -930,10 +1011,9 @@
 
     preload() {
       if (!this.textures.exists('kenney')) this.load.image('kenney', 'assets/kenney_roguelike.png');
-      for (const p of PERSONAJES) for (const h of ['nada', 'hacha', 'pico']) {
-        const key = `pj_${p.id}_${h}`;
-        if (!this.textures.exists(key)) this.load.spritesheet(key, `assets/pj/${p.id}_${h}.png`, { frameWidth: 64, frameHeight: 64 });
-      }
+      const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
+      for (const p of PERSONAJES) for (const a of ['nada', 'cuero', 'cristal']) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
+      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
     }
 
     create() {
@@ -1055,10 +1135,10 @@
     retrato(clase) { return this.textures.getBase64(clase === 'arbusto' ? 'arbusto_vivo' : clase); }
 
     crearAnimaciones() {
-      for (const p of PERSONAJES) for (const h of ['nada', 'hacha', 'pico']) {
+      for (const p of PERSONAJES) for (const a of ['nada', 'cuero', 'cristal']) {
         for (const [d, fila] of Object.entries(DIRS)) {
-          const key = `pj_${p.id}_${h}_${d}`;
-          if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pj_${p.id}_${h}`, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
+          const key = `pj_${p.id}_${a}_${d}`;
+          if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pj_${p.id}_${a}`, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
         }
       }
     }
@@ -1290,18 +1370,41 @@
 
     // ---------- jugador ----------
     crearJugador() {
-      this.jugador = this.physics.add.sprite(this.inicio.x, this.inicio.y, `pj_${S.pj}_${S.herramienta === 'pico' && tiene('pico') ? 'pico' : 'hacha'}`, DIRS.down * 9);
+      if (S.herramienta === 'pico' && !tiene('pico')) S.herramienta = 'hacha';
+      this.jugador = this.physics.add.sprite(this.inicio.x, this.inicio.y, `pj_${S.pj}_${texArmadura(S.armadura)}`, DIRS.down * 9);
       this.jugador.setOrigin(0.5, 0.9);
       this.jugador.body.setSize(18, 10).setOffset(23, 50);
       this.jugador.setCollideWorldBounds(true);
       this.physics.add.collider(this.jugador, this.obstaculos);
+      this.capasJ = this.crearCapas();
+      this.vestirJugador();
     }
-    ponerHerramienta(h) {
-      const key = `pj_${S.pj}_${h === 'pico' ? 'pico' : 'hacha'}`;
-      if (!this.jugador || this.jugador.texture.key === key) return;
-      const anim = this.jugador.anims.isPlaying;
-      this.jugador.setTexture(key, DIRS[this.dir] * 9);
-      if (anim) this.jugador.anims.play(`${key}_${this.dir}`, true);
+    // Capas que acompañan a un personaje: la parte trasera de la espada y lo que lleva en la mano
+    crearCapas() {
+      return { atras: this.add.sprite(0, 0, 'capa_espada_bg', 0).setOrigin(0.5, 0.9).setVisible(false), mano: this.add.sprite(0, 0, 'capa_hacha_male', 0).setOrigin(0.5, 0.9).setVisible(false) };
+    }
+    vestir(base, capas, pj, armadura, mano, arma) {
+      const key = `pj_${pj}_${texArmadura(armadura)}`;
+      if (base.texture.key !== key) { base.anims.stop(); base.setTexture(key, Number(base.frame.name) || 0); }
+      const espada = mano === 'espada' && ARMAS[arma];
+      capas.atras.setVisible(Boolean(espada));
+      if (espada) capas.atras.setTexture(`capa_${arma}_bg`);
+      const tex = espada ? `capa_${arma}_fg` : mano === 'hacha' || mano === 'pico' ? `capa_${mano}_${cuerpoDe(pj)}` : null;
+      capas.mano.setVisible(Boolean(tex));
+      if (tex) capas.mano.setTexture(tex);
+      this.seguir(base, capas);
+    }
+    seguir(base, capas) {
+      const f = base.frame.name;
+      for (const [c, dz] of [[capas.atras, -0.01], [capas.mano, 0.01]]) {
+        if (!c.visible) continue;
+        c.setPosition(base.x, base.y).setFrame(f).setDepth(base.depth + dz).setAlpha(base.alpha);
+      }
+    }
+    vestirJugador() {
+      if (!this.jugador) return;
+      this.vestir(this.jugador, this.capasJ, S.pj, S.armadura, S.herramienta, S.arma);
+      if (this.ultimoMov) this.ultimoMov.t = 0;   // avisar el cambio al grupo
     }
     ajustarZoom() {
       const { width, height } = this.scale;
@@ -1327,6 +1430,7 @@
         j.anims.play(`${j.texture.key}_${this.dir}`, true);
       } else { j.setVelocity(0, 0); j.anims.stop(); j.setFrame(DIRS[this.dir] * 9); }
       j.setDepth(j.y);
+      this.seguir(j, this.capasJ);
       if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
       if (this.canal) { this.enviarMovimiento(len > 0.15); this.moverOtros(dt / 1000); this.revisarGuarida(); }
     }
@@ -1369,6 +1473,7 @@
     }
     empezarCombate(e) {
       if (this.enCombate || this.enJefe) return;
+      if (S.arma && S.herramienta !== 'espada') equipar('espada');
       this.enCombate = true;
       this.jugador.setVelocity(0, 0);
       this.cameras.main.shake(150, 0.004);
@@ -1581,20 +1686,23 @@
     }
     crearOtro(id, meta) {
       const pj = PERSONAJES.some((x) => x.id === meta.pj) ? meta.pj : 'zorro';
-      const spr = this.add.sprite(this.inicio.x, this.inicio.y, `pj_${pj}_hacha`, DIRS.down * 9).setOrigin(0.5, 0.9).setAlpha(0);
+      const spr = this.add.sprite(this.inicio.x, this.inicio.y, `pj_${pj}_nada`, DIRS.down * 9).setOrigin(0.5, 0.9).setAlpha(0);
+      const capas = this.crearCapas();
       const tag = this.add.text(spr.x, spr.y - 60, String(meta.nombre || 'Compañero').slice(0, 28), {
         fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: meta.docente ? '#ffd27a' : '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 },
       }).setOrigin(0.5).setResolution(3).setDepth(99990).setAlpha(0);
-      this.otros.set(id, { spr, tag, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', m: false, visto: false });
+      this.otros.set(id, { spr, tag, capas, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', a: null, w: null, m: false, visto: false });
+      this.vestir(spr, capas, pj, null, 'hacha', null);
     }
     quitarOtro(id) {
       const o = this.otros.get(id); if (!o) return;
-      o.spr.destroy(); o.tag.destroy(); this.otros.delete(id);
+      o.spr.destroy(); o.tag.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); this.otros.delete(id);
     }
     recibirMov(d) {
       const o = this.otros.get(d.id); if (!o) return;
-      const h = d.h === 'pico' ? 'pico' : 'hacha';
-      if (h !== o.h) { o.h = h; o.spr.setTexture(`pj_${o.pj}_${h}`, DIRS[o.dir] * 9); }
+      const h = ['hacha', 'pico', 'espada'].includes(d.h) ? d.h : 'hacha';
+      const a = ARMADURAS[d.a] ? d.a : null, w = ARMAS[d.w] ? d.w : null;
+      if (h !== o.h || a !== o.a || w !== o.w) { o.h = h; o.a = a; o.w = w; this.vestir(o.spr, o.capas, o.pj, a, h, w); }
       o.obj = { x: Number(d.x) || 0, y: Number(d.y) || 0 }; o.dir = DIRS[d.d] !== undefined ? d.d : 'down'; o.m = Boolean(d.m);
       if (!o.visto || Phaser.Math.Distance.Between(o.spr.x, o.spr.y, o.obj.x, o.obj.y) > 400) { o.spr.setPosition(o.obj.x, o.obj.y); o.visto = true; o.spr.setAlpha(1); o.tag.setAlpha(1); }
     }
@@ -1606,9 +1714,10 @@
           const paso = Math.min(dist, 170 * seg);
           o.spr.x += (dx / dist) * paso; o.spr.y += (dy / dist) * paso;
           const dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
-          o.spr.anims.play(`pj_${o.pj}_${o.h}_${dir}`, true);
+          o.spr.anims.play(`${o.spr.texture.key}_${dir}`, true);
         } else if (!o.m) { o.spr.anims.stop(); o.spr.setFrame(DIRS[o.dir] * 9); }
         o.spr.setDepth(o.spr.y);
+        this.seguir(o.spr, o.capas);
         o.tag.setPosition(o.spr.x, o.spr.y - 62);
       }
     }
@@ -1622,7 +1731,7 @@
       if (u.t && !moviendo && !u.m && dist < 2) return;
       if (u.t && moviendo && dist < 4) return;
       u.t = ahora; u.x = j.x; u.y = j.y; u.m = moviendo;
-      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: j.texture.key.endsWith('pico') ? 'pico' : 'hacha', m: moviendo });
+      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo });
     }
     compartirNodo(o, n) {
       if (!this.canal || o.idx === undefined) return;
@@ -1653,6 +1762,7 @@
     pedirJefe() {
       if (!this.canal) return abrirInfoJefe(this.zona);
       const J = this.jefe;
+      if (S.arma && S.herramienta !== 'espada') equipar('espada');
       if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); } return; }
       if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
       const n = this.jugadoresEnGuarida().length;

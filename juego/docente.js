@@ -148,7 +148,7 @@
 
   // Jugar con su propio personaje
   const eleccion = { n: '7', pj: 'zorro' };
-  $('jugar-pj').innerHTML = [['zorro', 'Zorro'], ['luna', 'Luna'], ['puma', 'Puma'], ['copihue', 'Copihue']].map(([id, n]) =>
+  $('jugar-pj').innerHTML = [['zorro', 'Zorro'], ['luna', 'Luna'], ['puma', 'Puma'], ['copihue', 'Copihue'], ['condor', 'Cóndor'], ['huemul', 'Huemul'], ['pudu', 'Pudú'], ['lobo', 'Lobo']].map(([id, n]) =>
     `<button type="button" class="op" data-pj="${id}" aria-pressed="${id === eleccion.pj}"><span class="retrato" style="background-image:url('assets/pj/${id}_nada.png')"></span>${n}</button>`).join('');
   const marcar = () => {
     document.querySelectorAll('#jugar-nivel .op').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.n === eleccion.n)));

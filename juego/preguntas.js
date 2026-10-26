@@ -407,7 +407,11 @@
       const d = temas[k].gen(Math.max(1, Math.min(3, dif)));
       if (d && new Set(d.opciones).size === 4 && d.correcta >= 0) return d;
     }
-    return temas[k].gen(1);
+    for (let intento = 0; intento < 60; intento++) {
+      const d = temas[k].gen(1);
+      if (d && new Set(d.opciones).size === 4 && d.correcta >= 0) return d;
+    }
+    return null;
   }
 
   const titulos = (curso, unidad) => {
