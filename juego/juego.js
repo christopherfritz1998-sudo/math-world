@@ -731,9 +731,20 @@
       $('tactil').classList.remove('oculto');
       document.querySelectorAll('.btn-hud kbd, .aviso kbd').forEach((k) => k.classList.add('oculto'));
     }
+    // Al volver a abrir el juego siempre se aparece en la base (como si volviera por el portal)
+    const venia = S.zona;
+    let guardado = [];
+    if (venia && venia !== 'base' && venia !== 'pieza') {
+      guardado = RECURSOS.map((r) => [r.id, S.mochila[r.id] || 0]).filter(([, n]) => n > 0);
+      guardado.forEach(([r, n]) => { S.cofre[r] = (S.cofre[r] || 0) + n; S.mochila[r] = 0; });
+      S.vida = vidaMax();
+    }
+    S.zona = 'base'; S.grupo = 0;
     S.vida = Math.min(S.vida || vidaMax(), vidaMax());
+    guardar(true);
     pintarHUD();
-    iniciarPhaser(S.zona && (S.zona === 'base' || S.zona === 'pieza' || MUNDOS[S.zona]) ? S.zona : 'base');
+    iniciarPhaser('base');
+    if (guardado.length) setTimeout(() => toast(`Volviste a tu base. Lo que llevabas quedó en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`), 3600);
     setTimeout(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`), 700);
   }
 
@@ -1149,6 +1160,12 @@
       return `<div class="item ${o.excl ? 'excl' : ''}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><strong>${esc(o.nombre)}</strong><small>${n ? `${n} sin colocar` : ' '}</small>${der}</div>`;
     }).join('')}</div>`).join('');
   }
+  // Recursos recolectados (cofre + mochila): se muestran al fabricar
+  function recursosFabricarHTML() {
+    const lista = RECURSOS.filter((r) => r.grupo === 'u1' || recursosVisibles().includes(r) || (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0);
+    return `<section class="mis-recursos" aria-label="Tus recursos"><span class="etq">${esDocente() ? 'Tus recursos · docente: ilimitados' : 'Tus recursos recolectados'}</span>
+      <div class="lista">${lista.map((r) => `<div class="recurso-fab" title="${esc(r.nombre)}"><img class="px" src="${ICONO(r.id)}" alt=""><span><small>${esc(r.corto || r.nombre)}</small><b>${esDocente() ? '∞' : (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0)}</b></span></div>`).join('')}</div></section>`;
+  }
   function abrirFabricar(pestana) {
     if (!pestana) pestana = escena && escena.zona === 'pieza' ? 'pieza' : 'equipo';
     const filasEquipo = MEJORAS.map((m) => {
@@ -1169,6 +1186,7 @@
         <div><span class="etq">${escena.zona === 'pieza' ? 'Tu pieza' : 'Tu base'} · Los recursos se toman del cofre y la mochila</span><h2 id="modal-titulo">Fabricar</h2></div>
         <button type="button" class="btn" id="f-cerrar">Cerrar</button>
       </div>
+      ${recursosFabricarHTML()}
       <div class="pestanas" role="tablist">
         <button type="button" role="tab" data-p="equipo" aria-selected="${pestana === 'equipo'}">Equipo</button>
         <button type="button" role="tab" data-p="base" aria-selected="${pestana === 'base'}">Decorativos</button>

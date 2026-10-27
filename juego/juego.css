@@ -286,3 +286,26 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .mensaje.furia { background: #3d2a0e; border: 2px solid #ff9f1c; color: #ffe2b0; }
 .recursos.muchos .recurso { padding: 3px 8px 3px 3px; }
 .recursos.muchos .recurso img { width: 28px; height: 28px; }
+
+/* ---------- v7: recursos dentro de Fabricar; herramientas arriba a la derecha ---------- */
+#hud-recursos { display: none; }
+.herramientas { left: auto; right: 12px; top: 12px; bottom: auto; transform: none; }
+.mis-recursos { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); }
+.mis-recursos .etq { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--amber); text-transform: uppercase; }
+.mis-recursos .lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.recurso-fab { display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; border-radius: 12px; background: var(--panel-2); border: 1px solid var(--line); }
+.recurso-fab img { width: 32px; height: 32px; }
+.recurso-fab span { display: flex; flex-direction: column; line-height: 1.1; }
+.recurso-fab small { font-size: 11px; font-weight: 800; color: #b4bfb2; }
+.recurso-fab b { font-family: "Fredoka", "Nunito", sans-serif; font-size: 19px; font-weight: 600; }
+@media (max-width: 760px) {
+  .herramientas { top: 10px; right: 10px; padding: 4px; gap: 4px; }
+  .herramientas .ranura { width: 42px; height: 42px; }
+  .mis-recursos .lista { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+.aviso { bottom: 22px; }
+@media (max-width: 760px) { .aviso { bottom: 84px; } }
+@media (max-width: 760px) {
+  .herramientas { flex-direction: column; }
+  .botones { top: 226px; }
+}
