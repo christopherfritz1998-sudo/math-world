@@ -540,5 +540,71 @@
     },
   ]);
 
+  // =====================================================================
+  // UNIDAD 3 · GEOMETRÍA con contexto de la mina (mundo de la Unidad 3)
+  // =====================================================================
+  ampliar('7basico', 'u3', 'angulos', [
+    (dif, T, k) => {
+      const a = rnd(30, 80), b = rnd(30, 150 - a), c = 180 - a - b;
+      return desafio(k, T, `La entrada de un túnel tiene forma de triángulo. Dos de sus ángulos miden ${a}° y ${b}°. ¿Cuánto mide el tercero?`,
+        `${c}°`, [`${360 - a - b}°`, `${a + b}°`, `${90 - Math.min(a, b)}°`], (j) => `${c + j * 5}°`,
+        'Los ángulos interiores de un triángulo suman 180°.', `180° − ${a}° − ${b}° = ${c}°.`);
+    },
+  ]);
+  ampliar('7basico', 'u3', 'circulo', [
+    (dif, T, k) => {
+      const r = rnd(2, 9), p = redondear(2 * 3.14 * r, 2);
+      return desafio(k, T, `La rueda de un carro minero tiene ${r} dm de radio. ¿Cuánto avanza el carro en una vuelta completa de la rueda? (usa π ≈ 3,14)`,
+        `${num(p)} dm`, [`${num(redondear(3.14 * r, 2))} dm`, `${num(redondear(3.14 * r * r, 2))} dm`, `${num(redondear(2 * 3.14 * r * 2, 2))} dm`], (j) => `${num(redondear(p + j, 2))} dm`,
+        'En una vuelta, la rueda avanza lo mismo que su perímetro: 2 · π · r.', `2 · 3,14 · ${r} = ${num(p)} dm.`);
+    },
+  ]);
+  ampliar('7basico', 'u3', 'areas', [
+    (dif, T, k) => {
+      const b = 2 * rnd(2, 9), h = rnd(3, 12);
+      return desafio(k, T, `Una señal de peligro de la mina es un triángulo de base ${b} cm y altura ${h} cm. ¿Cuál es su área?`,
+        `${num((b * h) / 2)} cm²`, [`${num(b * h)} cm²`, `${num(b + h)} cm²`, `${num(2 * (b + h))} cm²`], (j) => `${num((b * h) / 2 + j * 2)} cm²`,
+        'Área del triángulo = base · altura : 2.', `${b} · ${h} : 2 = ${num((b * h) / 2)} cm².`);
+    },
+  ]);
+  ampliar('7basico', 'u3', 'cartesiano', [
+    (dif, T, k) => {
+      const y = rnd(-6, 6), x1 = rnd(-9, 0), x2 = rnd(1, 9);
+      return desafio(k, T, `En el mapa de la mina, una veta de plata está en (${num(x1)}, ${num(y)}) y el portal en (${num(x2)}, ${num(y)}). ¿Cuántas unidades los separan?`,
+        num(x2 - x1), [num(x2 + x1), num(Math.abs(x1)), num(x2)].filter((t) => t !== num(x2 - x1)), cerca(x2 - x1),
+        'Si dos puntos tienen la misma coordenada y, la distancia es la diferencia de sus coordenadas x.', `${num(x2)} − ${par(x1)} = ${num(x2 - x1)}.`);
+    },
+  ]);
+  ampliar('8basico', 'u3', 'volumen', [
+    (dif, T, k) => {
+      const a = rnd(3, 8), b = rnd(2, 6), c = rnd(2, 5);
+      return desafio(k, T, `Un carro minero tiene forma de prisma rectangular de ${a} dm de largo, ${b} dm de ancho y ${c} dm de alto. ¿Cuántos dm³ de carbón caben?`,
+        `${a * b * c} dm³`, [`${a * b + c} dm³`, `${2 * (a * b + a * c + b * c)} dm³`, `${(a + b) * c} dm³`], (j) => `${a * b * c + j * 4} dm³`,
+        'Volumen del prisma = largo · ancho · alto.', `${a} · ${b} · ${c} = ${a * b * c} dm³.`);
+    },
+    (dif, T, k) => {
+      const a = rnd(2, 9);
+      return desafio(k, T, `Un bloque de plata tiene forma de cubo de arista ${a} cm. ¿Cuál es el área total de sus caras?`,
+        `${6 * a * a} cm²`, [`${a ** 3} cm²`, `${4 * a * a} cm²`, `${6 * a} cm²`].filter((t) => t !== `${6 * a * a} cm²`), (j) => `${6 * a * a + j * 6} cm²`,
+        'Un cubo tiene 6 caras cuadradas iguales: área total = 6 · a².', `6 · ${a}² = 6 · ${a * a} = ${6 * a * a} cm².`);
+    },
+  ]);
+  ampliar('8basico', 'u3', 'pitagoras', [
+    (dif, T, k) => {
+      const [a, b, c] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25]]);
+      return desafio(k, T, `Un túnel inclinado baja ${b} m en vertical mientras avanza ${a} m en horizontal. ¿Cuánto mide el túnel?`,
+        `${c} m`, [`${a + b} m`, `${b - a} m`, `${num(redondear((a + b) / 2, 1))} m`].filter((t) => t !== `${c} m`), (j) => `${c + j} m`,
+        'El túnel es la hipotenusa de un triángulo rectángulo: c² = a² + b².', `√(${a}² + ${b}²) = √${a * a + b * b} = ${c} m.`);
+    },
+  ]);
+  ampliar('8basico', 'u3', 'isometrias', [
+    (dif, T, k) => {
+      const x = rnd(-6, 6), y = rnd(-6, 6), a = rnd(-5, 5) || 2, b = rnd(-5, 5) || -3;
+      return desafio(k, T, `Un carro minero en (${num(x)}, ${num(y)}) se traslada según el vector (${num(a)}, ${num(b)}). ¿A qué punto llega?`,
+        `(${num(x + a)}, ${num(y + b)})`, [`(${num(x - a)}, ${num(y - b)})`, `(${num(x + b)}, ${num(y + a)})`, `(${num(x * a)}, ${num(y * b)})`], (j) => `(${num(x + a + j)}, ${num(y + b)})`,
+        'Trasladar según un vector es sumar sus componentes a las coordenadas del punto.', `(${num(x)} + ${par(a)}, ${num(y)} + ${par(b)}) = (${num(x + a)}, ${num(y + b)}).`);
+    },
+  ]);
+
   if (typeof module !== 'undefined' && module.exports) module.exports = P;
 })(typeof window !== 'undefined' ? window : globalThis);

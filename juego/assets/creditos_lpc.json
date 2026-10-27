@@ -887,5 +887,78 @@
   "enlaces": [
    "https://opengameart.org/content/lpc-medieval-weapons"
   ]
+ },
+ {
+  "archivo": "body/bodies/zombie/walk/zombie.png",
+  "autores": [
+   "Stephen Challener (Redshrike)",
+   "Johannes Sjölund (wulax)",
+   "Sander Frenken (castelonia)",
+   "Benjamin K. Smith (BenCreating)",
+   "bluecarrot16"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-zombie",
+   "https://opengameart.org/content/lpc-character-bases"
+  ]
+ },
+ {
+  "archivo": "hat/helmet/kettle/adult/walk.png",
+  "autores": [
+   "Johannes Sjölund (wulax)",
+   "JaidynReiman",
+   "Napsio (Vitruvian Studio)"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-expanded-hats-facial-helmets"
+  ]
+ },
+ {
+  "archivo": "head/heads/minotaur/male/walk.png",
+  "autores": [
+   "Evert",
+   "Nila122",
+   "Daniel Eddeland (daneeklu)"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-style-farm-animals",
+   "https://opengameart.org/content/lpc-lizard-headgear",
+   "https://opengameart.org/content/lpc-faun-and-minotaur"
+  ]
+ },
+ {
+  "archivo": "head/heads/zombie/adult/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "Benjamin K. Smith (BenCreating)",
+   "Sander Frenken (castelonia)",
+   "Stephen Challener (Redshrike)"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+   "https://opengameart.org/content/lpc-zombie",
+   "https://opengameart.org/content/lpc-character-bases"
+  ]
  }
 ]
