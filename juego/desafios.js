@@ -1,0 +1,44 @@
+// Math World — catálogo de desafíos en vivo que el docente lanza desde su portal.
+// Lo usan el portal docente (para listarlos) y el juego (para jugarlos).
+// seg: duración del desafío una vez que termina el contador de 10 segundos.
+(function (global) {
+  'use strict';
+  global.DESAFIOS = [
+    { id: 'horda', nombre: 'Horda de enemigos', icono: '⚔️', seg: 90, color: '#c0392b',
+      resumen: 'Una horda rodea a cada jugador. Vence a 5 enemigos antes de que se acabe el tiempo.',
+      objetivo: 'Vence a 5 enemigos de la horda' },
+    { id: 'arena', nombre: 'Duelo por el cofre', icono: '🏆', seg: 60, color: '#b8860b', preguntas: true,
+      resumen: 'Lucha entre compañeros: 1 minuto respondiendo preguntas. Quien acierte más gana un cofre de suministros variados.',
+      objetivo: 'Responde bien la mayor cantidad de preguntas' },
+    { id: 'curso', nombre: 'Meta del curso', icono: '🤝', seg: 120, color: '#1f6f64', preguntas: true,
+      resumen: 'Todo el curso coopera: entre todos deben sumar respuestas correctas en 2 minutos. Si lo logran, todos ganan.',
+      objetivo: 'Entre todos, alcancen la meta de respuestas correctas' },
+    { id: 'meteoritos', nombre: 'Lluvia de meteoritos', icono: '☄️', seg: 45, color: '#d35400',
+      resumen: 'Caen meteoritos: esquiva las sombras rojas y recoge los fragmentos brillantes que dejan.',
+      objetivo: 'Esquiva y recoge fragmentos' },
+    { id: 'cofres', nombre: 'Lluvia de cofres', icono: '🎁', seg: 40, color: '#8e5a2b',
+      resumen: 'Caen 6 cofres del cielo cerca de cada jugador: corre a abrirlos antes de que desaparezcan.',
+      objetivo: 'Abre los 6 cofres' },
+    { id: 'dorado', nombre: 'Criatura dorada', icono: '✨', seg: 75, color: '#c9a227',
+      resumen: 'Aparece una criatura dorada que huye de ti: atrápala y véncela para ganar un gran botín.',
+      objetivo: 'Atrapa y vence a la criatura dorada' },
+    { id: 'eclipse', nombre: 'Eclipse de luciérnagas', icono: '🌑', seg: 60, color: '#4b3f8f',
+      resumen: 'Todo se oscurece: atrapa 8 luciérnagas brillantes antes de que vuelva la luz.',
+      objetivo: 'Atrapa 8 luciérnagas' },
+    { id: 'relampago', nombre: 'Pregunta relámpago', icono: '⚡', seg: 20, color: '#2c6fbb', preguntas: true,
+      resumen: 'Una sola pregunta y 20 segundos: mientras más rápido aciertes, mayor es el premio.',
+      objetivo: 'Responde bien lo más rápido posible' },
+    { id: 'recolecta', nombre: 'Recolección exprés', icono: '🪓', seg: 120, color: '#5d7c2f',
+      resumen: 'Junta 12 recursos en 2 minutos talando, picando, recolectando o venciendo enemigos.',
+      objetivo: 'Junta 12 recursos' },
+    { id: 'fiebre', nombre: 'Fiebre del oro', icono: '💰', seg: 120, color: '#c08a00',
+      resumen: 'Durante 2 minutos todo lo que recolecten vale el doble.',
+      objetivo: 'Todo lo que recolectes vale el doble' },
+    { id: 'turbo', nombre: 'Botas de viento', icono: '💨', seg: 90, color: '#3a8fb7',
+      resumen: 'Todos corren mucho más rápido durante 90 segundos.',
+      objetivo: 'Corres mucho más rápido' },
+    { id: 'escudo', nombre: 'Escudo de cristal', icono: '🛡️', seg: 120, color: '#2a9d8f',
+      resumen: 'Durante 2 minutos los errores en combate no quitan corazones (y huir tampoco).',
+      objetivo: 'Los errores no te quitan corazones' },
+  ];
+})(window);

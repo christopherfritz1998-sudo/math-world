@@ -105,6 +105,13 @@
     <div class="recursos" id="hud-recursos"></div>
     <div class="aviso oculto" id="aviso"><kbd>E</kbd><span id="aviso-txt"></span></div>
     <div class="herramientas" id="hud-herramientas"></div>
+    <div class="desafio oculto" id="desafio" role="status" aria-live="polite">
+      <span class="ico" aria-hidden="true"></span>
+      <div class="txt"><strong class="nom"></strong><span class="det"></span><div class="bar"><i></i></div></div>
+      <span class="reloj"></span>
+      <button type="button" class="btn-des oculto">¡Entrar!</button>
+    </div>
+    <div class="desafio-cuenta oculto" id="desafio-cuenta" aria-hidden="true"><small></small><b></b></div>
     <button type="button" class="btn-portal oculto" id="btn-portal">← Portal docente</button>
     <div class="botones">
       <button type="button" class="btn-hud" id="btn-base"><img class="px" src="assets/iconos/fogata.png" alt="">Fabricar <kbd>B</kbd></button>
@@ -133,6 +140,7 @@
   <script src="preguntas_u234.js"></script>
   <script src="preguntas_ext.js"></script>
   <script src="preguntas_mas.js"></script>
+  <script src="desafios.js"></script>
   <script src="juego.js"></script>
 </body>
 </html>

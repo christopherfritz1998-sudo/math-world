@@ -391,3 +391,127 @@ end $$;
 revoke all on function public.mw_curso_mundos(text) from public, anon, authenticated;
 revoke all on function public.mw_estudiante_entrar(text, text, text), public.mw_latido(uuid, text), public.mw_docente_mundos(uuid), public.mw_docente_mundo(uuid, text[], text, boolean) from public, authenticated;
 grant execute on function public.mw_estudiante_entrar(text, text, text), public.mw_latido(uuid, text), public.mw_docente_mundos(uuid), public.mw_docente_mundo(uuid, text[], text, boolean) to anon;
+
+-- Desafíos en vivo: el docente lanza un desafío a uno o más cursos; los juegos de los
+-- estudiantes lo consultan cada pocos segundos y muestran un contador de 10 segundos.
+alter table public.cursos add column if not exists desafio jsonb;
+create sequence if not exists public.mw_desafio_n;
+revoke all on sequence public.mw_desafio_n from anon, authenticated;
+
+-- Puntaje de cada estudiante en los desafíos de preguntas (duelo y meta del curso)
+create table if not exists public.desafio_puntos (
+  curso text not null,
+  n bigint not null,
+  estudiante_id uuid not null references public.estudiantes (id),
+  aciertos int not null default 0,
+  errores int not null default 0,
+  ultimo timestamptz not null default now(),
+  primary key (curso, n, estudiante_id)
+);
+alter table public.desafio_puntos enable row level security;
+revoke all on public.desafio_puntos from anon, authenticated;
+
+create or replace function public.mw_ms() returns bigint
+language sql stable as $$ select (extract(epoch from clock_timestamp()) * 1000)::bigint $$;
+
+-- "Abdala Leon Gabriel Ignacio" -> "Gabriel A."
+create or replace function public.mw_nombre_corto(p text) returns text
+language sql immutable as $$
+  select case when split_part(p, ' ', 3) <> '' then split_part(p, ' ', 3) || ' ' || left(split_part(p, ' ', 1), 1) || '.'
+              else split_part(p, ' ', 1) end
+$$;
+
+-- Ranking y totales de un desafío de un curso (uso interno)
+create or replace function public.mw_desafio_tabla(p_curso text, p_n bigint, p_lim int, p_yo uuid)
+returns json language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'ranking', coalesce((select json_agg(x) from (
+        select mw_nombre_corto(e.nombre) as nombre, p.aciertos, p.errores, (p.estudiante_id = p_yo) as yo
+        from desafio_puntos p join estudiantes e on e.id = p.estudiante_id
+        where p.curso = p_curso and p.n = p_n
+        order by p.aciertos desc, p.errores asc, p.ultimo asc limit p_lim) x), '[]'::json),
+    'total', coalesce((select sum(aciertos) from desafio_puntos where curso = p_curso and n = p_n), 0),
+    'participantes', (select count(*) from desafio_puntos where curso = p_curso and n = p_n),
+    'ganador', (select p.estudiante_id from desafio_puntos p where p.curso = p_curso and p.n = p_n and p.aciertos > 0
+                order by p.aciertos desc, p.errores asc, p.ultimo asc limit 1),
+    'ganador_nombre', (select mw_nombre_corto(e.nombre) from desafio_puntos p join estudiantes e on e.id = p.estudiante_id
+                where p.curso = p_curso and p.n = p_n and p.aciertos > 0
+                order by p.aciertos desc, p.errores asc, p.ultimo asc limit 1)
+  )
+$$;
+
+-- Docente: estado de los desafíos de todos los cursos
+create or replace function public.mw_docente_desafios(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare r json;
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  select json_object_agg(c.curso, case when c.desafio is null then null else
+      (c.desafio::jsonb || coalesce(mw_desafio_tabla(c.curso, (c.desafio->>'n')::bigint, 10, null)::jsonb, '{}'::jsonb)
+        || jsonb_build_object('conectados', (select count(*) from estudiantes e where e.curso = c.curso and e.ultimo_ping > now() - interval '90 seconds')))
+      end) into r from cursos c;
+  return json_build_object('ahora', mw_ms(), 'cursos', r);
+end $$;
+
+-- Docente: lanzar (p_id) o detener (p_id null) un desafío en los cursos elegidos
+create or replace function public.mw_docente_desafio(p_token uuid, p_cursos text[], p_id text, p_seg int)
+returns json language plpgsql security definer set search_path = public as $$
+declare c text; meta int; t0 bigint;
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  if p_id is null then
+    update cursos set desafio = desafio || jsonb_build_object('fin', mw_ms(), 'detenido', true)
+      where curso = any (p_cursos) and desafio is not null and (desafio->>'fin')::bigint > mw_ms();
+  else
+    for c in select curso from cursos where curso = any (p_cursos) loop
+      meta := greatest(15, 5 * (select count(*) from estudiantes e where e.curso = c and e.ultimo_ping > now() - interval '90 seconds'));
+      t0 := mw_ms() + 11000;
+      update cursos set desafio = jsonb_build_object('n', nextval('mw_desafio_n'), 'id', left(p_id, 20), 'inicio', t0,
+          'fin', t0 + 1000 * least(greatest(coalesce(p_seg, 60), 10), 300), 'meta', meta)
+        where curso = c;
+    end loop;
+  end if;
+  return mw_docente_desafios(p_token);
+end $$;
+
+-- Estudiante: desafío vigente de su curso (si terminó hace menos de 2 minutos, también)
+create or replace function public.mw_desafio(p_token uuid)
+returns json language plpgsql stable security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; d jsonb; ahora bigint := mw_ms(); t jsonb; mio desafio_puntos;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select e.curso, k.desafio into c, d from estudiantes e join cursos k on k.curso = e.curso where e.id = id_e;
+  if d is null or (d->>'fin')::bigint < ahora - 120000 then return json_build_object('ok', true, 'ahora', ahora); end if;
+  if d->>'id' in ('arena', 'curso') then
+    t := mw_desafio_tabla(c, (d->>'n')::bigint, 5, id_e)::jsonb;
+    select * into mio from desafio_puntos p where p.curso = c and p.n = (d->>'n')::bigint and p.estudiante_id = id_e;
+    d := d || jsonb_build_object('ranking', t->'ranking', 'total', t->'total', 'participantes', t->'participantes',
+      'aciertos', coalesce(mio.aciertos, 0), 'errores', coalesce(mio.errores, 0));
+    if ahora > (d->>'fin')::bigint then
+      d := d || jsonb_build_object('gane', (t->>'ganador') = id_e::text, 'ganador_nombre', t->'ganador_nombre');
+    end if;
+  end if;
+  return json_build_object('ok', true, 'ahora', ahora, 'desafio', d);
+end $$;
+
+-- Estudiante: registra una respuesta en el duelo o en la meta del curso (máximo una por segundo)
+create or replace function public.mw_desafio_responder(p_token uuid, p_n bigint, p_ok boolean)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; d jsonb; ahora bigint := mw_ms();
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select e.curso, k.desafio into c, d from estudiantes e join cursos k on k.curso = e.curso where e.id = id_e;
+  if d is not null and (d->>'n')::bigint = p_n and d->>'id' in ('arena', 'curso')
+     and ahora >= (d->>'inicio')::bigint and ahora <= (d->>'fin')::bigint + 1500 then
+    insert into desafio_puntos (curso, n, estudiante_id, ultimo) values (c, p_n, id_e, now() - interval '1 hour')
+      on conflict do nothing;
+    update desafio_puntos set aciertos = aciertos + (case when p_ok then 1 else 0 end),
+        errores = errores + (case when p_ok then 0 else 1 end), ultimo = now()
+      where curso = c and n = p_n and estudiante_id = id_e and ultimo < now() - interval '900 milliseconds';
+  end if;
+  return mw_desafio(p_token);
+end $$;
+
+revoke all on function public.mw_ms(), public.mw_nombre_corto(text), public.mw_desafio_tabla(text, bigint, int, uuid) from public, anon, authenticated;
+revoke all on function public.mw_docente_desafios(uuid), public.mw_docente_desafio(uuid, text[], text, int), public.mw_desafio(uuid), public.mw_desafio_responder(uuid, bigint, boolean) from public, authenticated;
+grant execute on function public.mw_docente_desafios(uuid), public.mw_docente_desafio(uuid, text[], text, int), public.mw_desafio(uuid), public.mw_desafio_responder(uuid, bigint, boolean) to anon;

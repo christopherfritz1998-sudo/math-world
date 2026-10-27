@@ -309,3 +309,45 @@ ul.misiones li.ok .fila span { color: var(--ok); }
   .herramientas { flex-direction: column; }
   .botones { top: 226px; }
 }
+
+/* ---------- Desafíos en vivo ---------- */
+.desafio { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); width: min(460px, calc(100vw - 660px)); min-width: 300px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(18, 32, 26, .94); border: 3px solid var(--c, var(--amber)); box-shadow: 0 6px 20px rgba(0,0,0,.35); z-index: 15; }
+.desafio .ico { font-size: 30px; line-height: 1; }
+.desafio .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.desafio .nom { font-family: "Fredoka", "Nunito", sans-serif; font-size: 17px; font-weight: 700; color: #fff; }
+.desafio .det { font-size: 13px; font-weight: 700; color: var(--muted); line-height: 1.3; }
+.desafio .bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.desafio .bar i { display: block; height: 100%; background: var(--c, var(--amber)); transition: width .25s linear; }
+.desafio.espera .bar, .desafio.cerrado .bar { display: none; }
+.desafio .reloj { font-family: "Fredoka", "Nunito", sans-serif; font-size: 22px; font-weight: 700; color: #fff; min-width: 44px; text-align: right; }
+.desafio.espera { animation: des-pulso 1s ease-in-out infinite; }
+.desafio.cerrado .det { color: #fff; }
+.btn-des { min-height: 38px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--amber); color: #1b1a12; font-weight: 800; cursor: pointer; }
+@keyframes des-pulso { 50% { box-shadow: 0 0 0 6px rgba(242, 181, 68, .25), 0 6px 20px rgba(0,0,0,.35); } }
+.desafio-cuenta { position: fixed; left: 50%; top: 46%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; pointer-events: none; z-index: 14; text-shadow: 0 4px 0 #12201a, 0 0 24px rgba(0,0,0,.5); }
+.desafio-cuenta b { font-family: "Fredoka", "Nunito", sans-serif; font-size: 140px; line-height: 1; color: #ffd27a; -webkit-text-stroke: 5px #12201a; }
+.desafio-cuenta small { font-family: "Fredoka", "Nunito", sans-serif; font-size: 26px; font-weight: 700; color: #fff; background: rgba(18, 32, 26, .85); padding: 4px 16px; border-radius: 999px; text-shadow: none; }
+.desafio-cuenta.late b { animation: des-late .9s ease-out; }
+@keyframes des-late { 0% { transform: scale(1.6); opacity: 0; } 25% { transform: scale(1); opacity: 1; } 100% { transform: scale(.92); opacity: .85; } }
+.modal.desafio-vivo { border-color: var(--amber); max-width: 860px; }
+.des-reloj { font-family: "Fredoka", "Nunito", sans-serif; font-size: 34px; font-weight: 700; color: var(--amber); }
+.des-cols { display: grid; grid-template-columns: minmax(0, 1fr) 230px; gap: 16px; align-items: start; }
+.des-tabla { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); }
+.des-tabla .etq { font-size: 12px; font-weight: 800; letter-spacing: .06em; color: var(--amber); text-transform: uppercase; }
+.des-ranking { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.des-ranking li { display: grid; grid-template-columns: 28px 1fr auto; gap: 6px; align-items: center; padding: 6px 8px; border-radius: 8px; background: var(--panel); font-weight: 700; font-size: 14px; }
+.des-ranking li.yo { background: #2b4a3c; border: 1px solid var(--teal); }
+.des-ranking li.vacio { display: block; color: var(--muted); }
+.des-meta { font-size: 15px; font-weight: 700; } .des-meta b { font-family: "Fredoka", "Nunito", sans-serif; font-size: 34px; color: var(--ok); }
+.barra.meta { height: 12px; }
+@media (max-width: 1150px) {
+  .desafio { top: auto; bottom: 86px; width: min(460px, calc(100vw - 24px)); }
+}
+@media (max-width: 760px) {
+  .desafio { bottom: 236px; min-width: 0; padding: 8px 10px; }
+  .desafio .det { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .desafio .ico { font-size: 24px; } .desafio .nom { font-size: 15px; } .desafio .det { font-size: 12px; }
+  .desafio-cuenta b { font-size: 100px; } .desafio-cuenta small { font-size: 18px; }
+  .des-cols { grid-template-columns: 1fr; }
+  .des-tabla { order: -1; }
+}

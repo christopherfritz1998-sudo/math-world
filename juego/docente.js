@@ -40,7 +40,7 @@
       const [r, a, m] = await Promise.all([Nube.docenteResumen(token), Nube.docenteCursos(token).catch(() => null), Nube.docenteMundos(token).catch(() => null)]);
       if (r === null) { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.replace('./'); return; }
       datos = r; if (a) abiertos = a; if (m) mundos = m; $('error').hidden = true;
-      pintarAcceso(); pintarMundos();
+      pintarAcceso(); pintarMundos(); pintarDesafios();
       $('actualizado').textContent = `Actualizado ${new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
       pintar();
     } catch (e) {
@@ -229,6 +229,89 @@
     pintarMundos();
   }
 
+
+  // ---------- Desafíos en vivo ----------
+  const desSel = new Set();
+  let desEstado = {}, desDif = 0, desT = null, desOcupado = false;
+  const ahoraSrv = () => Date.now() + desDif;
+  const defDes = (id) => DESAFIOS.find((d) => d.id === id) || { nombre: id, icono: '❓' };
+  const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+  const vivo = (d) => d && ahoraSrv() < d.fin;
+  async function cargarDesafios() {
+    clearTimeout(desT);
+    try {
+      const r = await Nube.docenteDesafios(token);
+      if (r) { desDif = r.ahora - Date.now(); desEstado = r.cursos || {}; }
+    } catch (e) { /* se reintenta */ }
+    pintarDesafios();
+    const reciente = Object.values(desEstado).some((d) => d && ahoraSrv() < d.fin + 20000);
+    desT = setTimeout(cargarDesafios, reciente ? 2000 : 15000);
+  }
+  function pintarDesafios() {
+    if (!desSel.size) desSel.add(curso);
+    $('des-cursos').innerHTML = '<span class="lbl">Lanzar en:</span>' + CURSOS.map((c) => {
+      const on = datos.filter((e) => e.curso === c.id && e.conectado).length;
+      return `<button type="button" class="chk" data-dc="${c.id}" aria-pressed="${desSel.has(c.id)}">${c.nombre} <small>${on} en línea</small></button>`;
+    }).join('');
+    $('des-cursos').querySelectorAll('[data-dc]').forEach((b) => b.addEventListener('click', () => {
+      if (desSel.has(b.dataset.dc)) { if (desSel.size > 1) desSel.delete(b.dataset.dc); } else desSel.add(b.dataset.dc);
+      pintarDesafios();
+    }));
+    pintarEstadoDesafios();
+    $('des-lista').innerHTML = DESAFIOS.map((d) => `<div class="des-card" style="--c:${d.color}">
+        <div class="cab-d"><span class="ico" aria-hidden="true">${d.icono}</span><strong>${esc(d.nombre)}</strong></div>
+        <p>${esc(d.resumen)}</p>
+        <div class="pie"><span class="dur">${d.seg < 60 ? d.seg + ' s' : mmss(d.seg * 1000) + ' min'}</span><button type="button" class="btn pri mini" data-lanzar="${d.id}" ${desOcupado ? 'disabled' : ''}>Lanzar</button></div>
+      </div>`).join('');
+    $('des-lista').querySelectorAll('[data-lanzar]').forEach((b) => b.addEventListener('click', () => lanzarDesafio(b.dataset.lanzar)));
+  }
+  function pintarEstadoDesafios() {
+    const t = ahoraSrv();
+    const tarjetas = CURSOS.map((c) => {
+      const d = desEstado[c.id];
+      if (!d || t > d.fin + 120000) return '';
+      const D = defDes(d.id);
+      const fase = t < d.inicio ? 'espera' : t < d.fin ? 'activo' : 'fin';
+      const reloj = fase === 'espera' ? `Comienza en ${Math.ceil((d.inicio - t) / 1000)} s` : fase === 'activo' ? `Quedan ${mmss(d.fin - t)}` : d.detenido ? 'Detenido' : 'Terminó';
+      let extra = '';
+      if (d.id === 'arena') {
+        extra = (d.ranking || []).length ? `<ol>${d.ranking.map((r) => `<li><strong>${esc(r.nombre)}</strong> · ${r.aciertos} ${r.aciertos === 1 ? 'acierto' : 'aciertos'}${r.errores ? ` <span class="muted">(${r.errores} ${r.errores === 1 ? 'error' : 'errores'})</span>` : ''}</li>`).join('')}</ol>` : '<span class="muted">Aún nadie responde.</span>';
+        if (fase === 'fin' && d.ganador_nombre) extra = `<div><strong>🏆 Ganó ${esc(d.ganador_nombre)}</strong></div>` + extra;
+      } else if (d.id === 'curso') {
+        const pct = Math.min(100, Math.round((d.total / Math.max(1, d.meta)) * 100));
+        extra = `<div class="fila-d"><span>${d.total} de ${d.meta} respuestas correctas</span><strong>${d.total >= d.meta ? '¡Lograda!' : pct + ' %'}</strong></div><div class="meta"><i style="width:${pct}%"></i></div><span class="muted">${d.participantes} participantes</span>`;
+      }
+      return `<div class="des-vivo ${fase}">
+        <div class="fila-d"><strong>${c.nombre} · ${D.icono} ${esc(D.nombre)}</strong>${fase !== 'fin' ? `<button type="button" class="btn peligro mini" data-detener="${c.id}">Detener</button>` : ''}</div>
+        <div class="fila-d"><span class="reloj">${reloj}</span><span class="muted">${d.conectados} en línea</span></div>
+        ${extra}</div>`;
+    }).join('');
+    $('des-estado').innerHTML = tarjetas;
+    $('des-estado').hidden = !tarjetas;
+    $('des-estado').querySelectorAll('[data-detener]').forEach((b) => b.addEventListener('click', () => detenerDesafio([b.dataset.detener])));
+  }
+  async function lanzarDesafio(id) {
+    const D = defDes(id), cursos = [...desSel];
+    const ocupados = cursos.filter((c) => vivo(desEstado[c]));
+    const nombres = (l) => l.map((x) => CURSOS.find((c) => c.id === x).nombre).join(', ');
+    if (ocupados.length && !confirm(`${nombres(ocupados)} ya tiene un desafío en curso. ¿Reemplazarlo por "${D.nombre}"?`)) return;
+    desOcupado = true; pintarDesafios();
+    try {
+      const r = await Nube.docenteDesafio(token, cursos, id, D.seg);
+      if (r) { desDif = r.ahora - Date.now(); desEstado = r.cursos || {}; }
+      $('error').hidden = true;
+    } catch (e) {
+      $('error').textContent = 'No se pudo lanzar el desafío. Revisa tu conexión e inténtalo otra vez.';
+      $('error').hidden = false;
+    }
+    desOcupado = false; cargarDesafios();
+  }
+  async function detenerDesafio(cursos) {
+    try { await Nube.docenteDesafio(token, cursos, null, 0); } catch (e) { /* */ }
+    cargarDesafios();
+  }
+  setInterval(pintarEstadoDesafios, 1000);
+
   $('abrir-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), true));
   $('cerrar-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), false));
 
@@ -237,5 +320,6 @@
   $('btn-actualizar').addEventListener('click', cargar);
   $('btn-salir').addEventListener('click', () => { try { sessionStorage.removeItem('mw_docente'); } catch (e) { /* */ } location.replace('./'); });
   cargar();
+  cargarDesafios();
   setInterval(cargar, 20000);
 })();

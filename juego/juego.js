@@ -241,6 +241,8 @@
     murcielago: { nombre: 'Murciélago de la mina', vida: 3, dif: 2, botin: { hongo: 2, carbon: 1 }, xp: 18, vel: 88, flota: true, radio: 190 },
     golem: { nombre: 'Gólem de roca', vida: 7, dif: 3, botin: { carbon: 2, plata: 1, amatista: 1 }, xp: 34, vel: 46, oculto: true, tex: 'golem_roca', texVivo: 'golem', retrato: 'golem', radio: 200 },
     minero: { nombre: 'Minero zombi', vida: 6, dif: 3, botin: { plata: 2, carbon: 2 }, xp: 30, vel: 56, anim: 'minero', retrato: 'minero_retrato', radio: 210 },
+    // Desafío en vivo "Criatura dorada": huye del jugador
+    dorado: { nombre: 'Criatura dorada', vida: 3, dif: 2, botin: {}, xp: 45, vel: 112, anim: 'jabali', retrato: 'jabali_retrato', radio: 3000 },
     esqueleto: { nombre: 'Esqueleto del desierto', vida: 6, dif: 3, botin: { cobre: 2, oro: 1 }, xp: 32, vel: 62, anim: 'esqueleto', retrato: 'esqueleto_retrato', radio: 210 },
   };
   const xpPara = (nivel) => 60 + 40 * nivel;
@@ -401,6 +403,10 @@
   window.addEventListener('pagehide', () => { guardar(); subir(true); });
 
   function sumar(recurso, n) {
+    if (!vivo.premiando && n > 0) {
+      if (desActivo('fiebre')) { n *= 2; if (escena && escena.jugador) escena.flotante(escena.jugador.x, escena.jugador.y - 74, '¡x2!', '#ffd27a'); }
+      eventoDesafio('recurso', n);
+    }
     S.mochila[recurso] = (S.mochila[recurso] || 0) + n;
     pintarHUD();
     const el = document.querySelector(`.recurso[data-r="${recurso}"]`);
@@ -637,7 +643,7 @@
   function revisarPendientes() {
     clearTimeout(revisarPendientes._t);
     revisarPendientes._t = setTimeout(() => {
-      if (!S || ui.abierto || !escena || !escena.jugador || escena.enCombate || escena.enJefe || juegoCerrado || premioPospuesto) return;
+      if (!S || ui.abierto || !escena || !escena.jugador || escena.enCombate || escena.enJefe || juegoCerrado || premioPospuesto || vivo.pendienteModal || vivo.resultadoModal) return;
       if ((S.premiosNivel || 0) > 0) abrirPremioNivel();
     }, 600);
   }
@@ -1027,7 +1033,8 @@
       const vidaE = Math.max(0, enemigo.vida);
       let cuerpo;
       if (fase === 'victoria') {
-        cuerpo = `<div class="mensaje bien" role="status">¡Venciste al ${esc(E.nombre.toLowerCase())}! Ganas ${Object.entries(E.botin).map(([r, n]) => `${n} ${nombreRec(r)}`).join(' y ')} y ${E.xp} de experiencia.</div>
+        const botin = Object.entries(enemigo.botin || E.botin);
+        cuerpo = `<div class="mensaje bien" role="status">¡Venciste ${enemigo.clase === 'dorado' ? 'a la' : 'al'} ${esc(E.nombre.toLowerCase())}! Ganas ${botin.length ? botin.map(([r, n]) => `${n} ${nombreRec(r)}`).join(' y ') + ' y ' : ''}${E.xp} de experiencia.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="c-fin" data-foco>¡Seguir!</button></div>`;
       } else if (fase === 'derrota') {
         cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Volverás a tu base y perderás lo que llevabas en la mochila.</div>
@@ -1071,6 +1078,9 @@
         escena.golpeEnemigo(enemigo, danio());
         ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
         if (enemigo.vida <= 0) fase = 'victoria';
+      } else if (escudoActivo()) {
+        vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1;
+        ultimo = `<div class="mensaje pista" role="status">¡Tu escudo de cristal bloqueó el golpe! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
       } else {
         S.vida -= 1;
         escena.dolor();
@@ -1166,8 +1176,13 @@
       if (ok) { ganarXP(4 + 2 * dif); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; e.golpeLocal(danio()); }
       else {
         const dj = danioJefe();
-        S.vida = Math.max(0, S.vida - dj); e.dolor(); pintarHUD();
-        ultimo = `<div class="mensaje mal" role="status">¡El jefe te dio un golpe ${dj > JEFE_DANIO ? 'furioso' : 'doble'} (−${dj} corazones)! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        if (escudoActivo()) {
+          vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1;
+          ultimo = `<div class="mensaje pista" role="status">¡Tu escudo de cristal bloqueó el golpe del jefe! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        } else {
+          S.vida = Math.max(0, S.vida - dj); e.dolor(); pintarHUD();
+          ultimo = `<div class="mensaje mal" role="status">¡El jefe te dio un golpe ${dj > JEFE_DANIO ? 'furioso' : 'doble'} (−${dj} corazones)! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        }
         if (S.vida <= 0) { fase = 'caido'; e.salirDelJefe(); e.perderContraJefe(); }
       }
       guardar();
@@ -1484,6 +1499,410 @@
   })();
 
   // ===================================================================
+  // Desafíos en vivo: los lanza el docente desde su portal. El juego consulta cada pocos
+  // segundos el desafío de su curso; todos ven un contador de 10 s sincronizado con el servidor.
+  // ===================================================================
+  const DES = Object.fromEntries((window.DESAFIOS || []).map((d) => [d.id, d]));
+  const vivo = { d: null, def: null, fase: null, st: {}, dif: 0, ultima: 0, consultando: false, pendienteModal: false, modal: false, premiando: false, resultado: '', hasta: 0, resultadoModal: null };
+  const ahoraSrv = () => Date.now() + vivo.dif;
+  const porServidor = (D) => D && (D.id === 'arena' || D.id === 'curso');   // resultado calculado por el servidor
+  const desActivo = (id) => Boolean(vivo.def && vivo.fase === 'activo' && vivo.def.id === id);
+  const unidadDesafio = () => (escena && MUNDOS[escena.zona] ? escena.zona : ['u4', 'u3', 'u2', 'u1'].find((u) => (u === 'u1' || (sesion.mundos || []).includes(u)) && MUNDOS[u]) || 'u1');
+  const cobrado = (n) => (S.desafios || []).includes(n);
+  const marcarCobrado = (n) => { S.desafios = [...(S.desafios || []).slice(-30), n]; };
+  const plural = (n, p) => `${n} ${n === 1 ? p : p + 's'}`;
+  const reloj = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+  // Premio en recursos del mundo actual (o de todos los mundos abiertos)
+  function paquete(cant, variedad = 2, todos = false) {
+    const us = todos ? ['u1', 'u2', 'u3', 'u4'].filter((u) => u === 'u1' || (sesion.mundos || []).includes(u)) : [unidadDesafio()];
+    const pool = [];
+    for (const u of us) recursosDe(u).forEach((r, i) => { for (let k = 0; k < 4 - i; k++) pool.push([r.id, i]); });
+    const out = {};
+    for (let v = 0; v < variedad; v++) {
+      const [id, i] = pool[Math.floor(Math.random() * pool.length)];
+      out[id] = (out[id] || 0) + Math.max(1, Math.round(cant * (4 - i) / 4));
+    }
+    return out;
+  }
+  function darPremio(rec, xp = 0, final = true) {
+    vivo.premiando = true;
+    if (enCasa()) sumarCofre(rec); else Object.entries(rec).forEach(([r, n]) => sumar(r, n));
+    vivo.premiando = false;
+    if (xp) ganarXP(xp);
+    guardar(final);
+    return Object.entries(rec).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ');
+  }
+  function lograr(texto, rec, xp) {
+    vivo.st.logrado = true;
+    const txt = darPremio(rec, xp);
+    toast(`¡${texto}! Ganas ${txt} y ${xp} de experiencia.`);
+    if (escena && escena.jugador) { escena.celebrar(); escena.limpiarDesafio(); }
+  }
+
+  // Cada desafío: estado inicial, texto de progreso, montar (en la escena actual), tick, evento y cierre
+  const IMPL = {
+    horda: {
+      estado: () => ({ n: 0, meta: 5 }),
+      progreso: (st) => (st.logrado ? '¡Horda vencida!' : `Vencidos: ${st.n} de ${st.meta}`),
+      montar: (sc, st) => sc.soltarHorda(Math.min(6, st.meta - st.n + 1)),
+      evento(tipo, e, st) {
+        if (tipo !== 'vencer' || !e.horda || st.logrado) return;
+        st.n += 1;
+        if (st.n >= st.meta) lograr('Venciste a la horda', paquete(6, 3), 60);
+      },
+      fin: (st) => (st.logrado ? 'Venciste a la horda.' : `La horda se retiró. Venciste a ${st.n} de ${st.meta}.`),
+    },
+    dorado: {
+      estado: () => ({}),
+      progreso: (st) => (st.logrado ? '¡Atrapaste a la criatura dorada!' : 'Atrápala: ¡huye de ti!'),
+      montar: (sc) => sc.soltarDorada(),
+      // Flecha dorada que indica hacia dónde escapó la criatura
+      tick(sc) {
+        const e = sc.enemigos.find((x) => x.dorada && x.activo), j = sc.jugador;
+        if (!sc.des.flecha) { sc.des.flecha = sc.add.triangle(0, 0, 0, -9, 18, 0, 0, 9, 0xffd54a).setStrokeStyle(2, 0x5a3d00).setDepth(99998); sc.des.objs.push(sc.des.flecha); }
+        const lejos = e && Phaser.Math.Distance.Between(j.x, j.y, e.s.x, e.s.y) > 150;
+        sc.des.flecha.setVisible(Boolean(lejos));
+        if (lejos) { const a = Phaser.Math.Angle.Between(j.x, j.y - 20, e.s.x, e.s.y - 10); sc.des.flecha.setPosition(j.x + Math.cos(a) * 46, j.y - 20 + Math.sin(a) * 46).setRotation(a); }
+      },
+      evento(tipo, e, st) { if (tipo === 'vencer' && e.dorada && !st.logrado) { st.logrado = true; toast('¡Atrapaste a la criatura dorada!'); escena.celebrar(); escena.limpiarDesafio(); } },
+      fin: (st) => (st.logrado ? 'Atrapaste a la criatura dorada.' : 'La criatura dorada escapó.'),
+    },
+    meteoritos: {
+      estado: () => ({ frag: 0, golpes: 0 }),
+      progreso: (st) => `Fragmentos: ${st.frag} · Golpes: ${st.golpes}`,
+      montar: (sc) => { sc.des.meteoT = 800; },
+      tick(sc, dt, st) {
+        sc.des.meteoT -= dt;
+        if (sc.des.meteoT <= 0) { sc.des.meteoT = 520 + Math.random() * 380; sc.lanzarMeteorito(); }
+        sc.recoger('frag', (o) => { st.frag += 1; sc.flotante(o.x, o.y - 30, '+1 fragmento', '#ffc27a'); });
+      },
+      fin(st) {
+        if (!st.frag) return 'Terminó la lluvia. No recogiste fragmentos.';
+        const txt = darPremio(paquete(Math.max(1, Math.ceil(st.frag / 2)), 2), 4 * st.frag);
+        return `Terminó la lluvia: ${st.frag} fragmentos = ${txt}.`;
+      },
+    },
+    cofres: {
+      estado: () => ({ n: 0, meta: 6 }),
+      progreso: (st) => (st.logrado ? '¡Abriste todos los cofres!' : `Cofres abiertos: ${st.n} de ${st.meta}`),
+      montar(sc, st) { for (let i = 0; i < st.meta - st.n; i++) sc.time.delayedCall(250 + i * 380, () => sc.caerCofre()); },
+      tick(sc, dt, st) {
+        sc.recoger('cofre', (o) => {
+          st.n += 1;
+          const rec = paquete(2, 1), txt = darPremio(rec, 8, false);
+          sc.flotante(o.x, o.y - 44, `+${txt}`, '#ffd27a');
+          sc.add.particles(o.x, o.y - 16, 'p_brillo', { speed: { min: 60, max: 160 }, lifespan: 600, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(20);
+          if (st.n >= st.meta) lograr('Abriste todos los cofres', paquete(3, 2), 30);
+        });
+      },
+      fin: (st) => (st.logrado ? 'Abriste todos los cofres.' : `Se acabó el tiempo: abriste ${st.n} de ${st.meta} cofres.`),
+    },
+    eclipse: {
+      estado: () => ({ n: 0, meta: 8 }),
+      progreso: (st) => (st.logrado ? '¡Atrapaste todas las luciérnagas!' : `Luciérnagas: ${st.n} de ${st.meta}`),
+      montar(sc, st) { sc.crearEclipse(); for (let i = 0; i < st.meta - st.n; i++) sc.soltarLuciernaga(); },
+      tick(sc, dt, st) {
+        if (sc.des.oscuro) sc.des.oscuro.setPosition(sc.jugador.x, sc.jugador.y - 16);
+        sc.recoger('luz', (o) => {
+          st.n += 1; sc.flotante(o.x, o.y - 24, `${st.n} de ${st.meta}`, '#fff3a0');
+          if (st.n >= st.meta) lograr('Atrapaste todas las luciérnagas', paquete(5, 3), 50);
+        });
+      },
+      fin: (st) => (st.logrado ? 'Atrapaste todas las luciérnagas.' : `Volvió la luz: atrapaste ${st.n} de ${st.meta} luciérnagas.`),
+    },
+    recolecta: {
+      estado: () => ({ n: 0, meta: 12 }),
+      progreso: (st) => (st.logrado ? '¡Meta de recolección cumplida!' : `Recursos: ${Math.min(st.n, st.meta)} de ${st.meta}`),
+      evento(tipo, n, st) {
+        if (tipo !== 'recurso' || st.logrado) return;
+        st.n += n;
+        if (st.n >= st.meta) lograr('Cumpliste la recolección exprés', paquete(5, 2), 40);
+      },
+      fin: (st) => (st.logrado ? 'Cumpliste la recolección exprés.' : `Se acabó el tiempo: juntaste ${st.n} de ${st.meta} recursos.`),
+    },
+    fiebre: { estado: () => ({}), progreso: () => 'Todo lo que recolectes vale el doble', fin: () => 'Terminó la fiebre del oro.' },
+    turbo: {
+      estado: () => ({}),
+      progreso: () => 'Corres mucho más rápido',
+      montar(sc) {
+        sc.des.polvo = sc.add.particles(0, 0, 'p_nieve', { lifespan: 380, frequency: 40, speedX: { min: -30, max: 30 }, speedY: { min: -20, max: 0 }, scale: { start: 1.3, end: 0 }, alpha: { start: 0.7, end: 0 }, emitting: false }).setDepth(5).startFollow(sc.jugador, 0, -4);
+        sc.des.objs.push(sc.des.polvo);
+      },
+      tick(sc) { if (sc.des.polvo) sc.des.polvo.emitting = sc.jugador.body.speed > 20; },
+      fin: () => 'Se acabaron las botas de viento.',
+    },
+    escudo: {
+      estado: () => ({ bloqueos: 0 }),
+      progreso: (st) => `Los errores no te quitan corazones${st.bloqueos ? ` · Bloqueados: ${st.bloqueos}` : ''}`,
+      montar(sc) {
+        sc.des.burbuja = sc.add.image(0, 0, 'luz').setScale(0.42).setTint(0x7fe8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.55);
+        sc.tweens.add({ targets: sc.des.burbuja, alpha: 0.3, duration: 700, yoyo: true, repeat: -1 });
+        sc.des.objs.push(sc.des.burbuja);
+      },
+      tick(sc) { if (sc.des.burbuja) sc.des.burbuja.setPosition(sc.jugador.x, sc.jugador.y - 24).setDepth(sc.jugador.depth + 1); },
+      fin: (st) => `Se apagó el escudo de cristal${st.bloqueos ? `: bloqueó ${st.bloqueos} ${st.bloqueos === 1 ? 'golpe' : 'golpes'}` : ''}.`,
+    },
+    relampago: {
+      estado: () => ({}),
+      progreso: (st) => (st.respondida ? (st.logrado ? '¡Correcto!' : 'Respondida') : '¡Responde rápido!'),
+      fin: (st) => (st.respondida ? (st.logrado ? `Acertaste la pregunta relámpago: ${st.premio}.` : 'Esta vez no fue. ¡A la próxima!') : 'Se acabó el tiempo de la pregunta relámpago.'),
+    },
+    arena: { estado: () => ({ mios: 0 }), progreso: () => `Tus aciertos: ${vivo.d.aciertos || 0}` },
+    curso: { estado: () => ({ mios: 0 }), progreso: () => `Curso: ${vivo.d.total || 0} de ${vivo.d.meta} correctas` },
+  };
+  const escudoActivo = () => desActivo('escudo');
+  function eventoDesafio(tipo, dato) {
+    if (vivo.fase !== 'activo') return;
+    const I = IMPL[vivo.def.id];
+    if (I.evento) I.evento(tipo, dato, vivo.st);
+  }
+
+  async function consultarDesafio() {
+    if (sesion.modo !== 'nube' || !S || juegoCerrado || vivo.consultando || !escena) return;
+    vivo.consultando = true; vivo.ultima = Date.now();
+    try { const r = await Nube.desafio(sesion.token); if (r && r.ok) recibirDesafio(r); } catch (e) { /* sin red: se reintenta */ }
+    vivo.consultando = false; vivo.ultima = Date.now();
+  }
+  function recibirDesafio(r) {
+    if (!r || !r.ok || !r.ahora) return;
+    vivo.dif = r.ahora - Date.now();
+    const d = r.desafio || null;
+    if (!d || !DES[d.id]) { if (vivo.d && (vivo.fase === 'espera' || vivo.fase === 'activo')) cerrarDesafio('El desafío terminó.'); return; }
+    if (!vivo.d || vivo.d.n !== d.n) {
+      if (vivo.d && (vivo.fase === 'espera' || vivo.fase === 'activo')) cerrarDesafio(null);
+      vivo.d = d; vivo.def = DES[d.id]; vivo.st = {}; vivo.resultado = ''; vivo.resultadoModal = null; vivo.pendienteModal = false;
+      if (ahoraSrv() >= d.fin) { vivo.fase = porServidor(vivo.def) && d.aciertos > 0 && !cobrado(d.n) ? 'fin' : 'cerrado'; vivo.hasta = 0; }
+      else vivo.fase = 'espera';
+    } else Object.assign(vivo.d, d);
+    if (porServidor(vivo.def)) pintarTablaDesafio();
+    if (vivo.fase === 'fin' && porServidor(vivo.def)) resultadoPreguntas();
+  }
+  function iniciarDesafio() {
+    vivo.fase = 'activo';
+    const I = IMPL[vivo.def.id];
+    vivo.st = I.estado ? I.estado() : {};
+    toast(`¡Comienza el desafío: ${vivo.def.nombre}!`);
+    if (escena && escena.jugador) montarDesafio(escena);
+    if (vivo.def.preguntas) vivo.pendienteModal = true;
+  }
+  function montarDesafio(sc) {
+    if (vivo.fase !== 'activo' || vivo.st.logrado) return;
+    const I = IMPL[vivo.def.id];
+    if (I.montar) I.montar(sc, vivo.st);
+  }
+  function actualizarDesafio(sc, dt) {
+    const I = IMPL[vivo.def.id];
+    if (I.tick && !vivo.st.logrado) I.tick(sc, dt, vivo.st);
+  }
+  // Fin por tiempo (o porque el docente lo detuvo)
+  function terminarDesafio() {
+    const I = IMPL[vivo.def.id];
+    if (escena && escena.jugador) escena.limpiarDesafio();
+    if (vivo.def.id === 'relampago' && !vivo.st.respondida && vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo')) ui.cerrar();
+    if (porServidor(vivo.def)) { vivo.fase = 'fin'; vivo.pendienteModal = false; pintarModalFin(); consultarDesafio(); return; }
+    const txt = I.fin ? I.fin(vivo.st) : 'Terminó el desafío.';
+    cerrarDesafio(vivo.d.detenido ? `Tu profesor detuvo el desafío. ${txt}` : txt);
+  }
+  function cerrarDesafio(texto) {
+    if (escena && escena.jugador) escena.limpiarDesafio();
+    if (vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo') && !texto) ui.cerrar();
+    vivo.fase = 'cerrado'; vivo.pendienteModal = false;
+    vivo.resultado = texto || ''; vivo.hasta = texto ? Date.now() + 7000 : 0;
+    if (texto) toast(texto);
+  }
+  // Resultado del duelo o de la meta del curso, calculado por el servidor
+  function resultadoPreguntas() {
+    const d = vivo.d;
+    if (vivo.st.resuelto || ahoraSrv() < d.fin) return;
+    if (d.id === 'arena' && d.gane === undefined) return;
+    vivo.st.resuelto = true;
+    let txt, gano = false;
+    const top = (d.ranking || [])[0];
+    if (d.id === 'arena') {
+      if (d.gane && !cobrado(d.n)) {
+        marcarCobrado(d.n); gano = true;
+        txt = `¡Ganaste el duelo con ${plural(d.aciertos, 'acierto')}! Tu cofre de suministros trae ${darPremio(paquete(6, 4, true), 80)} y 80 de experiencia.`;
+      } else if (d.gane) txt = '¡Ganaste el duelo! (El premio ya está en tu inventario.)';
+      else if (d.ganador_nombre) txt = `Ganó ${d.ganador_nombre} con ${top ? plural(top.aciertos, 'acierto') : 'más aciertos'}. Tú lograste ${d.aciertos || 0}.`;
+      else txt = 'Nadie acertó esta vez: el cofre queda para el próximo duelo.';
+    } else {
+      const logro = d.total >= d.meta;
+      if (logro && d.aciertos > 0 && !cobrado(d.n)) {
+        marcarCobrado(d.n); gano = true;
+        txt = `¡El curso logró la meta (${d.total} de ${d.meta})! Tu premio: ${darPremio(paquete(4, 3, true), 50)} y 50 de experiencia.`;
+      } else if (logro) txt = `¡El curso logró la meta (${d.total} de ${d.meta})!${d.aciertos > 0 ? '' : ' Para ganar premio hay que aportar al menos una respuesta correcta.'}`;
+      else txt = `No alcanzaron la meta: ${d.total} de ${d.meta} respuestas correctas. ¡A la próxima!`;
+    }
+    vivo.fase = 'cerrado'; vivo.resultado = txt; vivo.hasta = Date.now() + 9000;
+    if (gano && escena && escena.jugador) escena.celebrar();
+    guardar(true);
+    if (vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo')) pintarModalFin();
+    else if (gano) vivo.resultadoModal = txt;
+    else toast(txt);
+  }
+
+  // ---------- Modal del duelo y de la meta del curso ----------
+  function tablaDesafioHTML() {
+    const d = vivo.d;
+    if (d.id === 'curso') {
+      const pct = Math.min(100, Math.round(((d.total || 0) / Math.max(1, d.meta)) * 100));
+      return `<span class="etq">Meta del curso</span><div class="des-meta"><b>${d.total || 0}</b> de ${d.meta}</div>
+        <div class="barra meta" role="img" aria-label="Avance del curso: ${pct} %"><i style="width:${pct}%"></i></div>
+        <span class="nota">Tú aportaste <b>${d.aciertos || 0}</b> · ${d.participantes || 0} participantes</span>`;
+    }
+    const filas = (d.ranking || []).map((r, i) => `<li class="${r.yo ? 'yo' : ''}"><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'}</span><span>${esc(r.yo ? 'Tú' : r.nombre)}</span><b>${r.aciertos}</b></li>`).join('');
+    return `<span class="etq">Ranking del curso</span><ol class="des-ranking">${filas || '<li class="vacio">Aún nadie acierta…</li>'}</ol><span class="nota">Tus aciertos: <b>${d.aciertos || 0}</b></span>`;
+  }
+  function pintarTablaDesafio() { const t = $('des-tabla'); if (t && vivo.d) t.innerHTML = tablaDesafioHTML(); }
+  function abrirModalPreguntas() {
+    vivo.pendienteModal = false;
+    if (vivo.def.id === 'relampago') { abrirRelampago(); return; }
+    vivo.modal = true;
+    const D = vivo.def;
+    let d = Preguntas.nuevo(S.curso, unidadDesafio(), D.id === 'arena' ? 2 : 1, S.stats), fb = '', espera = false;
+    const pintar = () => {
+      ui.abrir(`
+        <div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">${D.icono} ${esc(D.nombre)}</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
+        <div class="des-cols">
+          <div class="des-preg">
+            ${fb}
+            <p class="enunciado">${mate(d.enunciado)}</p>
+            ${alternativasHTML(d, null, new Set(), false)}
+          </div>
+          <aside class="des-tabla" id="des-tabla">${tablaDesafioHTML()}</aside>
+        </div>
+        <div class="acciones"><span class="nota">${D.id === 'arena' ? 'Toca la alternativa correcta: ¡gana quien más acierte en el curso!' : 'Cada respuesta correcta suma para todo el curso.'}</span><button type="button" class="btn" id="dv-salir">Salir del desafío</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
+      $('dv-salir').addEventListener('click', () => ui.cerrar());
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
+    };
+    const responder = (i) => {
+      if (espera || vivo.fase !== 'activo' || i >= d.opciones.length) return;
+      const ok = i === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) { ganarXP(3); vivo.d.aciertos = (vivo.d.aciertos || 0) + 1; if (D.id === 'curso') vivo.d.total = (vivo.d.total || 0) + 1; }
+      Nube.desafioResponder(sesion.token, vivo.d.n, ok).then(recibirDesafio).catch(() => {});
+      fb = ok ? '<div class="mensaje bien" role="status">¡Correcto! +1</div>' : `<div class="mensaje mal" role="status">La respuesta era ${mate(d.opciones[d.correcta])}.</div>`;
+      d = Preguntas.nuevo(S.curso, unidadDesafio(), D.id === 'arena' ? 2 : 1, S.stats);
+      if (ok) pintar();
+      else { espera = true; pintar(); document.querySelectorAll('.alt').forEach((b) => { b.disabled = true; }); setTimeout(() => { espera = false; if (vivo.modal && vivo.fase === 'activo') { document.querySelectorAll('.alt').forEach((b) => { b.disabled = false; }); } }, 1200); }
+    };
+    pintar();
+  }
+  function pintarModalFin() {
+    if (!vivo.modal || !ui.abierto || !$('modal').classList.contains('desafio-vivo')) return;
+    const D = vivo.def;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Desafío de tu profesor</span><h2 id="modal-titulo">${D.icono} ${esc(D.nombre)}</h2></div><div class="des-reloj">0:00</div></div>
+      <div class="des-cols">
+        <div class="des-preg">${vivo.resultado ? `<div class="mensaje ${/^¡(Ganaste|El curso logró)/.test(vivo.resultado) ? 'bien' : ''}" role="status" style="font-size:18px">${esc(vivo.resultado)}</div>` : '<p class="enunciado">¡Se acabó el tiempo! Calculando el resultado del curso…</p>'}</div>
+        <aside class="des-tabla" id="des-tabla">${tablaDesafioHTML()}</aside>
+      </div>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="dv-ok" data-foco>${vivo.resultado ? '¡Seguir jugando!' : 'Cerrar'}</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
+    $('dv-ok').addEventListener('click', () => ui.cerrar());
+  }
+  function abrirRelampago() {
+    const st = vivo.st;
+    if (st.respondida) return;
+    vivo.modal = true;
+    const d = Preguntas.nuevo(S.curso, unidadDesafio(), 2, S.stats);
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">⚡ Pregunta relámpago</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
+      <p class="nota">Tienes una sola oportunidad: mientras más rápido aciertes, mayor es el premio.</p>
+      <p class="enunciado">${mate(d.enunciado)}</p>
+      ${alternativasHTML(d, null, new Set(), false)}
+      <div class="acciones"><span></span><button type="button" class="btn" id="dv-salir">Salir</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
+    const responder = (i) => {
+      if (st.respondida || vivo.fase !== 'activo' || i >= d.opciones.length) return;
+      st.respondida = true;
+      const ok = i === d.correcta;
+      registrar(d.tema, ok);
+      let msg;
+      if (ok) {
+        st.logrado = true;
+        const frac = Math.max(0.15, Math.min(1, (vivo.d.fin - ahoraSrv()) / (vivo.def.seg * 1000)));
+        const xp = 15 + Math.round(35 * frac);
+        st.premio = darPremio(paquete(2 + Math.round(4 * frac), 2), xp);
+        msg = `<div class="mensaje bien" role="status">¡Correcto y rápido! Ganas ${esc(st.premio)} y ${xp} de experiencia. ${mate(d.explicacion)}</div>`;
+        if (escena) escena.celebrar();
+      } else msg = `<div class="mensaje mal" role="status">No era esa. La respuesta correcta es ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+      document.querySelectorAll('.alt').forEach((b, k) => { b.disabled = true; if (k === d.correcta) b.classList.add('bien'); else if (k === i) b.classList.add('mal'); });
+      const acc = document.querySelector('#modal .acciones');
+      acc.insertAdjacentHTML('beforebegin', msg);
+      acc.innerHTML = '<span></span><button type="button" class="btn pri" id="dv-ok" data-foco>¡Seguir!</button>';
+      $('dv-ok').addEventListener('click', () => ui.cerrar());
+      $('dv-ok').focus();
+      ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+    };
+    document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
+    $('dv-salir').addEventListener('click', () => ui.cerrar());
+    ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
+  }
+
+  // ---------- Aviso en pantalla (contador y avance) ----------
+  function pintarBanner() {
+    const b = $('desafio'), cuenta = $('desafio-cuenta');
+    const t = ahoraSrv();
+    const mostrar = vivo.d && (vivo.fase === 'espera' || vivo.fase === 'activo' || vivo.fase === 'fin' || (vivo.fase === 'cerrado' && Date.now() < vivo.hasta));
+    if (!mostrar || $('hud').classList.contains('oculto')) { b.classList.add('oculto'); cuenta.classList.add('oculto'); return; }
+    const D = vivo.def;
+    b.classList.remove('oculto');
+    b.style.setProperty('--c', D.color || '#f2b544');
+    b.querySelector('.ico').textContent = D.icono;
+    b.querySelector('.nom').textContent = vivo.fase === 'espera' ? `¡Desafío! ${D.nombre}` : D.nombre;
+    let det, rel = '', pct = 0;
+    if (vivo.fase === 'espera') { det = D.resumen; rel = `${Math.min(10, Math.ceil((vivo.d.inicio - t) / 1000))}`; }
+    else if (vivo.fase === 'activo') {
+      det = IMPL[D.id].progreso(vivo.st);
+      rel = reloj(vivo.d.fin - t);
+      pct = Math.max(0, Math.min(100, ((vivo.d.fin - t) / (vivo.d.fin - vivo.d.inicio)) * 100));
+    } else if (vivo.fase === 'fin') { det = 'Calculando el resultado…'; }
+    else det = vivo.resultado;
+    b.querySelector('.det').textContent = det;
+    b.querySelector('.reloj').textContent = rel;
+    b.querySelector('.bar i').style.width = `${pct}%`;
+    b.classList.toggle('espera', vivo.fase === 'espera');
+    b.classList.toggle('cerrado', vivo.fase === 'cerrado' || vivo.fase === 'fin');
+    const entrar = D.preguntas && vivo.fase === 'activo' && !vivo.modal && !(D.id === 'relampago' && vivo.st.respondida);
+    b.querySelector('.btn-des').classList.toggle('oculto', !entrar);
+    // Contador grande de 10 segundos
+    const seg = vivo.fase === 'espera' ? Math.min(10, Math.ceil((vivo.d.inicio - t) / 1000)) : 0;
+    if (seg > 0) {
+      cuenta.classList.remove('oculto');
+      if (cuenta.dataset.n !== String(seg)) {
+        cuenta.dataset.n = String(seg);
+        cuenta.querySelector('b').textContent = seg;
+        cuenta.querySelector('small').textContent = `${D.icono} ${D.nombre}`;
+        cuenta.classList.remove('late'); void cuenta.offsetWidth; cuenta.classList.add('late');
+      }
+    } else { cuenta.classList.add('oculto'); cuenta.dataset.n = ''; }
+  }
+  $('desafio').querySelector('.btn-des').addEventListener('click', () => { if (vivo.fase === 'activo' && vivo.def.preguntas && !ui.abierto) abrirModalPreguntas(); });
+  setInterval(() => {
+    if (!S || !escena) return;
+    const t = Date.now();
+    const rapido = vivo.d && (vivo.fase === 'espera' || vivo.fase === 'fin' || (vivo.fase === 'activo' && porServidor(vivo.def)));
+    if (!document.hidden && t - vivo.ultima > (rapido ? 2000 : 4000)) consultarDesafio();
+    if (vivo.d) {
+      const ts = ahoraSrv();
+      if (vivo.fase === 'espera' && ts >= vivo.d.inicio) iniciarDesafio();
+      if (vivo.fase === 'activo' && ts >= vivo.d.fin) terminarDesafio();
+      if (vivo.fase === 'activo' && vivo.pendienteModal && !ui.abierto && escena.jugador && !escena.enCombate && !escena.enJefe) abrirModalPreguntas();
+      if (vivo.resultadoModal && !ui.abierto && escena.jugador && !escena.enCombate && !escena.enJefe) {
+        const txt = vivo.resultadoModal; vivo.resultadoModal = null;
+        ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío de tu profesor</span><h2 id="modal-titulo">${vivo.def.icono} ${esc(vivo.def.nombre)}</h2></div></div>
+          <div class="mensaje bien" role="status" style="font-size:18px">${esc(txt)}</div>
+          <div class="acciones"><span></span><button type="button" class="btn pri" id="dv-ok" data-foco>¡Genial!</button></div>`);
+        $('dv-ok').addEventListener('click', () => ui.cerrar());
+      }
+      const r = $('des-reloj');
+      if (r && vivo.fase === 'activo') r.textContent = reloj(vivo.d.fin - ts);
+    }
+    pintarBanner();
+  }, 250);
+
+  // ===================================================================
   // Escena (Phaser): base o mundo según la zona
   // ===================================================================
   const TILE = 32;
@@ -1563,6 +1982,8 @@
       pintarCoop();
       latir();
       if (MUNDOS[this.zona]) this.actualizarSello();
+      this.des = { objs: [], items: [] };
+      if (vivo.fase === 'activo') montarDesafio(this);
       if (this.zona === 'pieza' && !(S.pieza || []).length) setTimeout(() => toast('¡Esta es tu pieza! Fabrica muebles con B (pestaña Muebles) y colócalos con G.'), 700);
       revisarPendientes();
     }
@@ -2641,10 +3062,11 @@
         if (k.W.isDown || k.UP.isDown) vy -= 1;
         if (k.S.isDown || k.DOWN.isDown) vy += 1;
         if (palanca.x || palanca.y) { vx = palanca.x; vy = palanca.y; }
+        if (this.aturdidoHasta > this.time.now) { vx = 0; vy = 0; }
       }
       const len = Math.hypot(vx, vy);
       if (len > 0.15) {
-        const vel = this.ventisca && !tiene('abrigo') ? 95 : 150;   // la ventisca hace caminar lento (salvo con abrigo)
+        const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
         j.setVelocity((vx / Math.max(len, 1)) * vel, (vy / Math.max(len, 1)) * vel);
         this.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
         j.anims.play(`${j.texture.key}_${this.dir}`, true);
@@ -2653,6 +3075,7 @@
       this.seguir(j, this.capasJ);
       if (this.luz) this.luz.setPosition(j.x, j.y - 24);
       if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
+      if (vivo.fase === 'activo') actualizarDesafio(this, dt);
       if (this.canal) { this.enviarMovimiento(len > 0.15); this.moverOtros(dt / 1000); this.revisarGuarida(); }
     }
 
@@ -2671,16 +3094,18 @@
         const E = ENEMIGOS[e.clase];
         // objetivo: si está luchando con un compañero, se queda con él; si no, persigue al jugador más cercano
         let obj = null, d = Infinity;
-        if (e.ocupado) { obj = todos.find((t) => t.id === e.ocupado) || null; if (!obj) e.ocupado = null; }
+        const lista = e.soloYo ? [todos[0]] : todos;
+        if (e.ocupado) { obj = lista.find((t) => t.id === e.ocupado) || null; if (!obj) e.ocupado = null; }
         if (obj) d = Phaser.Math.Distance.Between(obj.x, obj.y - 16, e.s.x, e.s.y - 10);
-        else for (const t of todos) { const dd = Phaser.Math.Distance.Between(t.x, t.y - 16, e.s.x, e.s.y - 10); if (dd < d) { d = dd; obj = t; } }
+        else for (const t of lista) { const dd = Phaser.Math.Distance.Between(t.x, t.y - 16, e.s.x, e.s.y - 10); if (dd < d) { d = dd; obj = t; } }
         if (!obj) continue;
         if (E.oculto && !e.despierto) {
           if (e.clase === 'golem') { const marca = tiene('casco'); if (e.marcado !== marca) { e.marcado = marca; e.s.setTint(marca ? 0xc9a0ff : 0xffffff); } }
           if (d < 80) { this.despertar(e); this.flotante(e.s.x, e.s.y - 40, { escorpion: '¡Sssh!', golem: '¡GRRUM!' }[e.clase] || '¡Je, je!', '#ffb4a3'); }
           continue;
         }
-        const persigue = e.ocupado ? true : d < (E.radio || 240);
+        if (e.huye) { this.huir(e, obj, d, seg); continue; }
+        const persigue = e.ocupado ? true : d < (e.radio || E.radio || 240);
         const destino = persigue ? { x: obj.x, y: obj.y - 8 } : e.origen;
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
         const mueve = l > (e.ocupado ? 26 : 4);
@@ -2727,17 +3152,22 @@
         this.enCombate = false; combateActual = null;
         const E = ENEMIGOS[e.clase];
         if (this.canal && e.k) this.canal.emitir(resultado === 'victoria' ? 'vencido' : 'libre', { k: e.k });
+        if (e.desafio && resultado !== 'victoria' && vivo.fase !== 'activo') this.time.delayedCall(4200, () => this.limpiarDesafio());
         if (resultado === 'victoria') {
-          Object.entries(E.botin).forEach(([r, n], i) => { sumar(r, n); this.time.delayedCall(i * 300, () => this.flotante(e.s.x, e.s.y - 40 - i * 18, `+${n} ${r}`)); });
+          Object.entries(e.botin || E.botin).forEach(([r, n], i) => { sumar(r, n); this.time.delayedCall(i * 300, () => this.flotante(e.s.x, e.s.y - 40 - i * 18, `+${n} ${r}`)); });
           S.vencidos = (S.vencidos || 0) + 1;
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
+          if (e.desafio) eventoDesafio('vencer', e);
           guardar(true);
         } else if (resultado === 'huir') {
-          S.vida = Math.max(0, S.vida - VIDA_HUIR); pintarHUD(); this.dolor();
-          if (S.vida <= 0) { morir(E.nombre.toLowerCase()); return; }
-          toast(`Huiste, pero el ${E.nombre.toLowerCase()} te alcanzó a golpear: −${VIDA_HUIR} corazón.`, 'alerta');
+          if (escudoActivo()) toast('Huiste y tu escudo de cristal te protegió del golpe.');
+          else {
+            S.vida = Math.max(0, S.vida - VIDA_HUIR); pintarHUD(); this.dolor();
+            if (S.vida <= 0) { morir(E.nombre.toLowerCase()); return; }
+            toast(`Huiste, pero el ${E.nombre.toLowerCase()} te alcanzó a golpear: −${VIDA_HUIR} corazón.`, 'alerta');
+          }
           guardar();
           e.aturdido = this.time.now + 4000;
           const ang = Phaser.Math.Angle.Between(e.s.x, e.s.y, this.jugador.x, this.jugador.y);
@@ -2754,6 +3184,7 @@
       this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 60, max: 160 }, lifespan: 700, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
       this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
       const E = ENEMIGOS[e.clase];
+      if (e.desafio) { this.time.delayedCall(450, () => { e.s.destroy(); if (e.extra) e.extra.destroy(); this.enemigos = this.enemigos.filter((x) => x !== e); }); return; }
       if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(E.alfa || 1).setScale(E.anim ? 1 : 2).setVisible(true); if (E.oculto) this.esconder(e); e.vida = e.vidaMax; e.activo = true; });
     }
     enemigo(k) { return this.enemigos.find((x) => x.k === k); }
@@ -3193,6 +3624,165 @@
     }
     nombreJugador(id) { if (id === idJuego) return 'Tú'; const o = this.otros.get(id); return o ? String(o.meta.nombre || 'Compañero') : 'Compañero'; }
 
+    // ---------- desafíos en vivo ----------
+    puntoLibre(rmin, rmax) {
+      const j = this.jugador, W = this.ancho * TILE, H = this.alto * TILE, m = TILE * 2.6;
+      for (let i = 0; i < 24; i++) {
+        const a = Math.random() * Math.PI * 2, r = rmin + Math.random() * (rmax - rmin);
+        const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);
+        if (!this.physics.overlapRect(x - 14, y - 18, 28, 26, false, true).length) return { x, y };
+      }
+      return { x: Phaser.Math.Clamp(j.x + 60, m, W - m), y: Phaser.Math.Clamp(j.y, m + 16, H - m) };
+    }
+    crearBichoDesafio(clase, x, y, extra = {}) {
+      const E = ENEMIGOS[clase];
+      let s;
+      if (E.anim) s = this.add.sprite(x, y, `${E.anim}_hoja`, DIRS.down * 9).setOrigin(0.5, 0.9);
+      else {
+        s = this.add.image(x, y, E.texVivo || { espiritu: 'nv_espiritu' }[clase] || clase).setScale(clase === 'espiritu' ? 2.2 : 2).setAlpha(E.alfa || 1);
+        if (!E.flota) s.setOrigin(0.5, 1);
+      }
+      s.setDepth(E.flota ? 9000 : y);
+      const e = this.nuevoEnemigo(clase, s, { despierto: true, desafio: true, soloYo: true, radio: 3000, ...extra });
+      if (extra.vida) e.vidaMax = extra.vida;
+      this.enemigos.push(e);
+      this.add.particles(x, y - 16, 'p_morado', { speed: { min: 40, max: 130 }, lifespan: 500, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(18);
+      return e;
+    }
+    soltarHorda(n) {
+      const clases = { base: ['niebla', 'bicho', 'arbusto'], pieza: ['bicho', 'arbusto'], u1: ['niebla', 'bicho', 'arbusto'], u2: ['esqueleto', 'remolino', 'escorpion'], u3: ['murcielago', 'minero', 'golem'], u4: ['lobo_nieve', 'espiritu', 'muneco'] }[this.zona] || ['niebla', 'bicho'];
+      const j = this.jugador, W = this.ancho * TILE, H = this.alto * TILE, m = TILE * 2.6;
+      this.cameras.main.shake(260, 0.006);
+      this.flotante(j.x, j.y - 80, '¡Una horda te rodea!', '#ffb4a3');
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, r = 230 + Math.random() * 90;
+        const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);
+        const clase = clases[i % clases.length], E = ENEMIGOS[clase];
+        this.time.delayedCall(i * 220, () => this.crearBichoDesafio(clase, x, y, { horda: true, vida: Math.max(2, E.vida - 2) }));
+      }
+    }
+    soltarDorada() {
+      const p = this.puntoLibre(230, 330);
+      const e = this.crearBichoDesafio('dorado', p.x, p.y, { huye: true, dorada: true, botin: paquete(5, 3, true) });
+      e.s.setTint(0xffd54a);
+      e.extra = this.add.particles(0, 0, 'p_brillo', { x: { min: -16, max: 16 }, y: { min: -40, max: -6 }, lifespan: 600, frequency: 70, speedY: { min: -30, max: -10 }, scale: { start: 1.2, end: 0 } }).setDepth(9001).startFollow(e.s);
+      this.flotante(p.x, p.y - 60, '¡Criatura dorada!', '#ffd27a');
+    }
+    // La criatura dorada escapa del jugador; si la alcanzas, empieza el combate
+    huir(e, obj, d, seg) {
+      const E = ENEMIGOS[e.clase], W = this.ancho * TILE, H = this.alto * TILE, m = TILE * 2.4;
+      let dx = 0, dy = 0;
+      if (!e.ocupado && obj && d < 300) {
+        dx = e.s.x - obj.x; dy = e.s.y - obj.y;
+        const l = Math.hypot(dx, dy) || 1;
+        dx = (dx / l) * E.vel * seg; dy = (dy / l) * E.vel * seg;
+        e.zig = (e.zig || 0) + seg;
+        dx += Math.cos(e.zig * 3) * 30 * seg; dy += Math.sin(e.zig * 3) * 30 * seg;
+        const nx = Phaser.Math.Clamp(e.s.x + dx, m, W - m), ny = Phaser.Math.Clamp(e.s.y + dy, m + 16, H - m);
+        dx = nx - e.s.x; dy = ny - e.s.y; e.s.x = nx; e.s.y = ny;
+      }
+      const mueve = Math.hypot(dx, dy) > 0.2;
+      if (mueve) e.s.anims.play(`${E.anim}_${Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down')}`, true);
+      else { e.s.anims.stop(); e.s.setFrame(DIRS.down * 9); }
+      e.s.setDepth(e.s.y);
+      if (obj && obj.yo && !e.ocupado && d < 30) this.empezarCombate(e);
+    }
+    lanzarMeteorito() {
+      const j = this.jugador, W = this.ancho * TILE, H = this.alto * TILE, m = TILE * 2.4;
+      let p = Math.random() < 0.4 ? { x: j.x + j.body.velocity.x * 0.6, y: j.y + j.body.velocity.y * 0.6 } : this.puntoLibre(20, 240);
+      p = { x: Phaser.Math.Clamp(p.x, m, W - m), y: Phaser.Math.Clamp(p.y, m + 16, H - m) };
+      const sombra = this.add.ellipse(p.x, p.y, 22, 11, 0xa01010, 0.3).setDepth(-4);
+      this.tweens.add({ targets: sombra, scaleX: 3, scaleY: 3, fillAlpha: 0.55, duration: 1100 });
+      const met = this.add.image(p.x + 170, p.y - 430, 'roca3').setScale(2.2).setTint(0xff8a3a).setDepth(99990);
+      const cola = this.add.particles(0, 0, 'p_rojo', { lifespan: 380, frequency: 22, speed: 24, scale: { start: 1.8, end: 0 }, alpha: { start: 1, end: 0 } }).setDepth(99989).startFollow(met);
+      this.des.objs.push(sombra, met, cola);
+      this.tweens.add({ targets: met, x: p.x, y: p.y, angle: 240, duration: 1100, ease: 'Quad.in', onComplete: () => {
+        cola.destroy(); met.destroy(); sombra.destroy();
+        if (vivo.fase !== 'activo' || !this.jugador) return;
+        this.add.particles(p.x, p.y - 6, 'p_rojo', { speed: { min: 60, max: 200 }, angle: { min: 190, max: 350 }, gravityY: 300, lifespan: 600, scale: { start: 1.8, end: 0 }, emitting: false }).setDepth(99990).explode(26);
+        const dj = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, p.x, p.y);
+        if (dj < 240) this.cameras.main.shake(140, dj < 70 ? 0.008 : 0.003);
+        if (dj < 34) {
+          vivo.st.golpes += 1; this.aturdidoHasta = this.time.now + 1100; this.dolor();
+          this.flotante(this.jugador.x, this.jugador.y - 70, '¡Auch! Aturdido', '#ff9a8a');
+        }
+        const f = this.add.image(p.x, p.y, 'roca1').setScale(1.8).setTint(0xffb04a).setDepth(p.y);
+        this.tweens.add({ targets: f, scale: 2.2, duration: 450, yoyo: true, repeat: -1 });
+        const brillo = this.add.particles(p.x, p.y - 10, 'p_brillo', { lifespan: 500, frequency: 160, speedY: { min: -30, max: -10 }, speedX: { min: -10, max: 10 }, scale: { start: 1, end: 0 } }).setDepth(p.y + 1);
+        const it = { tipo: 'frag', s: f, extra: brillo, x: p.x, y: p.y };
+        this.des.items.push(it); this.des.objs.push(f, brillo);
+        this.time.delayedCall(9000, () => this.quitarItem(it));
+      } });
+    }
+    caerCofre() {
+      if (vivo.fase !== 'activo' || !this.jugador) return;
+      const p = this.puntoLibre(110, 360);
+      const sombra = this.add.ellipse(p.x, p.y, 30, 12, 0x000000, 0.25).setDepth(-4);
+      const c = this.add.image(p.x, p.y - 340, 'cofre').setOrigin(0.5, 1).setScale(2).setDepth(99990);
+      this.des.objs.push(sombra, c);
+      this.tweens.add({ targets: c, y: p.y, duration: 750, ease: 'Bounce.out', onComplete: () => {
+        c.setDepth(p.y);
+        const brillo = this.add.particles(p.x, p.y - 24, 'p_brillo', { x: { min: -14, max: 14 }, lifespan: 700, frequency: 120, speedY: { min: -40, max: -15 }, scale: { start: 1.1, end: 0 } }).setDepth(p.y + 1);
+        const it = { tipo: 'cofre', s: c, extra: brillo, sombra, x: p.x, y: p.y };
+        this.des.items.push(it); this.des.objs.push(brillo);
+      } });
+    }
+    crearEclipse() {
+      if (!this.textures.exists('eclipse')) {
+        const t = this.textures.createCanvas('eclipse', 512, 512), c = t.context;
+        c.fillStyle = 'rgba(6, 8, 20, 0.93)'; c.fillRect(0, 0, 512, 512);
+        c.globalCompositeOperation = 'destination-out';
+        const g = c.createRadialGradient(256, 256, 6, 256, 256, 19);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(256, 256, 19, 0, Math.PI * 2); c.fill();
+        t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      }
+      this.des.oscuro = this.add.image(this.jugador.x, this.jugador.y - 16, 'eclipse').setScale(6.5).setDepth(9600).setAlpha(0);
+      this.tweens.add({ targets: this.des.oscuro, alpha: 1, duration: 1200 });
+      this.des.objs.push(this.des.oscuro);
+    }
+    soltarLuciernaga() {
+      const p = this.puntoLibre(150, 520);
+      const halo = this.add.image(p.x, p.y, 'luz').setScale(0.32).setTint(0xfff27a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.85).setDepth(9700);
+      const punto = this.add.image(p.x, p.y, 'p_brillo').setScale(2.2).setDepth(9701);
+      this.tweens.add({ targets: halo, alpha: 0.45, duration: 500 + Math.random() * 400, yoyo: true, repeat: -1 });
+      const it = { tipo: 'luz', s: punto, extra: halo, x: p.x, y: p.y };
+      const vagar = () => {
+        if (!punto.active) return;
+        const q = { x: it.x + (Math.random() - 0.5) * 120, y: it.y + (Math.random() - 0.5) * 90 };
+        this.tweens.add({ targets: [punto, halo], x: q.x, y: q.y, duration: 1800 + Math.random() * 1200, ease: 'Sine.inOut', onUpdate: () => { it.x = punto.x; it.y = punto.y; }, onComplete: vagar });
+      };
+      vagar();
+      this.des.items.push(it); this.des.objs.push(halo, punto);
+    }
+    recoger(tipo, fn) {
+      const j = this.jugador;
+      for (const it of [...this.des.items]) {
+        if (it.tipo !== tipo) continue;
+        if (Phaser.Math.Distance.Between(j.x, j.y - 10, it.x, it.y - 10) < 34) { this.quitarItem(it); fn(it); }
+      }
+    }
+    quitarItem(it) {
+      const i = this.des.items.indexOf(it);
+      if (i < 0) return;
+      this.des.items.splice(i, 1);
+      for (const o of [it.s, it.extra, it.sombra]) if (o && o.active) o.destroy();
+    }
+    limpiarDesafio() {
+      if (!this.des) return;
+      for (const e of this.enemigos.filter((x) => x.desafio && x.activo)) {
+        if (this.enCombate && combateActual === e) continue;
+        e.activo = false;
+        this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 40, max: 120 }, lifespan: 500, scale: { start: 1.3, end: 0 }, emitting: false }).setDepth(99999).explode(14);
+        this.tweens.add({ targets: e.s, alpha: 0, duration: 400, onComplete: () => { e.s.destroy(); if (e.extra) e.extra.destroy(); } });
+      }
+      this.enemigos = this.enemigos.filter((x) => !x.desafio || x.activo || (this.enCombate && combateActual === x));
+      const oscuro = this.des.oscuro;
+      this.des.oscuro = null; this.des.burbuja = null; this.des.polvo = null;
+      for (const o of this.des.objs) if (o && o.active && o !== oscuro) o.destroy();
+      this.des.objs = []; this.des.items = [];
+      if (oscuro && oscuro.active) this.tweens.add({ targets: oscuro, alpha: 0, duration: 1000, onComplete: () => oscuro.destroy() });
+    }
     flotante(x, y, txt, color = '#ffffff') {
       const t = this.add.text(x, y, txt, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '15px', fontStyle: 'bold', color, stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(100000);
       this.tweens.add({ targets: t, y: y - 34, alpha: 0, duration: 1400, ease: 'Cubic.out', onComplete: () => t.destroy() });
@@ -3213,7 +3803,7 @@
   }
 
   // Acceso para pruebas y depuración desde la consola del navegador.
-  window.MathWorld = { escena: () => escena, estado: () => S, sesion: () => sesion, mision: (ev, tema) => avanzarMision(ev, tema), xp: (n) => ganarXP(n) };
+  window.MathWorld = { escena: () => escena, estado: () => S, sesion: () => sesion, vivo: () => vivo, consultarDesafio, eventoDesafio, mision: (ev, tema) => avanzarMision(ev, tema), xp: (n) => ganarXP(n) };
 
   prepararIngreso();
 })();

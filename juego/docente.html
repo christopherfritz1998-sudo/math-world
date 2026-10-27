@@ -54,6 +54,28 @@
     .mundos-tabla .siempre { font-size: 13px; font-weight: 800; color: var(--ok); }
     .mundos-tabla .todos { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
     .btn.mini { min-height: 32px; padding: 0 10px; font-size: 12px; }
+    .des-cursos { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .des-cursos .lbl { font-weight: 800; font-size: 14px; margin-right: 4px; }
+    .chk { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--line); background: #fff; font-weight: 800; cursor: pointer; }
+    .chk[aria-pressed="true"] { border-color: var(--teal); background: #e3f1ee; }
+    .chk small { font-weight: 700; color: var(--muted); }
+    .des-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+    .des-card { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #faf8f2; border-left: 6px solid var(--c, var(--teal)); }
+    .des-card .cab-d { display: flex; gap: 10px; align-items: center; }
+    .des-card .ico { font-size: 26px; line-height: 1; }
+    .des-card strong { font-family: "Fredoka", sans-serif; font-size: 18px; font-weight: 600; }
+    .des-card p { margin: 0; font-size: 13px; color: var(--muted); flex: 1; }
+    .des-card .pie { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .des-card .dur { font-size: 12px; font-weight: 800; color: var(--muted); }
+    .des-estado { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+    .des-vivo { padding: 12px 14px; border-radius: 12px; border: 2px solid #9fd1b0; background: #eef8f1; display: flex; flex-direction: column; gap: 6px; }
+    .des-vivo.espera { border-color: #f2b544; background: #fff7e3; }
+    .des-vivo.fin { border-color: var(--line); background: #faf8f2; }
+    .des-vivo .fila-d { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .des-vivo .reloj { font-family: "Fredoka", sans-serif; font-size: 22px; font-weight: 600; }
+    .des-vivo ol { margin: 0; padding-left: 22px; font-size: 14px; }
+    .des-vivo .meta { height: 10px; border-radius: 5px; background: #d9e6dc; overflow: hidden; }
+    .des-vivo .meta i { display: block; height: 100%; background: var(--ok); }
     main { padding: 24px 0 64px; display: flex; flex-direction: column; gap: 18px; }
     .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
     .tab { min-height: 44px; padding: 0 18px; border-radius: 12px; border: 2px solid var(--line); background: var(--card); color: var(--text); font-weight: 800; font-size: 16px; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; }
@@ -122,6 +144,14 @@
       </div>
       <div class="mundos-tabla" id="mundos"></div>
     </section>
+    <section class="panel acceso" aria-labelledby="desafios-titulo">
+      <div class="acceso-cab">
+        <div><h2 id="desafios-titulo">Desafíos en vivo</h2><span class="muted">Elige los cursos y lanza un desafío: a quienes estén jugando les aparecerá un contador de 10 segundos y luego comenzará. Cada curso tiene un desafío a la vez; puedes detenerlo cuando quieras.</span></div>
+      </div>
+      <div class="des-cursos" id="des-cursos"></div>
+      <div class="des-estado" id="des-estado"></div>
+      <div class="des-lista" id="des-lista"></div>
+    </section>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="tarjetas" id="tarjetas"></div>
     <section class="panel">
@@ -158,6 +188,7 @@
   <script src="preguntas_u234.js"></script>
   <script src="preguntas_ext.js"></script>
   <script src="preguntas_mas.js"></script>
+  <script src="desafios.js"></script>
   <script src="docente.js"></script>
 </body>
 </html>
