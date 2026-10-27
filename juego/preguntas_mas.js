@@ -1,5 +1,5 @@
 // Math World — segunda ampliación del banco de preguntas (todas las unidades de 7° y 8° básico).
-// Agrega nuevas variantes a cada tema del currículum, varias con contexto del mundo del desierto (Unidad 2).
+// Agrega nuevas variantes a cada tema del currículum; la Unidad 1 usa contextos del bosque y la Unidad 2, del desierto.
 // Cada variante es una función (dif, titulo, tema) que devuelve un desafío con el mismo formato.
 (function (global) {
   'use strict';
@@ -37,8 +37,8 @@
   // =====================================================================
   ampliar('7basico', 'u1', 'enteros', [
     (dif, T, k) => {
-      const dia = rnd(28, 45), baja = rnd(dia + 3, dia + 20), noche = dia - baja;
-      return desafio(k, T, `En el desierto, de día la temperatura llega a ${dia} °C y en la noche baja ${baja} °C. ¿Qué temperatura hay en la noche?`,
+      const dia = rnd(4, 14), baja = rnd(dia + 2, dia + 12), noche = dia - baja;
+      return desafio(k, T, `En la cima del bosque, al mediodía la temperatura es ${dia} °C y en una noche de invierno baja ${baja} °C. ¿Qué temperatura hay en la noche?`,
         `${num(noche)} °C`, [`${num(dia + baja)} °C`, `${num(-noche)} °C`, `${num(noche - 10)} °C`], (j) => `${num(noche + j)} °C`,
         'Bajar la temperatura es restar: parte en la temperatura del día y resta lo que baja.', `${dia} − ${baja} = ${num(noche)} °C.`);
     },
@@ -53,7 +53,7 @@
   ampliar('7basico', 'u1', 'fracdec', [
     (dif, T, k) => {
       const d = pick([3, 4, 5, 6, 8]), n = rnd(1, d - 1), q = d * rnd(2, 6);
-      return desafio(k, T, `Una caravana lleva ${q} kg de oro y vende ${ftxt(n, d)} de la carga. ¿Cuántos kilos vende?`,
+      return desafio(k, T, `Un leñador junta ${q} kg de madera y usa ${ftxt(n, d)} para construir un puente. ¿Cuántos kilos usa?`,
         `${num((q * n) / d)} kg`, [`${num(q / d)} kg`, `${num(q - (q * n) / d)} kg`, `${num(q * n)} kg`], (j) => `${num((q * n) / d + j)} kg`,
         `Calcular ${ftxt(n, d)} de una cantidad es dividir por ${d} y multiplicar por ${n}.`, `${q} : ${d} · ${n} = ${num((q * n) / d)} kg.`);
     },
@@ -61,23 +61,23 @@
       const a = rnd(11, 49) / 10, b = pick([2, 4, 5]);
       const r = redondear(a / b, 3);
       if (Math.round(r * 1000) !== r * 1000) return null;
-      return desafio(k, T, `Reparte ${num(a)} litros de agua en ${b} cantimploras iguales. ¿Cuántos litros lleva cada una?`,
+      return desafio(k, T, `Reparte ${num(a)} litros de agua del lago en ${b} baldes iguales. ¿Cuántos litros lleva cada uno?`,
         `${num(r)} L`, [`${num(a * b)} L`, `${num(redondear(r * 10, 3))} L`, `${num(redondear(a - b, 3))} L`], (j) => `${num(redondear(r + j / 10, 3))} L`,
-        'Divide el decimal por el número de cantimploras.', `${num(a)} : ${b} = ${num(r)} L.`);
+        'Divide el decimal por el número de baldes.', `${num(a)} : ${b} = ${num(r)} L.`);
     },
   ]);
   ampliar('7basico', 'u1', 'porcentajes', [
     (dif, T, k) => {
       const p = pick([10, 20, 25, 30, 40, 50]), P0 = 20 * rnd(2, 10);
       const r = P0 * (1 - p / 100);
-      return desafio(k, T, `Un mercader del desierto vende una alfombra en ${P0} monedas con ${p} % de descuento. ¿Cuánto se paga?`,
+      return desafio(k, T, `En la feria del bosque, un hacha cuesta ${P0} monedas y tiene ${p} % de descuento. ¿Cuánto se paga?`,
         `${num(r)} monedas`, [`${num((P0 * p) / 100)} monedas`, `${num(P0 - p)} monedas`, `${num(P0 + (P0 * p) / 100)} monedas`], (j) => `${num(r + j * 2)} monedas`,
         `Calcula el ${p} % del precio y réstalo, o calcula directamente el ${100 - p} %.`, `${p} % de ${P0} = ${num((P0 * p) / 100)}; ${P0} − ${num((P0 * p) / 100)} = ${num(r)}.`);
     },
     (dif, T, k) => {
       const tot = pick([20, 25, 40, 50]), parte = rnd(1, tot - 1);
       const r = (parte * 100) / tot;
-      return desafio(k, T, `De ${tot} cactus del oasis, ${parte} tienen flores. ¿Qué porcentaje tiene flores?`,
+      return desafio(k, T, `De ${tot} árboles del bosque, ${parte} son manzanos. ¿Qué porcentaje son manzanos?`,
         `${num(r)} %`, [`${num(parte)} %`, `${num(100 - r)} %`, `${num(redondear(tot / parte, 2))} %`], (j) => `${num(r + j)} %`,
         'Porcentaje = parte : total · 100.', `${parte} : ${tot} · 100 = ${num(r)} %.`);
     },
@@ -86,7 +86,7 @@
     (dif, T, k) => {
       const a = rnd(2, 9), e = rnd(3, 7);
       const n = a * 10 ** e;
-      return desafio(k, T, `En las dunas hay unos ${num(n)} granos de arena por metro. ¿Cómo se escribe con potencia de 10?`,
+      return desafio(k, T, `En el bosque hay unas ${num(n)} hojas en los árboles. ¿Cómo se escribe ese número con potencia de 10?`,
         `${a} · 10^${e}`, [`${a} · 10^${e + 1}`, `${a} · 10^${e - 1}`, `${a * 10} · 10^${e}`], (j) => `${a} · 10^${e + j + 1}`,
         'Cuenta cuántos ceros hay después de la primera cifra: ese es el exponente.', `${num(n)} = ${a} · 10^${e} porque tiene ${e} ceros.`);
     },
@@ -218,7 +218,7 @@
   ampliar('7basico', 'u3', 'circulo', [
     (dif, T, k) => {
       const dm = 2 * rnd(2, 15), r = redondear(3.14 * dm, 2);
-      return desafio(k, T, `Un pozo del oasis es circular y mide ${dm} m de diámetro. ¿Cuál es su perímetro? (usa π ≈ 3,14)`,
+      return desafio(k, T, `Un pozo es circular y mide ${dm} m de diámetro. ¿Cuál es su perímetro? (usa π ≈ 3,14)`,
         `${num(r)} m`, [`${num(redondear(3.14 * dm * 2, 2))} m`, `${num(redondear(3.14 * (dm / 2) ** 2, 2))} m`, `${num(redondear(3.14 + dm, 2))} m`], (j) => `${num(redondear(r + j, 2))} m`,
         'Perímetro = π · diámetro.', `3,14 · ${dm} = ${num(r)} m.`);
     },
@@ -246,7 +246,7 @@
   ampliar('7basico', 'u3', 'cartesiano', [
     (dif, T, k) => {
       const x = rnd(-6, 6) || 2, y = rnd(-6, 6) || -3, dx = rnd(-5, 5) || 3, dy = rnd(-5, 5) || -2;
-      return desafio(k, T, `Un camello está en (${num(x)}, ${num(y)}) y se traslada ${Math.abs(dx)} ${dx > 0 ? 'a la derecha' : 'a la izquierda'} y ${Math.abs(dy)} ${dy > 0 ? 'hacia arriba' : 'hacia abajo'}. ¿Dónde queda?`,
+      return desafio(k, T, `Un explorador está en (${num(x)}, ${num(y)}) y se traslada ${Math.abs(dx)} ${dx > 0 ? 'a la derecha' : 'a la izquierda'} y ${Math.abs(dy)} ${dy > 0 ? 'hacia arriba' : 'hacia abajo'}. ¿Dónde queda?`,
         `(${num(x + dx)}, ${num(y + dy)})`, [`(${num(x + dy)}, ${num(y + dx)})`, `(${num(x - dx)}, ${num(y - dy)})`, `(${num(x + dx)}, ${num(y - dy)})`], (j) => `(${num(x + dx + j)}, ${num(y + dy)})`,
         'Moverse a la derecha o izquierda cambia la primera coordenada; arriba o abajo, la segunda.', `(${num(x)} + ${par(dx)}, ${num(y)} + ${par(dy)}) = (${num(x + dx)}, ${num(y + dy)}).`);
     },
@@ -267,14 +267,14 @@
     (dif, T, k) => {
       const l = Array.from({ length: 5 }, () => rnd(1, 15));
       const o = [...l].sort((a, b) => a - b), m = mediana(l);
-      return desafio(k, T, `Los cactus cortados por cinco jugadores fueron: ${l.join(', ')}. ¿Cuál es la mediana?`,
+      return desafio(k, T, `Los ejercicios correctos de cinco jugadores fueron: ${l.join(', ')}. ¿Cuál es la mediana?`,
         num(m), [num(redondear(sumaL(l) / 5, 2)), num(o[4] - o[0]), num(l[2])].filter((x) => x !== num(m)), cerca(m),
         'Ordena los datos de menor a mayor: la mediana es el dato del centro.', `Ordenados: ${o.join(', ')}. El del centro es ${m}.`);
     },
     (dif, T, k) => {
       const l = Array.from({ length: 6 }, () => rnd(2, 30));
       const r = Math.max(...l) - Math.min(...l);
-      return desafio(k, T, `Monedas de oro de seis mercaderes: ${l.join(', ')}. ¿Cuál es el rango?`,
+      return desafio(k, T, `Monedas reunidas por seis jugadores: ${l.join(', ')}. ¿Cuál es el rango?`,
         num(r), [num(Math.max(...l)), num(redondear(sumaL(l) / 6, 2)), num(Math.max(...l) + Math.min(...l))], cerca(r),
         'Rango = dato mayor − dato menor.', `${Math.max(...l)} − ${Math.min(...l)} = ${r}.`);
     },
@@ -290,7 +290,7 @@
   ampliar('7basico', 'u4', 'tablas', [
     (dif, T, k) => {
       const tot = pick([20, 25, 40, 50]), f = rnd(1, tot - 1);
-      return desafio(k, T, `En una encuesta a ${tot} viajeros, ${f} prefieren viajar de noche por el desierto. ¿Cuál es la frecuencia relativa porcentual?`,
+      return desafio(k, T, `En una encuesta a ${tot} viajeros, ${f} prefieren explorar de noche. ¿Cuál es la frecuencia relativa porcentual?`,
         `${num((f * 100) / tot)} %`, [`${num(f)} %`, `${num(100 - (f * 100) / tot)} %`, `${num(redondear(tot / f, 2))} %`], (j) => `${num((f * 100) / tot + j)} %`,
         'Frecuencia relativa = frecuencia : total; para el porcentaje, multiplícala por 100.', `${f} : ${tot} · 100 = ${num((f * 100) / tot)} %.`);
     },
@@ -334,7 +334,7 @@
   ampliar('8basico', 'u1', 'raiz', [
     (dif, T, k) => {
       const r = rnd(4, 15);
-      return desafio(k, T, `Un patio cuadrado del palacio del desierto tiene ${r * r} m² de área. ¿Cuánto mide cada lado?`,
+      return desafio(k, T, `Un claro cuadrado del bosque tiene ${r * r} m² de área. ¿Cuánto mide cada lado?`,
         `${r} m`, [`${num((r * r) / 2)} m`, `${num((r * r) / 4)} m`, `${r * 2} m`], (j) => `${r + j} m`,
         'El lado de un cuadrado es la raíz cuadrada de su área.', `√${r * r} = ${r} m.`);
     },
@@ -343,7 +343,7 @@
     (dif, T, k) => {
       const P0 = 100 * rnd(2, 9), p = pick([10, 20, 25]), n = 2;
       const r = redondear(P0 * (1 + p / 100) ** n, 2);
-      return desafio(k, T, `El precio del oro sube ${p} % cada año. Si hoy un lingote vale ${P0} monedas, ¿cuánto valdrá en ${n} años?`,
+      return desafio(k, T, `El precio de la madera sube ${p} % cada año. Si hoy una carga vale ${P0} monedas, ¿cuánto valdrá en ${n} años?`,
         `${num(r)} monedas`, [`${num(P0 + (2 * P0 * p) / 100)} monedas`, `${num(P0 * (1 + p / 100))} monedas`, `${num(redondear(r + P0 / 10, 2))} monedas`], (j) => `${num(redondear(r + j * 4, 2))} monedas`,
         `Cada año se multiplica por ${num(1 + p / 100)}: hazlo dos veces.`, `${P0} · ${num(1 + p / 100)} · ${num(1 + p / 100)} = ${num(r)}.`);
     },
@@ -483,7 +483,7 @@
   ampliar('8basico', 'u3', 'pitagoras', [
     (dif, T, k) => {
       const [a, b, c] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [12, 16, 20]]);
-      return desafio(k, T, `Una escalera de ${c} m está apoyada en un muro de arenisca. Su pie está a ${a} m del muro. ¿A qué altura llega?`,
+      return desafio(k, T, `Una escalera de ${c} m está apoyada en un muro. Su pie está a ${a} m del muro. ¿A qué altura llega?`,
         `${b} m`, [`${c - a} m`, `${c + a} m`, `${num(redondear(Math.sqrt(c * c + a * a), 2))} m`], (j) => `${b + j} m`,
         'La escalera es la hipotenusa: cateto² = hipotenusa² − otro cateto².', `√(${c}² − ${a}²) = √${c * c - a * a} = ${b} m.`);
     },
@@ -526,7 +526,7 @@
   ampliar('8basico', 'u4', 'multiplicativo', [
     (dif, T, k) => {
       const t = rnd(2, 5), c = rnd(2, 5), b = rnd(2, 4);
-      return desafio(k, T, `Para cruzar el desierto eliges 1 de ${t} turbantes, 1 de ${c} capas y 1 de ${b} cantimploras. ¿Cuántas combinaciones distintas puedes formar?`,
+      return desafio(k, T, `Para tu personaje eliges 1 de ${t} sombreros, 1 de ${c} capas y 1 de ${b} mochilas. ¿Cuántas combinaciones distintas puedes formar?`,
         num(t * c * b), [num(t + c + b), num(t * c + b), num(t * c)], cerca(t * c * b),
         'Principio multiplicativo: multiplica las opciones de cada elección.', `${t} · ${c} · ${b} = ${t * c * b}.`);
     },

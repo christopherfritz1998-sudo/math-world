@@ -181,9 +181,10 @@
 
   // oculto: espera escondido y despierta al acercarse · flota: atraviesa obstáculos · anim: hoja animada (LPC)
   const ENEMIGOS = {
-    arbusto: { nombre: 'Arbusto gruñón', vida: 3, dif: 1, botin: { madera: 3 }, xp: 15, vel: 58, oculto: true, tex: 'arbusto', texVivo: 'arbusto_vivo', retrato: 'arbusto_vivo', radio: 240 },
-    niebla: { nombre: 'Niebla confusa', vida: 4, dif: 2, botin: { agua: 3, cristal: 1 }, xp: 22, vel: 42, flota: true, alfa: 0.85, radio: 150 },
-    bicho: { nombre: 'Araña del árbol', vida: 2, dif: 1, botin: { madera: 2 }, xp: 10, vel: 85, radio: 240 },
+    // Bosque (Unidad 1): los identificadores se mantienen para no perder misiones guardadas
+    arbusto: { nombre: 'Duende del bosque', vida: 3, dif: 1, botin: { madera: 3 }, xp: 15, vel: 62, oculto: true, tex: 'arbusto', anim: 'duende', retrato: 'duende_retrato', radio: 240 },
+    niebla: { nombre: 'Hombre lobo', vida: 4, dif: 2, botin: { agua: 3, cristal: 1 }, xp: 22, vel: 66, anim: 'lobo', retrato: 'lobo_retrato', radio: 190 },
+    bicho: { nombre: 'Jabalí salvaje', vida: 2, dif: 1, botin: { madera: 2 }, xp: 10, vel: 92, anim: 'jabali', retrato: 'jabali_retrato', radio: 240 },
     // Desierto (Unidad 2)
     escorpion: { nombre: 'Escorpión de las dunas', vida: 4, dif: 2, botin: { fibra: 2, cobre: 1 }, xp: 20, vel: 78, oculto: true, tex: 'monticulo', texVivo: 'escorpion', retrato: 'escorpion', radio: 220 },
     remolino: { nombre: 'Remolino de arena', vida: 5, dif: 2, botin: { arenisca: 3, oro: 1 }, xp: 26, vel: 50, flota: true, alfa: 0.9, radio: 170 },
@@ -191,7 +192,7 @@
   };
   const xpPara = (nivel) => 60 + 40 * nivel;
   const JEFES = {
-    u1: { nombre: 'Guardián del Cero', color: '#7d8a7a' },
+    u1: { nombre: 'Troll Guardián del Bosque', color: '#7d8a7a', lpc: true, retrato: 'jefe_u1_retrato' },
     u2: { nombre: 'Rey Lagarto de las Dunas', color: '#c9a46b', lpc: true, retrato: 'jefe_u2_retrato', vida: 9, fases: true, premio: { oro: 6, cobre: 8, arenisca: 10 } },
     u3: { nombre: 'Titán de las Formas', color: '#c9a46b' },
     u4: { nombre: 'Hidra de los Datos', color: '#5d7b55' },
@@ -375,9 +376,9 @@
     picar: { n: [3, 5], txt: (m) => (desierto(m.u) ? `Pica ${m.n} rocas de arenisca` : `Pica ${m.n} rocas`), req: () => tiene('pico') },
     agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde'), mundos: (u) => !desierto(u) },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
-    arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} arbustos gruñones`, mundos: (u) => !desierto(u) },
-    niebla: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 niebla' : `Vence ${m.n} nieblas`), mundos: (u) => !desierto(u) },
-    bicho: { n: [1, 1], txt: () => 'Vence 1 bicho que cae de los árboles', mundos: (u) => !desierto(u) },
+    arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} duendes del bosque`, mundos: (u) => !desierto(u) },
+    niebla: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 hombre lobo' : `Vence ${m.n} hombres lobo`), mundos: (u) => !desierto(u) },
+    bicho: { n: [1, 1], txt: () => 'Vence 1 jabalí salvaje (sale de entre los árboles)', mundos: (u) => !desierto(u) },
     escorpion: { n: [2, 3], txt: (m) => `Vence ${m.n} escorpiones de las dunas`, mundos: desierto },
     remolino: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 remolino de arena' : `Vence ${m.n} remolinos de arena`), mundos: desierto },
     esqueleto: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 esqueleto del desierto' : `Vence ${m.n} esqueletos del desierto`), mundos: desierto },
@@ -1428,7 +1429,7 @@
       if (!this.textures.exists('kenney_in')) this.load.image('kenney_in', 'assets/kenney_indoor.png');
       if (!this.textures.exists('kenney_cueva')) this.load.image('kenney_cueva', 'assets/kenney_cueva.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      if (!this.textures.exists('esqueleto_hoja')) this.load.spritesheet('esqueleto_hoja', 'assets/enemigos/esqueleto.png', { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -1583,11 +1584,10 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      cuadro('esqueleto_retrato', 'esqueleto_hoja', 0, 2);
-      cuadro('jefe_u2_retrato', 'jefe_u2_hoja', 0, 2);
-      for (const [k, h] of [['esqueleto', 'esqueleto_hoja'], ['jefe_u2', 'jefe_u2_hoja']]) {
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'jefe_u2']) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
+      for (const [k, h] of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'jefe_u2'].map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
-          if (!this.anims.exists(`${k}_${d}`)) this.anims.create({ key: `${k}_${d}`, frames: this.anims.generateFrameNumbers(h, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: k === 'jefe_u2' ? 7 : 10, repeat: -1 });
+          if (!this.anims.exists(`${k}_${d}`)) this.anims.create({ key: `${k}_${d}`, frames: this.anims.generateFrameNumbers(h, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: k.startsWith('jefe') ? 7 : 10, repeat: -1 });
         }
       }
       const g = this.add.graphics();
@@ -1898,16 +1898,16 @@
       for (let i = 0; i < M.arbustos; i++) {
         const p = lugar(1); if (!p) break;
         if (Math.abs(p[0] - P.x) < 8 && Math.abs(p[1] - P.y) < 8) continue;
-        const s = this.sprite('arbusto', p[0], p[1]);
+        const s = this.add.sprite(p[0] * TILE + TILE / 2, (p[1] + 1) * TILE, 'arbusto').setOrigin(0.5, 1).setScale(2);
+        s.setDepth(s.y);
         this.marcar(p[0], p[1]);
         this.enemigos.push(this.nuevoEnemigo('arbusto', s, { despierto: false, k: `a${i}` }));
       }
       for (let i = 0; i < M.nieblas; i++) {
         const p = lugar(1); if (!p) break;
         if (Math.abs(p[0] - P.x) < 10 && Math.abs(p[1] - P.y) < 10) continue;
-        const s = this.add.image(p[0] * TILE + 16, p[1] * TILE + 16, 'niebla').setScale(2).setAlpha(0.85);
-        this.add.particles(s.x, s.y, 'humo', { x: { min: -90, max: 90 }, y: { min: -60, max: 60 }, lifespan: 4000, frequency: 450, scale: { start: 1.2, end: 2.2 }, alpha: { start: 0.5, end: 0 }, speed: 6 }).setDepth(9000);
-        this.tweens.add({ targets: s, y: s.y - 6, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        const s = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'lobo_hoja', DIRS.down * 9).setOrigin(0.5, 0.9);
+        s.setDepth(s.y);
         this.enemigos.push(this.nuevoEnemigo('niebla', s, { despierto: true, k: `n${i}` }));
       }
     }
@@ -2109,8 +2109,8 @@
       if (J.lpc) {
         // Jefe animado (LPC): más grande y caminando en su lugar
         this.jefeEscala = 2.2;
-        this.jefeSpr = this.add.sprite(cx, cy + 6, 'jefe_u2_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.2).setDepth(cy);
-        this.jefeSpr.anims.play('jefe_u2_down');
+        this.jefeSpr = this.add.sprite(cx, cy + 6, `jefe_${this.zona}_hoja`, DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.2).setDepth(cy);
+        this.jefeSpr.anims.play(`jefe_${this.zona}_down`);
       } else {
         this.jefeEscala = 4;
         this.jefeSpr = this.add.image(cx, cy, `jefe_${this.zona}`).setOrigin(0.5, 1).setScale(4).setDepth(cy);
@@ -2220,7 +2220,7 @@
         else for (const t of todos) { const dd = Phaser.Math.Distance.Between(t.x, t.y - 16, e.s.x, e.s.y - 10); if (dd < d) { d = dd; obj = t; } }
         if (!obj) continue;
         if (E.oculto && !e.despierto) {
-          if (d < 80) { e.despierto = true; e.s.setTexture(E.texVivo); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); this.flotante(e.s.x, e.s.y - 40, e.clase === 'escorpion' ? '¡Sssh!' : '¡Grrr!', '#ffb4a3'); }
+          if (d < 80) { this.despertar(e); this.flotante(e.s.x, e.s.y - 40, e.clase === 'escorpion' ? '¡Sssh!' : '¡Je, je!', '#ffb4a3'); }
           continue;
         }
         const persigue = e.ocupado ? true : d < (E.radio || 240);
@@ -2228,12 +2228,12 @@
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
         const mueve = l > (e.ocupado ? 26 : 4);
         if (mueve) { e.s.x += (dx / l) * E.vel * seg; e.s.y += (dy / l) * E.vel * seg; }
-        if (E.anim) {
+        if (E.anim && (!E.oculto || e.despierto)) {
           if (mueve) e.s.anims.play(`${E.anim}_${Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down')}`, true);
           else { e.s.anims.stop(); e.s.setFrame(DIRS.down * 9); }
         }
         if (!E.flota) e.s.setDepth(e.s.y);
-        if (!persigue && E.oculto && l < 6) { e.despierto = false; e.s.setTexture(E.tex); }
+        if (!persigue && E.oculto && l < 6) this.esconder(e);
         if (persigue && obj.yo && !e.ocupado && d < 30) this.empezarCombate(e);
       }
       // bichos que caen de los árboles cuando pasa cualquier jugador del grupo
@@ -2246,15 +2246,16 @@
     soltarBicho(arbol) {
       if (!arbol.bicho) return;
       arbol.bicho = false;
-      const s = this.add.image(arbol.x, arbol.y - 70, 'bicho').setScale(2).setDepth(arbol.y + 60);
-      const hilo = this.add.image(arbol.x, arbol.y - 76, 'hilo').setOrigin(0.5, 0).setScale(1, 1).setDepth(arbol.y + 59);
+      const s = this.add.sprite(arbol.x, arbol.y - 4, 'jabali_hoja', DIRS.down * 9).setOrigin(0.5, 0.9).setDepth(arbol.y - 2);
+      s.anims.play('jabali_down');
       const viejo = this.enemigos.findIndex((x) => x.k === `b${arbol.idx}`);
       if (viejo >= 0) this.enemigos.splice(viejo, 1);
       const e = this.nuevoEnemigo('bicho', s, { cayendo: true, k: `b${arbol.idx}` });
       this.enemigos.push(e);
       this.flotante(arbol.x, arbol.y - 90, '¡Cuidado!', '#ffb4a3');
-      this.tweens.add({ targets: s, y: arbol.y + 4, duration: 650, ease: 'Bounce.out', onUpdate: () => { hilo.setScale(1, Math.max(1, (s.y - hilo.y) / 8 * 2)); },
-        onComplete: () => { hilo.destroy(); e.cayendo = false; e.origen = { x: s.x, y: s.y }; } });
+      this.cameras.main.shake(120, 0.003);
+      this.tweens.add({ targets: s, y: arbol.y + 40, duration: 380, ease: 'Quad.out', onUpdate: () => s.setDepth(s.y),
+        onComplete: () => { e.cayendo = false; e.origen = { x: s.x, y: s.y }; } });
       this.time.delayedCall(120000, () => { arbol.bicho = true; });
     }
     empezarCombate(e) {
@@ -2296,9 +2297,21 @@
       this.add.particles(e.s.x, e.s.y - 10, 'p_morado', { speed: { min: 60, max: 160 }, lifespan: 700, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
       this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
       const E = ENEMIGOS[e.clase];
-      if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(E.alfa || 1).setScale(E.anim ? 1 : 2).setVisible(true); if (E.oculto) { e.despierto = false; e.s.setTexture(E.tex); } e.vida = e.vidaMax; e.activo = true; });
+      if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(E.alfa || 1).setScale(E.anim ? 1 : 2).setVisible(true); if (E.oculto) this.esconder(e); e.vida = e.vidaMax; e.activo = true; });
     }
     enemigo(k) { return this.enemigos.find((x) => x.k === k); }
+    // Enemigos escondidos (arbusto o montículo): salen al acercarse y vuelven a esconderse
+    despertar(e) {
+      const E = ENEMIGOS[e.clase];
+      e.despierto = true;
+      if (E.anim) { e.s.setTexture(`${E.anim}_hoja`, DIRS.down * 9).setOrigin(0.5, 0.9).setScale(1); this.tweens.add({ targets: e.s, y: e.s.y + 4, duration: 90, yoyo: true }); }
+      else { e.s.setTexture(E.texVivo); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); }
+    }
+    esconder(e) {
+      const E = ENEMIGOS[e.clase];
+      e.despierto = false;
+      if (E.anim) { e.s.anims.stop(); e.s.setTexture(E.tex).setOrigin(0.5, 1).setScale(2); } else e.s.setTexture(E.tex);
+    }
     golpeEnemigo(e, n) {
       this.flotante(e.s.x, e.s.y - 36, `−${n}`, '#ffd27a');
       this.tweens.add({ targets: e.s, x: e.s.x + 4, duration: 50, yoyo: true, repeat: 2 });
@@ -2491,7 +2504,7 @@
       c.on('jefe', (d) => this.recibirJefe(d));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
-      c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; const E = ENEMIGOS[e.clase]; if (E.oculto && !e.despierto) { e.despierto = true; e.s.setTexture(E.texVivo); } } });
+      c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; if (ENEMIGOS[e.clase].oculto && !e.despierto) this.despertar(e); } });
       c.on('libre', (d) => { const e = this.enemigo(d.k); if (e) { e.ocupado = null; e.aturdido = this.time.now + 3000; } });
       c.on('vencido', (d) => { const e = this.enemigo(d.k); if (e && !(this.enCombate && combateActual === e)) this.vencerEnemigo(e); });
       c.on('jefe_pedir', () => this.iniciarJefeSiLider());
