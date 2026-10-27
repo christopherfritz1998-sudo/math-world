@@ -22,6 +22,8 @@
     { id: 'cobre', nombre: 'Cobre', grupo: 'u2' }, { id: 'oro', nombre: 'Oro', grupo: 'u2' },
     { id: 'carbon', nombre: 'Carbón', grupo: 'u3' }, { id: 'plata', nombre: 'Plata', grupo: 'u3' },
     { id: 'amatista', nombre: 'Amatista', grupo: 'u3' }, { id: 'hongo', nombre: 'Hongos luminosos', corto: 'Hongos', grupo: 'u3' },
+    { id: 'baya', nombre: 'Bayas de invierno', corto: 'Bayas', grupo: 'u4' }, { id: 'hielo', nombre: 'Hielo', grupo: 'u4' },
+    { id: 'escarcha', nombre: 'Cristal de escarcha', corto: 'Escarcha', grupo: 'u4' }, { id: 'zafiro', nombre: 'Zafiro', grupo: 'u4' },
   ];
   const REC = Object.fromEntries(RECURSOS.map((r) => [r.id, r]));
   const nombreRec = (id) => (REC[id] ? REC[id].nombre.toLowerCase() : id);
@@ -47,12 +49,17 @@
     { id: 'pico4', nombre: 'Pico de plata', desc: 'Permite extraer amatista y saca más carbón y plata.', icono: 'pickaxe', costo: { plata: 10, carbon: 15, hongo: 6 }, requiere: 'pico2' },
     { id: 'espada4', nombre: 'Espada de amatista', desc: 'Equipada, cada acierto en combate quita 5 de vida.', icono: 'espada', costo: { amatista: 8, plata: 10 }, requiere: 'espada2' },
     { id: 'armadura4', nombre: 'Armadura de plata', desc: 'Equipada, tu vida máxima sube a 13 corazones.', icono: 'armadura', costo: { plata: 14, carbon: 20, amatista: 4 }, requiere: 'armadura2' },
+    // Equipo del mundo helado (Unidad 4)
+    { id: 'abrigo', nombre: 'Abrigo de piel', desc: 'Siempre activo: +1 corazón de vida máxima y la ventisca ya no te hace caminar lento.', icono: 'abrigo', costo: { baya: 8, hielo: 10, escarcha: 4 }, requiere: 'pico' },
+    { id: 'pico5', nombre: 'Pico de escarcha', desc: 'Permite extraer zafiros y saca más hielo y escarcha.', icono: 'pickaxe', costo: { escarcha: 10, hielo: 15, baya: 6 }, requiere: 'pico2' },
+    { id: 'espada5', nombre: 'Espada de hielo', desc: 'Equipada, cada acierto en combate quita 6 de vida.', icono: 'espada', costo: { zafiro: 8, escarcha: 10 }, requiere: 'espada2' },
+    { id: 'armadura5', nombre: 'Armadura de escarcha', desc: 'Equipada, tu vida máxima sube a 15 corazones.', icono: 'armadura', costo: { escarcha: 14, hielo: 20, zafiro: 4 }, requiere: 'armadura2' },
   ];
   const NOMBRE_MEJORA = Object.fromEntries(MEJORAS.map((m) => [m.id, m.nombre]));
   // Equipo que se ve en el personaje
-  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 } };
-  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' }, armadura4: { nombre: 'Armadura de plata', vida: 8, tex: 'plata' } };
-  const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata'];
+  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 }, espada5: { nombre: 'Espada de hielo', danio: 6 } };
+  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' }, armadura4: { nombre: 'Armadura de plata', vida: 8, tex: 'plata' }, armadura5: { nombre: 'Armadura de escarcha', vida: 10, tex: 'hielo' } };
+  const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata', 'hielo'];
   const cuerpoDe = (pj) => (pj === 'luna' || pj === 'copihue' ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
@@ -125,6 +132,20 @@
     D('brasero_mina', 'Brasero de carbón', 'Mina', 'ambos', 'c', [14, 17, 1, 1], { carbon: 4, plata: 1 }),
     D('mineral_plata', 'Mineral de plata', 'Mina', 'ambos', 'c', [14, 16, 1, 1], { plata: 3 }, { paso: true }),
     D('geoda', 'Geoda de amatista', 'Mina', 'ambos', 'c', [10, 12, 1, 1], { amatista: 3, carbon: 2 }),
+    // Invierno (se fabrican con los recursos de la Unidad 4)
+    D('muneco_nieve', 'Muñeco de nieve', 'Invierno', 'base', 'n', [10, 1, 1, 1], { hielo: 3, baya: 1 }),
+    D('iglu', 'Iglú', 'Invierno', 'base', 'n', [13, 1, 2, 1], { hielo: 14, escarcha: 2 }),
+    D('pino_nevado', 'Pino nevado', 'Invierno', 'base', 'n', [4, 0, 1, 2], { hielo: 2, baya: 2 }),
+    D('roble_nevado', 'Árbol nevado', 'Invierno', 'base', 'n', [6, 0, 1, 2], { hielo: 2, baya: 2 }),
+    D('arbol_helado', 'Árbol seco nevado', 'Invierno', 'base', 'n', [10, 0, 1, 1], { hielo: 2 }),
+    D('arbusto_nieve', 'Arbusto nevado', 'Invierno', 'base', 'n', [5, 1, 1, 1], { baya: 2, hielo: 1 }),
+    D('monton_nieve', 'Montón de nieve', 'Invierno', 'base', 'n', [6, 1, 1, 1], { hielo: 1 }, { paso: true }),
+    D('bloque_hielo', 'Bloque de hielo', 'Invierno', 'ambos', 'n', [7, 1, 1, 1], { hielo: 4 }),
+    D('cerco_nevado', 'Cerco nevado', 'Invierno', 'base', 'n', [8, 1, 1, 1], { hielo: 1, madera: 1 }),
+    D('trineo', 'Trineo', 'Invierno', 'ambos', 'n', [15, 1, 1, 1], { madera: 4, hielo: 2 }),
+    D('pinguino', 'Pingüino', 'Invierno', 'ambos', 'n', [0, 2, 1, 1], { baya: 3, hielo: 2 }),
+    D('cristal_escarcha', 'Cristal de escarcha', 'Invierno', 'ambos', 'n', [2, 1, 1, 1], { escarcha: 3 }, { paso: true }),
+    D('zafiros', 'Zafiros', 'Invierno', 'ambos', 'n', [3, 1, 1, 1], { zafiro: 2, escarcha: 1 }, { paso: true }),
     D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
     D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
     D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
@@ -195,9 +216,10 @@
     u3: { nombre: { '7basico': 'Mina de las Formas', '8basico': 'Mina de los Volúmenes' }, tipo: 'cueva', recursos: 'u3', semilla: 33, fondo: '#1a1a24',
       suelo: [[9, 2, 1], [9, 7, 0.08], [9, 3, 0.015]], nHongos: 70, nRocas: 45, vetasPlata: 12, vetasAmatista: 6, pozas: 3, cofres: 7,
       murcielagos: 8, golems: 7, mineros: 8, cofre: { plata: 2, amatista: 1 }, oscuridad: 0.5 },
-    u4: { nombre: 'Pantano de los Datos', semilla: 44, fondo: '#2b4a3a',
-      suelo: [[5, 1, 1], [5, 0, 0.3]], arboles: ['arbol_redondo', 'arbol_pino', 'arbol_manzano'], nArboles: 95,
-      rocas: ['roca_musgo3', 'roca3'], nRocas: 30, lagos: 5, cofres: 6, arbustos: 8, nieblas: 9, bichos: 0.15, tinte: [0x0f3020, 0.38] },
+    // Unidad 4: mundo helado con ventiscas y recursos propios (bayas de invierno, hielo, escarcha y zafiros)
+    u4: { nombre: { '7basico': 'Glaciar de los Datos', '8basico': 'Glaciar del Azar' }, tipo: 'hielo', recursos: 'u4', semilla: 44, fondo: '#e4eef7',
+      suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 70, nArbustos: 55, nRocas: 42, vetasEscarcha: 12, vetasZafiro: 6, cofres: 7,
+      lobos: 8, espiritus: 6, munecos: 8, cofre: { escarcha: 2, zafiro: 1 } },
   };
   const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g); };
   const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
@@ -211,6 +233,10 @@
     // Desierto (Unidad 2)
     escorpion: { nombre: 'Escorpión de las dunas', vida: 4, dif: 2, botin: { fibra: 2, cobre: 1 }, xp: 20, vel: 78, oculto: true, tex: 'monticulo', texVivo: 'escorpion', retrato: 'escorpion', radio: 220 },
     remolino: { nombre: 'Remolino de arena', vida: 5, dif: 2, botin: { arenisca: 3, oro: 1 }, xp: 26, vel: 50, flota: true, alfa: 0.9, radio: 170 },
+    // Mundo helado (Unidad 4)
+    lobo_nieve: { nombre: 'Lobo de las nieves', vida: 5, dif: 2, botin: { baya: 2, hielo: 1 }, xp: 22, vel: 82, anim: 'lobo_nieve', retrato: 'lobo_nieve_retrato', radio: 220 },
+    espiritu: { nombre: 'Espíritu de la ventisca', vida: 5, dif: 3, botin: { escarcha: 2, hielo: 1 }, xp: 28, vel: 52, flota: true, alfa: 0.9, retrato: 'nv_espiritu', radio: 180 },
+    muneco: { nombre: 'Muñeco de nieve furioso', vida: 6, dif: 3, botin: { hielo: 2, zafiro: 1 }, xp: 32, vel: 48, oculto: true, tex: 'nv_montonnieve', texVivo: 'nv_muneco_malo', retrato: 'nv_muneco_malo', radio: 200 },
     // Mina (Unidad 3)
     murcielago: { nombre: 'Murciélago de la mina', vida: 3, dif: 2, botin: { hongo: 2, carbon: 1 }, xp: 18, vel: 88, flota: true, radio: 190 },
     golem: { nombre: 'Gólem de roca', vida: 7, dif: 3, botin: { carbon: 2, plata: 1, amatista: 1 }, xp: 34, vel: 46, oculto: true, tex: 'golem_roca', texVivo: 'golem', retrato: 'golem', radio: 200 },
@@ -224,7 +250,8 @@
       furia: { titulo: '¡Tormenta de arena!', toast: 'desató una tormenta de arena', particula: 'p_arena', tinte: 0xffc07a, flash: [230, 170, 60] } },
     u3: { nombre: 'Minotauro de las Profundidades', color: '#8a7aa6', lpc: true, retrato: 'jefe_u3_retrato', vida: 10, fases: true, premio: { amatista: 5, plata: 8, carbon: 10 },
       furia: { titulo: '¡Derrumbe en la mina!', toast: 'provocó un derrumbe', particula: 'p_piedra', tinte: 0xc9b6ff, flash: [150, 130, 200] } },
-    u4: { nombre: 'Hidra de los Datos', color: '#5d7b55' },
+    u4: { nombre: 'Yeti, Rey de la Escarcha', color: '#9fc6e6', lpc: true, retrato: 'jefe_u4_retrato', vida: 11, fases: true, premio: { zafiro: 5, escarcha: 8, hielo: 10 },
+      furia: { titulo: '¡Ventisca helada!', toast: 'desató una ventisca helada', particula: 'p_nieve', tinte: 0xbfe8ff, flash: [210, 235, 255] } },
   };
   const VIDA_HUIR = 1, VIDA_COFRE = 2;
   const JEFE_MIN = 4, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
@@ -294,7 +321,7 @@
   }
 
   const tiene = (id) => S.mejoras.includes(id);
-  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0);
+  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0);
   const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1);
   const esDocente = () => Boolean(S && S.docente);
   const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
@@ -401,10 +428,11 @@
   // mundos: en qué mundos puede salir la misión (sin "mundos" = en todos). El desierto tiene sus propias misiones.
   const desierto = (u) => Boolean(MUNDOS[u] && MUNDOS[u].tipo === 'desierto');
   const cueva = (u) => Boolean(MUNDOS[u] && MUNDOS[u].tipo === 'cueva');
-  const bosque = (u) => !desierto(u) && !cueva(u);
+  const helado = (u) => Boolean(MUNDOS[u] && MUNDOS[u].tipo === 'hielo');
+  const bosque = (u) => !desierto(u) && !cueva(u) && !helado(u);
   const TIPOS_MISION = {
-    talar: { n: [4, 6], txt: (m) => (desierto(m.u) ? `Corta ${m.n} cactus` : cueva(m.u) ? `Recolecta ${m.n} grupos de hongos luminosos` : `Tala ${m.n} árboles`) },
-    picar: { n: [3, 5], txt: (m) => (desierto(m.u) ? `Pica ${m.n} rocas de arenisca` : cueva(m.u) ? `Pica ${m.n} rocas de carbón` : `Pica ${m.n} rocas`), req: () => tiene('pico') },
+    talar: { n: [4, 6], txt: (m) => (desierto(m.u) ? `Corta ${m.n} cactus` : cueva(m.u) ? `Recolecta ${m.n} grupos de hongos luminosos` : helado(m.u) ? `Recolecta bayas de ${m.n} arbustos` : `Tala ${m.n} árboles`) },
+    picar: { n: [3, 5], txt: (m) => (desierto(m.u) ? `Pica ${m.n} rocas de arenisca` : cueva(m.u) ? `Pica ${m.n} rocas de carbón` : helado(m.u) ? `Pica ${m.n} bloques de hielo` : `Pica ${m.n} rocas`), req: () => tiene('pico') },
     agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde'), mundos: bosque },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
     arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} duendes del bosque`, mundos: bosque },
@@ -413,7 +441,10 @@
     escorpion: { n: [2, 3], txt: (m) => `Vence ${m.n} escorpiones de las dunas`, mundos: desierto },
     remolino: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 remolino de arena' : `Vence ${m.n} remolinos de arena`), mundos: desierto },
     esqueleto: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 esqueleto del desierto' : `Vence ${m.n} esqueletos del desierto`), mundos: desierto },
-    veta: { n: [2, 3], txt: (m) => `Extrae ${cueva(m.u) ? 'plata' : 'cobre'} de ${m.n} vetas`, req: () => tiene('pico'), mundos: (u) => !bosque(u) },
+    veta: { n: [2, 3], txt: (m) => `Extrae ${cueva(m.u) ? 'plata' : helado(m.u) ? 'escarcha' : 'cobre'} de ${m.n} vetas`, req: () => tiene('pico'), mundos: (u) => !bosque(u) },
+    lobo_nieve: { n: [2, 3], txt: (m) => `Vence ${m.n} lobos de las nieves`, mundos: helado },
+    espiritu: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 espíritu de la ventisca' : `Vence ${m.n} espíritus de la ventisca`), mundos: helado },
+    muneco: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 muñeco de nieve furioso' : `Vence ${m.n} muñecos de nieve furiosos`), mundos: helado },
     murcielago: { n: [2, 3], txt: (m) => `Vence ${m.n} murciélagos de la mina`, mundos: cueva },
     golem: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 gólem de roca' : `Vence ${m.n} gólems de roca`), mundos: cueva },
     minero: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 minero zombi' : `Vence ${m.n} mineros zombis`), mundos: cueva },
@@ -442,7 +473,7 @@
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
 
   const TIPOS_DIARIA = {
-    talar: { n: 6, txt: 'Tala 6 árboles, cactus u hongos en cualquier mundo' },
+    talar: { n: 6, txt: 'Recolecta 6 veces de árboles, cactus, hongos o bayas' },
     picar: { n: 5, txt: 'Pica 5 rocas', req: () => tiene('pico') },
     agua: { n: 3, txt: 'Saca agua del lago 3 veces', req: () => tiene('balde') },
     vencer: { n: 4, txt: 'Vence a 4 enemigos' },
@@ -451,7 +482,7 @@
     fabricar: { n: 2, txt: 'Fabrica 2 decorativos o muebles' },
     decorar: { n: 3, txt: 'Coloca 3 objetos en tu base o tu pieza' },
   };
-  const PREMIOS_DIARIA = [{ madera: 15, piedra: 10 }, { cristal: 4 }, { agua: 8, madera: 10 }, { piedra: 12, cristal: 2 }, { cobre: 5, arenisca: 8 }, { oro: 2, fibra: 6 }, { carbon: 8, hongo: 4 }, { plata: 4, amatista: 1 }];
+  const PREMIOS_DIARIA = [{ madera: 15, piedra: 10 }, { cristal: 4 }, { agua: 8, madera: 10 }, { piedra: 12, cristal: 2 }, { cobre: 5, arenisca: 8 }, { oro: 2, fibra: 6 }, { carbon: 8, hongo: 4 }, { plata: 4, amatista: 1 }, { hielo: 8, baya: 4 }, { escarcha: 4, zafiro: 1 }];
   const hoy = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
   function diaria() {
     const f = hoy();
@@ -567,6 +598,7 @@
       { madera: 12 + 3 * L, piedra: 8 + 2 * L }, { cristal: 2 + Math.floor(L / 2) },
       { agua: 8 + 2 * L, madera: 6 + L }, { piedra: 12 + 3 * L, cristal: 1 },
       ...(recursosVisibles().some((r) => r.grupo === 'u2') ? [{ cobre: 4 + L, arenisca: 10 + 2 * L }, { oro: 2 + Math.floor(L / 3), fibra: 6 + L }] : []),
+      ...(recursosVisibles().some((r) => r.grupo === 'u4') ? [{ hielo: 10 + 2 * L, baya: 4 + L }, { escarcha: 3 + Math.floor(L / 2), zafiro: 1 + Math.floor(L / 4) }] : []),
       ...(recursosVisibles().some((r) => r.grupo === 'u3') ? [{ carbon: 10 + 2 * L, hongo: 4 + L }, { plata: 3 + Math.floor(L / 2), amatista: 1 + Math.floor(L / 4) }] : []),
     ]);
     const excl = mezclar(OBJETOS.filter((o) => o.excl && cuantos(o.id) === 0));
@@ -867,7 +899,7 @@
   function abrirEquipo() {
     const fila = (id, info, puesto, tipo) => `
       <div class="mejora ${puesto ? 'puesta' : ''}"><img class="ico px" src="${ICONO(tipo === 'arma' ? 'espada' : 'armadura')}" alt="">
-        <div class="info"><strong>${esc(info.nombre)}</strong><span>${tipo === 'arma' ? `Cada acierto en combate quita ${info.danio} de vida` : `Vida máxima: ${5 + info.vida + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0)} corazones`}</span></div>
+        <div class="info"><strong>${esc(info.nombre)}</strong><span>${tipo === 'arma' ? `Cada acierto en combate quita ${info.danio} de vida` : `Vida máxima: ${5 + info.vida + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0)} corazones`}</span></div>
         ${puesto ? `<button type="button" class="btn" data-quitar="${tipo}">Quitar</button>` : `<button type="button" class="btn pri" data-poner="${id}">Equipar</button>`}
       </div>`;
     const armas = Object.entries(ARMAS).filter(([id]) => tiene(id));
@@ -1481,11 +1513,12 @@
       if (!this.textures.exists('kenney')) this.load.image('kenney', 'assets/kenney_roguelike.png');
       if (!this.textures.exists('kenney_in')) this.load.image('kenney_in', 'assets/kenney_indoor.png');
       if (!this.textures.exists('kenney_cueva')) this.load.image('kenney_cueva', 'assets/kenney_cueva.png');
+      if (!this.textures.exists('kenney_nieve')) this.load.image('kenney_nieve', 'assets/kenney_nieve.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
-      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
+      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
     }
 
     create() {
@@ -1569,11 +1602,12 @@
       for (const o of OBJETOS) {
         const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
         if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva' }[o.h] || 'kenney');
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       this.crearTexturasDesierto();
       this.crearTexturasCueva();
+      this.crearTexturasHielo();
       // Arbusto vivo: el mismo arbusto con ojos y boca
       if (!this.textures.exists('arbusto_vivo')) {
         const src = this.textures.get('kenney').getSourceImage();
@@ -1638,7 +1672,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'jefe_u1', 'jefe_u2', 'jefe_u3'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -1672,6 +1706,19 @@
       }
       const g = this.add.graphics();
       if (!this.textures.exists('p_carbon')) { g.fillStyle(0x2d2d33, 1); g.fillRect(0, 0, 4, 4); g.generateTexture('p_carbon', 4, 4); }
+      g.destroy();
+    }
+    // Arte del mundo helado (Unidad 4): hoja propia con tiles recoloreados
+    crearTexturasHielo() {
+      const NV = { nieve: [0, 0], nieve2: [1, 0], hielo_suelo: [2, 0], sendero: [3, 0], seco_n: [10, 0], tocon_n: [11, 0], brote_n: [12, 0], hielo3: [13, 0], hielo2: [14, 0], hielo1: [15, 0],
+        veta_escarcha: [0, 1], veta_zafiro: [1, 1], arbusto_bayas: [4, 1], arbusto_nevado: [5, 1], montonnieve: [6, 1], bloque_hielo: [7, 1], muneco_malo: [11, 1], espiritu: [12, 1] };
+      for (const [k, [c, r]] of Object.entries(NV)) this.tex(`nv_${k}`, 1, 1, [[c, r, 0, 0]], 'kenney_nieve');
+      this.tex('nv_pino', 1, 2, [[4, 0, 0, 0], [5, 0, 0, 1]], 'kenney_nieve');
+      this.tex('nv_roble', 1, 2, [[6, 0, 0, 0], [7, 0, 0, 1]], 'kenney_nieve');
+      this.tex('nv_arce', 1, 2, [[8, 0, 0, 0], [9, 0, 0, 1]], 'kenney_nieve');
+      for (const k of ['veta_escarcha', 'veta_zafiro']) for (const n of [1, 2]) this.tex(`${k}${n}`, 1, 1, [[NV[k][0], NV[k][1], 0, 0]], 'kenney_nieve');
+      const g = this.add.graphics();
+      if (!this.textures.exists('p_nieve')) { g.fillStyle(0xffffff, 1); g.fillRect(0, 0, 4, 4); g.generateTexture('p_nieve', 4, 4); }
       g.destroy();
     }
     imagenTex(key) { return this.textures.getBase64(key); }
@@ -1887,6 +1934,7 @@
     crearMundo(M) {
       if (M.tipo === 'desierto') return this.crearDesierto(M);
       if (M.tipo === 'cueva') return this.crearCueva(M);
+      if (M.tipo === 'hielo') return this.crearHielo(M);
       this.ancho = 56; this.alto = 40;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       // suelo: el primero es la base y los demás se pintan en manchas redondeadas
@@ -2307,6 +2355,165 @@
         this.enemigos.push(this.nuevoEnemigo('minero', sp, { despierto: true, k: `z${i}` }));
       }
     }
+    // ---------- mundo helado (Unidad 4) ----------
+    crearHielo(M) {
+      this.ancho = 56; this.alto = 40;
+      this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
+      const fn = (c, r) => r * 16 + c;   // índice en la hoja de nieve (16 columnas)
+      const BASE = fn(M.suelo[0][0], M.suelo[0][1]), SENDERO = fn(3, 0);
+      this.pisables = [BASE, ...M.suelo.slice(1).map(([c, r]) => fn(c, r))];
+      const data = [];
+      for (let y = 0; y < this.alto; y++) { const fila = []; for (let x = 0; x < this.ancho; x++) fila.push(BASE); data.push(fila); }
+      for (const [c, r, p] of M.suelo.slice(1)) {
+        let pintado = 0;
+        const meta = p * this.ancho * this.alto;
+        while (pintado < meta) {
+          const cx = Math.floor(this.rnd() * this.ancho), cy = Math.floor(this.rnd() * this.alto), rad = 2 + this.rnd() * 3;
+          for (let y = Math.floor(cy - rad); y <= cy + rad; y++) for (let x = Math.floor(cx - rad); x <= cx + rad; x++) {
+            if (y < 0 || x < 0 || y >= this.alto || x >= this.ancho) continue;
+            if (Math.hypot(x - cx, y - cy) <= rad + (this.rnd() - 0.5)) { if (data[y][x] !== fn(c, r)) pintado++; data[y][x] = fn(c, r); }
+          }
+        }
+      }
+      const P = { x: 6, y: 20 };
+      for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = SENDERO;
+      for (let y = 3; y < this.alto - 3; y++) data[y][28] = SENDERO;
+      this.terreno = data;
+      for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === SENDERO) { this.marcar(x, y); this.marcar(x, y + 1); }
+      for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
+      this.suelo(data, 'kenney_nieve');
+      // nieve que cae siempre (suave) y ventiscas de vez en cuando
+      const cam = this.cameras.main;
+      this.add.particles(0, 0, 'p_nieve', { x: { min: -50, max: cam.width + 50 }, y: -10, lifespan: 6000, frequency: 90, speedY: { min: 30, max: 70 }, speedX: { min: -15, max: 15 }, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0.2 } }).setScrollFactor(0).setDepth(99990);
+      this.bordesHielo();
+      this.portal(P.x, P.y);
+      this.crearGuarida();
+      this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
+      this.ventisca = false;
+      this.time.addEvent({ delay: 55000, loop: true, callback: () => this.empezarVentisca() });
+
+      const lugar = (alto = 1) => {
+        for (let i = 0; i < 400; i++) {
+          const x = 2 + Math.floor(this.rnd() * (this.ancho - 4)), y = 3 + Math.floor(this.rnd() * (this.alto - 5));
+          if (this.libre(x, y) && (alto < 2 || this.libre(x, y - 1))) return [x, y];
+        }
+        return null;
+      };
+      const reservar = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) this.marcar(x + dx, y + dy); };
+      const elegir = (lista) => lista[Math.floor(this.rnd() * lista.length)];
+      // campamento junto al portal: iglú, fogata y trineo
+      {
+        const ix = P.x + 4, iy = P.y - 1;
+        const ig = this.sprite('d_iglu', ix, iy, 0.75); this.solido(ig.x - 16, ig.y - 12, 56, 20);
+        const f = this.sprite('fogata', P.x - 2, P.y + 1); this.solido(f.x, f.y - 8, 20, 12);
+        this.add.particles(f.x, f.y - 22, 'p_brillo', { speedY: { min: -40, max: -20 }, speedX: { min: -8, max: 8 }, lifespan: 700, frequency: 180, scale: { start: 1, end: 0 } }).setDepth(f.y + 1);
+        this.sprite('d_trineo', P.x + 2, P.y - 2).setDepth((P.y - 1) * TILE);
+      }
+      // pinos nevados (decoración sólida) y otros adornos de invierno
+      for (let i = 0; i < M.nPinos; i++) {
+        const p = lugar(2); if (!p) break;
+        const key = elegir(['nv_pino', 'nv_pino', 'nv_roble', 'nv_arce', 'nv_seco_n']);
+        const sp = this.sprite(key, p[0], p[1]); this.solido(sp.x, sp.y - 10, 18, 12);
+        this.marcar(p[0], p[1]); this.marcar(p[0], p[1] - 1);
+      }
+      for (let i = 0; i < 30; i++) {
+        const p = lugar(1); if (!p) break;
+        const key = elegir(['d_muneco_nieve', 'd_pinguino', 'd_bloque_hielo', 'd_monton_nieve', 'd_monton_nieve', 'd_cristal_escarcha', 'd_trineo']);
+        const sp = this.sprite(key, p[0], p[1]);
+        if (key === 'd_monton_nieve' || key === 'd_cristal_escarcha') sp.setDepth(-5); else { this.solido(sp.x, sp.y - 8, 20, 12); this.marcar(p[0], p[1]); }
+      }
+      // arbustos de bayas de invierno (se recolectan a mano y vuelven a dar bayas)
+      for (let i = 0; i < M.nArbustos; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('nv_arbusto_bayas', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 8, 20, 12);
+        reservar(p[0], p[1]);
+        this.objetos.push({ tipo: 'arbol', key: 'nv_arbusto_bayas', nombre: 'arbusto de bayas', rec: 'baya', texTocon: 'nv_arbusto_nevado', texBrote: 'nv_arbusto_nevado', s: sp, z, x: sp.x, y: sp.y - 6, estado: 'arbol', activo: true, bicho: false });
+      }
+      // bloques de hielo (pueden soltar escarcha)
+      for (let i = 0; i < M.nRocas; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('nv_hielo3', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 26, 16);
+        reservar(p[0], p[1]);
+        this.objetos.push({ tipo: 'roca', base: 'nv_hielo', rec: 'hielo', extra: 'escarcha', picoBueno: 'pico5', nombre: 'bloque de hielo', s: sp, z, x: sp.x, y: sp.y - 6, nivel: 3, nivelMax: 3, activo: true });
+      }
+      // vetas de escarcha y de zafiro (el zafiro necesita el pico de escarcha)
+      for (const [n, base, rec, req, nombre] of [[M.vetasEscarcha, 'veta_escarcha', 'escarcha', null, 'veta de escarcha'], [M.vetasZafiro, 'veta_zafiro', 'zafiro', 'pico5', 'veta de zafiro']]) {
+        for (let i = 0; i < n; i++) {
+          const p = lugar(1); if (!p) break;
+          const sp = this.sprite(`${base}2`, p[0], p[1]);
+          const z = this.solido(sp.x, sp.y - 14, 28, 22);
+          reservar(p[0], p[1]);
+          this.objetos.push({ tipo: 'roca', base, rec, req, picoBueno: 'pico5', evento: 'veta', nombre, s: sp, z, x: sp.x, y: sp.y - 8, nivel: 2, nivelMax: 2, activo: true });
+        }
+      }
+      // cofres (la mitad tiene vida)
+      for (let i = 0; i < M.cofres; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('cofre', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 26, 14);
+        reservar(p[0], p[1]);
+        const conVida = i % 2 === 0;
+        let corazon = null;
+        if (conVida) {
+          corazon = this.add.image(sp.x, sp.y - 44, 'corazon').setScale(2).setDepth(sp.y + 1);
+          this.tweens.add({ targets: corazon, y: sp.y - 50, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        }
+        this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
+      }
+      this.objetos.forEach((o, i) => { o.idx = i; });
+      // enemigos del mundo helado
+      const lejos = (p, r) => Math.abs(p[0] - P.x) >= r || Math.abs(p[1] - P.y) >= r;
+      for (let i = 0; i < M.lobos; i++) {
+        const p = lugar(1); if (!p) break;
+        if (!lejos(p, 10)) continue;
+        const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'lobo_nieve_hoja', DIRS.down * 9).setOrigin(0.5, 0.9);
+        sp.setDepth(sp.y);
+        this.enemigos.push(this.nuevoEnemigo('lobo_nieve', sp, { despierto: true, k: `w${i}` }));
+      }
+      for (let i = 0; i < M.espiritus; i++) {
+        const p = lugar(1); if (!p) break;
+        if (!lejos(p, 10)) continue;
+        const sp = this.add.image(p[0] * TILE + 16, p[1] * TILE + 16, 'nv_espiritu').setScale(2.2).setAlpha(0.9).setDepth(9000);
+        this.add.particles(0, 0, 'p_nieve', { x: { min: -24, max: 24 }, y: { min: -6, max: 20 }, lifespan: 900, frequency: 80, speedX: { min: -50, max: 50 }, speedY: { min: -20, max: 10 }, scale: { start: 1, end: 0 }, alpha: { start: 0.9, end: 0 } }).setDepth(9001).startFollow(sp);
+        this.tweens.add({ targets: sp, y: sp.y - 6, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.enemigos.push(this.nuevoEnemigo('espiritu', sp, { despierto: true, k: `s${i}` }));
+      }
+      for (let i = 0; i < M.munecos; i++) {
+        const p = lugar(1); if (!p) break;
+        if (!lejos(p, 8)) continue;
+        const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'nv_montonnieve').setOrigin(0.5, 1).setScale(2);
+        sp.setDepth(sp.y);
+        this.marcar(p[0], p[1]);
+        this.enemigos.push(this.nuevoEnemigo('muneco', sp, { despierto: false, k: `n${i}` }));
+      }
+    }
+    bordesHielo() {
+      const claves = ['nv_pino', 'nv_pino', 'nv_roble', 'nv_hielo3', 'nv_bloque_hielo'];
+      for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) {
+        if (x < 2 || y < 2 || x >= this.ancho - 2 || y >= this.alto - 2) this.sprite(claves[Math.floor(this.rnd() * claves.length)], x, y);
+      }
+      const W = this.ancho * TILE, H = this.alto * TILE;
+      this.solido(W / 2, TILE, W, TILE * 2); this.solido(W / 2, H - TILE, W, TILE * 2);
+      this.solido(TILE, H / 2, TILE * 2, H); this.solido(W - TILE, H / 2, TILE * 2, H);
+    }
+    // Ventisca: 15 segundos de viento con nieve; sin abrigo se camina más lento
+    empezarVentisca() {
+      if (this.ventisca || !this.jugador) return;
+      this.ventisca = true;
+      toast(tiene('abrigo') ? '¡Ventisca! Tu abrigo de piel te protege del frío.' : '¡Ventisca! Caminas más lento. Un abrigo de piel te protegería.', 'alerta');
+      const cam = this.cameras.main;
+      const p = this.add.particles(0, 0, 'p_nieve', { x: -20, y: { min: 0, max: cam.height }, lifespan: 2200, frequency: 12, speedX: { min: 380, max: 620 }, speedY: { min: -30, max: 60 }, scale: { start: 1.5, end: 0.6 }, alpha: { start: 0.95, end: 0.2 } }).setScrollFactor(0).setDepth(99991);
+      const velo = this.add.rectangle(0, 0, cam.width * 2, cam.height * 2, 0xffffff, 0).setOrigin(0).setScrollFactor(0).setDepth(99989);
+      this.tweens.add({ targets: velo, fillAlpha: 0.32, duration: 1500 });
+      this.time.delayedCall(15000, () => {
+        this.tweens.add({ targets: velo, fillAlpha: 0, duration: 1500, onComplete: () => velo.destroy() });
+        p.stop(); this.time.delayedCall(2500, () => p.destroy());
+        this.ventisca = false;
+      });
+    }
     bordesCueva() {
       const claves = ['d_estalagmita', 'golem_roca', 'd_roca_musgo_c', 'roca3', 'd_pilar_roto'];
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) {
@@ -2347,12 +2554,12 @@
       const J = JEFES[this.zona], gx = GUARIDA.x, gy = GUARIDA.y, des = desierto(this.zona);
       const anillo = [[-3, -1], [-2, -3], [0, -3], [2, -3], [3, -1], [3, 2], [-3, 2]];
       for (const [dx, dy] of anillo) {
-        const cue = cueva(this.zona);
-        const r = this.sprite(des ? (dx + dy) % 2 ? 'd_columna_rota' : 'd_columna' : cue ? ((dx + dy) % 2 ? 'd_pilar_roto' : 'd_pilar_mina') : 'roca_musgo3', gx + dx, gy + dy);
+        const cue = cueva(this.zona), hel = helado(this.zona);
+        const r = this.sprite(des ? (dx + dy) % 2 ? 'd_columna_rota' : 'd_columna' : cue ? ((dx + dy) % 2 ? 'd_pilar_roto' : 'd_pilar_mina') : hel ? 'nv_bloque_hielo' : 'roca_musgo3', gx + dx, gy + dy);
         this.solido(r.x, r.y - 10, des ? 18 : 26, 16);
       }
       const cx = gx * TILE + 16, cy = gy * TILE + 30;
-      this.add.particles(cx, cy - 20, des ? 'p_arena' : 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
+      this.add.particles(cx, cy - 20, des ? 'p_arena' : helado(this.zona) ? 'p_nieve' : 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
       if (J.lpc) {
         // Jefe animado (LPC): más grande y caminando en su lugar
         this.jefeEscala = 2.2;
@@ -2437,7 +2644,8 @@
       }
       const len = Math.hypot(vx, vy);
       if (len > 0.15) {
-        j.setVelocity((vx / Math.max(len, 1)) * 150, (vy / Math.max(len, 1)) * 150);
+        const vel = this.ventisca && !tiene('abrigo') ? 95 : 150;   // la ventisca hace caminar lento (salvo con abrigo)
+        j.setVelocity((vx / Math.max(len, 1)) * vel, (vy / Math.max(len, 1)) * vel);
         this.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
         j.anims.play(`${j.texture.key}_${this.dir}`, true);
       } else { j.setVelocity(0, 0); j.anims.stop(); j.setFrame(DIRS[this.dir] * 9); }
@@ -2600,6 +2808,7 @@
         case 'arbol':
           if (o.rec === 'fibra') return o.estado === 'arbol' ? 'Cortar cactus' : 'Cactus pequeño: está creciendo';
           if (o.rec === 'hongo') return o.estado === 'arbol' ? 'Recolectar hongos' : 'Hongos pequeños: están creciendo';
+          if (o.rec === 'baya') return o.estado === 'arbol' ? 'Recolectar bayas' : 'Arbusto sin bayas: volverán a crecer';
           return o.estado === 'arbol' ? `Talar ${o.nombre}` : o.estado === 'tocon' ? 'Tocón: volverá a crecer' : 'Brote: está creciendo';
         case 'roca':
           if (o.req && !tiene(o.req)) return `${o.nombre}: necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}`;
@@ -2630,6 +2839,11 @@
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'colocado') return o.carpa ? this.entrarPieza(o) : this.quitar(o);
       if (o.tipo === 'puerta') return this.salirPieza();
+      if (o.tipo === 'arbol' && o.rec === 'baya') {
+        if (o.estado !== 'arbol') return toast('Este arbusto todavía no tiene bayas.');
+        const dif = difPara(1), cant = 2 + dif - 1;
+        return abrirDesafio({ accion: 'Recolectar bayas de invierno', dif, premio: `Premio: ${cant} bayas de invierno`, onOk: () => this.golpe(o, 'baya', cant) });
+      }
       if (o.tipo === 'arbol' && o.rec === 'hongo') {
         if (o.estado !== 'arbol') return toast('Estos hongos todavía están creciendo.');
         const dif = difPara(1), cant = 2 + dif - 1;
@@ -2645,7 +2859,7 @@
         if (!tiene('pico')) return toast('Necesitas un pico. Fabrícalo en la fogata de tu base.');
         if (o.req && !tiene(o.req)) return toast(`Para picar esta veta necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}. Fabrícalo en tu base.`, 'alerta');
         equipar('pico');
-        const comun = o.rec === 'arenisca' || o.rec === 'carbon', raro = o.rec === 'oro' || o.rec === 'amatista';
+        const comun = ['arenisca', 'carbon', 'hielo'].includes(o.rec), raro = ['oro', 'amatista', 'zafiro'].includes(o.rec);
         const cant = (raro ? 1 : 2) + (tiene(o.picoBueno || 'pico3') ? (comun ? 2 : 1) : 0);
         return abrirDesafio({ accion: `Picar ${o.nombre}`, dif: comun ? difPara(2) : 3, premio: `Premio: ${cant} ${nombreRec(o.rec)}${o.extra ? ` + posible ${nombreRec(o.extra)}` : ''}`, onOk: () => this.golpe(o, o.rec, cant) });
       }
@@ -2681,7 +2895,7 @@
       this.mirarA(o);
       const j = this.jugador;
       this.tweens.add({ targets: j, y: j.y - 3, duration: 80, yoyo: true, repeat: 1 });
-      const px = { madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo' }[recurso];
+      const px = { madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua' }[recurso];
       this.add.particles(o.x, o.y - 14, px, { speed: { min: 60, max: 150 }, angle: { min: 200, max: 340 }, gravityY: 320, lifespan: 600, scale: { start: 1.4, end: 0.4 }, emitting: false }).setDepth(o.y + 50).explode(16);
       if (o.s) this.tweens.add({ targets: o.s, x: o.s.x + 3, duration: 50, yoyo: true, repeat: 3 });
       sumar(recurso, cant);
@@ -2690,7 +2904,7 @@
       const extra = o.rec ? o.extra : 'cristal';
       if (o.tipo === 'roca' && extra && this.rnd() < (tiene(o.rec ? (o.picoBueno || 'pico3') : 'pico2') ? 0.35 : 0.15)) {
         sumar(extra, 1);
-        this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, `+1 ${nombreRec(extra)}`, extra === 'cobre' ? '#ffb27a' : extra === 'plata' ? '#e6ecff' : '#9ff0e4'));
+        this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, `+1 ${nombreRec(extra)}`, extra === 'cobre' ? '#ffb27a' : extra === 'plata' ? '#e6ecff' : extra === 'escarcha' ? '#bff4ff' : '#9ff0e4'));
       }
       if (o.tipo === 'arbol' || o.tipo === 'roca' || o.tipo === 'cofre') {
         const n = o.tipo === 'roca' ? Math.max(0, o.nivel - 1) : o.tipo === 'arbol' ? 'tocon' : 'abierto';

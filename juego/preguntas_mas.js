@@ -606,5 +606,75 @@
     },
   ]);
 
+  // =====================================================================
+  // UNIDAD 4 · PROBABILIDAD Y ESTADÍSTICA con contexto del mundo helado
+  // =====================================================================
+  ampliar('7basico', 'u4', 'tendencia', [
+    (dif, T, k) => {
+      const l = Array.from({ length: 5 }, () => -rnd(1, 15));
+      const m = sumaL(l) / 5;
+      if (Math.round(m * 10) !== m * 10) return null;
+      return desafio(k, T, `Temperaturas de cinco noches en el glaciar: ${l.map(num).join(', ')} °C. ¿Cuál es la temperatura promedio?`,
+        `${num(m)} °C`, [`${num(-m)} °C`, `${num(mediana(l))} °C`, `${num(sumaL(l))} °C`].filter((t) => t !== `${num(m)} °C`), (j) => `${num(redondear(m + j, 1))} °C`,
+        'Promedio (media) = suma de los datos : cantidad de datos. Cuidado con los signos negativos.', `(${l.map(num).join(' + ')}) : 5 = ${num(sumaL(l))} : 5 = ${num(m)} °C.`);
+    },
+    (dif, T, k) => {
+      const base = rnd(1, 6), l = [base, base, base, rnd(7, 9), rnd(10, 12), base + 1, rnd(13, 15)];
+      return desafio(k, T, `Bayas recolectadas por siete jugadores: ${l.join(', ')}. ¿Cuál es la moda?`,
+        num(base), [num(mediana(l)), num(Math.max(...l)), num(redondear(sumaL(l) / 7, 2))].filter((t) => t !== num(base)), cerca(base),
+        'La moda es el dato que más se repite.', `${base} aparece 3 veces: es la moda.`);
+    },
+  ]);
+  ampliar('7basico', 'u4', 'probabilidad7', [
+    (dif, T, k) => {
+      const z = rnd(1, 4), e = rnd(2, 6), h = rnd(2, 8), t = z + e + h;
+      return desafio(k, T, `En una cueva de hielo hay ${z} zafiros, ${e} cristales de escarcha y ${h} bloques de hielo. Si tomas uno al azar, ¿cuál es la probabilidad de que NO sea zafiro?`,
+        ftxt(t - z, t), [ftxt(z, t), ftxt(e, t), ftxt(t - z, z)].filter((x) => x !== ftxt(t - z, t)), (j) => ftxt(t - z + j, t + j),
+        'Probabilidad de que no ocurra = 1 − probabilidad de que ocurra.', `1 − ${ftxt(z, t)} = ${ftxt(t - z, t)}.`);
+    },
+  ]);
+  ampliar('7basico', 'u4', 'tablas', [
+    (dif, T, k) => {
+      const a = rnd(3, 12), b = rnd(3, 12), c = rnd(3, 12), tot = a + b + c;
+      return desafio(k, T, `En una encuesta del glaciar: ${a} prefieren trineo, ${b} esquí y ${c} patinaje. ¿Cuántas personas respondieron en total?`,
+        num(tot), [num(a + b), num(Math.max(a, b, c)), num(tot + 3)], cerca(tot),
+        'El total de una tabla de frecuencias es la suma de todas las frecuencias.', `${a} + ${b} + ${c} = ${tot}.`);
+    },
+  ]);
+  ampliar('8basico', 'u4', 'posicion', [
+    (dif, T, k) => {
+      const l = Array.from({ length: 8 }, () => rnd(1, 40)).sort((a, b) => a - b);
+      const q1 = (l[1] + l[2]) / 2;
+      return desafio(k, T, `Bloques de hielo picados por 8 jugadores (ordenados): ${l.join(', ')}. ¿Cuál es el primer cuartil (Q1)?`,
+        num(q1), [num(l[1]), num((l[5] + l[6]) / 2), num(mediana(l))].filter((t) => t !== num(q1)), cerca(q1),
+        'Q1 es la mediana de la mitad inferior de los datos (los 4 primeros).', `Mitad inferior: ${l.slice(0, 4).join(', ')}; su mediana es (${l[1]} + ${l[2]}) : 2 = ${num(q1)}.`);
+    },
+  ]);
+  ampliar('8basico', 'u4', 'cajon', [
+    (dif, T, k) => {
+      const min = rnd(-20, -10), max = rnd(-4, 2);
+      return desafio(k, T, `En un diagrama de cajón de temperaturas del glaciar, el mínimo es ${num(min)} °C y el máximo es ${num(max)} °C. ¿Cuál es el rango?`,
+        `${num(max - min)} °C`, [`${num(max + min)} °C`, `${num(-min)} °C`, `${num(Math.abs(max))} °C`].filter((t) => t !== `${num(max - min)} °C`), (j) => `${num(max - min + j)} °C`,
+        'Rango = máximo − mínimo (los bigotes del diagrama).', `${num(max)} − ${par(min)} = ${num(max - min)} °C.`);
+    },
+  ]);
+  ampliar('8basico', 'u4', 'multiplicativo', [
+    (dif, T, k) => {
+      const n = rnd(4, 7);
+      return desafio(k, T, `${n} exploradores del glaciar deben formar una fila para cruzar un puente de hielo. ¿De cuántas maneras distintas pueden ordenarse los 3 primeros puestos?`,
+        num(n * (n - 1) * (n - 2)), [num(n * 3), num(n ** 3), num(n + 3)], cerca(n * (n - 1) * (n - 2)),
+        'Para el primer puesto hay n opciones, para el segundo n − 1 y para el tercero n − 2: multiplícalas.', `${n} · ${n - 1} · ${n - 2} = ${n * (n - 1) * (n - 2)}.`);
+    },
+  ]);
+  ampliar('8basico', 'u4', 'probabilidad8', [
+    (dif, T, k) => {
+      const p = pick([10, 20, 25, 30, 40]), d = rnd(2, 3);
+      const r = redondear((p / 100) ** d * 100, 2);
+      return desafio(k, T, `La probabilidad de ventisca en el glaciar cada día es ${p} %. Si los días son independientes, ¿cuál es la probabilidad de que haya ventisca ${d} días seguidos?`,
+        `${num(r)} %`, [`${num(p * d)} %`, `${num(p / d)} %`, `${num(100 - p)} %`].filter((t) => t !== `${num(r)} %`), (j) => `${num(redondear(r + j, 2))} %`,
+        'Para eventos independientes, la probabilidad de que ocurran todos es el producto de sus probabilidades.', `${num(p / 100)}${' · ' + num(p / 100)}${d === 3 ? ' · ' + num(p / 100) : ''} = ${num(redondear((p / 100) ** d, 4))} → ${num(r)} %.`);
+    },
+  ]);
+
   if (typeof module !== 'undefined' && module.exports) module.exports = P;
 })(typeof window !== 'undefined' ? window : globalThis);
