@@ -351,3 +351,13 @@ ul.misiones li.ok .fila span { color: var(--ok); }
   .des-cols { grid-template-columns: 1fr; }
   .des-tabla { order: -1; }
 }
+
+/* ---------- Aparición del jefe ---------- */
+.aviso-jefe { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 34px; border-radius: 18px; background: rgba(40, 12, 10, .9); border: 3px solid var(--coral); box-shadow: 0 0 40px rgba(238, 123, 97, .55); pointer-events: none; z-index: 16; text-align: center; }
+.aviso-jefe b { font-family: "Fredoka", "Nunito", sans-serif; font-size: 40px; line-height: 1.05; color: #ffd27a; text-shadow: 0 3px 0 #12201a; }
+.aviso-jefe span { font-family: "Fredoka", "Nunito", sans-serif; font-size: 24px; font-weight: 700; color: #fff; }
+.aviso-jefe small { font-size: 15px; font-weight: 800; color: var(--coral); letter-spacing: .04em; text-transform: uppercase; }
+.aviso-jefe.entra { animation: jefe-entra .7s cubic-bezier(.2, 1.4, .4, 1); }
+.aviso-jefe.sale { transition: opacity .6s; opacity: 0; }
+@keyframes jefe-entra { 0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+@media (max-width: 760px) { .aviso-jefe { width: calc(100vw - 32px); padding: 14px 16px; } .aviso-jefe b { font-size: 30px; } .aviso-jefe span { font-size: 19px; } }

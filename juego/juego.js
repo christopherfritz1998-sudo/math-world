@@ -206,20 +206,20 @@
   // Mundos: uno por unidad
   const MUNDOS = {
     u1: { nombre: { '7basico': 'Bosque de los Enteros', '8basico': 'Bosque de las Potencias' }, semilla: 11, fondo: '#2f6b47',
-      suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 110,
-      rocas: ['roca3'], nRocas: 30, lagos: 2, cofres: 6, arbustos: 9, nieblas: 3, bichos: 0.18 },
+      suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 175,
+      rocas: ['roca3'], nRocas: 48, lagos: 3, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
     // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
     u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
-      suelo: [[8, 22, 1], [3, 19, 0.07]], nCactus: 75, nRocas: 42, vetasCobre: 12, vetasOro: 6, oasis: 3, cofres: 7,
-      escorpiones: 10, remolinos: 6, esqueletos: 8, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
+      suelo: [[8, 22, 1], [3, 19, 0.07]], nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
+      escorpiones: 15, remolinos: 9, esqueletos: 12, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
     // Unidad 3: mina subterránea con recursos propios (carbón, plata, amatista y hongos luminosos)
     u3: { nombre: { '7basico': 'Mina de las Formas', '8basico': 'Mina de los Volúmenes' }, tipo: 'cueva', recursos: 'u3', semilla: 33, fondo: '#1a1a24',
-      suelo: [[9, 2, 1], [9, 7, 0.08], [9, 3, 0.015]], nHongos: 70, nRocas: 45, vetasPlata: 12, vetasAmatista: 6, pozas: 3, cofres: 7,
-      murcielagos: 8, golems: 7, mineros: 8, cofre: { plata: 2, amatista: 1 }, oscuridad: 0.5 },
+      suelo: [[9, 2, 1], [9, 7, 0.08], [9, 3, 0.015]], nHongos: 112, nRocas: 72, vetasPlata: 19, vetasAmatista: 9, pozas: 5, cofres: 11,
+      murcielagos: 12, golems: 11, mineros: 12, cofre: { plata: 2, amatista: 1 }, oscuridad: 0.5 },
     // Unidad 4: mundo helado con ventiscas y recursos propios (bayas de invierno, hielo, escarcha y zafiros)
     u4: { nombre: { '7basico': 'Glaciar de los Datos', '8basico': 'Glaciar del Azar' }, tipo: 'hielo', recursos: 'u4', semilla: 44, fondo: '#e4eef7',
-      suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 70, nArbustos: 55, nRocas: 42, vetasEscarcha: 12, vetasZafiro: 6, cofres: 7,
-      lobos: 8, espiritus: 6, munecos: 8, cofre: { escarcha: 2, zafiro: 1 } },
+      suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 112, nArbustos: 88, nRocas: 66, vetasEscarcha: 19, vetasZafiro: 9, cofres: 11,
+      lobos: 12, espiritus: 9, munecos: 12, cofre: { escarcha: 2, zafiro: 1 } },
   };
   const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g); };
   const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
@@ -458,22 +458,31 @@
   };
   const azarEntre = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
   const mezclar = (arr) => { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const MISIONES_JEFE = 4;
+  function nuevaMision(t, u) {
+    const m = { t, n: azarEntre(TIPOS_MISION[t].n), p: 0, u };
+    if (t === 'acierto') {
+      const temas = Object.entries(Preguntas.titulos(S.curso, u));
+      const [tema, titulo] = temas[Math.floor(Math.random() * temas.length)] || ['', 'esta unidad'];
+      m.tema = tema; m.titulo = titulo;
+    }
+    return m;
+  }
   function nuevasMisiones(u) {
-    const tipos = mezclar(Object.keys(TIPOS_MISION).filter((t) => (!TIPOS_MISION[t].req || TIPOS_MISION[t].req()) && (!TIPOS_MISION[t].mundos || TIPOS_MISION[t].mundos(u)))).slice(0, 3);
-    return { lista: tipos.map((t) => {
-      const m = { t, n: azarEntre(TIPOS_MISION[t].n), p: 0, u };
-      if (t === 'acierto') {
-        const temas = Object.entries(Preguntas.titulos(S.curso, u));
-        const [tema, titulo] = temas[Math.floor(Math.random() * temas.length)] || ['', 'esta unidad'];
-        m.tema = tema; m.titulo = titulo;
-      }
-      return m;
-    }), ok: false };
+    const tipos = mezclar(Object.keys(TIPOS_MISION).filter((t) => (!TIPOS_MISION[t].req || TIPOS_MISION[t].req()) && (!TIPOS_MISION[t].mundos || TIPOS_MISION[t].mundos(u)))).slice(0, MISIONES_JEFE);
+    return { lista: tipos.map((t) => nuevaMision(t, u)), ok: false };
   }
   function misionesDe(u) {
     S.misiones = S.misiones || {};
     if (!S.misiones[u]) S.misiones[u] = nuevasMisiones(u);
-    return S.misiones[u];
+    const M = S.misiones[u];
+    // Partidas con 3 misiones (versión anterior): se agrega la cuarta
+    if (!M.ok && M.lista.length < MISIONES_JEFE) {
+      const usados = new Set(M.lista.map((m) => m.t));
+      const libres = mezclar(Object.keys(TIPOS_MISION).filter((t) => !usados.has(t) && (!TIPOS_MISION[t].req || TIPOS_MISION[t].req()) && (!TIPOS_MISION[t].mundos || TIPOS_MISION[t].mundos(u))));
+      libres.slice(0, MISIONES_JEFE - M.lista.length).forEach((t) => M.lista.push(nuevaMision(t, u)));
+    }
+    return M;
   }
   const textoMision = (m) => TIPOS_MISION[m.t].txt(m);
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
@@ -516,7 +525,7 @@
         }
         if (cambio && M.lista.every((m) => m.p >= m.n)) {
           M.ok = true;
-          setTimeout(() => toast(`¡Completaste las misiones! El jefe ${JEFES[u].nombre} ya te puede enfrentar.`), 1200);
+          setTimeout(() => toast(`¡Completaste tus misiones! Cuando ${JEFE_MIN} jugadores de tu grupo las cumplan, ${JEFES[u].nombre} aparecerá en algún lugar del mapa.`), 1200);
           ganarXP(30);
           if (escena) { escena.celebrar(); escena.avisarGuarida(); }
         }
@@ -561,7 +570,7 @@
     const barra = (p, n) => `<div class="barra"><i style="width: ${Math.round((Math.min(p, n) / n) * 100)}%"></i></div>`;
     const lista = (M) => `<ul class="misiones">${M.lista.map((m) => `<li class="${m.p >= m.n ? 'ok' : ''}"><div class="fila"><span>${esc(textoMision(m))}</span><b>${Math.min(m.p, m.n)}/${m.n}</b></div>${barra(m.p, m.n)}</li>`).join('')}</ul>`;
     const mundos = Object.keys(MUNDOS).filter((z) => z !== u && S.misiones && S.misiones[z]).map((z) => `
-      <details><summary><strong>${esc(nombreZona(z))}</strong> · ${S.misiones[z].ok ? '<span class="estado-ok">Jefe desbloqueado</span>' : `${S.misiones[z].lista.filter((m) => m.p >= m.n).length} de 3`}</summary>${lista(S.misiones[z])}</details>`).join('');
+      <details><summary><strong>${esc(nombreZona(z))}</strong> · ${S.misiones[z].ok ? '<span class="estado-ok">Jefe desbloqueado</span>' : `${S.misiones[z].lista.filter((m) => m.p >= m.n).length} de ${S.misiones[z].lista.length}`}</summary>${lista(S.misiones[z])}</details>`).join('');
     const p = Dd.premio;
     const premioD = `${recHTML(p.rec)}<span class="pildora premio"><img class="px" src="${escena.imagenTex(OBJ[p.obj].tex)}" alt="">${esc(OBJ[p.obj].nombre)}</span><span class="pildora premio">+${p.xp} XP</span>`;
     ui.abrir(`
@@ -575,9 +584,9 @@
           : `<button type="button" class="btn pri" id="mi-cobrar" ${Dd.p >= Dd.n ? '' : 'disabled'}>${Dd.p >= Dd.n ? 'Reclamar recompensa' : 'Cúmplela para reclamar'}</button>`}
       </section>
       ${u ? `<section class="tarjeta-mision"><div class="fila"><strong>${esc(nombreZona(u))}: misiones para el jefe final</strong></div>
-        <p class="nota">${misionesListas(u) ? `¡Listo! Ve a la guarida de ${esc(JEFES[u].nombre)} con tu grupo (mínimo ${JEFE_MIN} jugadores con sus misiones cumplidas).` : `Cumple tus 3 misiones para poder enfrentar a ${esc(JEFES[u].nombre)}. Cada jugador recibe misiones distintas.`}</p>
+        <p class="nota">${misionesListas(u) ? `¡Listo! Cuando ${JEFE_MIN} jugadores de tu grupo cumplan sus misiones, ${esc(JEFES[u].nombre)} aparecerá en un lugar al azar del mapa. ¡Búsquenlo y derrótenlo juntos!` : `Cumple tus ${MISIONES_JEFE} misiones para invocar a ${esc(JEFES[u].nombre)}. Cada jugador recibe misiones distintas y se necesitan ${JEFE_MIN} jugadores del grupo con sus misiones cumplidas.`}</p>
         ${lista(misionesDe(u))}</section>`
-        : '<p class="nota">Al entrar a cada mundo recibes 3 misiones al azar. Cúmplelas para poder enfrentar al jefe final junto a tu grupo.</p>'}
+        : '<p class="nota">Al entrar a cada mundo recibes ${MISIONES_JEFE} misiones al azar. Cúmplelas con tu grupo para invocar al jefe final: aparecerá en algún lugar del mapa.</p>'}
       ${mundos ? `<div class="unidades-avance">${mundos}</div>` : ''}`);
     $('mi-cerrar').addEventListener('click', () => ui.cerrar());
     const bn = $('mi-nivel'); if (bn) bn.addEventListener('click', () => { premioPospuesto = false; abrirPremioNivel(); });
@@ -1020,6 +1029,16 @@
     pintar();
   }
 
+  // Aviso grande cuando el jefe aparece en el mapa
+  function avisoJefe(nombre) {
+    const a = $('aviso-jefe');
+    a.querySelector('small').textContent = nombre;
+    a.classList.remove('oculto', 'sale'); void a.offsetWidth; a.classList.add('entra');
+    clearTimeout(avisoJefe._t);
+    avisoJefe._t = setTimeout(() => { a.classList.add('sale'); setTimeout(() => a.classList.add('oculto'), 600); }, 4200);
+    if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch (e) { /* */ } }
+  }
+
   // ---------- Combate ----------
   function abrirCombate(enemigo, alTerminar) {
     const E = ENEMIGOS[enemigo.clase];
@@ -1105,7 +1124,7 @@
   function abrirInfoJefe(zona) {
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq" style="color: var(--coral)">Jefe final</span><h2 id="modal-titulo">${esc(JEFES[zona].nombre)}</h2></div></div>
-      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y reúnan al menos <strong>${JEFE_MIN} jugadores</strong> en su guarida, cada uno con sus misiones de este mundo cumplidas. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
+      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y cuando al menos <strong>${JEFE_MIN} jugadores</strong> cumplan sus misiones de este mundo, el jefe aparecerá en un lugar al azar del mapa: búsquenlo y lleguen juntos hasta él. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
       <div class="acciones"><span></span><button type="button" class="btn pri" id="ij-ok" data-foco>Entendido</button></div>`, 'jefe');
     $('ij-ok').addEventListener('click', () => ui.cerrar());
   }
@@ -1131,7 +1150,7 @@
         cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Tu grupo sigue luchando; tú vuelves a tu base y pierdes lo que llevabas en la mochila. Para volver a enfrentar al jefe tendrás que cumplir nuevas misiones.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Volver a mi base</button></div>`;
       } else if (fase === 'fin') {
-        cuerpo = `<div class="mensaje pista" role="status">El combate terminó porque el grupo se separó. Pueden volver a intentarlo cuando estén ${JEFE_MIN} en la guarida.</div>
+        cuerpo = `<div class="mensaje pista" role="status">El combate terminó porque el grupo se separó. Pueden volver a intentarlo cuando estén ${JEFE_MIN} junto al jefe.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Cerrar</button></div>`;
       } else {
         cuerpo = `${ultimo}
@@ -1373,7 +1392,7 @@
     }).join('');
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">${esc(nombreZona(zona))}</span><h2 id="modal-titulo">¿Con qué grupo vas?</h2></div><button type="button" class="btn" id="gr-volver">Volver</button></div>
-      <p class="nota">Verás y jugarás con los compañeros de ${S.curso === '8basico' ? '8°' : '7°'} básico que elijan el mismo grupo (máximo ${MAX_GRUPO}). Para enfrentar al jefe final necesitan ser al menos 4 en su guarida.</p>
+      <p class="nota">Verás y jugarás con los compañeros de ${S.curso === '8basico' ? '8°' : '7°'} básico que elijan el mismo grupo (máximo ${MAX_GRUPO}). Para invocar y enfrentar al jefe final necesitan ser al menos ${JEFE_MIN} con sus misiones cumplidas.</p>
       <div class="objetos">${botones}</div>
       <div class="acciones"><span></span><button type="button" class="btn sec" id="gr-solo">Explorar solo</button></div>`);
     $('gr-volver').addEventListener('click', () => abrirPortal());
@@ -1911,7 +1930,8 @@
   const COLS = 57;
   const fr = (c, r) => r * COLS + c;
   const DIRS = { up: 0, left: 1, down: 2, right: 3 };
-  const GUARIDA = { x: 49, y: 8 };
+  // Tamaño de los mundos (en casillas): portal a la izquierda y caminos en cruz
+  const MAPA_W = 72, MAPA_H = 50, CENTRO_X = 36, PORTAL_Y = 24;
   const PASTO = [fr(5, 0), fr(5, 1), fr(7, 0), fr(8, 0)];
   const CAMINO = fr(6, 0);
 
@@ -2356,7 +2376,7 @@
       if (M.tipo === 'desierto') return this.crearDesierto(M);
       if (M.tipo === 'cueva') return this.crearCueva(M);
       if (M.tipo === 'hielo') return this.crearHielo(M);
-      this.ancho = 56; this.alto = 40;
+      this.ancho = MAPA_W; this.alto = MAPA_H;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       // suelo: el primero es la base y los demás se pintan en manchas redondeadas
       const data = [];
@@ -2373,13 +2393,13 @@
           }
         }
       }
-      const P = { x: 6, y: 20 };
+      const P = { x: 6, y: PORTAL_Y };
       for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = CAMINO;
-      for (let y = 3; y < this.alto - 3; y++) data[y][28] = CAMINO;
+      for (let y = 3; y < this.alto - 3; y++) data[y][CENTRO_X] = CAMINO;
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
-      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
+      this.prepararLugaresJefe(P);
       for (let i = 0; i < M.lagos; i++) {
         const w = 5 + Math.floor(this.rnd() * 5), h = 4 + Math.floor(this.rnd() * 3);
         for (let t = 0; t < 60; t++) {
@@ -2434,7 +2454,32 @@
         }
         this.objetos.push({ tipo: 'cofre', s, z, x: s.x, y: s.y - 6, activo: true, vida: conVida, corazon });
       }
-      for (let i = 0; i < 60; i++) {
+      // claros del bosque: hongos, arbustos de colores, troncos y rocas con musgo
+      const elegirB = (lista) => lista[Math.floor(this.rnd() * lista.length)];
+      for (let i = 0; i < 9; i++) {
+        const p = lugar(1); if (!p) break;
+        for (let k = 0; k < 7; k++) {
+          const x = p[0] - 2 + Math.floor(this.rnd() * 5), y = p[1] - 2 + Math.floor(this.rnd() * 5);
+          if (!this.libre(x, y)) continue;
+          const key = elegirB(['d_hongo', 'd_hongo2', 'd_arbusto_o', 'd_arbusto_f', 'd_arbusto_fl', 'tocon', 'lena', 'd_roca', 'd_flor_a', 'd_flor_m']);
+          const sp = this.sprite(key, x, y);
+          if (['d_hongo', 'd_hongo2', 'd_flor_a', 'd_flor_m'].includes(key)) sp.setDepth(-5); else this.solido(sp.x, sp.y - 8, 18, 12);
+          this.marcar(x, y);
+        }
+      }
+      // campamento de leñadores abandonado
+      for (let c = 0; c < 2; c++) {
+        const p = lugar(2);
+        if (!p || !this.libre(p[0] - 1, p[1]) || !this.libre(p[0] - 1, p[1] - 1)) continue;
+        const carpa = this.sprite('carpa_v', p[0], p[1], 0.75); this.solido(carpa.x - 16, carpa.y - 16, 56, 28);
+        for (const [dx, dy] of [[-1, 0], [0, 0], [-1, -1], [0, -1]]) this.marcar(p[0] + dx, p[1] + dy);
+        for (const [dx, dy, key] of [[2, 0, 'lena'], [2, 1, 'barril'], [-2, 1, 'd_cajon'], [1, 1, 'tocon'], [3, -1, 'letrero']]) {
+          const x = p[0] + dx, y = p[1] + dy;
+          if (!this.libre(x, y)) continue;
+          const sp = this.sprite(key, x, y); this.solido(sp.x, sp.y - 8, 20, 12); this.marcar(x, y);
+        }
+      }
+      for (let i = 0; i < 95; i++) {
         const p = lugar(1); if (!p) break;
         const deco = this.rnd() < 0.7 ? `flor${Math.floor(this.rnd() * 4)}` : 'arbusto2';
         this.sprite(deco, p[0], p[1]).setDepth(deco.startsWith('flor') ? -5 : (p[1] + 1) * TILE);
@@ -2460,7 +2505,7 @@
     }
     // ---------- mundo del desierto (Unidad 2) ----------
     crearDesierto(M) {
-      this.ancho = 56; this.alto = 40;
+      this.ancho = MAPA_W; this.alto = MAPA_H;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       const ARENA = fr(M.suelo[0][0], M.suelo[0][1]);
       this.pisables = [ARENA, ...M.suelo.slice(1).map(([c, r]) => fr(c, r))];
@@ -2478,13 +2523,13 @@
         }
       }
       // ruta de caravanas
-      const P = { x: 6, y: 20 };
+      const P = { x: 6, y: PORTAL_Y };
       for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = CAMINO;
-      for (let y = 3; y < this.alto - 3; y++) data[y][28] = CAMINO;
+      for (let y = 3; y < this.alto - 3; y++) data[y][CENTRO_X] = CAMINO;
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
-      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
+      this.prepararLugaresJefe(P);
       // oasis (decorativos: el agua del desierto no se puede recolectar)
       const oasis = [];
       for (let i = 0; i < M.oasis; i++) {
@@ -2524,7 +2569,7 @@
         }
       }
       // ruinas de arenisca
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 8; i++) {
         const p = lugar(2); if (!p) break;
         for (let k = 0; k < 7; k++) {
           const x = p[0] - 2 + Math.floor(this.rnd() * 5), y = p[1] - 1 + Math.floor(this.rnd() * 4);
@@ -2535,13 +2580,13 @@
           this.marcar(x, y); this.marcar(x, y - 1);
         }
       }
-      // campamento de caravana abandonado
-      {
+      // campamentos de caravana abandonados
+      for (let c = 0; c < 2; c++) {
         const p = lugar(2);
         if (p && this.libre(p[0] - 1, p[1]) && this.libre(p[0] - 1, p[1] - 1)) {
           const carpa = this.sprite('carpa_b', p[0], p[1], 0.75); this.solido(carpa.x - 16, carpa.y - 16, 56, 28);
           for (const [dx, dy] of [[-1, 0], [0, 0], [-1, -1], [0, -1]]) this.marcar(p[0] + dx, p[1] + dy);
-          for (const [dx, dy, key] of [[2, 0, 'barril'], [2, 1, 'd_vasija'], [-2, 1, 'd_brasero'], [1, 1, 'lena']]) {
+          for (const [dx, dy, key] of [[2, 0, 'barril'], [2, 1, 'd_vasija'], [-2, 1, 'd_brasero'], [1, 1, 'lena'], [3, 0, 'd_vasija'], [-2, 0, 'd_cajon']]) {
             const x = p[0] + dx, y = p[1] + dy;
             if (!this.libre(x, y)) continue;
             const sp = this.sprite(key, x, y); this.solido(sp.x, sp.y - 8, 20, 12); this.marcar(x, y);
@@ -2589,9 +2634,9 @@
         this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
       }
       // adornos: huesos, calaveras, árboles secos y agujas de roca
-      for (let i = 0; i < 34; i++) {
+      for (let i = 0; i < 58; i++) {
         const p = lugar(1); if (!p) break;
-        const key = elegir(['d_calavera', 'd_huesos', 'd_huesos', 'd_arbol_seco', 'd_aguja', 'd_roca_duna', 'escombros_suelo']);
+        const key = elegir(['d_calavera', 'd_huesos', 'd_huesos', 'd_arbol_seco', 'd_aguja', 'd_roca_duna', 'escombros_suelo', 'd_cactus_fruto', 'd_vasija']);
         if (key === 'escombros_suelo') { this.sprite('monticulo', p[0], p[1]).setDepth(-5); continue; }
         const sp = this.sprite(key, p[0], p[1]);
         if (key === 'd_calavera' || key === 'd_huesos') sp.setDepth(-5); else { this.solido(sp.x, sp.y - 10, 20, 14); this.marcar(p[0], p[1]); }
@@ -2624,7 +2669,7 @@
     }
     // ---------- mundo de la mina (Unidad 3) ----------
     crearCueva(M) {
-      this.ancho = 56; this.alto = 40;
+      this.ancho = MAPA_W; this.alto = MAPA_H;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       const fc = (c, r) => r * 29 + c;   // índice en la hoja de la cueva (29 columnas)
       const BASE = fc(M.suelo[0][0], M.suelo[0][1]), RIEL = fc(10, 7);
@@ -2643,13 +2688,13 @@
         }
       }
       // túneles principales con rieles
-      const P = { x: 6, y: 20 };
+      const P = { x: 6, y: PORTAL_Y };
       for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = RIEL;
-      for (let y = 3; y < this.alto - 3; y++) data[y][28] = RIEL;
+      for (let y = 3; y < this.alto - 3; y++) data[y][CENTRO_X] = RIEL;
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === RIEL) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
-      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
+      this.prepararLugaresJefe(P);
       // pozas subterráneas (decorativas)
       for (let i = 0; i < M.pozas; i++) {
         const w = 3 + Math.floor(this.rnd() * 3), h = 3 + Math.floor(this.rnd() * 2);
@@ -2665,15 +2710,13 @@
         }
       }
       this.suelo(data, 'kenney_cueva');
-      for (let y = 3; y < this.alto - 3; y++) this.add.image(28 * TILE + 16, y * TILE + 16, 'd_rieles').setScale(2).setDepth(-7);
+      for (let y = 3; y < this.alto - 3; y++) this.add.image(CENTRO_X * TILE + 16, y * TILE + 16, 'd_rieles').setScale(2).setDepth(-7);
       // oscuridad de la mina y luz que acompaña al jugador
       this.add.rectangle(0, 0, this.ancho * TILE, this.alto * TILE, 0x05060f, M.oscuridad).setOrigin(0).setDepth(9500);
       this.luz = this.add.image(0, 0, 'luz').setScale(2.6).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.3).setDepth(9501);
       this.bordesCueva();
       this.portal(P.x, P.y);
       this.crearGuarida();
-      this.jefeTag.setDepth(9502);
-      for (const [dx, dy] of [[-2, 1], [2, 1], [0, -2]]) this.add.image((GUARIDA.x + dx) * TILE + 16, (GUARIDA.y + dy) * TILE + 16, 'luz').setScale(1.4).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.22).setDepth(9501);
       this.add.image(P.x * TILE + 16, P.y * TILE + 16, 'luz').setScale(1.4).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.18).setDepth(9501);
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
 
@@ -2693,7 +2736,7 @@
       };
       // entradas de túneles y braseros junto al portal
       brasero(P.x - 2, P.y + 1); brasero(P.x + 4, P.y + 1);
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = lugar(2); if (!p) break;
         if (![0, 1, 2, 3].every((dx) => this.libre(p[0] - dx, p[1]) && this.libre(p[0] - dx, p[1] - 1) && this.libre(p[0] - dx, p[1] - 2))) continue;
         const sp = this.sprite('d_entrada_mina', p[0], p[1], 1 - 1 / 8);
@@ -2701,8 +2744,27 @@
         for (let dx = 0; dx < 4; dx++) for (let dy = 0; dy < 3; dy++) this.marcar(p[0] - dx, p[1] - dy);
         if (this.libre(p[0] + 1, p[1])) brasero(p[0] + 1, p[1]);
       }
+      // campamentos mineros: cajones, rieles y un brasero
+      for (let c = 0; c < 3; c++) {
+        const p = lugar(2); if (!p) break;
+        for (const [dx, dy, key] of [[0, 0, 'd_cajones_mina'], [1, 0, 'd_caja_mina'], [-1, 1, 'd_caja_mina'], [2, 1, 'barril'], [-2, 0, 'brasero'], [0, 2, 'd_rieles'], [1, 2, 'd_rieles']]) {
+          const x = p[0] + dx, y = p[1] + dy;
+          if (!this.libre(x, y)) continue;
+          if (key === 'brasero') { brasero(x, y); continue; }
+          const sp = this.sprite(key, x, y);
+          if (key === 'd_rieles') sp.setDepth(-6); else this.solido(sp.x, sp.y - 8, 20, 12);
+          this.marcar(x, y);
+        }
+      }
+      // manchas de hongos rojos que brillan en la oscuridad
+      for (let i = 0; i < 14; i++) {
+        const p = lugar(1); if (!p) break;
+        const sp = this.sprite('d_hongos_rojos', p[0], p[1]).setDepth(-5);
+        this.add.image(sp.x, sp.y - 12, 'luz').setScale(0.5).setTint(0xff7a7a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.22).setDepth(9501);
+        this.marcar(p[0], p[1]);
+      }
       // pilares, cajas, estalagmitas, lianas y huesos
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 64; i++) {
         const p = lugar(2); if (!p) break;
         const key = elegir(['d_pilar_mina', 'd_pilar_roto', 'd_estalagmita', 'd_estalagmita', 'd_caja_mina', 'd_cajones_mina', 'd_calavera', 'd_huesos', 'hongos_blancos', 'brasero']);
         if (key === 'brasero') { brasero(p[0], p[1]); continue; }
@@ -2778,7 +2840,7 @@
     }
     // ---------- mundo helado (Unidad 4) ----------
     crearHielo(M) {
-      this.ancho = 56; this.alto = 40;
+      this.ancho = MAPA_W; this.alto = MAPA_H;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       const fn = (c, r) => r * 16 + c;   // índice en la hoja de nieve (16 columnas)
       const BASE = fn(M.suelo[0][0], M.suelo[0][1]), SENDERO = fn(3, 0);
@@ -2796,13 +2858,13 @@
           }
         }
       }
-      const P = { x: 6, y: 20 };
+      const P = { x: 6, y: PORTAL_Y };
       for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = SENDERO;
-      for (let y = 3; y < this.alto - 3; y++) data[y][28] = SENDERO;
+      for (let y = 3; y < this.alto - 3; y++) data[y][CENTRO_X] = SENDERO;
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === SENDERO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
-      for (let y = GUARIDA.y - 4; y <= GUARIDA.y + 4; y++) for (let x = GUARIDA.x - 4; x <= GUARIDA.x + 4; x++) this.marcar(x, y);
+      this.prepararLugaresJefe(P);
       this.suelo(data, 'kenney_nieve');
       // nieve que cae siempre (suave) y ventiscas de vez en cuando
       const cam = this.cameras.main;
@@ -2838,7 +2900,19 @@
         const sp = this.sprite(key, p[0], p[1]); this.solido(sp.x, sp.y - 10, 18, 12);
         this.marcar(p[0], p[1]); this.marcar(p[0], p[1] - 1);
       }
-      for (let i = 0; i < 30; i++) {
+      // aldea de iglús abandonada
+      for (let c = 0; c < 2; c++) {
+        const p = lugar(2); if (!p) break;
+        if (![0, 1].every((dx) => this.libre(p[0] - dx, p[1]) && this.libre(p[0] - dx, p[1] - 1))) continue;
+        const ig = this.sprite('d_iglu', p[0], p[1], 0.75); this.solido(ig.x - 16, ig.y - 12, 56, 20);
+        for (const [dx, dy] of [[-1, 0], [0, 0], [-1, -1], [0, -1]]) this.marcar(p[0] + dx, p[1] + dy);
+        for (const [dx, dy, key] of [[2, 0, 'd_muneco_nieve'], [-3, 1, 'd_cerco_nevado'], [-2, 1, 'd_cerco_nevado'], [1, 1, 'd_trineo'], [3, 1, 'd_pinguino'], [2, -1, 'd_pinguino']]) {
+          const x = p[0] + dx, y = p[1] + dy;
+          if (!this.libre(x, y)) continue;
+          const sp = this.sprite(key, x, y); this.solido(sp.x, sp.y - 8, 20, 12); this.marcar(x, y);
+        }
+      }
+      for (let i = 0; i < 50; i++) {
         const p = lugar(1); if (!p) break;
         const key = elegir(['d_muneco_nieve', 'd_pinguino', 'd_bloque_hielo', 'd_monton_nieve', 'd_monton_nieve', 'd_cristal_escarcha', 'd_trineo']);
         const sp = this.sprite(key, p[0], p[1]);
@@ -2971,18 +3045,29 @@
         this.time.delayedCall(20000, () => { if (this.tormenta) { this.tormenta.destroy(); this.tormenta = null; } });
       }
     }
-    crearGuarida() {
-      const J = JEFES[this.zona], gx = GUARIDA.x, gy = GUARIDA.y, des = desierto(this.zona);
-      const anillo = [[-3, -1], [-2, -3], [0, -3], [2, -3], [3, -1], [3, 2], [-3, 2]];
-      for (const [dx, dy] of anillo) {
-        const cue = cueva(this.zona), hel = helado(this.zona);
-        const r = this.sprite(des ? (dx + dy) % 2 ? 'd_columna_rota' : 'd_columna' : cue ? ((dx + dy) % 2 ? 'd_pilar_roto' : 'd_pilar_mina') : hel ? 'nv_bloque_hielo' : 'roca_musgo3', gx + dx, gy + dy);
-        this.solido(r.x, r.y - 10, des ? 18 : 26, 16);
+    // Claros repartidos por el mapa donde puede aparecer el jefe (los mismos para todo el grupo)
+    prepararLugaresJefe(P) {
+      this.lugaresJefe = [];
+      const cols = 4, filas = 2, cw = (this.ancho - 8) / cols, ch = (this.alto - 10) / filas;
+      for (let fy = 0; fy < filas; fy++) for (let fx = 0; fx < cols; fx++) {
+        for (let t = 0; t < 120; t++) {
+          const x = Math.floor(4 + fx * cw + 2 + this.rnd() * (cw - 4)), y = Math.floor(6 + fy * ch + 2 + this.rnd() * (ch - 4));
+          if (Math.abs(x - P.x) < 14 && Math.abs(y - P.y) < 10) continue;
+          let ok = true;
+          for (let dy = -3; dy <= 1 && ok; dy++) for (let dx = -2; dx <= 2 && ok; dx++) if (!this.libre(x + dx, y + dy)) ok = false;
+          if (!ok) continue;
+          for (let dy = -4; dy <= 2; dy++) for (let dx = -3; dx <= 3; dx++) this.marcar(x + dx, y + dy);
+          this.lugaresJefe.push({ x, y });
+          break;
+        }
       }
-      const cx = gx * TILE + 16, cy = gy * TILE + 30;
-      this.add.particles(cx, cy - 20, des ? 'p_arena' : helado(this.zona) ? 'p_nieve' : 'p_morado', { x: { min: -60, max: 60 }, speedY: { min: -30, max: -10 }, lifespan: 1600, frequency: 160, scale: { start: 1.2, end: 0 }, alpha: { start: 0.7, end: 0 } }).setDepth(cy - 1);
+      if (!this.lugaresJefe.length) this.lugaresJefe.push({ x: CENTRO_X + 12, y: 10 });
+    }
+    // El jefe no tiene guarida visible: queda oculto hasta que el grupo lo invoca
+    crearGuarida() {
+      const J = JEFES[this.zona], des = desierto(this.zona), L = this.lugaresJefe[0];
+      const cx = L.x * TILE + 16, cy = L.y * TILE + 30;
       if (J.lpc) {
-        // Jefe animado (LPC): más grande y caminando en su lugar
         this.jefeEscala = 2.2;
         this.jefeSpr = this.add.sprite(cx, cy + 6, `jefe_${this.zona}_hoja`, DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.2).setDepth(cy);
         this.jefeSpr.anims.play(`jefe_${this.zona}_down`);
@@ -2990,12 +3075,29 @@
         this.jefeEscala = 4;
         this.jefeSpr = this.add.image(cx, cy, `jefe_${this.zona}`).setOrigin(0.5, 1).setScale(4).setDepth(cy);
       }
-      this.jefeSpr.setVisible(false).setAlpha(0); this.jefeVisto = false;   // oculto hasta cumplir los requisitos
-      this.solido(cx, cy - 18, 60, 30);
-      this.jefeTag = this.add.text(cx, cy - (J.lpc ? 128 : 104), J.nombre, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(cy + 1);
-      this.guarida = { x: cx, y: cy - 20 };
-      this.objetos.push({ tipo: 'jefe', x: cx, y: cy + 4, activo: true });
+      this.jefeSpr.setVisible(false).setAlpha(0); this.jefeVisto = false;
+      this.jefeTag = this.add.text(cx, cy - (J.lpc ? 128 : 104), J.nombre, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(cy + 1).setVisible(false);
+      this.jefeAura = this.add.particles(cx, cy - 20, des ? 'p_arena' : helado(this.zona) ? 'p_nieve' : 'p_morado', { x: { min: -46, max: 46 }, speedY: { min: -110, max: -40 }, lifespan: 1700, frequency: 70, scale: { start: 1.6, end: 0 }, alpha: { start: 0.85, end: 0 } }).setDepth(cy - 1);
+      this.jefeAura.emitting = false;
+      if (cueva(this.zona)) this.jefeLuz = this.add.image(cx, cy - 40, 'luz').setScale(2.2).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0).setDepth(9501);
+      this.jefeLugar = null; this.jefeLugarPuesto = null; this.guarida = null;
+      this.objJefe = { tipo: 'jefe', x: cx, y: cy + 4, activo: false };
+      this.objetos.push(this.objJefe);
     }
+    // Mueve al jefe (y su zona sólida) al claro elegido
+    colocarJefe(i) {
+      const J = JEFES[this.zona], L = this.lugaresJefe[i % this.lugaresJefe.length], cue = cueva(this.zona);
+      const cx = L.x * TILE + 16, cy = L.y * TILE + 30;
+      this.jefeSpr.setPosition(cx, J.lpc ? cy + 6 : cy).setDepth(cy);
+      this.jefeTag.setPosition(cx, cy - (J.lpc ? 128 : 104)).setDepth(cue ? 9503 : cy + 1);
+      this.jefeAura.setPosition(cx, cy - 20).setDepth(cue ? 9502 : cy - 1);
+      if (this.jefeLuz) this.jefeLuz.setPosition(cx, cy - 40);
+      this.quitarZonaJefe();
+      this.jefeZona = this.solido(cx, cy - 18, 60, 30);
+      this.guarida = { x: cx, y: cy - 20 };
+      this.objJefe.x = cx; this.objJefe.y = cy + 4;
+    }
+    quitarZonaJefe() { if (this.jefeZona) { this.obstaculos.remove(this.jefeZona, true, true); this.jefeZona = null; } }
     nuevoEnemigo(clase, s, extra = {}) {
       const E = ENEMIGOS[clase];
       return { clase, s, vida: E.vida, vidaMax: E.vida, origen: { x: s.x, y: s.y }, activo: true, aturdido: 0, ...extra };
@@ -3403,6 +3505,7 @@
       });
       c.on('guarida', (d) => { if (d && d.id) this.estadoJug.set(d.id, { dentro: Boolean(d.dentro), listo: d.listo === true }); });
       c.on('jefe', (d) => this.recibirJefe(d));
+      c.on('jefe_lugar', (d) => this.fijarLugarJefe(d, false));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
       c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; if (ENEMIGOS[e.clase].oculto && !e.despierto) this.despertar(e); } });
@@ -3492,15 +3595,17 @@
 
     // ---------- jefe final cooperativo ----------
     revisarGuarida() {
-      if (!this.guarida || !this.canal) return;
-      const dentro = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 170;
+      if (!this.canal) return;
+      const dentro = Boolean(this.guarida && this.jefeVisto) && Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 170;
       if (dentro !== this.yoEnGuarida) { this.yoEnGuarida = dentro; this.avisarGuarida(); }
       this.actualizarSello();
     }
     // Avisa al grupo si estoy en la guarida y si ya cumplí mis misiones
     avisarGuarida() {
       this.actualizarSello();
-      if (this.canal && this.guarida) this.canal.emitir('guarida', { id: idJuego, dentro: Boolean(this.yoEnGuarida), listo: misionesListas(this.zona) });
+      if (!this.canal) return;
+      this.canal.emitir('guarida', { id: idJuego, dentro: Boolean(this.yoEnGuarida), listo: misionesListas(this.zona) });
+      if (this.jefeLugar) this.canal.emitir('jefe_lugar', this.jefeLugar);
     }
     // Jugadores del grupo (en este mundo) que ya cumplieron sus misiones
     jugadoresListos() {
@@ -3521,26 +3626,64 @@
       if (J.estado === 'combate') return true;
       return this.jefeDisponible() && this.jugadoresListos().length >= JEFE_MIN;
     }
+    // Elige el claro donde aparece el jefe: lo decide el jugador listo con menor id (los demás esperan su aviso)
+    elegirLugarJefe() {
+      const listos = this.jugadoresListos().sort(), ahora = Date.now();
+      if (!this.esperaLugar) this.esperaLugar = ahora;
+      if (listos[0] !== idJuego && ahora - this.esperaLugar < 3000) return;
+      this.esperaLugar = 0;
+      this.fijarLugarJefe({ i: Math.floor(Math.random() * this.lugaresJefe.length), de: idJuego }, true);
+    }
+    // Si dos jugadores eligen a la vez, gana el de menor id: así todo el grupo ve al jefe en el mismo lugar
+    fijarLugarJefe(l, emitir) {
+      if (!l || typeof l.i !== 'number' || !this.lugaresJefe) return;
+      if (this.jefeLugar && String(this.jefeLugar.de) < String(l.de)) return;
+      this.jefeLugar = { i: l.i, de: String(l.de) };
+      if (emitir && this.canal) this.canal.emitir('jefe_lugar', this.jefeLugar);
+      this.actualizarSello();
+    }
     actualizarSello() {
       if (!this.jefeTag || !MUNDOS[this.zona]) return;
-      const vis = this.jefeVisible(), nombre = JEFES[this.zona].nombre;
+      const quiere = this.jefeVisible(), nombre = JEFES[this.zona].nombre;
+      if (quiere) this.ocultoDesde = 0;
+      else if (this.jefeLugar && !this.ocultoDesde) this.ocultoDesde = Date.now();
+      // si pasa un rato oculto, la próxima vez aparecerá en otro lugar
+      if (!quiere && this.jefeLugar && Date.now() - this.ocultoDesde > 15000) { this.jefeLugar = null; this.jefeLugarPuesto = null; }
+      if (quiere && !this.jefeLugar) this.elegirLugarJefe();
+      const vis = quiere && Boolean(this.jefeLugar);
+      if (vis && this.jefeLugarPuesto !== this.jefeLugar.i) {
+        this.jefeLugarPuesto = this.jefeLugar.i;
+        this.colocarJefe(this.jefeLugar.i);
+      }
       if (vis !== this.jefeVisto) {
         this.jefeVisto = vis;
+        this.objJefe.activo = vis;
         this.tweens.killTweensOf(this.jefeSpr);
+        this.jefeTag.setVisible(vis);
+        this.jefeAura.emitting = vis;
+        if (this.jefeLuz) this.jefeLuz.setAlpha(vis ? 0.32 : 0);
         if (vis) {
           this.jefeSpr.setVisible(true).setAlpha(0).setScale(this.jefeEscala);
           this.tweens.add({ targets: this.jefeSpr, alpha: 1, duration: 900 });
           this.tweens.add({ targets: this.jefeSpr, scaleY: this.jefeEscala * 1.04, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
-          if (Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, this.guarida.x, this.guarida.y) < 500) this.cameras.main.shake(400, 0.006);
-          toast(`¡${nombre} apareció en su guarida! Reúnanse ahí para enfrentarlo.`);
+          this.add.particles(this.jefeSpr.x, this.jefeSpr.y - 40, 'p_morado', { speed: { min: 60, max: 200 }, lifespan: 900, scale: { start: 2, end: 0 }, emitting: false }).setDepth(99999).explode(40);
+          if (this.jefe.estado !== 'combate') {
+            // temblor: el jefe acaba de aparecer en algún lugar del mapa
+            this.cameras.main.shake(1400, 0.012);
+            avisoJefe(nombre);
+          }
         } else {
           this.add.particles(this.jefeSpr.x, this.jefeSpr.y - 40, 'p_morado', { speed: { min: 40, max: 140 }, lifespan: 800, scale: { start: 1.6, end: 0 }, emitting: false }).setDepth(this.jefeSpr.depth + 1).explode(30);
           this.jefeSpr.setVisible(false).setAlpha(0);
+          this.quitarZonaJefe();
+          this.yoEnGuarida = false;
         }
       }
-      const n = this.canal ? this.jugadoresListos().length : (misionesListas(this.zona) ? 1 : 0);
-      const txt = vis ? nombre : `Guarida de ${nombre}\n(oculto · ${Math.min(n, JEFE_MIN)} de ${JEFE_MIN} jugadores listos)`;
-      if (txt !== this.jefeTagTxt) { this.jefeTagTxt = txt; this.jefeTag.setText(txt).setAlign('center'); }
+      if (vis) {
+        const n = this.jugadoresEnGuarida().length;
+        const txt = this.jefe.estado === 'combate' ? nombre : `${nombre}\n(${Math.min(n, JEFE_MIN)} de ${JEFE_MIN} jugadores aquí)`;
+        if (txt !== this.jefeTagTxt) { this.jefeTagTxt = txt; this.jefeTag.setText(txt).setAlign('center'); }
+      }
     }
     // Perder contra el jefe (quedarse sin corazones o retirarse): hay que volver a cumplir misiones
     perderContraJefe() {
@@ -3553,17 +3696,17 @@
     }
     jefeDisponible() { const J = this.jefe; return J && (J.estado === 'libre' || (J.estado === 'vencido' && J.hasta <= Date.now())); }
     textoJefe() {
-      if (!misionesListas(this.zona)) { const M = misionesDe(this.zona); return `Guarida sellada: cumple tus misiones (${M.lista.filter((m) => m.p >= m.n).length} de ${M.lista.length})`; }
-      if (!this.canal) return 'Guarida sellada: viaja con un grupo';
+      if (!misionesListas(this.zona)) { const M = misionesDe(this.zona); return `Jefe final: cumple tus misiones para enfrentarlo (${M.lista.filter((m) => m.p >= m.n).length} de ${M.lista.length})`; }
+      if (!this.canal) return 'Jefe final: viaja con un grupo';
       const J = this.jefe;
       if (J.estado === 'combate') return J.part.includes(idJuego) ? 'Volver al combate' : 'Tu grupo está luchando';
       if (!this.jefeDisponible()) return `Jefe derrotado: vuelve en ${Math.ceil((J.hasta - Date.now()) / 60000)} min`;
-      if (!this.jefeVisible()) return `Guarida sellada: ${this.jugadoresListos().length} de ${JEFE_MIN} jugadores listos`;
+      if (!this.jefeVisible()) return `Jefe oculto: ${this.jugadoresListos().length} de ${JEFE_MIN} jugadores listos`;
       const n = this.jugadoresEnGuarida().length;
-      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores en la guarida`;
+      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores aquí`;
     }
     pedirJefe() {
-      if (!misionesListas(this.zona)) { toast('El jefe está sellado: primero cumple tus 3 misiones de este mundo.', 'alerta'); return abrirMisiones(); }
+      if (!misionesListas(this.zona)) { toast(`Para enfrentar al jefe primero cumple tus ${MISIONES_JEFE} misiones de este mundo.`, 'alerta'); return abrirMisiones(); }
       if (!this.canal) return abrirInfoJefe(this.zona);
       const J = this.jefe;
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
@@ -3571,7 +3714,7 @@
       if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
       if (!this.jefeVisible()) return toast(`El jefe sigue oculto: aparecerá cuando ${JEFE_MIN} jugadores de tu grupo cumplan sus misiones (van ${this.jugadoresListos().length}).`);
       const n = this.jugadoresEnGuarida().length;
-      if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} en la guarida con sus misiones cumplidas para desafiar al jefe.`);
+      if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} junto al jefe con sus misiones cumplidas para desafiarlo.`);
       this.canal.emitir('jefe_pedir', { id: idJuego });
       this.iniciarJefeSiLider();
     }
@@ -3583,10 +3726,11 @@
       this.jefe = { estado: 'combate', hp: max, max, part, lider: idJuego, hasta: 0 };
       this.publicarJefe();
     }
-    jefeParaEnviar() { const J = this.jefe; return { estado: J.estado, hp: J.hp, max: J.max, part: J.part, lider: J.lider, resta: Math.max(0, J.hasta - Date.now()) }; }
+    jefeParaEnviar() { const J = this.jefe; return { estado: J.estado, hp: J.hp, max: J.max, part: J.part, lider: J.lider, resta: Math.max(0, J.hasta - Date.now()), lugar: this.jefeLugar }; }
     publicarJefe() { if (this.canal) this.canal.emitir('jefe', this.jefeParaEnviar()); this.alCambiarJefe(); }
     recibirJefe(d) {
       this.jefe = { estado: d.estado, hp: d.hp, max: d.max, part: d.part || [], lider: d.lider, hasta: Date.now() + (d.resta || 0) };
+      if (d.lugar) this.fijarLugarJefe(d.lugar, false);
       this.alCambiarJefe();
     }
     alCambiarJefe() {
