@@ -2271,6 +2271,7 @@
       this.objetos = [];
       this.enemigos = [];
       this.lagos = [];
+      this.aguas = [];   // rectángulos de agua: los enemigos que caminan no pueden entrar
       this.ocupado = new Set();
       if (!MUNDOS[this.zona] && this.zona !== 'pieza') this.zona = 'base';
       if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else this.crearMundo(MUNDOS[this.zona]);
@@ -2522,6 +2523,7 @@
       }
       this.obstaculos.add(this.add.zone((lx + w / 2) * TILE, (ly + h / 2) * TILE, w * TILE - 24, h * TILE - 24));
       if (interactivo) this.lagos.push({ x: lx * TILE, y: ly * TILE, w: w * TILE, h: h * TILE });
+      this.aguas.push({ x0: lx * TILE + 6, y0: ly * TILE + 6, x1: (lx + w) * TILE - 6, y1: (ly + h) * TILE - 6 });
       for (let y = ly - 1; y <= ly + h; y++) for (let x = lx - 1; x <= lx + w; x++) this.marcar(x, y);
     }
     // Gran lago del bosque (no se puede cruzar) con un muelle para pescar
@@ -2543,7 +2545,7 @@
         data[ly + y][lx + x] = fr(2 + tx, ty);
       }
       // zonas sólidas alrededor del muelle (por el agua no se puede pasar)
-      const Z = (x0, y0, x1, y1) => this.obstaculos.add(this.add.zone((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0));
+      const Z = (x0, y0, x1, y1) => { this.obstaculos.add(this.add.zone((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0)); this.aguas.push({ x0, y0, x1, y1 }); };
       Z(lx * TILE + 10, ly * TILE + 10, dx * TILE, (ly + h) * TILE - 12);
       Z((dx + 1) * TILE, ly * TILE + 10, (lx + w) * TILE - 10, (ly + h) * TILE - 12);
       Z(dx * TILE, ly * TILE + 10, (dx + 1) * TILE, dTop * TILE + 6);
@@ -3088,6 +3090,7 @@
           if (!ok) continue;
           for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data[ly + y][lx + x] = fc(x === 0 ? 0 : x === w - 1 ? 2 : 1, y === 0 ? 10 : y === h - 1 ? 13 : 11);
           this.obstaculos.add(this.add.zone((lx + w / 2) * TILE, (ly + h / 2) * TILE, w * TILE - 20, h * TILE - 20));
+          this.aguas.push({ x0: lx * TILE + 10, y0: ly * TILE + 10, x1: (lx + w) * TILE - 10, y1: (ly + h) * TILE - 10 });
           for (let y = ly - 1; y <= ly + h; y++) for (let x = lx - 1; x <= lx + w; x++) this.marcar(x, y);
           break;
         }
@@ -3594,7 +3597,7 @@
         const destino = persigue ? { x: obj.x, y: obj.y - 8 } : e.origen;
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
         const mueve = l > (e.ocupado ? 26 : 4);
-        if (mueve) { e.s.x += (dx / l) * E.vel * seg; e.s.y += (dy / l) * E.vel * seg; }
+        if (mueve) this.pasoEnemigo(e, (dx / l) * E.vel * seg, (dy / l) * E.vel * seg, E.flota);
         if (E.anim && (!E.oculto || e.despierto)) {
           if (mueve) e.s.anims.play(`${E.anim}_${Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down')}`, true);
           else { e.s.anims.stop(); e.s.setFrame(DIRS.down * 9); }
@@ -3609,6 +3612,14 @@
         const t = todos.find((p) => Phaser.Math.Distance.Between(p.x, p.y, o.x, o.y) < 56);
         if (t) { this.soltarBicho(o); if (t.yo && this.canal) this.canal.emitir('bicho', { i: o.idx }); }
       }
+    }
+    enAgua(x, y) { return (this.aguas || []).some((a) => x > a.x0 && x < a.x1 && y > a.y0 && y < a.y1); }
+    // Mueve a un enemigo; los que caminan no pueden entrar al agua (se deslizan por la orilla)
+    pasoEnemigo(e, dx, dy, vuela) {
+      const x = e.s.x, y = e.s.y;
+      if (vuela || !this.aguas || !this.aguas.length || this.enAgua(x, y) || !this.enAgua(x + dx, y + dy)) { e.s.x = x + dx; e.s.y = y + dy; return; }
+      if (dx && !this.enAgua(x + dx, y)) { e.s.x = x + dx; return; }
+      if (dy && !this.enAgua(x, y + dy)) e.s.y = y + dy;
     }
     soltarBicho(arbol) {
       if (!arbol.bicho) return;
@@ -4195,6 +4206,7 @@
         const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, r = 230 + Math.random() * 90;
         const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);
         const clase = clases[i % clases.length], E = ENEMIGOS[clase];
+        if (!E.flota && this.enAgua(x, y)) continue;
         this.time.delayedCall(i * 220, () => this.crearBichoDesafio(clase, x, y, { horda: true, vida: Math.max(2, E.vida - 2) }));
       }
     }
@@ -4216,7 +4228,9 @@
         e.zig = (e.zig || 0) + seg;
         dx += Math.cos(e.zig * 3) * 30 * seg; dy += Math.sin(e.zig * 3) * 30 * seg;
         const nx = Phaser.Math.Clamp(e.s.x + dx, m, W - m), ny = Phaser.Math.Clamp(e.s.y + dy, m + 16, H - m);
-        dx = nx - e.s.x; dy = ny - e.s.y; e.s.x = nx; e.s.y = ny;
+        const x0 = e.s.x, y0 = e.s.y;
+        this.pasoEnemigo(e, nx - x0, ny - y0, false);
+        dx = e.s.x - x0; dy = e.s.y - y0;
       }
       const mueve = Math.hypot(dx, dy) > 0.2;
       if (mueve) e.s.anims.play(`${E.anim}_${Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down')}`, true);
