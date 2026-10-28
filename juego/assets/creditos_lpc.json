@@ -991,5 +991,25 @@
    "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
    "https://opengameart.org/content/lpc-extended-weapon-animations"
   ]
+ },
+ {
+  "archivo": "head/heads/orc/male/walk.png",
+  "autores": [
+   "bluecarrot16",
+   "Matthew Krohn (makrohn)",
+   "Stephen Challener (Redshrike)",
+   "Zi Ye"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/four-characters-my-lpc-entries",
+   "https://opengameart.org/content/sinbad-the-ogre",
+   "https://opengameart.org/content/lpc-male-sheets",
+   "https://opengameart.org/content/lpc-character-bases"
+  ]
  }
 ]
