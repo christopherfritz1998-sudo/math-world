@@ -421,3 +421,67 @@ ul.misiones li.ok .fila span { color: var(--ok); }
   .btn-sonido { right: 70px; top: 10px; width: 42px; height: 42px; font-size: 20px; }
   .panel-sonido { right: 12px; top: 60px; }
 }
+
+/* ---------- Valle de la Esfinge: excavación, laberinto y gemas ---------- */
+.modal.excava-modal, .modal.laberinto { width: min(980px, 100%); border-color: var(--amber); }
+.excava { display: grid; grid-template-columns: 250px 1fr; gap: 16px; align-items: start; }
+.ex-lado { display: flex; flex-direction: column; gap: 10px; }
+.ex-firmeza .fila { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+.ex-firmeza .barra > i { background: var(--ok); transition: width .2s; }
+.ex-firmeza .barra.peligro > i { background: var(--coral); }
+.ex-herr { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ex-herr .obj { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px; }
+.ex-herr .obj img { width: 36px; height: 36px; }
+.ex-herr .obj small { font-size: 11px; color: var(--muted); }
+.ex-herr .obj[aria-pressed="true"] { border-color: var(--amber); background: #3a2e14; }
+.ex-hallado { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ex-hallado li { display: grid; grid-template-columns: 30px 1fr auto; gap: 8px; align-items: center; font-size: 13px; background: var(--bg); border-radius: 10px; padding: 4px 8px; }
+.ex-hallado li img { width: 28px; height: 28px; object-fit: contain; }
+.ex-hallado li b { color: var(--amber); font-size: 12px; }
+.ex-hallado li.vacio { display: block; color: var(--muted); }
+.ex-cuadro { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #6b4a26; border: 3px solid #4a3018; box-shadow: inset 0 0 30px rgba(0,0,0,.5); }
+.ex-cuadro.tiembla { animation: ex-tiembla .25s; }
+@keyframes ex-tiembla { 25% { transform: translate(-4px, 2px); } 50% { transform: translate(3px, -2px); } 75% { transform: translate(-2px, 1px); } }
+.ex-pieza { position: absolute; object-fit: fill; padding: 3%; box-sizing: border-box; }
+.ex-pieza.hallada { animation: ex-brilla 1s ease; filter: drop-shadow(0 0 6px #ffe27a); }
+.ex-pieza.perdida { opacity: .45; filter: grayscale(1); }
+@keyframes ex-brilla { 0% { transform: scale(1); } 40% { transform: scale(1.12); } 100% { transform: scale(1); } }
+.ex-celdas { position: absolute; inset: 0; display: grid; }
+.ex-c { border: 0; margin: 0; padding: 0; cursor: pointer; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); transition: background-color .12s; }
+.ex-c.c0 { background: transparent; box-shadow: none; cursor: default; }
+.ex-c.c1 { background: #e3c48a; }
+.ex-c.c2 { background: #c59a5c; }
+.ex-c.c3 { background: #8f6a3f; background-image: radial-gradient(circle at 30% 30%, rgba(0,0,0,.2) 2px, transparent 3px), radial-gradient(circle at 70% 65%, rgba(0,0,0,.18) 2px, transparent 3px); }
+.ex-c:not(.c0):hover { filter: brightness(1.12); }
+.ex-c.brilla { background-image: radial-gradient(circle at 50% 50%, rgba(255,250,200,.95) 1.5px, transparent 3px), radial-gradient(circle at 25% 70%, rgba(255,240,160,.7) 1px, transparent 2px); animation: ex-chispa 1.6s infinite; }
+.ex-c.fin { cursor: default; }
+@keyframes ex-chispa { 50% { filter: brightness(1.25); } }
+#ex-fin:empty { display: none; }
+#ex-fin { margin-top: 12px; }
+
+.lab { display: grid; grid-template-columns: 1fr 210px; gap: 14px; align-items: start; }
+.lab-cuadro { position: relative; border-radius: 12px; overflow: hidden; border: 3px solid #5c3f1e; background: #0b0806; }
+.lab-cuadro canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; }
+.lab-lado { display: flex; flex-direction: column; gap: 12px; }
+.lab-cruz { display: grid; grid-template-columns: repeat(3, 52px); grid-auto-rows: 46px; gap: 4px; justify-content: center; }
+.lab-cruz .btn { padding: 0; font-size: 18px; touch-action: none; }
+.pildora.urgente { background: #3a2420; border-color: var(--coral); color: #ffd0c4; animation: ex-chispa .8s infinite; }
+.lab-pregunta { position: absolute; inset: 6% 6%; overflow: auto; background: rgba(28, 20, 12, .96); border: 3px solid var(--amber); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.lab-pregunta .enunciado { margin: 4px 0 0; }
+.lab-esfinge { display: flex; gap: 12px; align-items: flex-start; }
+.lab-esfinge img { width: 64px; height: 64px; flex: none; }
+.lab-final { justify-content: center; }
+.lab-premio { display: flex; gap: 18px; align-items: center; }
+.lab-premio h3 { margin: 4px 0; font-size: 24px; }
+.gema-grande { width: 112px; height: 112px; filter: drop-shadow(0 0 14px rgba(255, 230, 160, .7)); animation: ex-brilla 1.2s ease; }
+.rareza { display: inline-block; font-size: 11px !important; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: 1px 8px; border-radius: 99px; background: #2a2a2a; color: #ddd !important; }
+.rareza.poco { background: #1f4a2e; color: #9ff0b4 !important; }
+.rareza.rara { background: #1d3460; color: #a9c8ff !important; }
+.rareza.epica { background: #43215e; color: #e2b8ff !important; }
+.rareza.legendaria { background: #5e4210; color: #ffe08a !important; }
+.album.gemas .pez-card { border-color: var(--amber); }
+.album.gemas .pez-card.falta { border-color: var(--line); }
+@media (max-width: 760px) {
+  .excava, .lab { grid-template-columns: 1fr; }
+  .lab-pregunta { inset: 0; border-radius: 0; }
+}

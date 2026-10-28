@@ -117,6 +117,8 @@
     bosque: { bpm: 104, raiz: 62, escala: MAYOR, prog: [0, 4, 5, 3], lead: 'square', arp: 'triangle', bat: 'ligera', semilla: 5 },
     profundo: { bpm: 82, raiz: 57, escala: DORICA, prog: [0, 6, 5, 6], lead: 'sine', arp: 'triangle', bat: 'tribal', semilla: 11, eco: true },
     desierto: { bpm: 98, raiz: 62, escala: ARABE, prog: [0, 1, 0, 6], lead: 'sawtooth', arp: 'triangle', bat: 'darbuka', semilla: 7 },
+    valle: { bpm: 84, raiz: 57, escala: ARABE, prog: [0, 6, 1, 0], lead: 'triangle', arp: 'sine', bat: 'darbuka', semilla: 29, eco: true, campana: true },
+    laberinto: { bpm: 116, raiz: 55, escala: ARMONICA, prog: [0, 1, 0, 4], lead: 'square', arp: 'triangle', bat: 'tribal', semilla: 31, eco: true },
     mina: { bpm: 78, raiz: 52, escala: MENOR, prog: [0, 5, 6, 4], lead: 'triangle', arp: 'square', bat: 'metal', semilla: 13, eco: true },
     glaciar: { bpm: 88, raiz: 64, escala: LIDIA, prog: [0, 1, 5, 4], lead: 'sine', arp: 'sine', bat: 'nieve', semilla: 17, eco: true, campana: true },
     jefe: { bpm: 144, raiz: 57, escala: ARMONICA, prog: [0, 0, 5, 4], lead: 'sawtooth', arp: 'square', bat: 'intensa', semilla: 19 },

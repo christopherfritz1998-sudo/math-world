@@ -22,6 +22,8 @@
     { id: 'resina', nombre: 'Resina', grupo: 'u1p' }, { id: 'miel', nombre: 'Miel', grupo: 'u1p' },
     { id: 'fibra', nombre: 'Fibra de cactus', corto: 'Fibra', grupo: 'u2' }, { id: 'arenisca', nombre: 'Arenisca', grupo: 'u2' },
     { id: 'cobre', nombre: 'Cobre', grupo: 'u2' }, { id: 'oro', nombre: 'Oro', grupo: 'u2' },
+    // Valle de la Esfinge (sobre el acantilado del desierto)
+    { id: 'obsidiana', nombre: 'Obsidiana', grupo: 'u2v' }, { id: 'fosil', nombre: 'Fósiles', grupo: 'u2v' },
     { id: 'carbon', nombre: 'Carbón', grupo: 'u3' }, { id: 'plata', nombre: 'Plata', grupo: 'u3' },
     { id: 'amatista', nombre: 'Amatista', grupo: 'u3' }, { id: 'hongo', nombre: 'Hongos luminosos', corto: 'Hongos', grupo: 'u3' },
     { id: 'baya', nombre: 'Bayas de invierno', corto: 'Bayas', grupo: 'u4' }, { id: 'hielo', nombre: 'Hielo', grupo: 'u4' },
@@ -52,6 +54,10 @@
     { id: 'armadura2', nombre: 'Armadura de cristal', desc: 'Equipada, tu vida máxima sube a 9 corazones.', icono: 'armadura', costo: { agua: 12, cristal: 8 }, requiere: 'espada2' },
     // Equipo del desierto (Unidad 2)
     { id: 'cantimplora', nombre: 'Cantimplora', desc: 'Siempre activa: +1 corazón de vida máxima.', icono: 'cantimplora', costo: { fibra: 12, cobre: 4 }, requiere: 'pico' },
+    // Herramientas del Valle de la Esfinge
+    { id: 'pala', nombre: 'Pala de arqueólogo', desc: 'Herramienta: permite excavar en los sitios arqueológicos del Valle de la Esfinge (incluye la brocha).', icono: 'pala', costo: { fibra: 10, cobre: 6, arenisca: 10 }, requiere: 'pico' },
+    { id: 'pala2', nombre: 'Pala de obsidiana', desc: 'Las excavaciones aguantan más golpes antes de derrumbarse y la pala cava más hondo.', icono: 'pala2', costo: { obsidiana: 10, fosil: 6, oro: 4 }, requiere: 'pala' },
+    { id: 'antorcha_esfinge', nombre: 'Antorcha de la esfinge', desc: 'Ilumina el laberinto de la Gran Esfinge, en el Valle de la Esfinge: sin ella no puedes entrar.', icono: 'antorcha_esfinge', costo: { obsidiana: 6, fosil: 3, fibra: 8 } },
     { id: 'pico3', nombre: 'Pico de cobre', desc: 'Permite extraer oro de las vetas doradas y saca más arenisca y cobre.', icono: 'pickaxe', costo: { cobre: 10, arenisca: 15, fibra: 6 }, requiere: 'pico2' },
     { id: 'espada3', nombre: 'Espada de oro', desc: 'Equipada, cada acierto en combate quita 4 de vida.', icono: 'espada', costo: { oro: 8, cobre: 10 }, requiere: 'espada2' },
     { id: 'armadura3', nombre: 'Armadura de oro', desc: 'Equipada, tu vida máxima sube a 11 corazones.', icono: 'armadura', costo: { oro: 12, arenisca: 20, fibra: 10 }, requiere: 'armadura2' },
@@ -207,6 +213,27 @@
     D('cuadro_luz', 'Cuadro de luciérnagas', 'Luciérnagas', 'pieza', 'l', [9, 0, 1, 1], { luciernaga: 4, madera: 2 }, { brillo: true, pared: true }),
     D('alfombra_luz', 'Alfombra nocturna', 'Luciérnagas', 'pieza', 'l', [0, 2, 3, 2], { luciernaga: 6, agua: 3 }, { brillo: true, piso: true }),
     D('planta_luz', 'Planta luminosa', 'Luciérnagas', 'pieza', 'l', [3, 2, 1, 1], { luciernaga: 3, agua: 2 }, { brillo: true }),
+    // Valle de la Esfinge: se fabrican con obsidiana y fósiles (hoja propia)
+    D('esfinge_mini', 'Esfinge de arenisca', 'Valle de la Esfinge', 'base', 'v', [2, 3, 2, 2], { arenisca: 12, fosil: 2, oro: 2 }, { pie: 1 }),
+    D('piramide', 'Pirámide', 'Valle de la Esfinge', 'base', 'v', [4, 0, 3, 2], { arenisca: 16, oro: 2 }, { pie: 1 }),
+    D('obelisco', 'Obelisco', 'Valle de la Esfinge', 'base', 'v', [8, 3, 1, 3], { obsidiana: 3, arenisca: 8 }),
+    D('estatua_chacal', 'Estatua del chacal', 'Valle de la Esfinge', 'base', 'v', [10, 3, 1, 2], { obsidiana: 4, oro: 1 }),
+    D('palmera', 'Palmera datilera', 'Valle de la Esfinge', 'base', 'v', [9, 3, 1, 2], { fibra: 4, agua: 2 }),
+    D('papiro', 'Papiros', 'Valle de la Esfinge', 'base', 'v', [2, 6, 1, 1], { fibra: 2, agua: 1 }, { paso: true }),
+    D('columna_jero', 'Columna con jeroglíficos', 'Valle de la Esfinge', 'base', 'v', [12, 3, 1, 2], { arenisca: 6, fosil: 1 }),
+    D('columna_jero_rota', 'Columna rota con jeroglíficos', 'Valle de la Esfinge', 'base', 'v', [13, 3, 1, 2], { arenisca: 5, fosil: 1 }),
+    D('esqueleto_dino', 'Esqueleto de dinosaurio', 'Valle de la Esfinge', 'base', 'v', [7, 0, 3, 2], { fosil: 8, arenisca: 4 }, { pie: 1 }),
+    D('antorcha_obsidiana', 'Antorcha de obsidiana', 'Valle de la Esfinge', 'ambos', 'v', [8, 6, 1, 1], { obsidiana: 2, fibra: 2 }, { brillo: 0xff9a40 }),
+    D('sarcofago', 'Sarcófago dorado', 'Valle de la Esfinge', 'ambos', 'v', [11, 3, 1, 2], { oro: 3, arenisca: 6 }),
+    D('mesa_obsidiana', 'Mesa de obsidiana', 'Valle de la Esfinge', 'pieza', 'v', [6, 6, 1, 1], { obsidiana: 4, arenisca: 2 }),
+    D('lampara_obsidiana', 'Lámpara de obsidiana', 'Valle de la Esfinge', 'pieza', 'v', [14, 3, 1, 2], { obsidiana: 3, cobre: 2 }, { brillo: 0xffd27a }),
+    D('trono', 'Trono del faraón', 'Valle de la Esfinge', 'pieza', 'v', [5, 6, 1, 1], { oro: 3, arenisca: 4, fibra: 2 }),
+    D('cofre_reliquias', 'Cofre de reliquias', 'Valle de la Esfinge', 'pieza', 'v', [4, 6, 1, 1], { fosil: 2, cobre: 3 }),
+    D('jarron_dorado', 'Jarrón dorado', 'Valle de la Esfinge', 'ambos', 'v', [3, 6, 1, 1], { oro: 2 }),
+    D('cuadro_fosil', 'Fósil enmarcado', 'Valle de la Esfinge', 'pieza', 'v', [7, 6, 1, 1], { fosil: 2, fibra: 1 }, { pared: true }),
+    D('vitrina_fosiles', 'Vitrina de fósiles', 'Valle de la Esfinge', 'pieza', 'v', [15, 3, 1, 2], { fosil: 5, obsidiana: 2 }),
+    D('alfombra_jero', 'Alfombra jeroglífica', 'Valle de la Esfinge', 'pieza', 'v', [10, 0, 3, 2], { fibra: 8, oro: 1 }, { piso: true }),
+    D('vitrina_gemas', 'Vitrina de gemas', 'Valle de la Esfinge', 'pieza', 'v', [0, 3, 2, 2], {}, { excl: true, album: 'gemas', brillo: 0xc8a0ff }),
     D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
     D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
     D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
@@ -271,7 +298,7 @@
       rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, profundo: true, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
     // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
     u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
-      suelo: [[8, 22, 1], [3, 19, 0.07]], nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
+      suelo: [[8, 22, 1], [3, 19, 0.07]], valle: true, nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
       escorpiones: 15, remolinos: 9, esqueletos: 12, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
     // Unidad 3: mina subterránea con recursos propios (carbón, plata, amatista y hongos luminosos)
     u3: { nombre: { '7basico': 'Mina de las Formas', '8basico': 'Mina de los Volúmenes' }, tipo: 'cueva', recursos: 'u3', semilla: 33, fondo: '#1a1a24',
@@ -282,7 +309,9 @@
       suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 112, nArbustos: 88, nRocas: 66, vetasEscarcha: 19, vetasZafiro: 9, cofres: 11,
       lobos: 12, espiritus: 9, munecos: 12, cofre: { escarcha: 2, zafiro: 1 } },
   };
-  const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || (g === 'u1' && r.grupo === 'u1p')); };
+  // Cada mundo puede tener una zona extra con recursos propios (Bosque profundo, Valle de la Esfinge)
+  const SUBZONA = { u1: 'u1p', u2: 'u2v' };
+  const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || r.grupo === SUBZONA[g]); };
   const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
   // oculto: espera escondido y despierta al acercarse · flota: atraviesa obstáculos · anim: hoja animada (LPC)
@@ -307,6 +336,9 @@
     raiz: { nombre: 'Raíz viviente', vida: 7, dif: 3, botin: { resina: 2, madera: 3 }, xp: 34, vel: 50, oculto: true, tex: 'tocon_raiz', texVivo: 'raiz_viva', retrato: 'raiz_viva', radio: 200 },
     // Desafío en vivo "Criatura dorada": huye del jugador
     dorado: { nombre: 'Criatura dorada', vida: 3, dif: 2, botin: {}, xp: 45, vel: 112, anim: 'jabali', retrato: 'jabali_retrato', radio: 3000 },
+    // Valle de la Esfinge
+    escarabajo: { nombre: 'Escarabajo del valle', vida: 5, dif: 2, botin: { obsidiana: 1, cobre: 1 }, xp: 26, vel: 100, retrato: 'v_escarabajo', texVivo: 'v_escarabajo', radio: 230 },
+    momia: { nombre: 'Momia del valle', vida: 7, dif: 3, botin: { fosil: 1, fibra: 2 }, xp: 34, vel: 54, oculto: true, tex: 'v_sarcofago', anim: 'momia', retrato: 'momia_retrato', radio: 190 },
     esqueleto: { nombre: 'Esqueleto del desierto', vida: 6, dif: 3, botin: { cobre: 2, oro: 1 }, xp: 32, vel: 62, anim: 'esqueleto', retrato: 'esqueleto_retrato', radio: 210 },
   };
   const xpPara = (nivel) => 60 + 40 * nivel;
@@ -509,6 +541,11 @@
     raiz: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 raíz viviente' : `Vence ${m.n} raíces vivientes`), mundos: (u) => bosque(u) && puenteListo() },
     resina: { n: [2, 3], txt: (m) => `Saca resina de ${m.n} árboles gigantes`, req: () => tiene('hacha2'), mundos: (u) => bosque(u) && puenteListo() },
     colmena: { n: [2, 3], txt: (m) => `Recolecta miel de ${m.n} colmenas`, req: () => tiene('ahumador'), mundos: (u) => bosque(u) && puenteListo() },
+    excavar: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Excava en 1 sitio del Valle de la Esfinge' : `Excava en ${m.n} sitios del Valle de la Esfinge`), req: () => tiene('pala'), mundos: (u) => desierto(u) && valleListo() },
+    laberinto: { n: [1, 1], txt: () => 'Supera el laberinto de la Gran Esfinge', req: () => tiene('antorcha_esfinge'), mundos: (u) => desierto(u) && valleListo() },
+    obsidiana: { n: [2, 3], txt: (m) => `Extrae obsidiana de ${m.n} vetas del valle`, req: () => tiene('pico3'), mundos: (u) => desierto(u) && valleListo() },
+    escarabajo: { n: [2, 3], txt: (m) => `Vence ${m.n} escarabajos del valle`, mundos: (u) => desierto(u) && valleListo() },
+    momia: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 momia del valle' : `Vence ${m.n} momias del valle`), mundos: (u) => desierto(u) && valleListo() },
     pescar: { n: [2, 3], txt: (m) => `Pesca ${m.n} veces en el muelle del gran lago`, req: () => tiene('cana'), mundos: bosque },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
     arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} duendes del bosque`, mundos: bosque },
@@ -555,9 +592,10 @@
     return M;
   }
   const textoMision = (m) => TIPOS_MISION[m.t].txt(m);
-  // Estado de la obra cooperativa del puente (lo trae el servidor; en modo sin conexión es personal)
-  let obraPuente = null;
-  const puenteListo = () => Boolean(obraPuente && obraPuente.completado);
+  // Estado de las obras cooperativas (lo trae el servidor; en modo sin conexión es personal)
+  const obraE = { puente: null, valle: null };
+  const puenteListo = () => Boolean(obraE.puente && obraE.puente.completado);
+  const valleListo = () => Boolean(obraE.valle && obraE.valle.completado);
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
 
   const TIPOS_DIARIA = {
@@ -628,7 +666,7 @@
     html += `<strong>Misión diaria${Dd.cobrada ? ' · cobrada' : Dd.p >= Dd.n ? ' · ¡reclámala!' : ''}</strong><ul>${fila(TIPOS_DIARIA[Dd.t].txt, Dd.p, Dd.n)}</ul>`;
     const oculto = misionesOcultas();
     const hechas = u ? misionesDe(u).lista.filter((m) => m.p >= m.n).length : null;
-    const resumen = u ? `${hechas}/3` : Dd.p >= Dd.n ? (Dd.cobrada ? '✓' : '¡lista!') : `${Math.min(Dd.p, Dd.n)}/${Dd.n}`;
+    const resumen = u ? `${hechas}/${misionesDe(u).lista.length}` : Dd.p >= Dd.n ? (Dd.cobrada ? '✓' : '¡lista!') : `${Math.min(Dd.p, Dd.n)}/${Dd.n}`;
     el.classList.toggle('plegado', oculto);
     el.innerHTML = `<div class="hm-cab"><span>Misiones${oculto ? ` · ${resumen}` : ''}</span><button type="button" class="hm-plegar" data-plegar aria-expanded="${!oculto}">${oculto ? 'Mostrar' : 'Ocultar'}</button></div>`
       + (oculto ? '' : `<button type="button" class="hm-cuerpo" data-ver-misiones aria-label="Ver detalle de tus misiones">${html}</button>`);
@@ -913,6 +951,7 @@
     const grupos = new Set(['u1', 'u1p']);
     for (const r of RECURSOS) if ((S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0) grupos.add(r.grupo);
     for (const z of Object.keys(MUNDOS)) if (MUNDOS[z].recursos && mundoAbierto({ id: z, habilitada: false })) grupos.add(MUNDOS[z].recursos);
+    for (const g of [...grupos]) if (SUBZONA[g]) grupos.add(SUBZONA[g]);
     return RECURSOS.filter((r) => grupos.has(r.grupo));
   }
   function pintarHUD() {
@@ -1118,92 +1157,106 @@
     if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch (e) { /* */ } }
   }
 
-  // ---------- Obra cooperativa: el puente al Bosque profundo ----------
-  // Todo el nivel (7° u 8° básico) aporta recursos al mismo puente; el avance queda guardado en el sistema
-  // y, cuando se completa, el puente queda construido para siempre.
-  const OBRA_PUENTE = 'puente_bosque';
-  const META_PUENTE = { madera: 600, piedra: 350, agua: 150, cristal: 40 };   // (en modo sin conexión; en línea la define el servidor)
+  // ---------- Obras cooperativas: el puente al Bosque profundo y el montacargas al Valle de la Esfinge ----------
+  // Todo el nivel (7° u 8° básico) aporta recursos a la misma obra; el avance queda guardado en el sistema
+  // y, cuando se completa, queda construida para siempre.
+  const OBRAS = {
+    puente: { id: 'puente_bosque', meta: { madera: 600, piedra: 350, agua: 150, cristal: 40 }, icono: '🌉', nombre: 'Puente al Bosque profundo', corto: 'el puente', al: 'al puente', local: 'obraLocal',
+      intro: 'El río no se puede cruzar. Todos los estudiantes de tu nivel aportan recursos a este mismo puente: el avance se guarda y, cuando se completa, queda construido para siempre.',
+      listo: 'El puente está construido para siempre: cruza el río por el camino hacia el Bosque profundo.', fin: '¡Puente terminado!' },
+    valle: { id: 'montacargas_valle', meta: { fibra: 500, arenisca: 400, cobre: 200, oro: 60 }, icono: '🏗️', nombre: 'Montacargas al Valle de la Esfinge', corto: 'el montacargas', al: 'al montacargas', local: 'obraLocalValle',
+      intro: 'El acantilado no se puede escalar. Todo tu nivel construye el montacargas de poleas: cuerdas de fibra, plataforma de arenisca, poleas de cobre y engranajes de oro. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
+      listo: 'El montacargas está terminado para siempre: sube por él hacia el Valle de la Esfinge.', fin: '¡Montacargas terminado!' },
+  };
+  const obraDeEscena = () => (escena && escena.rio ? 'puente' : escena && escena.valle ? 'valle' : null);
   let cargandoObra = false;
-  async function cargarObra() {
-    if (!S || cargandoObra) return;
-    const antes = obraPuente ? puenteListo() : null;   // null: primera carga (no se celebra)
+  async function cargarObra(k = obraDeEscena()) {
+    if (!S || !k || cargandoObra) return;
+    const O = OBRAS[k], antes = obraE[k] ? Boolean(obraE[k].completado) : null;   // null: primera carga (no se celebra)
     let o = null;
     if (sesion.modo === 'nube' || sesion.modo === 'docente') {
       cargandoObra = true;
-      try { o = await Nube.obra(sesion.token, OBRA_PUENTE, nivelNum()); } catch (e) { o = null; }
+      try { o = await Nube.obra(sesion.token, O.id, nivelNum()); } catch (e) { o = null; }
       cargandoObra = false;
       if (!o || !o.ok) return;
     } else {
-      S.obraLocal = S.obraLocal || { aportes: {}, completado: false, mio: 0 };
-      o = { meta: META_PUENTE, aportes: S.obraLocal.aportes, completado: S.obraLocal.completado, mio: S.obraLocal.mio, top: [], aportantes: 1 };
+      const L = S[O.local] = S[O.local] || { aportes: {}, completado: false, mio: 0 };
+      o = { meta: O.meta, aportes: L.aportes, completado: L.completado, mio: L.mio, top: [], aportantes: 1 };
     }
-    obraPuente = o;
-    if (escena && escena.rio) escena.actualizarPuente(antes === false && puenteListo());
-    const t = $('obra-cuerpo'); if (t) pintarObra();
+    obraE[k] = o;
+    if (escena && obraDeEscena() === k) escena.actualizarObra(antes === false && Boolean(o.completado));
+    if ($('obra-cuerpo')) pintarObra(k);
   }
-  setInterval(() => { if (escena && escena.rio && !document.hidden && !ui.abierto) cargarObra(); }, 15000);
-  const obraFalta = (k) => Math.max(0, ((obraPuente && obraPuente.meta) || META_PUENTE)[k] - ((obraPuente && obraPuente.aportes && obraPuente.aportes[k]) || 0));
-  function pintarObra() {
-    const o = obraPuente || { meta: META_PUENTE, aportes: {}, top: [], mio: 0, aportantes: 0 };
-    const meta = o.meta || META_PUENTE, ap = o.aportes || {};
-    const total = Object.values(meta).reduce((a, b) => a + b, 0), hecho = Object.entries(meta).reduce((a, [k, n]) => a + Math.min(n, ap[k] || 0), 0);
-    const pct = o.completado ? 100 : Math.floor((hecho / total) * 100);
-    const filas = Object.entries(meta).map(([k, n]) => {
-      const v = Math.min(n, ap[k] || 0), tengo = esDocente() ? 0 : total_(k), max = Math.min(tengo, obraFalta(k));
-      return `<div class="obra-fila"><img class="px" src="${ICONO(k)}" alt=""><div class="obra-info"><div class="fila"><strong>${esc(REC[k].nombre)}</strong><span>${v} de ${n}</span></div><div class="barra"><i style="width:${(v / n) * 100}%"></i></div></div>
-        ${o.completado || esDocente() ? '' : `<div class="obra-aporte"><input type="number" min="0" max="${max}" value="0" data-obra="${k}" aria-label="Cuánto ${esc(REC[k].nombre.toLowerCase())} aportas" ${max ? '' : 'disabled'}><button type="button" class="btn sec chico" data-todo="${k}" ${max ? '' : 'disabled'}>Todo (${max})</button></div>`}</div>`;
+  setInterval(() => { if (escena && obraDeEscena() && !document.hidden && !ui.abierto) cargarObra(); }, 15000);
+  const metaObra = (k) => (obraE[k] && obraE[k].meta) || OBRAS[k].meta;
+  const obraFalta = (k, r) => Math.max(0, metaObra(k)[r] - ((obraE[k] && obraE[k].aportes && obraE[k].aportes[r]) || 0));
+  const pctObra = (k) => {
+    const o = obraE[k]; if (o && o.completado) return 100;
+    const meta = metaObra(k), ap = (o && o.aportes) || {};
+    const tot = Object.values(meta).reduce((a, b) => a + b, 0), hecho = Object.entries(meta).reduce((a, [r, n]) => a + Math.min(n, ap[r] || 0), 0);
+    return Math.floor((hecho / tot) * 100);
+  };
+  function pintarObra(k) {
+    const O = OBRAS[k], o = obraE[k] || { meta: O.meta, aportes: {}, top: [], mio: 0, aportantes: 0 };
+    const meta = o.meta || O.meta, ap = o.aportes || {}, pct = pctObra(k);
+    const filas = Object.entries(meta).map(([r, n]) => {
+      const v = Math.min(n, ap[r] || 0), tengo = esDocente() ? 0 : total_(r), max = Math.min(tengo, obraFalta(k, r));
+      return `<div class="obra-fila"><img class="px" src="${ICONO(r)}" alt=""><div class="obra-info"><div class="fila"><strong>${esc(REC[r].nombre)}</strong><span>${v} de ${n}</span></div><div class="barra"><i style="width:${(v / n) * 100}%"></i></div></div>
+        ${o.completado || esDocente() ? '' : `<div class="obra-aporte"><input type="number" min="0" max="${max}" value="0" data-obra="${r}" aria-label="Cuánto ${esc(REC[r].nombre.toLowerCase())} aportas" ${max ? '' : 'disabled'}><button type="button" class="btn sec chico" data-todo="${r}" ${max ? '' : 'disabled'}>Todo (${max})</button></div>`}</div>`;
     }).join('');
     const top = (o.top || []).map((x, i) => `<li><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'}</span><span>${esc(x.nombre)}</span><b>${x.total}</b></li>`).join('');
     $('obra-cuerpo').innerHTML = `
-      <div class="obra-total"><div class="fila"><strong>${o.completado ? '¡Puente terminado!' : 'Avance de la obra'}</strong><span>${pct} %</span></div><div class="barra meta"><i style="width:${pct}%"></i></div></div>
+      <div class="obra-total"><div class="fila"><strong>${o.completado ? O.fin : 'Avance de la obra'}</strong><span>${pct} %</span></div><div class="barra meta"><i style="width:${pct}%"></i></div></div>
       <div class="des-cols"><div class="obra-recursos">${filas}</div>
         <aside class="des-tabla"><span class="etq">Quienes más han aportado</span><ol class="des-ranking">${top || '<li class="vacio">Aún nadie aporta. ¡Sé el primero!</li>'}</ol>
           <span class="nota">Tu aporte: <b>${o.mio || 0}</b> recursos · ${o.aportantes || 0} ${o.aportantes === 1 ? 'estudiante ha' : 'estudiantes han'} aportado</span></aside></div>
-      ${o.completado ? '<div class="mensaje bien" role="status">El puente está construido para siempre: cruza el río por el camino hacia el Bosque profundo.</div>'
+      ${o.completado ? `<div class="mensaje bien" role="status">${O.listo}</div>`
         : esDocente() ? '<p class="nota">Como docente puedes ver el avance; los aportes los hacen tus estudiantes.</p>'
-          : '<div class="acciones"><span class="nota">Elige cuánto aportar: se descuenta de tu cofre y tu mochila. Para aportar responde un desafío.</span><button type="button" class="btn pri" id="obra-aportar">Aportar al puente</button></div>'}`;
+          : `<div class="acciones"><span class="nota">Elige cuánto aportar: se descuenta de tu cofre y tu mochila. Para aportar responde un desafío.</span><button type="button" class="btn pri" id="obra-aportar">Aportar ${O.al}</button></div>`}`;
     document.querySelectorAll('[data-todo]').forEach((b) => b.addEventListener('click', () => { const i = document.querySelector(`[data-obra="${b.dataset.todo}"]`); i.value = i.max; }));
-    const bt = $('obra-aportar'); if (bt) bt.addEventListener('click', aportarObra);
+    const bt = $('obra-aportar'); if (bt) bt.addEventListener('click', () => aportarObra(k));
   }
   const total_ = (r) => (S.mochila[r] || 0) + (S.cofre[r] || 0);
-  function abrirObra() {
-    ui.abrir(`<div class="modal-cab"><div><span class="etq">Obra de todo ${S.curso === '8basico' ? '8°' : '7°'} básico · se completa entre todos</span><h2 id="modal-titulo">🌉 Puente al Bosque profundo</h2></div><button type="button" class="btn" id="obra-cerrar">Cerrar</button></div>
-      <p class="nota">El río no se puede cruzar. Todos los estudiantes de tu nivel aportan recursos a este mismo puente: el avance se guarda y, cuando se completa, queda construido para siempre.</p>
+  function abrirObra(k = obraDeEscena()) {
+    if (!k) return;
+    const O = OBRAS[k];
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Obra de todo ${S.curso === '8basico' ? '8°' : '7°'} básico · se completa entre todos</span><h2 id="modal-titulo">${O.icono} ${esc(O.nombre)}</h2></div><button type="button" class="btn" id="obra-cerrar">Cerrar</button></div>
+      <p class="nota">${O.intro}</p>
       <div id="obra-cuerpo"></div>`, 'ancho');
     $('obra-cerrar').addEventListener('click', () => ui.cerrar());
-    pintarObra();
-    cargarObra();
+    pintarObra(k);
+    cargarObra(k);
   }
-  function aportarObra() {
-    const rec = {};
+  function aportarObra(k) {
+    const O = OBRAS[k], rec = {};
     document.querySelectorAll('[data-obra]').forEach((i) => {
-      const k = i.dataset.obra, n = Math.max(0, Math.min(Math.floor(Number(i.value) || 0), total_(k), obraFalta(k)));
-      if (n > 0) rec[k] = n;
+      const r = i.dataset.obra, n = Math.max(0, Math.min(Math.floor(Number(i.value) || 0), total_(r), obraFalta(k, r)));
+      if (n > 0) rec[r] = n;
     });
     if (!Object.keys(rec).length) return toast('Elige cuántos recursos quieres aportar (o usa «Todo»).', 'alerta');
-    const resumen = Object.entries(rec).map(([k, n]) => `${n} ${nombreRec(k)}`).join(', ');
-    abrirDesafio({ accion: 'Aportar al puente', dif: difPara(2), premio: `Aporte: ${resumen}`, onOk: async () => {
+    const resumen = Object.entries(rec).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ');
+    abrirDesafio({ accion: `Aportar ${O.al}`, dif: difPara(2), premio: `Aporte: ${resumen}`, onOk: async () => {
       let r = null;
       if (sesion.modo === 'nube') {
-        try { r = await Nube.obraAportar(sesion.token, OBRA_PUENTE, rec); } catch (e) { r = null; }
+        try { r = await Nube.obraAportar(sesion.token, O.id, rec); } catch (e) { r = null; }
         if (!r || !r.ok) { toast('No se pudo enviar tu aporte. Revisa tu conexión e inténtalo otra vez.', 'alerta'); return; }
       } else {
-        const L = S.obraLocal = S.obraLocal || { aportes: {}, completado: false, mio: 0 }, acep = {};
-        for (const [k, n] of Object.entries(rec)) { const d = Math.min(n, META_PUENTE[k] - (L.aportes[k] || 0)); if (d > 0) { acep[k] = d; L.aportes[k] = (L.aportes[k] || 0) + d; L.mio += d; } }
-        L.completado = Object.entries(META_PUENTE).every(([k, n]) => (L.aportes[k] || 0) >= n);
-        r = { ok: true, meta: META_PUENTE, aportes: L.aportes, completado: L.completado, mio: L.mio, top: [], aportantes: 1, aceptado: acep };
+        const L = S[O.local] = S[O.local] || { aportes: {}, completado: false, mio: 0 }, acep = {};
+        for (const [x, n] of Object.entries(rec)) { const d = Math.min(n, O.meta[x] - (L.aportes[x] || 0)); if (d > 0) { acep[x] = d; L.aportes[x] = (L.aportes[x] || 0) + d; L.mio += d; } }
+        L.completado = Object.entries(O.meta).every(([x, n]) => (L.aportes[x] || 0) >= n);
+        r = { ok: true, meta: O.meta, aportes: L.aportes, completado: L.completado, mio: L.mio, top: [], aportantes: 1, aceptado: acep };
       }
       const acep = r.aceptado || {};
-      const antes = puenteListo();
+      const antes = Boolean(obraE[k] && obraE[k].completado);
       pagar(acep); sfx('fabricar');
       const n = Object.values(acep).reduce((a, b) => a + b, 0);
       ganarXP(Math.min(60, 5 + Math.floor(n / 4)));
-      obraPuente = r; guardar(true); pintarHUD();
-      if (escena && escena.rio) escena.actualizarPuente(!antes && puenteListo());
+      obraE[k] = r; guardar(true); pintarHUD();
+      if (escena && obraDeEscena() === k) escena.actualizarObra(!antes && Boolean(r.completado));
       if (escena && escena.canal) escena.canal.emitir('obra', {});
-      toast(n ? `¡Aportaste ${Object.entries(acep).map(([k, v]) => `${v} ${nombreRec(k)}`).join(', ')} al puente!` : 'El puente ya tenía esos recursos completos.');
+      toast(n ? `¡Aportaste ${Object.entries(acep).map(([x, v]) => `${v} ${nombreRec(x)}`).join(', ')} ${O.al}!` : `${O.corto[0].toUpperCase() + O.corto.slice(1)} ya tenía esos recursos completos.`);
       if (escena) escena.celebrar();
-      setTimeout(() => { if (!ui.abierto) abrirObra(); }, 400);
+      setTimeout(() => { if (!ui.abierto) abrirObra(k); }, 400);
     } });
   }
 
@@ -1365,6 +1418,398 @@
       raf = requestAnimationFrame(paso);
     };
     pintar();
+    raf = requestAnimationFrame(paso);
+  }
+
+  // ---------- Gemas del Valle de la Esfinge (álbum) ----------
+  // Se consiguen al superar el laberinto de la Gran Esfinge (y, a veces, enterradas en las excavaciones).
+  const GEMAS = [
+    { id: 'cuarzo', nombre: 'Cuarzo rosado', rareza: 'Común', peso: 24 },
+    { id: 'topacio', nombre: 'Topacio', rareza: 'Común', peso: 20 },
+    { id: 'turquesa', nombre: 'Turquesa', rareza: 'Común', peso: 18 },
+    { id: 'lapislazuli', nombre: 'Lapislázuli', rareza: 'Poco común', peso: 12 },
+    { id: 'esmeralda', nombre: 'Esmeralda', rareza: 'Poco común', peso: 10 },
+    { id: 'rubi', nombre: 'Rubí', rareza: 'Rara', peso: 7 },
+    { id: 'zafiro_estrella', nombre: 'Zafiro estrella', rareza: 'Rara', peso: 5 },
+    { id: 'opalo', nombre: 'Ópalo de fuego', rareza: 'Rara', peso: 4 },
+    { id: 'diamante', nombre: 'Diamante del desierto', rareza: 'Épica', peso: 2 },
+    { id: 'ojo_esfinge', nombre: 'Ojo de la Esfinge', rareza: 'Legendaria', peso: 1, solo: 'laberinto' },
+  ];
+  const CLASE_RAREZA = { 'Común': 'comun', 'Poco común': 'poco', 'Rara': 'rara', 'Épica': 'epica', 'Legendaria': 'legendaria' };
+  // bono > 1 aumenta la probabilidad de las gemas raras; si sale una repetida se vuelve a sortear una vez
+  function sortearGema(bono = 1, origen = 'laberinto') {
+    const lista = GEMAS.filter((g) => !g.solo || g.solo === origen);
+    const tirar = () => {
+      const pesos = lista.map((g) => g.peso * (g.peso <= 7 ? bono : 1));
+      let r = Math.random() * pesos.reduce((a, b) => a + b, 0);
+      for (let i = 0; i < lista.length; i++) { if ((r -= pesos[i]) < 0) return lista[i]; }
+      return lista[0];
+    };
+    let g = tirar();
+    if (S.gemas && S.gemas[g.id] && Math.random() < 0.6) g = tirar();
+    return g;
+  }
+  function registrarGema(g) {
+    S.gemas = S.gemas || {};
+    const nueva = !S.gemas[g.id];
+    S.gemas[g.id] = (S.gemas[g.id] || 0) + 1;
+    if (!S.gemasPremio && GEMAS.every((x) => S.gemas[x.id])) {
+      S.gemasPremio = true;
+      S.inventario.vitrina_gemas = (S.inventario.vitrina_gemas || 0) + 1;
+      ganarXP(120);
+      setTimeout(() => avisoGrande('¡Completaste el álbum de gemas!', 'Ganaste una vitrina de gemas exclusiva para tu pieza', '+120 de experiencia'), 1100);
+    }
+    return nueva;
+  }
+  function abrirAlbumGemas() {
+    const A = S.gemas || {}, tengo = GEMAS.filter((g) => A[g.id]).length;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Colección · ${tengo} de ${GEMAS.length} gemas</span><h2 id="modal-titulo">💎 Álbum de gemas</h2></div><button type="button" class="btn" id="ag-cerrar">Cerrar</button></div>
+      <p class="nota">Supera el laberinto de la Gran Esfinge para ganar gemas (las más raras salen cuando respondes bien a la primera). A veces también aparecen enterradas en las excavaciones. Premio al completar el álbum: una vitrina de gemas exclusiva y 120 de experiencia.${S.gemasPremio ? ' <strong>¡Ya lo completaste!</strong>' : ''}</p>
+      <div class="album gemas">${GEMAS.map((g) => `<div class="pez-card ${A[g.id] ? '' : 'falta'}"><img class="px" src="${ICONO('gema_' + g.id)}" alt=""><strong>${A[g.id] ? esc(g.nombre) : '???'}</strong><small class="rareza ${CLASE_RAREZA[g.rareza]}">${esc(g.rareza)}</small><small>${A[g.id] ? `Tienes: ${A[g.id]}` : g.solo ? 'Solo en el laberinto' : 'Laberinto o excavación'}</small></div>`).join('')}</div>`);
+    $('ag-cerrar').addEventListener('click', () => ui.cerrar());
+  }
+
+  // ---------- Minijuego de excavación ----------
+  // Bajo la arena hay piezas enterradas. La brocha quita una capa de una casilla; la pala quita más, pero
+  // hace temblar la excavación. Si la firmeza llega a 0, se derrumba y se pierde lo que quedó enterrado.
+  const PIEZAS_EXC = [
+    { id: 'fosil_g', nombre: 'Fósil de pez', w: 3, h: 2, peso: 12, rec: { fosil: 3 } },
+    { id: 'fosil_m', nombre: 'Amonita fósil', w: 2, h: 2, peso: 16, rec: { fosil: 2 } },
+    { id: 'hueso', nombre: 'Hueso fósil', w: 2, h: 1, peso: 20, rec: { fosil: 1 } },
+    { id: 'obs_l', nombre: 'Trozo de obsidiana', w: 2, h: 1, peso: 14, rec: { obsidiana: 2 } },
+    { id: 'obs_s', nombre: 'Esquirla de obsidiana', w: 1, h: 1, peso: 16, rec: { obsidiana: 1 } },
+    { id: 'pepita', nombre: 'Pepita de oro', w: 1, h: 1, peso: 14, rec: { oro: 1 } },
+    { id: 'escarabajo_oro', nombre: 'Escarabajo de oro', w: 2, h: 2, peso: 5, rec: { oro: 3 } },
+    { id: 'vasija', nombre: 'Vasija antigua', w: 2, h: 2, peso: 9, rec: { cobre: 2, arenisca: 3 } },
+    { id: 'gema', nombre: 'Gema', w: 1, h: 1, peso: 5, gema: true },
+  ];
+  function abrirExcavacion(alTerminar) {
+    const W = 10, H = 7, capas = [], ocup = new Array(W * H).fill(-1), piezas = [];
+    for (let i = 0; i < W * H; i++) capas.push(1 + (Math.random() < 0.55 ? 1 : 0) + (Math.random() < 0.25 ? 1 : 0));
+    const nPiezas = 3 + (Math.random() < 0.5 ? 1 : 0) + (Math.random() < 0.25 ? 1 : 0);
+    const totalPeso = PIEZAS_EXC.reduce((a, p) => a + p.peso, 0);
+    for (let t = 0; t < 200 && piezas.length < nPiezas; t++) {
+      let r = Math.random() * totalPeso, P = PIEZAS_EXC[0];
+      for (const p of PIEZAS_EXC) { if ((r -= p.peso) < 0) { P = p; break; } }
+      if (P.gema && piezas.some((x) => x.gema)) continue;
+      const x = Math.floor(Math.random() * (W - P.w + 1)), y = Math.floor(Math.random() * (H - P.h + 1));
+      let libre = true;
+      for (let dy = 0; dy < P.h && libre; dy++) for (let dx = 0; dx < P.w && libre; dx++) if (ocup[(y + dy) * W + x + dx] >= 0) libre = false;
+      if (!libre) continue;
+      const k = piezas.length, celdas = [];
+      for (let dy = 0; dy < P.h; dy++) for (let dx = 0; dx < P.w; dx++) { const i = (y + dy) * W + x + dx; ocup[i] = k; celdas.push(i); capas[i] = Math.max(2, capas[i]); }
+      const g = P.gema ? sortearGema(1, 'excavacion') : null;
+      piezas.push({ ...P, x, y, celdas, ok: false, g, brilla: celdas[Math.floor(Math.random() * celdas.length)] });
+    }
+    const fMax = tiene('pala2') ? 140 : 100;
+    let firmeza = fMax, modo = 'brocha', fin = false;
+    const hallado = [];
+    const img = (p) => (p.gema ? `assets/excava/gema_${p.g.id}.png` : `assets/excava/${p.id}.png`);
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Sitio arqueológico · Valle de la Esfinge</span><h2 id="modal-titulo">⛏️ Excavación</h2></div><button type="button" class="btn" id="ex-salir">Terminar</button></div>
+      <div class="excava">
+        <div class="ex-lado">
+          <div class="ex-firmeza"><div class="fila"><strong>Firmeza de la excavación</strong><span id="ex-fn">${firmeza}</span></div><div class="barra"><i id="ex-fb" style="width:100%"></i></div></div>
+          <div class="ex-herr" role="radiogroup" aria-label="Herramienta">
+            <button type="button" class="obj" data-h="brocha" aria-pressed="true"><img class="px" src="${ICONO('brocha')}" alt=""><span>Brocha</span><small>1 capa · tiembla poco</small></button>
+            <button type="button" class="obj" data-h="pala" aria-pressed="false"><img class="px" src="${ICONO(tiene('pala2') ? 'pala2' : 'pala')}" alt=""><span>Pala</span><small>Cava en cruz · tiembla más</small></button>
+          </div>
+          <p class="nota">Haz clic en la arena para cavar. Las piezas enterradas se recogen solas cuando quedan completamente descubiertas. <b>Pista:</b> donde algo brilla, hay algo enterrado. Teclas <kbd>1</kbd> brocha y <kbd>2</kbd> pala.</p>
+          <ul class="ex-hallado" id="ex-hallado"><li class="vacio">Aún no encuentras nada.</li></ul>
+        </div>
+        <div class="ex-cuadro" id="ex-cuadro" style="aspect-ratio:${W}/${H}">
+          ${piezas.map((p, k) => `<img class="ex-pieza px" id="ex-p${k}" src="${img(p)}" alt="" style="left:${(p.x / W) * 100}%;top:${(p.y / H) * 100}%;width:${(p.w / W) * 100}%;height:${(p.h / H) * 100}%">`).join('')}
+          <div class="ex-celdas" style="grid-template-columns:repeat(${W},1fr)">${capas.map((c, i) => `<button type="button" class="ex-c c${c}" data-c="${i}" aria-label="Arena"></button>`).join('')}</div>
+        </div>
+      </div>
+      <div id="ex-fin"></div>`, 'excava-modal', () => { if (!fin) terminar('salir', true); });
+    const cuadro = $('ex-cuadro');
+    const pintarCelda = (i) => {
+      const b = cuadro.querySelector(`[data-c="${i}"]`); if (!b) return;
+      const k = ocup[i];
+      b.className = `ex-c c${capas[i]}${k >= 0 && piezas[k].brilla === i && capas[i] > 0 ? ' brilla' : ''}`;
+    };
+    for (let i = 0; i < W * H; i++) pintarCelda(i);
+    const pintarFirmeza = () => {
+      $('ex-fn').textContent = Math.max(0, firmeza);
+      const b = $('ex-fb'); b.style.width = `${Math.max(0, (firmeza / fMax) * 100)}%`;
+      b.parentElement.classList.toggle('peligro', firmeza < fMax * 0.3);
+    };
+    const pintarHallado = () => {
+      $('ex-hallado').innerHTML = hallado.length ? hallado.map((p) => `<li><img class="px" src="${img(p)}" alt=""><span>${esc(p.gema ? p.g.nombre : p.nombre)}</span><b>${p.gema ? '💎 álbum' : Object.entries(p.rec).map(([r, n]) => `+${n} ${nombreRec(r)}`).join(', ')}</b></li>`).join('') : '<li class="vacio">Aún no encuentras nada.</li>';
+    };
+    const revisar = () => {
+      piezas.forEach((p, k) => {
+        if (p.ok || p.celdas.some((i) => capas[i] > 0)) return;
+        p.ok = true; hallado.push(p); sfx('brillo');
+        const el = $(`ex-p${k}`); if (el) el.classList.add('hallada');
+        if (p.gema) {
+          const nueva = registrarGema(p.g);
+          toast(`¡Encontraste una gema enterrada: ${p.g.nombre}!${nueva ? ' Nueva en tu álbum.' : ''}`);
+        } else Object.entries(p.rec).forEach(([r, n]) => sumar(r, n));
+        pintarHallado();
+      });
+      if (piezas.every((p) => p.ok)) terminar('todo');
+    };
+    const cavar = (i) => {
+      if (fin) return;
+      const x = i % W, y = Math.floor(i / W);
+      if (modo === 'brocha') {
+        if (capas[i] <= 0) return;
+        capas[i] -= 1; firmeza -= 2; sfx('recolectar'); pintarCelda(i);
+      } else {
+        const hondo = tiene('pala2') ? 3 : 2;
+        capas[i] = Math.max(0, capas[i] - hondo); pintarCelda(i);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const xx = x + dx, yy = y + dy;
+          if (xx < 0 || yy < 0 || xx >= W || yy >= H) continue;
+          const j = yy * W + xx; capas[j] = Math.max(0, capas[j] - 1); pintarCelda(j);
+        }
+        firmeza -= tiene('pala2') ? 4 : 5; sfx('picar');
+        cuadro.classList.remove('tiembla'); void cuadro.offsetWidth; cuadro.classList.add('tiembla');
+      }
+      pintarFirmeza();
+      revisar();
+      if (!fin && firmeza <= 0) terminar('derrumbe');
+    };
+    cuadro.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => cavar(Number(b.dataset.c))));
+    const elegir = (h) => { modo = h; document.querySelectorAll('[data-h]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.h === h))); };
+    document.querySelectorAll('[data-h]').forEach((b) => b.addEventListener('click', () => elegir(b.dataset.h)));
+    ui.teclas = (e) => { if (e.key === '1') elegir('brocha'); else if (e.key === '2') elegir('pala'); };
+    $('ex-salir').addEventListener('click', () => (fin ? ui.cerrar() : terminar('salir')));
+    function terminar(motivo, cerrando = false) {
+      if (fin) return;
+      fin = true;
+      const xp = hallado.length * 6 + (motivo === 'todo' ? 15 : 0);
+      if (xp) ganarXP(xp);
+      if (motivo === 'derrumbe') { sfx('boom'); if (escena) escena.cameras.main.shake(300, 0.006); } else if (motivo === 'todo') sfx('logro');
+      guardar(true);
+      if (alTerminar) alTerminar(hallado.length);
+      if (cerrando) return;
+      piezas.forEach((p, k) => { if (!p.ok) { const el = $(`ex-p${k}`); if (el) el.classList.add('perdida'); } });
+      cuadro.querySelectorAll('.ex-c').forEach((b) => { b.disabled = true; if (motivo === 'derrumbe') b.className = 'ex-c c3'; else b.classList.add('fin'); });
+      const msg = motivo === 'derrumbe' ? `¡La excavación se derrumbó! ${hallado.length ? `Alcanzaste a rescatar ${hallado.length} ${hallado.length === 1 ? 'pieza' : 'piezas'}.` : 'No alcanzaste a rescatar nada.'}`
+        : motivo === 'todo' ? `¡Excelente! Desenterraste las ${hallado.length} piezas del sitio. (+${xp} de experiencia)` : `Terminaste la excavación con ${hallado.length} ${hallado.length === 1 ? 'pieza' : 'piezas'}.`;
+      $('ex-fin').innerHTML = `<div class="mensaje ${motivo === 'derrumbe' ? 'mal' : 'bien'}" role="status">${esc(msg)}</div><div class="acciones"><span class="nota">El sitio quedará excavado por un rato: busca otro o vuelve más tarde.</span><button type="button" class="btn pri" id="ex-ok" data-foco>¡Listo!</button></div>`;
+      $('ex-salir').textContent = 'Cerrar';
+      $('ex-ok').addEventListener('click', () => ui.cerrar()); $('ex-ok').focus();
+      ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+    }
+  }
+
+  // ---------- Laberinto de la Gran Esfinge ----------
+  // Cada vez se genera un laberinto nuevo. Está oscuro: solo se ve lo que alumbra la antorcha.
+  // En el camino hay puertas selladas por la esfinge que se abren respondiendo bien un ejercicio.
+  // Al llegar a la cámara del tesoro se gana una gema para el álbum.
+  function crearLaberinto(cw, ch) {
+    const GW = cw * 2 + 1, GH = ch * 2 + 1, g = Array.from({ length: GH }, () => new Array(GW).fill(1));
+    const pila = [[Math.floor(Math.random() * cw), Math.floor(Math.random() * ch)]], vis = new Set([pila[0].join()]);
+    g[pila[0][1] * 2 + 1][pila[0][0] * 2 + 1] = 0;
+    while (pila.length) {
+      const [x, y] = pila[pila.length - 1];
+      const vec = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [x + dx, y + dy, dx, dy]).filter(([a, b]) => a >= 0 && b >= 0 && a < cw && b < ch && !vis.has(`${a},${b}`));
+      if (!vec.length) { pila.pop(); continue; }
+      const [a, b, dx, dy] = vec[Math.floor(Math.random() * vec.length)];
+      g[y * 2 + 1 + dy][x * 2 + 1 + dx] = 0; g[b * 2 + 1][a * 2 + 1] = 0;
+      vis.add(`${a},${b}`); pila.push([a, b]);
+    }
+    return g;
+  }
+  function abrirLaberinto() {
+    if (!tiene('antorcha_esfinge')) { toast('El laberinto está totalmente oscuro: fabrica la antorcha de la esfinge en la fogata de tu base.', 'alerta'); return; }
+    const CW = 12, CH = 8, g = crearLaberinto(CW, CH), GW = CW * 2 + 1, GH = CH * 2 + 1;
+    const ini = { x: Math.floor(CW / 2) * 2 + 1, y: GH - 2 }, meta = { x: Math.floor(CW / 2) * 2 + 1, y: 1 };
+    // camino único del inicio a la meta (el laberinto es perfecto: las puertas no se pueden rodear)
+    const prev = new Map([[`${ini.x},${ini.y}`, null]]), cola = [ini];
+    while (cola.length) {
+      const c = cola.shift(); if (c.x === meta.x && c.y === meta.y) break;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const n = { x: c.x + dx, y: c.y + dy }, k = `${n.x},${n.y}`;
+        if (g[n.y][n.x] === 0 && !prev.has(k)) { prev.set(k, c); cola.push(n); }
+      }
+    }
+    const camino = []; for (let c = meta; c; c = prev.get(`${c.x},${c.y}`)) camino.unshift(c);
+    const enCamino = new Set(camino.map((c) => `${c.x},${c.y}`));
+    const puertas = new Map();
+    for (const f of [0.28, 0.55, 0.8]) { const c = camino[Math.max(2, Math.min(camino.length - 3, Math.floor(camino.length * f)))]; puertas.set(`${c.x},${c.y}`, { abierta: false }); }
+    // tesoros en callejones sin salida fuera del camino
+    const sinSalida = [];
+    for (let y = 1; y < GH - 1; y += 2) for (let x = 1; x < GW - 1; x += 2) {
+      if (enCamino.has(`${x},${y}`)) continue;
+      const abiertos = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dy]) => g[y + dy][x + dx] === 0).length;
+      if (abiertos === 1) sinSalida.push({ x, y });
+    }
+    const TESOROS = [{ oro: 2 }, { obsidiana: 2 }, { fosil: 1 }, { cobre: 3 }, { oro: 1, obsidiana: 1 }];
+    const tesoros = new Map(mezclar(sinSalida).slice(0, 5).map((c) => [`${c.x},${c.y}`, TESOROS[Math.floor(Math.random() * TESOROS.length)]]));
+    const st = { x: ini.x, y: ini.y, vx: ini.x, vy: ini.y, dir: 'up', tiempo: 150, fallos: 0, abiertas: 0, fase: 'juego', paso: 0, mov: null, ultimo: 0, tesoros: [], pregunta: null };
+    const visto = new Set(), RADIO = 3.3;
+    const T = 26, cv = document.createElement('canvas'); cv.width = GW * T; cv.height = GH * T;
+    const imgs = {}; for (const k of ['oro', 'obsidiana', 'fosil', 'cobre']) { imgs[k] = new Image(); imgs[k].src = ICONO(k); }
+    imgs.gema = new Image(); imgs.gema.src = ICONO('gema'); imgs.esfinge = new Image(); imgs.esfinge.src = ICONO('esfinge');
+    const pjKey = `pj_${S.pj}_${texArmadura(S.armadura)}`, pjSrc = escena && escena.textures.exists(pjKey) ? escena.textures.get(pjKey).getSourceImage() : null;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Gran Esfinge · laberinto nuevo cada vez</span><h2 id="modal-titulo">🏺 Laberinto de la Esfinge</h2></div>
+        <div class="pildoras"><span class="pildora" id="lb-tiempo">⏳ 2:30</span><span class="pildora" id="lb-puertas">🚪 0 de ${puertas.size}</span><span class="pildora" id="lb-tes">💰 0</span><button type="button" class="btn" id="lb-salir">Salir</button></div></div>
+      <div class="lab">
+        <div class="lab-cuadro" id="lb-cuadro"></div>
+        <div class="lab-lado">
+          <p class="nota">Muévete con las <kbd>flechas</kbd> o <kbd>W A S D</kbd> (o los botones). Llega a la <b>cámara del tesoro</b> (arriba) antes de que se apague la antorcha. Las <b>puertas de la esfinge</b> se abren respondiendo bien; cada error quita 15 segundos. En los callejones hay tesoros.</p>
+          <div class="lab-cruz" aria-label="Controles">
+            <span></span><button type="button" class="btn" data-mv="up" aria-label="Arriba">▲</button><span></span>
+            <button type="button" class="btn" data-mv="left" aria-label="Izquierda">◀</button><span></span><button type="button" class="btn" data-mv="right" aria-label="Derecha">▶</button>
+            <span></span><button type="button" class="btn" data-mv="down" aria-label="Abajo">▼</button><span></span>
+          </div>
+        </div>
+      </div>`, 'laberinto', () => { st.fase = 'fin'; cancelAnimationFrame(raf); document.removeEventListener('keyup', soltar); });
+    $('lb-cuadro').appendChild(cv);
+    const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    let raf = 0, t0 = performance.now();
+    const TECLAS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
+    const soltar = (e) => { if (TECLAS[e.key] === st.mov) st.mov = null; };
+    document.addEventListener('keyup', soltar);
+    const teclasJuego = (e) => { const d = TECLAS[e.key]; if (d && st.fase === 'juego') { e.preventDefault(); if (st.mov !== d) { st.mov = d; st.ultimo = 0; } } };
+    ui.teclas = teclasJuego;
+    document.querySelectorAll('[data-mv]').forEach((b) => {
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); st.mov = b.dataset.mv; st.ultimo = 0; });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { if (st.mov === b.dataset.mv) st.mov = null; });
+    });
+    $('lb-salir').addEventListener('click', () => ui.cerrar());
+    const alumbrar = () => {
+      for (let y = Math.floor(st.y - RADIO); y <= st.y + RADIO; y++) for (let x = Math.floor(st.x - RADIO); x <= st.x + RADIO; x++) {
+        if (x >= 0 && y >= 0 && x < GW && y < GH && Math.hypot(x - st.x, y - st.y) <= RADIO) visto.add(`${x},${y}`);
+      }
+    };
+    alumbrar();
+    const pintarInfo = () => {
+      const s = Math.max(0, Math.ceil(st.tiempo));
+      const el = $('lb-tiempo'); if (!el) return;
+      el.textContent = `⏳ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; el.classList.toggle('urgente', s <= 20);
+      $('lb-puertas').textContent = `🚪 ${st.abiertas} de ${puertas.size}`;
+      $('lb-tes').textContent = `💰 ${st.tesoros.length}`;
+    };
+    const dibujar = (ahora) => {
+      ctx.fillStyle = '#0b0806'; ctx.fillRect(0, 0, cv.width, cv.height);
+      const luz = (x, y) => Math.hypot(x - st.vx, y - st.vy);
+      for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) {
+        const k = `${x},${y}`; if (!visto.has(k)) continue;
+        const px = x * T, py = y * T;
+        if (g[y][x]) {
+          ctx.fillStyle = '#a07a44'; ctx.fillRect(px, py, T, T);
+          ctx.fillStyle = '#d2ad6c'; ctx.fillRect(px, py, T, 6);
+          ctx.fillStyle = '#4a3018'; ctx.fillRect(px, py + T - 4, T, 4);
+          if ((x * 7 + y * 3) % 5 === 0) { ctx.fillStyle = '#2f4f9a'; ctx.fillRect(px + 9, py + 10, 3, 5); ctx.fillStyle = '#a8322a'; ctx.fillRect(px + 15, py + 12, 3, 3); }
+        } else {
+          ctx.fillStyle = (x + y) % 2 ? '#2a1d12' : '#261a10'; ctx.fillRect(px, py, T, T);
+          const P = puertas.get(k);
+          if (P && !P.abierta) {
+            ctx.fillStyle = '#d9a63a'; ctx.fillRect(px + 2, py + 1, T - 4, T - 2);
+            ctx.fillStyle = '#7a5214'; ctx.fillRect(px + 4, py + 3, T - 8, T - 6);
+            ctx.fillStyle = '#f6e7b0'; ctx.fillRect(px + 8, py + 10, 10, 5); ctx.fillStyle = '#123'; ctx.fillRect(px + 11, py + 11, 4, 3);
+          }
+          const tes = tesoros.get(k);
+          if (tes) { const r = Object.keys(tes)[0]; if (imgs[r].complete) ctx.drawImage(imgs[r], px + 3, py + 3 + Math.sin(ahora / 300 + x) * 2, T - 6, T - 6); }
+          if (x === meta.x && y === meta.y) {
+            ctx.fillStyle = `rgba(255,220,120,${0.35 + 0.2 * Math.sin(ahora / 260)})`; ctx.beginPath(); ctx.arc(px + T / 2, py + T / 2, T * 0.75, 0, Math.PI * 2); ctx.fill();
+            if (imgs.gema.complete) ctx.drawImage(imgs.gema, px + 2, py + 2, T - 4, T - 4);
+          }
+        }
+        const d = luz(x + 0.5, y + 0.5) - 0.5;
+        const sombra = d > RADIO ? 0.72 : Math.max(0, (d - RADIO * 0.45) / (RADIO * 0.55)) * 0.6;
+        if (sombra > 0) { ctx.fillStyle = `rgba(8,5,3,${sombra})`; ctx.fillRect(px, py, T, T); }
+      }
+      // personaje
+      const cx = st.vx * T + T / 2, cy = st.vy * T + T / 2;
+      ctx.fillStyle = `rgba(255,170,60,${0.18 + 0.05 * Math.sin(ahora / 90)})`; ctx.beginPath(); ctx.arc(cx, cy, T * 1.4, 0, Math.PI * 2); ctx.fill();
+      if (pjSrc) {
+        const fila = DIRS[st.dir], col = st.mov ? 1 + (Math.floor(ahora / 90) % 8) : 0, tam = T * 1.9;
+        ctx.drawImage(pjSrc, col * 64, fila * 64, 64, 64, cx - tam / 2, cy - tam * 0.72, tam, tam);
+      } else { ctx.fillStyle = '#ffd27a'; ctx.beginPath(); ctx.arc(cx, cy, T / 3, 0, Math.PI * 2); ctx.fill(); }
+    };
+    const mover = (dir) => {
+      const [dx, dy] = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir];
+      st.dir = dir;
+      const nx = st.x + dx, ny = st.y + dy, k = `${nx},${ny}`;
+      if (g[ny][nx]) return;
+      const P = puertas.get(k);
+      if (P && !P.abierta) { st.mov = null; return abrirPuerta(P); }
+      st.x = nx; st.y = ny; alumbrar(); sfx('paso');
+      const tes = tesoros.get(k);
+      if (tes) {
+        tesoros.delete(k); st.tesoros.push(tes); sfx('moneda');
+        Object.entries(tes).forEach(([r, n]) => sumar(r, n));
+        toast(`Tesoro: ${Object.entries(tes).map(([r, n]) => `+${n} ${nombreRec(r)}`).join(', ')}`);
+      }
+      if (nx === meta.x && ny === meta.y) ganar();
+    };
+    const paso = (ahora) => {
+      if (st.fase === 'fin') return;
+      const dt = Math.min(0.1, (ahora - t0) / 1000); t0 = ahora;
+      if (st.fase === 'juego') {
+        st.tiempo -= dt;
+        if (st.tiempo <= 0) { st.tiempo = 0; pintarInfo(); return perder(); }
+        if (st.mov && ahora - st.ultimo > 125) { st.ultimo = ahora; mover(st.mov); }
+      }
+      st.vx += (st.x - st.vx) * Math.min(1, dt * 16); st.vy += (st.y - st.vy) * Math.min(1, dt * 16);
+      dibujar(ahora); pintarInfo();
+      raf = requestAnimationFrame(paso);
+    };
+    // Puerta de la esfinge: una pregunta (el tiempo se detiene mientras se responde)
+    const abrirPuerta = (P) => {
+      st.fase = 'pregunta';
+      let d = Preguntas.nuevo(S.curso, unidadActual(), difPara(2), S.stats), elegida = null, fallidas = new Set(), msg = '';
+      const caja = document.createElement('div'); caja.className = 'lab-pregunta'; $('lb-cuadro').appendChild(caja);
+      const pintarP = () => {
+        caja.innerHTML = `<div class="lab-esfinge"><img class="px" src="${ICONO('esfinge')}" alt=""><div><span class="etq">La esfinge pregunta · ${esc(d.titulo)}</span><p class="enunciado">${mate(d.enunciado)}</p></div></div>
+          ${alternativasHTML(d, elegida, fallidas, false)}${msg}
+          <div class="acciones"><span class="nota">Cada error: −15 segundos.</span><button type="button" class="btn pri" id="lb-ok" ${elegida === null ? 'disabled' : ''}>Responder</button></div>`;
+        caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintarP(); }));
+        caja.querySelector('#lb-ok').addEventListener('click', comprobar);
+      };
+      const comprobar = () => {
+        if (elegida === null) return;
+        const ok = elegida === d.correcta;
+        registrar(d.tema, ok);
+        if (ok) {
+          P.abierta = true; st.abiertas += 1; sfx('portal'); ganarXP(8);
+          caja.remove(); st.fase = 'juego'; st.ultimo = performance.now(); t0 = performance.now(); ui.teclas = teclasJuego; return;
+        }
+        st.fallos += 1; st.tiempo = Math.max(1, st.tiempo - 15); sfx('error');
+        fallidas.add(elegida); elegida = null;
+        msg = fallidas.size >= 2 ? `<div class="mensaje mal" role="status">Revisemos: ${mate(d.explicacion)}</div>` : `<div class="mensaje mal" role="status">Casi. ${mate(d.pista)}</div>`;
+        if (fallidas.size >= d.opciones.length - 1) { d = Preguntas.nuevo(S.curso, unidadActual(), difPara(2), S.stats); fallidas = new Set(); }
+        pintarP();
+      };
+      ui.teclas = (e) => {
+        if (/^[1-4]$/.test(e.key)) { const i = Number(e.key) - 1; if (i < d.opciones.length && !fallidas.has(i)) { elegida = i; pintarP(); } }
+        else if (e.key === 'Enter') { e.preventDefault(); comprobar(); }
+      };
+      pintarP();
+    };
+    const final = (html) => {
+      st.fase = 'fin'; cancelAnimationFrame(raf); document.removeEventListener('keyup', soltar); dibujar(performance.now());
+      const caja = document.createElement('div'); caja.className = 'lab-pregunta lab-final'; caja.innerHTML = html; $('lb-cuadro').appendChild(caja);
+      const ok = caja.querySelector('#lb-fin'); ok.addEventListener('click', () => ui.cerrar()); ok.focus();
+      const al = caja.querySelector('#lb-album'); if (al) al.addEventListener('click', () => { ui.cerrar(); abrirAlbumGemas(); });
+      ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+      guardar(true);
+    };
+    function ganar() {
+      const perfecto = st.fallos === 0, gem = sortearGema(perfecto ? 2.5 : 1.3, 'laberinto'), nueva = registrarGema(gem);
+      const xp = 40 + Math.floor(st.tiempo / 5);
+      ganarXP(xp); avanzarMision('laberinto'); sfx('logro');
+      if (escena) escena.celebrar(escena.jugador.x, escena.jugador.y - 60);
+      final(`<div class="lab-premio"><img class="px gema-grande" src="${ICONO('gema_' + gem.id)}" alt=""><div>
+          <span class="etq">¡Llegaste a la cámara del tesoro!${perfecto ? ' · respuestas perfectas' : ''}</span>
+          <h3>${esc(gem.nombre)} <small class="rareza ${CLASE_RAREZA[gem.rareza]}">${esc(gem.rareza)}</small></h3>
+          <p>${nueva ? '¡Gema nueva en tu álbum!' : 'Ya tenías esta gema: se suma a tu colección.'} +${xp} de experiencia${st.tesoros.length ? ` · ${st.tesoros.length} ${st.tesoros.length === 1 ? 'tesoro' : 'tesoros'} recogidos` : ''}.</p></div></div>
+        <div class="acciones"><button type="button" class="btn sec" id="lb-album">💎 Ver álbum</button><button type="button" class="btn pri" id="lb-fin">¡Listo!</button></div>`);
+    }
+    function perder() {
+      sfx('derrota');
+      final(`<div class="mensaje mal" role="status">Tu antorcha se apagó y la esfinge te sacó del laberinto. ${st.tesoros.length ? 'Te quedas con los tesoros que recogiste.' : ''} ¡Inténtalo otra vez: el laberinto será distinto!</div>
+        <div class="acciones"><span></span><button type="button" class="btn pri" id="lb-fin">Volver</button></div>`);
+    }
     raf = requestAnimationFrame(paso);
   }
 
@@ -1695,7 +2140,7 @@
     const cats = [...new Set(items.map((o) => o.cat))];
     return cats.map((cat) => `<h3 class="cat">${esc(cat)}</h3><div class="catalogo">${items.filter((o) => o.cat === cat).map((o) => {
       const n = S.inventario[o.id] || 0;
-      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : o.trofeo ? 'Premio por vencer al Rey Jabalí Ancestral' : o.album ? 'Premio por completar el álbum de peces' : 'Premio al subir de nivel'}</span>`
+      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : o.trofeo ? 'Premio por vencer al Rey Jabalí Ancestral' : o.album === 'gemas' ? 'Premio por completar el álbum de gemas' : o.album ? 'Premio por completar el álbum de peces' : 'Premio al subir de nivel'}</span>`
         : `<div class="costo">${costoHTML(o.costo)}</div><button type="button" class="btn pri chico" data-o="${o.id}" ${alcanza(o.costo) ? '' : 'disabled'}>Fabricar</button>`;
       return `<div class="item ${o.excl ? 'excl' : ''}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><strong>${esc(o.nombre)}</strong><small>${n ? `${n} sin colocar` : ' '}</small>${der}</div>`;
     }).join('')}</div>`).join('');
@@ -1883,8 +2328,9 @@
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
-        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
+        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
     $('m-album').addEventListener('click', () => { ui.cerrar(); abrirAlbum(); });
+    $('m-gemas').addEventListener('click', () => { ui.cerrar(); abrirAlbumGemas(); });
     $('m-cerrar').addEventListener('click', () => ui.cerrar());
     $('m-salir').addEventListener('click', async () => {
       guardar(true); await subir();
@@ -2496,10 +2942,12 @@
     if (!escena || !escena.jugador || $('hud').classList.contains('oculto')) return null;
     const z = escena.zona;
     if (escena.enJefe || (escena.enCombate && ui.abierto && $('modal').classList.contains('rey'))) return 'jefe';
+    if (ui.abierto && $('modal').classList.contains('laberinto')) return 'laberinto';
     if (vivo.fase === 'activo') return 'desafio';
     if (z === 'base') return 'base';
     if (z === 'pieza') return 'pieza';
     if (z === 'u1') return escena.rio && escena.jugador.x > (escena.rio.RX + RIO_ANCHO) * TILE ? 'profundo' : 'bosque';
+    if (z === 'u2' && escena.valle && escena.jugador.y < escena.valle.cy0 * TILE) return 'valle';
     return { u2: 'desierto', u3: 'mina', u4: 'glaciar' }[z] || 'bosque';
   }
   setInterval(() => { if (window.Sonido) Sonido.musica(pistaActual()); }, 700);
@@ -2544,7 +2992,8 @@
   const DIRS = { up: 0, left: 1, down: 2, right: 3 };
   // Tamaño de los mundos (en casillas): portal a la izquierda y caminos en cruz
   const MAPA_W = 72, MAPA_H = 50, CENTRO_X = 36, PORTAL_Y = 24;
-  const RIO_ANCHO = 3, PROFUNDO_W = 26;   // el bosque (Unidad 1) tiene un río y, al otro lado, el Bosque profundo
+  const RIO_ANCHO = 3, PROFUNDO_W = 26;
+  const VALLE_OY = 24;   // el desierto (Unidad 2) tiene arriba, tras un acantilado, el Valle de la Esfinge   // el bosque (Unidad 1) tiene un río y, al otro lado, el Bosque profundo
   const PASTO = [fr(5, 0), fr(5, 1), fr(7, 0), fr(8, 0)];
   const CAMINO = fr(6, 0);
 
@@ -2569,10 +3018,11 @@
       if (!this.textures.exists('kenney_prisma')) this.load.image('kenney_prisma', 'assets/kenney_prisma.png');
       if (!this.textures.exists('kenney_luz')) this.load.image('kenney_luz', 'assets/kenney_luz.png');
       if (!this.textures.exists('kenney_profundo')) this.load.image('kenney_profundo', 'assets/kenney_profundo.png');
+      if (!this.textures.exists('kenney_valle')) this.load.image('kenney_valle', 'assets/kenney_valle.png');
       if (!this.textures.exists('jefe_u1b_hoja')) this.load.spritesheet('jefe_u1b_hoja', 'assets/enemigos/jefe_u1b.png', { frameWidth: 64, frameHeight: 64 });
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -2622,7 +3072,7 @@
       latir();
       if (MUNDOS[this.zona]) this.actualizarSello();
       this.des = { objs: [], items: [] };
-      if (this.rio) cargarObra();
+      if (obraDeEscena()) cargarObra();
       if (vivo.fase === 'activo') montarDesafio(this);
       if (this.zona === 'pieza' && !(S.pieza || []).length) setTimeout(() => toast('¡Esta es tu pieza! Fabrica muebles con B (pestaña Muebles) y colócalos con G.'), 700);
       revisarPendientes();
@@ -2663,7 +3113,7 @@
       for (const o of OBJETOS) {
         const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
         if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz', f: 'kenney_profundo' }[o.h] || 'kenney');
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz', f: 'kenney_profundo', v: 'kenney_valle' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       this.crearTexturasDesierto();
@@ -2672,6 +3122,10 @@
       // Bosque profundo (hoja propia)
       const PF = { arbol_gigante: [0, 0, 2, 4], colmena: [2, 0, 1, 1], colmena_vacia: [3, 0, 1, 1], arana: [4, 0, 1, 1], raiz_viva: [5, 0, 1, 1], tocon_raiz: [6, 0, 1, 1], altar: [7, 0, 1, 1], helecho: [8, 0, 1, 1], columna_musgo: [9, 0, 1, 2], columna_rota_musgo: [10, 0, 1, 2], tronco_gigante: [11, 0, 2, 2] };
       for (const [k, [c, r, w, h]] of Object.entries(PF)) { const partes = []; for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]); this.tex(k, w, h, partes, 'kenney_profundo'); }
+      // Valle de la Esfinge (hoja propia): se usan con el prefijo v_
+      const PV = {"esfinge": [0, 0, 4, 3], "piramide": [4, 0, 3, 2], "esqueleto_dino": [7, 0, 3, 2], "alfombra_jero": [10, 0, 3, 2], "entrada_tumba": [13, 0, 2, 2], "vitrina_gemas": [0, 3, 2, 2], "esfinge_mini": [2, 3, 2, 2], "sitio": [4, 3, 2, 1], "sitio_vacio": [6, 3, 2, 1], "obelisco": [8, 3, 1, 3], "palmera": [9, 3, 1, 2], "estatua_chacal": [10, 3, 1, 2], "sarcofago": [11, 3, 1, 2], "columna_jero": [12, 3, 1, 2], "columna_jero_rota": [13, 3, 1, 2], "lampara_obsidiana": [14, 3, 1, 2], "vitrina_fosiles": [15, 3, 1, 2], "veta_obsidiana": [0, 6, 1, 1], "escarabajo": [1, 6, 1, 1], "papiro": [2, 6, 1, 1], "jarron_dorado": [3, 6, 1, 1], "cofre_reliquias": [4, 6, 1, 1], "trono": [5, 6, 1, 1], "mesa_obsidiana": [6, 6, 1, 1], "cuadro_fosil": [7, 6, 1, 1], "antorcha_obsidiana": [8, 6, 1, 1], "andamio": [9, 6, 1, 1], "polea": [10, 6, 1, 1], "cuerda": [11, 6, 1, 1], "plataforma": [12, 6, 1, 1], "escalon": [13, 6, 1, 1], "acant_borde": [14, 6, 1, 1], "acant_borde2": [15, 6, 1, 1], "acant_cara": [0, 7, 1, 1], "acant_cara2": [1, 7, 1, 1], "acant_pie": [2, 7, 1, 1]};
+      for (const [k, [c, r, w, h]] of Object.entries(PV)) { const partes = []; for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]); this.tex(`v_${k}`, w, h, partes, 'kenney_valle'); }
+      for (const n of [1, 2]) this.tex(`veta_obsidiana${n}`, 1, 1, [[PV.veta_obsidiana[0], PV.veta_obsidiana[1], 0, 0]], 'kenney_valle');
       // Arbusto vivo: el mismo arbusto con ojos y boca
       if (!this.textures.exists('arbusto_vivo')) {
         const src = this.textures.get('kenney').getSourceImage();
@@ -2747,7 +3201,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -2946,7 +3400,7 @@
     // Dibuja el avance del puente: tablas parciales mientras se construye, completo y transitable al terminar
     actualizarPuente(celebrar = false) {
       if (!this.rio || !this.puenteSpr) return;
-      const { RX, by } = this.rio, o = obraPuente;
+      const { RX, by } = this.rio, o = obraE.puente;
       const metaT = o && o.meta ? Object.values(o.meta).reduce((a, b) => a + b, 0) : 1;
       const hecho = o && o.aportes ? Object.entries(o.meta || {}).reduce((a, [k, n]) => a + Math.min(n, o.aportes[k] || 0), 0) : 0;
       const listo = Boolean(o && o.completado);
@@ -3081,6 +3535,205 @@
       if (despierto) this.rey.anims.play('jefe_u1b_down', true); else { this.rey.anims.stop(); this.rey.setFrame(DIRS.down * 9); }
       this.sello.emitting = !abierto;
       this.reyTag.setText(`Rey Jabalí Ancestral\n(${!abierto ? 'sellado: necesitas el amuleto ancestral' : descansa ? `descansa: vuelve en ${Math.ceil(((S.reyHasta || 0) - Date.now()) / 60000)} min` : '¡despierto! E para desafiarlo'})`);
+    }
+    // ---------- acantilado, montacargas cooperativo y Valle de la Esfinge (Unidad 2) ----------
+    planearValle(data, oy) {
+      const gx = CENTRO_X, cy0 = oy - 2;
+      this.valle = { oy, gx, cy0 };
+      for (let y = 0; y < oy; y++) for (let x = 0; x < this.ancho; x++) this.marcar(x, y);
+      // caminos del valle: de la esfinge al montacargas y una avenida de este a oeste
+      for (let y = 7; y < cy0; y++) data[y][gx] = CAMINO;
+      for (let x = 4; x < this.ancho - 4; x++) data[13][x] = CAMINO;
+      // el acantilado bloquea el paso (también a los enemigos que caminan); el hueco del montacargas se abre al terminarlo
+      const y0 = cy0 * TILE + 4, y1 = oy * TILE - 6;
+      const Z = (x0, x1) => { const z = this.add.zone((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0); this.obstaculos.add(z); const a = { x0, y0, x1, y1 }; this.aguas.push(a); return { z, a }; };
+      Z(0, gx * TILE); Z((gx + 2) * TILE, this.ancho * TILE);
+      this.tramoValle = Z(gx * TILE, (gx + 2) * TILE);
+      // poza con palmeras en el valle (decorativa)
+      const lx = this.rnd() < 0.5 ? 8 + Math.floor(this.rnd() * 14) : this.ancho - 22 + Math.floor(this.rnd() * 10);
+      this.pozaValle = { lx, ly: 16, w: 6, h: 3 };
+      this.lago(data, lx, 16, 6, 3, false);
+    }
+    decorarAcantilado() {
+      const { gx, cy0, oy } = this.valle;
+      for (let x = 0; x < this.ancho; x++) {
+        const hueco = x === gx || x === gx + 1;
+        const a = this.add.image(x * TILE + 16, cy0 * TILE + 16, this.rnd() < 0.5 ? 'v_acant_borde' : 'v_acant_borde2').setScale(2).setDepth(cy0 * TILE + 8);
+        const b = this.add.image(x * TILE + 16, (cy0 + 1) * TILE + 16, this.rnd() < 0.5 ? 'v_acant_cara' : 'v_acant_cara2').setScale(2).setDepth(oy * TILE - 2);
+        if (hueco) (this.huecoSpr = this.huecoSpr || []).push(a, b);
+      }
+      this.add.rectangle(0, oy * TILE, this.ancho * TILE, 10, 0x000000, 0.18).setOrigin(0).setDepth(-8);
+      // obra del montacargas al pie del acantilado
+      const ox = gx + 3;
+      const le = this.sprite('letrero', ox, oy); this.solido(le.x, le.y - 8, 18, 10);
+      const f = this.sprite('cactus_brote1', ox + 1, oy + 1); const r = this.sprite('roca_cafe2', ox + 1, oy); this.sprite('barril', gx - 2, oy);
+      this.solido(r.x, r.y - 8, 18, 10); f.setDepth(-5);
+      for (let y = oy; y <= oy + 1; y++) for (let x = gx - 2; x <= ox + 1; x++) if (x !== gx) this.marcar(x, y);
+      this.obraTag = this.add.text(le.x, le.y - 50, 'Montacargas en construcción', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffe9b8', stroke: '#2a1a0c', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.objObra = { tipo: 'obra', x: (gx + 1) * TILE + 16, y: oy * TILE + 16, activo: true };
+      this.objetos.push(this.objObra);
+      this.montaSpr = [];
+      this.actualizarMontacargas();
+    }
+    actualizarObra(celebrar = false) { if (this.rio) this.actualizarPuente(celebrar); else if (this.valle) this.actualizarMontacargas(celebrar); }
+    // Avance del montacargas: andamios, poleas y cuerdas aparecen a medida que se aporta; al terminar se abre el paso
+    actualizarMontacargas(celebrar = false) {
+      if (!this.valle || !this.montaSpr) return;
+      const { gx, cy0, oy } = this.valle, listo = valleListo(), pct = pctObra('valle');
+      this.montaSpr.forEach((sp) => sp.destroy()); this.montaSpr = [];
+      const pon = (key, x, y, prof) => this.montaSpr.push(this.add.image(x * TILE + 16, y * TILE + 16, key).setScale(2).setDepth(prof === undefined ? y * TILE + 20 : prof));
+      if (listo) {
+        (this.huecoSpr || []).forEach((sp) => sp.setVisible(false));
+        for (const x of [gx, gx + 1]) for (const y of [cy0, cy0 + 1]) pon('v_escalon', x, y, -6);
+        pon('v_polea', gx - 1, cy0 - 1); pon('v_polea', gx + 2, cy0 - 1);
+        for (const x of [gx - 1, gx + 2]) { pon('v_cuerda', x, cy0); pon('v_cuerda', x, cy0 + 1); }
+        pon('v_plataforma', gx - 1, oy, -6); pon('v_plataforma', gx + 2, oy - 0, -6);
+      } else {
+        const etapas = [[5, 'v_andamio', gx, cy0 + 1], [15, 'v_andamio', gx + 1, cy0 + 1], [28, 'v_andamio', gx, cy0], [40, 'v_andamio', gx + 1, cy0],
+          [55, 'v_polea', gx, cy0 - 1], [62, 'v_polea', gx + 1, cy0 - 1], [72, 'v_cuerda', gx, cy0], [80, 'v_cuerda', gx + 1, cy0], [90, 'v_plataforma', gx, oy]];
+        for (const [p, k, x, y] of etapas) if (pct >= p) pon(k, x, y, k === 'v_plataforma' ? -6 : oy * TILE + 2);
+      }
+      if (listo && this.tramoValle) {
+        this.obstaculos.remove(this.tramoValle.z, true, true);
+        this.aguas = this.aguas.filter((a) => a !== this.tramoValle.a);
+        this.tramoValle = null;
+        if (celebrar) {
+          this.cameras.main.shake(500, 0.006); this.celebrar(gx * TILE + 32, oy * TILE);
+          sfx('logro');
+          avisoGrande('¡El montacargas está terminado!', 'Ya pueden subir al Valle de la Esfinge', 'Gracias a los aportes de todo el nivel');
+        }
+      }
+      if (this.obraTag) this.obraTag.setText(listo ? 'Montacargas al Valle de la Esfinge' : `Montacargas en construcción\n${pct} % · E para aportar`);
+      if (this.objObra) this.objObra.listo = listo;
+    }
+    // ¿Se puede llegar a este punto (en píxeles)? Las zonas tras una obra sin terminar no cuentan
+    alcanzable(x, y) {
+      if (this.valle && !valleListo() && y < this.valle.oy * TILE) return false;
+      if (this.rio && !puenteListo() && x > this.rio.RX * TILE) return false;
+      return true;
+    }
+    crearValle() {
+      const { oy, gx, cy0 } = this.valle, X0 = 3, X1 = this.ancho - 4, Y0 = 3, Y1 = cy0 - 1;
+      for (const k of [...this.ocupado]) { const y = Number(k.split(',')[1]); if (y < cy0) this.ocupado.delete(k); }
+      for (let y = 7; y < cy0; y++) { this.marcar(gx, y); this.marcar(gx, y + 1); }
+      for (let x = 4; x < this.ancho - 4; x++) { this.marcar(x, 13); this.marcar(x, 14); }
+      for (let y = cy0 - 1; y < cy0; y++) for (let x = gx - 2; x <= gx + 3; x++) this.marcar(x, y);
+      const Pz = this.pozaValle;
+      for (let y = Pz.ly - 1; y <= Pz.ly + Pz.h; y++) for (let x = Pz.lx - 1; x <= Pz.lx + Pz.w; x++) this.marcar(x, y);
+      this.add.rectangle(0, 0, this.ancho * TILE, cy0 * TILE, 0x8a4a18, 0.13).setOrigin(0).setDepth(-9);
+      const lugarV = (alto = 1, ancho = 1, y0 = Y0, y1 = Y1) => {
+        for (let i = 0; i < 300; i++) {
+          const x = X0 + Math.floor(this.rnd() * (X1 - X0 - ancho)), y = y0 + alto - 1 + Math.floor(this.rnd() * Math.max(1, y1 - y0 - alto + 1));
+          let ok = true;
+          for (let dy = 0; dy < alto && ok; dy++) for (let dx = 0; dx < ancho && ok; dx++) if (!this.libre(x + dx, y - dy)) ok = false;
+          if (ok) return [x, y];
+        }
+        return null;
+      };
+      const reservar = (x, y, w = 1, h = 1) => { for (let dy = -h; dy <= 1; dy++) for (let dx = -1; dx <= w; dx++) this.marcar(x + dx, y + dy); };
+      // la Gran Esfinge con la entrada al laberinto entre sus patas
+      const ex = gx * TILE + 16, ey = 7 * TILE;
+      const esf = this.add.image(ex, ey, 'v_esfinge').setOrigin(0.5, 1).setScale(2).setDepth(ey);
+      this.solido(ex - 44, ey - 44, 40, 80); this.solido(ex + 44, ey - 44, 40, 80); this.solido(ex, ey - 70, 50, 40);
+      for (let y = 3; y <= 6; y++) for (let x = gx - 3; x <= gx + 3; x++) this.marcar(x, y);
+      this.add.text(ex, ey - 110, 'Gran Esfinge', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.add.particles(ex, ey - 30, 'p_brillo', { x: { min: -10, max: 10 }, lifespan: 1200, frequency: 300, speedY: { min: -20, max: -5 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(ey + 1);
+      this.objetos.push({ tipo: 'esfinge', x: ex, y: ey + 6, activo: true });
+      for (const dx of [-3, 3]) { const c = this.sprite('v_estatua_chacal', gx + dx, 6); this.solido(c.x, c.y - 10, 18, 14); }
+      // avenida de obeliscos y antorchas
+      for (const y of [9, 11, 17, 19]) for (const dx of [-1, 1]) {
+        if (y >= cy0 - 1) continue;
+        const k = y % 4 === 1 ? 'v_obelisco' : 'v_antorcha_obsidiana';
+        const sp = this.sprite(k, gx + dx, y); this.solido(sp.x, sp.y - 8, 16, 12); this.marcar(gx + dx, y);
+        if (k === 'v_antorcha_obsidiana') this.add.particles(sp.x, sp.y - 26, 'p_rojo', { lifespan: 500, frequency: 140, speedY: { min: -30, max: -10 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.9, end: 0 } }).setDepth(sp.y + 1);
+      }
+      // tumbas excavadas en la pared norte
+      for (let i = 0; i < 5; i++) {
+        const x = 5 + Math.floor((i + 0.5) * (this.ancho - 10) / 5 + (this.rnd() - 0.5) * 4);
+        if (Math.abs(x - gx) < 6) continue;
+        if (!this.libre(x, 3) || !this.libre(x + 1, 3)) continue;
+        const t = this.sprite('v_entrada_tumba', x, 3, 0.25); this.solido(t.x + 16, t.y - 20, 60, 36);
+        reservar(x, 3, 2, 2);
+      }
+      // poza con palmeras y papiros
+      for (let k = 0; k < 9; k++) {
+        const x = Pz.lx - 1 + Math.floor(this.rnd() * (Pz.w + 2)), y = this.rnd() < 0.5 ? Pz.ly - 2 : Pz.ly + Pz.h + 1;
+        if (!this.libre(x, y)) continue;
+        const pal = this.rnd() < 0.5;
+        const sp = this.sprite(pal ? 'v_palmera' : 'v_papiro', x, y);
+        if (pal) this.solido(sp.x, sp.y - 8, 16, 10); else sp.setDepth(-5);
+        this.marcar(x, y);
+      }
+      // pirámides y esqueletos de dinosaurio medio enterrados
+      for (const [k, w, n] of [['v_piramide', 3, 2], ['v_esqueleto_dino', 3, 3]]) for (let i = 0; i < n; i++) {
+        const p = lugarV(2, w); if (!p) break;
+        const sp = this.sprite(k, p[0], p[1], 1 / 6); this.solido(sp.x + 32, sp.y - 14, w * TILE - 12, 26);
+        reservar(p[0], p[1], w, 2);
+      }
+      // sitios de excavación
+      for (let i = 0; i < 10; i++) {
+        const p = lugarV(1, 2); if (!p) break;
+        const sp = this.sprite('v_sitio', p[0], p[1], 0.25).setDepth(-4);
+        reservar(p[0], p[1], 2, 1);
+        this.objetos.push({ tipo: 'sitio', s: sp, x: sp.x + 16, y: sp.y - 10, activo: true, estado: 'listo' });
+      }
+      // vetas de obsidiana (pico de cobre)
+      for (let i = 0; i < 16; i++) {
+        const p = lugarV(1); if (!p) break;
+        const sp = this.sprite('veta_obsidiana2', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 12, 26, 18);
+        reservar(p[0], p[1]);
+        this.objetos.push({ tipo: 'roca', base: 'veta_obsidiana', rec: 'obsidiana', req: 'pico3', extra: 'oro', evento: 'obsidiana', nombre: 'veta de obsidiana', s: sp, z, x: sp.x, y: sp.y - 8, nivel: 2, nivelMax: 2, activo: true });
+      }
+      // ruinas con jeroglíficos y sarcófagos
+      for (let r = 0; r < 5; r++) {
+        const p = lugarV(2); if (!p) break;
+        for (let k = 0; k < 5; k++) {
+          const x = p[0] - 2 + Math.floor(this.rnd() * 5), y = p[1] - 1 + Math.floor(this.rnd() * 3);
+          if (!this.libre(x, y) || !this.libre(x, y - 1)) continue;
+          const sp = this.sprite(this.rnd() < 0.5 ? 'v_columna_jero' : 'v_columna_jero_rota', x, y);
+          this.solido(sp.x, sp.y - 10, 18, 14); this.marcar(x, y); this.marcar(x, y - 1);
+        }
+      }
+      // cofres
+      for (let i = 0; i < 6; i++) {
+        const p = lugarV(1); if (!p) break;
+        const sp = this.sprite('cofre', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 26, 14);
+        reservar(p[0], p[1]);
+        const conVida = i % 2 === 0;
+        let corazon = null;
+        if (conVida) { corazon = this.add.image(sp.x, sp.y - 44, 'corazon').setScale(2).setDepth(sp.y + 1); this.tweens.add({ targets: corazon, y: sp.y - 50, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' }); }
+        this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
+      }
+      // enemigos del valle: escarabajos y momias dormidas en sus sarcófagos
+      for (let i = 0; i < 9; i++) {
+        const p = lugarV(1, 1, 8); if (!p) break;
+        const sp = this.add.image(p[0] * TILE + 16, (p[1] + 1) * TILE, 'v_escarabajo').setOrigin(0.5, 1).setScale(2);
+        sp.setDepth(sp.y);
+        this.enemigos.push(this.nuevoEnemigo('escarabajo', sp, { despierto: true, k: `v${i}` }));
+      }
+      for (let i = 0; i < 7; i++) {
+        const p = lugarV(2, 1, 4); if (!p) break;
+        const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'v_sarcofago').setOrigin(0.5, 1).setScale(2);
+        sp.setDepth(sp.y);
+        this.marcar(p[0], p[1]); this.marcar(p[0], p[1] - 1);
+        this.enemigos.push(this.nuevoEnemigo('momia', sp, { despierto: false, k: `m${i}` }));
+      }
+      // adornos sueltos
+      for (let i = 0; i < 40; i++) {
+        const p = lugarV(1); if (!p) break;
+        const k = ['v_papiro', 'd_calavera', 'd_huesos', 'v_palmera', 'd_vasija', 'monticulo'][Math.floor(this.rnd() * 6)];
+        const sp = this.sprite(k, p[0], p[1]);
+        if (['v_papiro', 'd_calavera', 'd_huesos', 'monticulo'].includes(k)) sp.setDepth(-5); else { this.solido(sp.x, sp.y - 8, 16, 10); this.marcar(p[0], p[1]); }
+      }
+      this.objetos.forEach((o, i) => { o.idx = i; });
+    }
+    // Un sitio excavado queda vacío unos minutos
+    sitioExcavado(o) {
+      o.estado = 'vacio'; o.s.setTexture('v_sitio_vacio');
+      if (o.timer) o.timer.remove(false);
+      o.timer = this.time.delayedCall(180000, () => { o.estado = 'listo'; o.s.setTexture('v_sitio'); });
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
@@ -3394,7 +4047,8 @@
     }
     // ---------- mundo del desierto (Unidad 2) ----------
     crearDesierto(M) {
-      this.ancho = MAPA_W; this.alto = MAPA_H;
+      const oy = M.valle ? VALLE_OY : 0;
+      this.ancho = MAPA_W; this.alto = MAPA_H + oy; this.yUtil = oy;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       const ARENA = fr(M.suelo[0][0], M.suelo[0][1]);
       this.pisables = [ARENA, ...M.suelo.slice(1).map(([c, r]) => fr(c, r))];
@@ -3412,12 +4066,13 @@
         }
       }
       // ruta de caravanas
-      const P = { x: 6, y: PORTAL_Y };
+      const P = { x: 6, y: PORTAL_Y + oy };
       for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = CAMINO;
-      for (let y = 3; y < this.alto - 3; y++) data[y][CENTRO_X] = CAMINO;
+      for (let y = Math.max(3, oy); y < this.alto - 3; y++) data[y][CENTRO_X] = CAMINO;
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      if (M.valle) this.planearValle(data, oy);
       this.prepararLugaresJefe(P);
       // oasis (decorativos: el agua del desierto no se puede recolectar)
       const oasis = [];
@@ -3433,6 +4088,7 @@
       this.suelo(data);
       if (M.tinte) this.add.rectangle(0, 0, this.ancho * TILE, this.alto * TILE, M.tinte[0], M.tinte[1]).setOrigin(0).setDepth(-9);
       this.bordesDesierto();
+      if (M.valle) this.decorarAcantilado();
       this.portal(P.x, P.y);
       this.crearGuarida();
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
@@ -3555,6 +4211,7 @@
         sp.setDepth(sp.y);
         this.enemigos.push(this.nuevoEnemigo('esqueleto', sp, { despierto: true, k: `q${i}` }));
       }
+      if (M.valle) this.crearValle();
     }
     // ---------- mundo de la mina (Unidad 3) ----------
     crearCueva(M) {
@@ -3939,10 +4596,10 @@
     // Claros repartidos por el mapa donde puede aparecer el jefe (los mismos para todo el grupo)
     prepararLugaresJefe(P) {
       this.lugaresJefe = [];
-      const cols = 4, filas = 2, cw = ((this.anchoUtil || this.ancho) - 8) / cols, ch = (this.alto - 10) / filas;
+      const y0 = this.yUtil || 0, cols = 4, filas = 2, cw = ((this.anchoUtil || this.ancho) - 8) / cols, ch = (this.alto - y0 - 10) / filas;
       for (let fy = 0; fy < filas; fy++) for (let fx = 0; fx < cols; fx++) {
         for (let t = 0; t < 120; t++) {
-          const x = Math.floor(4 + fx * cw + 2 + this.rnd() * (cw - 4)), y = Math.floor(6 + fy * ch + 2 + this.rnd() * (ch - 4));
+          const x = Math.floor(4 + fx * cw + 2 + this.rnd() * (cw - 4)), y = Math.floor(y0 + 6 + fy * ch + 2 + this.rnd() * (ch - 4));
           if (Math.abs(x - P.x) < 14 && Math.abs(y - P.y) < 10) continue;
           let ok = true;
           for (let dy = -3; dy <= 1 && ok; dy++) for (let dx = -2; dx <= 2 && ok; dx++) if (!this.libre(x + dx, y + dy)) ok = false;
@@ -3952,7 +4609,7 @@
           break;
         }
       }
-      if (!this.lugaresJefe.length) this.lugaresJefe.push({ x: CENTRO_X + 12, y: 10 });
+      if (!this.lugaresJefe.length) this.lugaresJefe.push({ x: CENTRO_X + 12, y: y0 + 10 });
     }
     // El jefe no tiene guarida visible: queda oculto hasta que el grupo lo invoca
     crearGuarida() {
@@ -4220,7 +4877,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' || o.tipo === 'santuario' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle', 'obra'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'jefe' || o.tipo === 'santuario' ? 80 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle', 'obra', 'sitio'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -4254,8 +4911,10 @@
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
-        case 'obra': return o.listo ? null : 'Ver y aportar al puente';
+        case 'obra': return o.listo ? null : this.valle ? 'Ver y aportar al montacargas' : 'Ver y aportar al puente';
         case 'santuario': return !tiene('amuleto') ? 'Santuario sellado: necesitas el amuleto ancestral' : (S.reyHasta || 0) > Date.now() ? 'El Rey Jabalí descansa' : '¡Desafiar al Rey Jabalí Ancestral!';
+        case 'esfinge': return tiene('antorcha_esfinge') ? 'Entrar al laberinto de la Gran Esfinge' : 'Gran Esfinge: necesitas la antorcha de la esfinge';
+        case 'sitio': return o.estado === 'vacio' ? 'Sitio excavado: vuelve más tarde' : tiene('pala') ? 'Excavar el sitio arqueológico' : 'Sitio arqueológico: necesitas una pala de arqueólogo';
         case 'muelle': return tiene('cana') ? `Pescar (caña: ${usosCana()} de ${CANA_USOS} usos)` : 'Muelle: necesitas una caña de pescar';
         case 'colocado': return o.carpa ? 'Entrar a tu pieza (R: guardar la carpa)' : `Guardar ${o.nombre.toLowerCase()}`;
         case 'puerta': return 'Salir a tu base';
@@ -4293,6 +4952,17 @@
           avanzarMision(o.rec === 'resina' ? 'resina' : 'colmena');
         } });
       }
+      if (o.tipo === 'esfinge') {
+        if (!tiene('antorcha_esfinge')) return toast('Dentro de la esfinge está muy oscuro: fabrica la antorcha de la esfinge (obsidiana y fósiles) en la fogata de tu base.', 'alerta');
+        this.dir = 'up';
+        return abrirLaberinto();
+      }
+      if (o.tipo === 'sitio') {
+        if (o.estado === 'vacio') return toast('Este sitio ya fue excavado. Vuelve en unos minutos o busca otro.');
+        if (!tiene('pala')) return toast('Necesitas una pala de arqueólogo. Fabrícala en la fogata de tu base (pestaña Equipo).', 'alerta');
+        this.mirarA(o);
+        return abrirDesafio({ accion: 'Descifrar la inscripción del sitio', dif: difPara(2), premio: 'Premio: excavar el sitio arqueológico', onOk: () => abrirExcavacion((n) => { this.sitioExcavado(o); avanzarMision('excavar'); }) });
+      }
       if (o.tipo === 'muelle') {
         if (!tiene('cana')) return toast('Necesitas una caña de pescar. Fabrícala en la fogata de tu base (pestaña Equipo).');
         this.dir = 'up';
@@ -4320,7 +4990,7 @@
         if (!tiene('pico')) return toast('Necesitas un pico. Fabrícalo en la fogata de tu base.');
         if (o.req && !tiene(o.req)) return toast(`Para picar esta veta necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}. Fabrícalo en tu base.`, 'alerta');
         equipar('pico');
-        const comun = ['arenisca', 'carbon', 'hielo'].includes(o.rec), raro = ['oro', 'amatista', 'zafiro'].includes(o.rec);
+        const comun = ['arenisca', 'carbon', 'hielo'].includes(o.rec), raro = ['oro', 'amatista', 'zafiro', 'obsidiana'].includes(o.rec);
         const cant = (raro ? 1 : 2) + (tiene(o.picoBueno || 'pico3') ? (comun ? 2 : 1) : 0);
         return abrirDesafio({ accion: `Picar ${o.nombre}`, dif: comun ? difPara(2) : 3, premio: `Premio: ${cant} ${nombreRec(o.rec)}${o.extra ? ` + posible ${nombreRec(o.extra)}` : ''}`, onOk: () => this.golpe(o, o.rec, cant) });
       }
@@ -4358,7 +5028,7 @@
       setTimeout(() => sfx('moneda'), 180);
       const j = this.jugador;
       this.tweens.add({ targets: j, y: j.y - 3, duration: 80, yoyo: true, repeat: 1 });
-      const px = { resina: 'p_cobre', miel: 'p_brillo', madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua' }[recurso];
+      const px = { resina: 'p_cobre', miel: 'p_brillo', madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua', obsidiana: 'p_morado', fosil: 'p_arena' }[recurso] || 'p_brillo';
       this.add.particles(o.x, o.y - 14, px, { speed: { min: 60, max: 150 }, angle: { min: 200, max: 340 }, gravityY: 320, lifespan: 600, scale: { start: 1.4, end: 0.4 }, emitting: false }).setDepth(o.y + 50).explode(16);
       if (o.s) this.tweens.add({ targets: o.s, x: o.s.x + 3, duration: 50, yoyo: true, repeat: 3 });
       sumar(recurso, cant);
@@ -4707,6 +5377,7 @@
       for (let i = 0; i < 24; i++) {
         const a = Math.random() * Math.PI * 2, r = rmin + Math.random() * (rmax - rmin);
         const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);
+        if (this.alcanzable(j.x, j.y) && !this.alcanzable(x, y)) continue;
         if (!this.physics.overlapRect(x - 14, y - 18, 28, 26, false, true).length) return { x, y };
       }
       return { x: Phaser.Math.Clamp(j.x + 60, m, W - m), y: Phaser.Math.Clamp(j.y, m + 16, H - m) };
@@ -4850,10 +5521,11 @@
       let p = null;
       for (let i = 0; i < 600 && !p; i++) {
         const x = 3 + Math.floor(rnd() * (this.ancho - 6)), y = 4 + Math.floor(rnd() * (this.alto - 7));
-        if (Math.abs(x - 6) < 14 && Math.abs(y - PORTAL_Y) < 10) continue;
+        if (Math.abs(x - 6) < 14 && Math.abs(y - PORTAL_Y - (this.yUtil || 0)) < 10) continue;
+        if (!this.alcanzable(x * TILE + 16, y * TILE + 24)) continue;
         if (this.libre(x, y) && this.libre(x, y - 1)) p = { x: x * TILE + 16, y: y * TILE + 24 };
       }
-      if (!p) p = { x: CENTRO_X * TILE + 200, y: 10 * TILE };
+      if (!p) p = { x: CENTRO_X * TILE + 200, y: ((this.yUtil || 0) + 10) * TILE };
       const top = cueva(this.zona) ? 9503 : p.y + 2;
       const halo = this.add.image(p.x, p.y - 14, 'luz').setScale(0.9).setTint(0xd7a8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setDepth(cueva(this.zona) ? 9502 : p.y + 1);
       const gema = this.add.image(p.x, p.y - 16, 'item_prisma').setScale(0.75).setDepth(top);
