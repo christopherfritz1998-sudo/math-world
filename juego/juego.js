@@ -793,8 +793,14 @@
   // ---------- Recompensa al subir de nivel: elegir 1 de 3 ----------
   let premioPospuesto = false;
   const cuantos = (id) => (S.inventario[id] || 0) + (S.colocados || []).filter((c) => c.k === id).length + (S.pieza || []).filter((c) => c.k === id).length;
+  // Los objetos exclusivos de nivel aparecen solo desde el nivel 30 y cada 5 niveles (30, 35, 40…)
+  const NIVEL_EXCL = 30, CADA_EXCL = 5;
+  const nivelPremio = () => S.nivel - (S.premiosNivel || 1) + 1;
+  const nivelConExclusivo = (n) => n >= NIVEL_EXCL && (n - NIVEL_EXCL) % CADA_EXCL === 0;
+  // exclusivos de nivel (no los trofeos, álbumes ni premios de minijuegos, que se ganan de otra forma)
+  const exclusivosNivel = () => OBJETOS.filter((o) => o.excl && !o.trofeo && !o.album && !o.premio);
   function nuevaOferta() {
-    const L = S.nivel;
+    const L = S.nivel, conExcl = nivelConExclusivo(nivelPremio());
     const paquetes = mezclar([
       { madera: 12 + 3 * L, piedra: 8 + 2 * L }, { cristal: 2 + Math.floor(L / 2) },
       { agua: 8 + 2 * L, madera: 6 + L }, { piedra: 12 + 3 * L, cristal: 1 },
@@ -802,7 +808,7 @@
       ...(recursosVisibles().some((r) => r.grupo === 'u4') ? [{ hielo: 10 + 2 * L, baya: 4 + L }, { escarcha: 3 + Math.floor(L / 2), zafiro: 1 + Math.floor(L / 4) }] : []),
       ...(recursosVisibles().some((r) => r.grupo === 'u3') ? [{ carbon: 10 + 2 * L, hongo: 4 + L }, { plata: 3 + Math.floor(L / 2), amatista: 1 + Math.floor(L / 4) }] : []),
     ]);
-    const excl = mezclar(OBJETOS.filter((o) => o.excl && cuantos(o.id) === 0));
+    const excl = conExcl ? mezclar(exclusivosNivel().filter((o) => cuantos(o.id) === 0)) : [];
     const normales = mezclar(OBJETOS.filter((o) => !o.excl && !o.carpa));
     const ops = [{ tipo: 'rec', rec: paquetes[0] }];
     ops.push(excl.length ? { tipo: 'obj', id: excl[0].id, n: 1, excl: true } : { tipo: 'rec', rec: paquetes[1] });
@@ -812,6 +818,8 @@
   }
   function abrirPremioNivel() {
     if (!(S.premiosNivel > 0)) return;
+    // ofertas guardadas antes de este cambio: si traen un exclusivo en un nivel que no corresponde, se renuevan
+    if (S.ofertaNivel && S.ofertaNivel.some((op) => op.excl) && !nivelConExclusivo(nivelPremio())) S.ofertaNivel = null;
     if (!S.ofertaNivel) { S.ofertaNivel = nuevaOferta(); guardar(); }
     const ops = S.ofertaNivel;
     const tarjeta = (op, i) => {
@@ -821,7 +829,7 @@
     };
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Recompensa del nivel ${S.nivel - S.premiosNivel + 1}</span><h2 id="modal-titulo">¡Subiste de nivel! Elige tu recompensa</h2></div></div>
-      <p class="nota">Solo puedes quedarte con una. Los objetos exclusivos no se pueden fabricar: solo se ganan subiendo de nivel.</p>
+      <p class="nota">Solo puedes quedarte con una. ${nivelConExclusivo(nivelPremio()) ? '¡Este nivel trae un objeto exclusivo! No se puede fabricar.' : `Los objetos exclusivos aparecen desde el nivel ${NIVEL_EXCL} y luego cada ${CADA_EXCL} niveles (${NIVEL_EXCL}, ${NIVEL_EXCL + CADA_EXCL}, ${NIVEL_EXCL + 2 * CADA_EXCL}…).`}</p>
       <div class="premios">${ops.map(tarjeta).join('')}</div>
       <div class="acciones"><span class="nota">${S.premiosNivel > 1 ? `Te quedan ${S.premiosNivel} recompensas por elegir.` : ''}</span><button type="button" class="btn" id="pn-luego">Elegir más tarde</button></div>`);
     $('pn-luego').addEventListener('click', () => { premioPospuesto = true; ui.cerrar(); pintarMisiones(); });
@@ -3547,7 +3555,7 @@
     const cats = [...new Set(items.map((o) => o.cat))];
     return cats.map((cat) => `<h3 class="cat">${esc(cat)}</h3><div class="catalogo">${items.filter((o) => o.cat === cat).map((o) => {
       const n = S.inventario[o.id] || 0;
-      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : o.premio ? o.premio : o.trofeo ? 'Premio por vencer al Rey Jabalí Ancestral' : o.album === 'gemas' ? 'Premio por completar el álbum de gemas' : o.album ? 'Premio por completar el álbum de peces' : 'Premio al subir de nivel'}</span>`
+      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : o.premio ? o.premio : o.trofeo ? 'Premio por vencer al Rey Jabalí Ancestral' : o.album === 'gemas' ? 'Premio por completar el álbum de gemas' : o.album ? 'Premio por completar el álbum de peces' : `Premio de los niveles ${NIVEL_EXCL}, ${NIVEL_EXCL + CADA_EXCL}, ${NIVEL_EXCL + 2 * CADA_EXCL}…`}</span>`
         : `<div class="costo">${costoHTML(o.costo)}</div><button type="button" class="btn pri chico" data-o="${o.id}" ${alcanza(o.costo) ? '' : 'disabled'}>Fabricar</button>`;
       return `<div class="item ${o.excl ? 'excl' : ''}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><strong>${esc(o.nombre)}</strong><small>${n ? `${n} sin colocar` : ' '}</small>${der}</div>`;
     }).join('')}</div>`).join('');
