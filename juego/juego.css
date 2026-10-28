@@ -382,3 +382,23 @@ ul.misiones li.ok .fila span { color: var(--ok); }
   .pesca { grid-template-columns: 96px 22px 1fr; gap: 10px; }
   .pesca-info .enunciado { font-size: 16px; }
 }
+
+/* ---------- Bosque profundo: puente, álbum y Rey Jabalí ---------- */
+.obra-total { display: flex; flex-direction: column; gap: 6px; }
+.obra-recursos { display: flex; flex-direction: column; gap: 10px; }
+.obra-fila { display: grid; grid-template-columns: 36px 1fr auto; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
+.obra-fila img { width: 32px; height: 32px; }
+.obra-info { display: flex; flex-direction: column; gap: 4px; }
+.obra-aporte { display: flex; gap: 6px; align-items: center; }
+.obra-aporte input { width: 72px; height: 36px; border-radius: 8px; border: 2px solid var(--line); background: var(--panel); color: var(--text); font: inherit; font-weight: 800; padding: 0 8px; }
+.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.pez-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border-radius: 14px; background: var(--bg); border: 2px solid var(--teal); text-align: center; }
+.pez-card img { width: 56px; height: 56px; }
+.pez-card small { color: var(--muted); font-size: 12px; }
+.pez-card.falta { border-color: var(--line); }
+.pez-card.falta img { filter: brightness(0) opacity(.35); }
+.rey-fase { font-weight: 800; }
+.rey-escudo { font-size: 13px; font-weight: 800; color: #b8e08a; }
+.rey-tiempo { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; }
+.rey-tiempo i { display: block; height: 100%; background: var(--amber); transition: width .2s linear; }
+@media (max-width: 760px) { .obra-fila { grid-template-columns: 30px 1fr; } .obra-aporte { grid-column: 1 / -1; } }

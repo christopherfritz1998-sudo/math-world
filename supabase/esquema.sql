@@ -572,3 +572,96 @@ end $$;
 
 revoke all on function public.mw_prisma_reclamar(uuid, bigint, text) from public, authenticated;
 grant execute on function public.mw_prisma_reclamar(uuid, bigint, text) to anon;
+
+-- Obras cooperativas (por nivel: todo 7° o todo 8°): el puente al Bosque profundo.
+-- Cada estudiante aporta recursos; el avance se guarda y, una vez completa, queda para siempre.
+create table if not exists public.obras (
+  nivel text not null,
+  id text not null,
+  aportes jsonb not null default '{}'::jsonb,
+  completado timestamptz,
+  primary key (nivel, id)
+);
+create table if not exists public.obra_aportes (
+  nivel text not null,
+  obra text not null,
+  estudiante_id uuid not null references public.estudiantes (id),
+  total int not null default 0,
+  primary key (nivel, obra, estudiante_id)
+);
+alter table public.obras enable row level security;
+alter table public.obra_aportes enable row level security;
+revoke all on public.obras, public.obra_aportes from anon, authenticated;
+
+create or replace function public.mw_obra_meta(p_id text) returns jsonb
+language sql immutable as $$
+  select case p_id when 'puente_bosque' then '{"madera": 600, "piedra": 350, "agua": 150, "cristal": 40}'::jsonb else null end
+$$;
+
+create or replace function public.mw_obra_estado(p_nivel text, p_id text, p_yo uuid)
+returns json language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'id', p_id, 'nivel', p_nivel, 'meta', mw_obra_meta(p_id),
+    'aportes', coalesce((select aportes from obras where nivel = p_nivel and id = p_id), '{}'::jsonb),
+    'completado', (select completado from obras where nivel = p_nivel and id = p_id) is not null,
+    'mio', coalesce((select total from obra_aportes where nivel = p_nivel and obra = p_id and estudiante_id = p_yo), 0),
+    'top', coalesce((select json_agg(x) from (select mw_nombre_corto(e.nombre) as nombre, a.total from obra_aportes a join estudiantes e on e.id = a.estudiante_id
+                     where a.nivel = p_nivel and a.obra = p_id order by a.total desc limit 5) x), '[]'::json),
+    'aportantes', (select count(*) from obra_aportes where nivel = p_nivel and obra = p_id)
+  )
+$$;
+
+-- Ver una obra: estudiantes (su nivel) o docente (el nivel que juega)
+create or replace function public.mw_obra(p_token uuid, p_id text, p_nivel text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); n text;
+begin
+  if id_e is not null then select left(curso, 1) into n from estudiantes where id = id_e;
+  elsif mw_sesion_docente(p_token) is not null then n := left(coalesce(p_nivel, '7'), 1);
+  else return json_build_object('ok', false); end if;
+  if mw_obra_meta(p_id) is null then return json_build_object('ok', false); end if;
+  return (mw_obra_estado(n, p_id, id_e)::jsonb || '{"ok": true}'::jsonb)::json;
+end $$;
+
+-- Aportar: solo se acepta lo que falta; devuelve lo aceptado para descontarlo en el juego
+create or replace function public.mw_obra_aportar(p_token uuid, p_id text, p_recursos jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); n text; meta jsonb := mw_obra_meta(p_id); act jsonb; acep jsonb := '{}'::jsonb;
+  k text; quiere int; falta int; dado int; suma int := 0; listo boolean;
+begin
+  if id_e is null or meta is null then return json_build_object('ok', false); end if;
+  select left(curso, 1) into n from estudiantes where id = id_e;
+  insert into obras (nivel, id) values (n, p_id) on conflict do nothing;
+  select aportes into act from obras where nivel = n and id = p_id for update;
+  if (select completado from obras where nivel = n and id = p_id) is not null then
+    return (mw_obra_estado(n, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', '{}'::jsonb))::json;
+  end if;
+  for k in select jsonb_object_keys(meta) loop
+    quiere := greatest(0, least(coalesce((p_recursos->>k)::int, 0), 500));
+    falta := greatest(0, (meta->>k)::int - coalesce((act->>k)::int, 0));
+    dado := least(quiere, falta);
+    if dado > 0 then
+      act := act || jsonb_build_object(k, coalesce((act->>k)::int, 0) + dado);
+      acep := acep || jsonb_build_object(k, dado); suma := suma + dado;
+    end if;
+  end loop;
+  listo := not exists (select 1 from jsonb_object_keys(meta) k2 where coalesce((act->>k2)::int, 0) < (meta->>k2)::int);
+  update obras set aportes = act, completado = case when listo then now() else null end where nivel = n and id = p_id;
+  if suma > 0 then
+    insert into obra_aportes (nivel, obra, estudiante_id, total) values (n, p_id, id_e, suma)
+      on conflict (nivel, obra, estudiante_id) do update set total = obra_aportes.total + excluded.total;
+  end if;
+  return (mw_obra_estado(n, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', acep))::json;
+end $$;
+
+-- Docente: avance de las obras de 7° y 8°
+create or replace function public.mw_docente_obras(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return json_build_object('7', mw_obra_estado('7', 'puente_bosque', null), '8', mw_obra_estado('8', 'puente_bosque', null));
+end $$;
+
+revoke all on function public.mw_obra_meta(text), public.mw_obra_estado(text, text, uuid) from public, anon, authenticated;
+revoke all on function public.mw_obra(uuid, text, text), public.mw_obra_aportar(uuid, text, jsonb), public.mw_docente_obras(uuid) from public, authenticated;
+grant execute on function public.mw_obra(uuid, text, text), public.mw_obra_aportar(uuid, text, jsonb), public.mw_docente_obras(uuid) to anon;

@@ -18,6 +18,8 @@
   const RECURSOS = [
     { id: 'madera', nombre: 'Madera', grupo: 'u1' }, { id: 'piedra', nombre: 'Piedra', grupo: 'u1' },
     { id: 'agua', nombre: 'Agua', grupo: 'u1' }, { id: 'cristal', nombre: 'Cristal', grupo: 'u1' },
+    // Bosque profundo (al otro lado del puente)
+    { id: 'resina', nombre: 'Resina', grupo: 'u1p' }, { id: 'miel', nombre: 'Miel', grupo: 'u1p' },
     { id: 'fibra', nombre: 'Fibra de cactus', corto: 'Fibra', grupo: 'u2' }, { id: 'arenisca', nombre: 'Arenisca', grupo: 'u2' },
     { id: 'cobre', nombre: 'Cobre', grupo: 'u2' }, { id: 'oro', nombre: 'Oro', grupo: 'u2' },
     { id: 'carbon', nombre: 'Carbón', grupo: 'u3' }, { id: 'plata', nombre: 'Plata', grupo: 'u3' },
@@ -37,6 +39,10 @@
   const MEJORAS = [
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
+    // Herramientas del Bosque profundo
+    { id: 'ahumador', nombre: 'Ahumador', desc: 'Herramienta: calma a las abejas para recolectar miel de las colmenas del Bosque profundo.', icono: 'ahumador', costo: { madera: 12, piedra: 6, resina: 3 } },
+    { id: 'hacha3', nombre: 'Hacha ancestral', desc: 'Más madera al talar y +2 de resina en los árboles gigantes del Bosque profundo.', icono: 'hacha3', costo: { resina: 12, madera: 30, cristal: 4 }, requiere: 'hacha2' },
+    { id: 'amuleto', nombre: 'Amuleto ancestral', desc: 'Rompe el sello del santuario del Rey Jabalí Ancestral, en el Bosque profundo.', icono: 'amuleto', costo: { resina: 15, miel: 10, cristal: 6 } },
     { id: 'cana', nombre: 'Caña de pescar', desc: 'Herramienta: con ella puedes pescar en el muelle del gran lago del Bosque. No hace falta equiparla. Dura 5 pescas: cuando se rompe, fabrica otra.', icono: 'cana', costo: { madera: 14, agua: 4, cristal: 1 } },
     { id: 'espada', nombre: 'Espada de piedra', desc: 'Equipada, cada acierto en combate quita 2 de vida.', icono: 'espada', costo: { madera: 15, piedra: 10 }, requiere: 'pico' },
     { id: 'hacha2', nombre: 'Hacha de hierro', desc: 'Ganas 2 maderas más por cada árbol.', icono: 'axe', costo: { madera: 25, piedra: 15 }, requiere: 'pico' },
@@ -154,6 +160,24 @@
     D('pinguino', 'Pingüino', 'Invierno', 'ambos', 'n', [0, 2, 1, 1], { baya: 3, hielo: 2 }),
     D('cristal_escarcha', 'Cristal de escarcha', 'Invierno', 'ambos', 'n', [2, 1, 1, 1], { escarcha: 3 }, { paso: true }),
     D('zafiros', 'Zafiros', 'Invierno', 'ambos', 'n', [3, 1, 1, 1], { zafiro: 2, escarcha: 1 }, { paso: true }),
+    // Bosque profundo: se fabrican con resina y miel (hoja propia)
+    D('colmena_dec', 'Colmena', 'Bosque profundo', 'base', 'f', [2, 0, 1, 1], { miel: 3, madera: 3 }),
+    D('tronco_gigante', 'Tocón ancestral', 'Bosque profundo', 'base', 'f', [11, 0, 2, 2], { resina: 4, madera: 10 }),
+    D('columna_musgo', 'Columna con musgo', 'Bosque profundo', 'base', 'f', [9, 0, 1, 2], { resina: 2, piedra: 8 }),
+    D('columna_rota_musgo', 'Columna rota con musgo', 'Bosque profundo', 'base', 'f', [10, 0, 1, 2], { resina: 2, piedra: 6 }),
+    D('farol_ambar', 'Farol de ámbar', 'Bosque profundo', 'ambos', 'f', [13, 0, 1, 1], { resina: 4, cristal: 1 }, { brillo: 0xffb040 }),
+    D('helecho', 'Helecho', 'Bosque profundo', 'base', 'f', [8, 0, 1, 1], { resina: 1, agua: 2 }, { paso: true }),
+    D('arbusto_miel', 'Arbusto de miel', 'Bosque profundo', 'base', 'f', [8, 4, 1, 1], { miel: 3, agua: 2 }),
+    D('altar_bosque', 'Altar del bosque', 'Bosque profundo', 'base', 'f', [7, 0, 1, 1], { resina: 6, piedra: 10 }),
+    D('estatua_jabali', 'Estatua del Rey Jabalí', 'Bosque profundo', 'base', 'f', [4, 4, 2, 3], {}, { excl: true, trofeo: true, pie: 2 }),
+    D('tarro_miel', 'Tarros de miel', 'Bosque profundo', 'pieza', 'f', [1, 4, 1, 1], { miel: 4 }),
+    D('lampara_ambar', 'Lámpara de ámbar', 'Bosque profundo', 'pieza', 'f', [14, 0, 1, 2], { resina: 5, cristal: 1 }, { brillo: 0xffb040 }),
+    D('mesa_raiz', 'Mesa de raíz', 'Bosque profundo', 'pieza', 'f', [15, 0, 1, 1], { resina: 3, madera: 8 }),
+    D('sillon_musgo', 'Sillón de musgo', 'Bosque profundo', 'pieza', 'f', [0, 4, 1, 1], { resina: 2, madera: 6 }),
+    D('cama_hojas', 'Cama de hojas', 'Bosque profundo', 'pieza', 'f', [6, 4, 1, 2], { resina: 4, madera: 10, miel: 2 }, { pie: 2 }),
+    D('vela_miel', 'Vela de miel', 'Bosque profundo', 'pieza', 'f', [7, 4, 1, 1], { miel: 2 }, { paso: true, brillo: 0xffb040 }),
+    D('alfombra_musgo', 'Alfombra de musgo', 'Bosque profundo', 'pieza', 'f', [9, 4, 3, 2], { resina: 3, agua: 4 }, { piso: true }),
+    D('acuario', 'Acuario', 'Bosque profundo', 'pieza', 'f', [2, 4, 2, 1], {}, { excl: true, album: true }),
     // Exclusivos del Prisma estelar (hoja propia)
     D('cristal_prisma', 'Cristal prismático', 'Prismáticos', 'ambos', 'p', [0, 0, 1, 1], { prisma: 1, cristal: 2 }),
     D('estandarte_prisma', 'Estandarte arcoíris', 'Prismáticos', 'base', 'p', [1, 0, 1, 3], { prisma: 1, madera: 4 }),
@@ -244,7 +268,7 @@
   const MUNDOS = {
     u1: { nombre: { '7basico': 'Bosque de los Enteros', '8basico': 'Bosque de las Potencias' }, semilla: 11, fondo: '#2f6b47',
       suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 175,
-      rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
+      rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, profundo: true, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
     // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
     u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
       suelo: [[8, 22, 1], [3, 19, 0.07]], nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
@@ -258,7 +282,7 @@
       suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 112, nArbustos: 88, nRocas: 66, vetasEscarcha: 19, vetasZafiro: 9, cofres: 11,
       lobos: 12, espiritus: 9, munecos: 12, cofre: { escarcha: 2, zafiro: 1 } },
   };
-  const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g); };
+  const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || (g === 'u1' && r.grupo === 'u1p')); };
   const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
   // oculto: espera escondido y despierta al acercarse · flota: atraviesa obstáculos · anim: hoja animada (LPC)
@@ -278,6 +302,9 @@
     murcielago: { nombre: 'Murciélago de la mina', vida: 3, dif: 2, botin: { hongo: 2, carbon: 1 }, xp: 18, vel: 88, flota: true, radio: 190 },
     golem: { nombre: 'Gólem de roca', vida: 7, dif: 3, botin: { carbon: 2, plata: 1, amatista: 1 }, xp: 34, vel: 46, oculto: true, tex: 'golem_roca', texVivo: 'golem', retrato: 'golem', radio: 200 },
     minero: { nombre: 'Minero zombi', vida: 6, dif: 3, botin: { plata: 2, carbon: 2 }, xp: 30, vel: 56, anim: 'minero', retrato: 'minero_retrato', radio: 210 },
+    // Bosque profundo
+    arana: { nombre: 'Araña del bosque profundo', vida: 5, dif: 2, botin: { resina: 1, miel: 1 }, xp: 26, vel: 96, retrato: 'arana', radio: 230 },
+    raiz: { nombre: 'Raíz viviente', vida: 7, dif: 3, botin: { resina: 2, madera: 3 }, xp: 34, vel: 50, oculto: true, tex: 'tocon_raiz', texVivo: 'raiz_viva', retrato: 'raiz_viva', radio: 200 },
     // Desafío en vivo "Criatura dorada": huye del jugador
     dorado: { nombre: 'Criatura dorada', vida: 3, dif: 2, botin: {}, xp: 45, vel: 112, anim: 'jabali', retrato: 'jabali_retrato', radio: 3000 },
     esqueleto: { nombre: 'Esqueleto del desierto', vida: 6, dif: 3, botin: { cobre: 2, oro: 1 }, xp: 32, vel: 62, anim: 'esqueleto', retrato: 'esqueleto_retrato', radio: 210 },
@@ -477,6 +504,10 @@
     talar: { n: [4, 6], txt: (m) => (desierto(m.u) ? `Corta ${m.n} cactus` : cueva(m.u) ? `Recolecta ${m.n} grupos de hongos luminosos` : helado(m.u) ? `Recolecta bayas de ${m.n} arbustos` : `Tala ${m.n} árboles`) },
     picar: { n: [3, 5], txt: (m) => (desierto(m.u) ? `Pica ${m.n} rocas de arenisca` : cueva(m.u) ? `Pica ${m.n} rocas de carbón` : helado(m.u) ? `Pica ${m.n} bloques de hielo` : `Pica ${m.n} rocas`), req: () => tiene('pico') },
     agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde'), mundos: bosque },
+    arana: { n: [2, 3], txt: (m) => `Vence ${m.n} arañas del bosque profundo`, mundos: (u) => bosque(u) && puenteListo() },
+    raiz: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 raíz viviente' : `Vence ${m.n} raíces vivientes`), mundos: (u) => bosque(u) && puenteListo() },
+    resina: { n: [2, 3], txt: (m) => `Saca resina de ${m.n} árboles gigantes`, req: () => tiene('hacha2'), mundos: (u) => bosque(u) && puenteListo() },
+    colmena: { n: [2, 3], txt: (m) => `Recolecta miel de ${m.n} colmenas`, req: () => tiene('ahumador'), mundos: (u) => bosque(u) && puenteListo() },
     pescar: { n: [2, 3], txt: (m) => `Pesca ${m.n} veces en el muelle del gran lago`, req: () => tiene('cana'), mundos: bosque },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
     arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} duendes del bosque`, mundos: bosque },
@@ -523,6 +554,9 @@
     return M;
   }
   const textoMision = (m) => TIPOS_MISION[m.t].txt(m);
+  // Estado de la obra cooperativa del puente (lo trae el servidor; en modo sin conexión es personal)
+  let obraPuente = null;
+  const puenteListo = () => Boolean(obraPuente && obraPuente.completado);
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
 
   const TIPOS_DIARIA = {
@@ -874,7 +908,7 @@
   // En un mundo se ven sus recursos; en la base, los de la Unidad 1 y los de otros mundos ya abiertos o con algo guardado
   function recursosVisibles() {
     if (escena && MUNDOS[escena.zona]) return recursosDe(escena.zona);
-    const grupos = new Set(['u1']);
+    const grupos = new Set(['u1', 'u1p']);
     for (const r of RECURSOS) if ((S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0) grupos.add(r.grupo);
     for (const z of Object.keys(MUNDOS)) if (MUNDOS[z].recursos && mundoAbierto({ id: z, habilitada: false })) grupos.add(MUNDOS[z].recursos);
     return RECURSOS.filter((r) => grupos.has(r.grupo));
@@ -1082,6 +1116,95 @@
     if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch (e) { /* */ } }
   }
 
+  // ---------- Obra cooperativa: el puente al Bosque profundo ----------
+  // Todo el nivel (7° u 8° básico) aporta recursos al mismo puente; el avance queda guardado en el sistema
+  // y, cuando se completa, el puente queda construido para siempre.
+  const OBRA_PUENTE = 'puente_bosque';
+  const META_PUENTE = { madera: 600, piedra: 350, agua: 150, cristal: 40 };   // (en modo sin conexión; en línea la define el servidor)
+  let cargandoObra = false;
+  async function cargarObra() {
+    if (!S || cargandoObra) return;
+    const antes = obraPuente ? puenteListo() : null;   // null: primera carga (no se celebra)
+    let o = null;
+    if (sesion.modo === 'nube' || sesion.modo === 'docente') {
+      cargandoObra = true;
+      try { o = await Nube.obra(sesion.token, OBRA_PUENTE, nivelNum()); } catch (e) { o = null; }
+      cargandoObra = false;
+      if (!o || !o.ok) return;
+    } else {
+      S.obraLocal = S.obraLocal || { aportes: {}, completado: false, mio: 0 };
+      o = { meta: META_PUENTE, aportes: S.obraLocal.aportes, completado: S.obraLocal.completado, mio: S.obraLocal.mio, top: [], aportantes: 1 };
+    }
+    obraPuente = o;
+    if (escena && escena.rio) escena.actualizarPuente(antes === false && puenteListo());
+    const t = $('obra-cuerpo'); if (t) pintarObra();
+  }
+  setInterval(() => { if (escena && escena.rio && !document.hidden && !ui.abierto) cargarObra(); }, 15000);
+  const obraFalta = (k) => Math.max(0, ((obraPuente && obraPuente.meta) || META_PUENTE)[k] - ((obraPuente && obraPuente.aportes && obraPuente.aportes[k]) || 0));
+  function pintarObra() {
+    const o = obraPuente || { meta: META_PUENTE, aportes: {}, top: [], mio: 0, aportantes: 0 };
+    const meta = o.meta || META_PUENTE, ap = o.aportes || {};
+    const total = Object.values(meta).reduce((a, b) => a + b, 0), hecho = Object.entries(meta).reduce((a, [k, n]) => a + Math.min(n, ap[k] || 0), 0);
+    const pct = o.completado ? 100 : Math.floor((hecho / total) * 100);
+    const filas = Object.entries(meta).map(([k, n]) => {
+      const v = Math.min(n, ap[k] || 0), tengo = esDocente() ? 0 : total_(k), max = Math.min(tengo, obraFalta(k));
+      return `<div class="obra-fila"><img class="px" src="${ICONO(k)}" alt=""><div class="obra-info"><div class="fila"><strong>${esc(REC[k].nombre)}</strong><span>${v} de ${n}</span></div><div class="barra"><i style="width:${(v / n) * 100}%"></i></div></div>
+        ${o.completado || esDocente() ? '' : `<div class="obra-aporte"><input type="number" min="0" max="${max}" value="0" data-obra="${k}" aria-label="Cuánto ${esc(REC[k].nombre.toLowerCase())} aportas" ${max ? '' : 'disabled'}><button type="button" class="btn sec chico" data-todo="${k}" ${max ? '' : 'disabled'}>Todo (${max})</button></div>`}</div>`;
+    }).join('');
+    const top = (o.top || []).map((x, i) => `<li><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'}</span><span>${esc(x.nombre)}</span><b>${x.total}</b></li>`).join('');
+    $('obra-cuerpo').innerHTML = `
+      <div class="obra-total"><div class="fila"><strong>${o.completado ? '¡Puente terminado!' : 'Avance de la obra'}</strong><span>${pct} %</span></div><div class="barra meta"><i style="width:${pct}%"></i></div></div>
+      <div class="des-cols"><div class="obra-recursos">${filas}</div>
+        <aside class="des-tabla"><span class="etq">Quienes más han aportado</span><ol class="des-ranking">${top || '<li class="vacio">Aún nadie aporta. ¡Sé el primero!</li>'}</ol>
+          <span class="nota">Tu aporte: <b>${o.mio || 0}</b> recursos · ${o.aportantes || 0} ${o.aportantes === 1 ? 'estudiante ha' : 'estudiantes han'} aportado</span></aside></div>
+      ${o.completado ? '<div class="mensaje bien" role="status">El puente está construido para siempre: cruza el río por el camino hacia el Bosque profundo.</div>'
+        : esDocente() ? '<p class="nota">Como docente puedes ver el avance; los aportes los hacen tus estudiantes.</p>'
+          : '<div class="acciones"><span class="nota">Elige cuánto aportar: se descuenta de tu cofre y tu mochila. Para aportar responde un desafío.</span><button type="button" class="btn pri" id="obra-aportar">Aportar al puente</button></div>'}`;
+    document.querySelectorAll('[data-todo]').forEach((b) => b.addEventListener('click', () => { const i = document.querySelector(`[data-obra="${b.dataset.todo}"]`); i.value = i.max; }));
+    const bt = $('obra-aportar'); if (bt) bt.addEventListener('click', aportarObra);
+  }
+  const total_ = (r) => (S.mochila[r] || 0) + (S.cofre[r] || 0);
+  function abrirObra() {
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Obra de todo ${S.curso === '8basico' ? '8°' : '7°'} básico · se completa entre todos</span><h2 id="modal-titulo">🌉 Puente al Bosque profundo</h2></div><button type="button" class="btn" id="obra-cerrar">Cerrar</button></div>
+      <p class="nota">El río no se puede cruzar. Todos los estudiantes de tu nivel aportan recursos a este mismo puente: el avance se guarda y, cuando se completa, queda construido para siempre.</p>
+      <div id="obra-cuerpo"></div>`, 'ancho');
+    $('obra-cerrar').addEventListener('click', () => ui.cerrar());
+    pintarObra();
+    cargarObra();
+  }
+  function aportarObra() {
+    const rec = {};
+    document.querySelectorAll('[data-obra]').forEach((i) => {
+      const k = i.dataset.obra, n = Math.max(0, Math.min(Math.floor(Number(i.value) || 0), total_(k), obraFalta(k)));
+      if (n > 0) rec[k] = n;
+    });
+    if (!Object.keys(rec).length) return toast('Elige cuántos recursos quieres aportar (o usa «Todo»).', 'alerta');
+    const resumen = Object.entries(rec).map(([k, n]) => `${n} ${nombreRec(k)}`).join(', ');
+    abrirDesafio({ accion: 'Aportar al puente', dif: difPara(2), premio: `Aporte: ${resumen}`, onOk: async () => {
+      let r = null;
+      if (sesion.modo === 'nube') {
+        try { r = await Nube.obraAportar(sesion.token, OBRA_PUENTE, rec); } catch (e) { r = null; }
+        if (!r || !r.ok) { toast('No se pudo enviar tu aporte. Revisa tu conexión e inténtalo otra vez.', 'alerta'); return; }
+      } else {
+        const L = S.obraLocal = S.obraLocal || { aportes: {}, completado: false, mio: 0 }, acep = {};
+        for (const [k, n] of Object.entries(rec)) { const d = Math.min(n, META_PUENTE[k] - (L.aportes[k] || 0)); if (d > 0) { acep[k] = d; L.aportes[k] = (L.aportes[k] || 0) + d; L.mio += d; } }
+        L.completado = Object.entries(META_PUENTE).every(([k, n]) => (L.aportes[k] || 0) >= n);
+        r = { ok: true, meta: META_PUENTE, aportes: L.aportes, completado: L.completado, mio: L.mio, top: [], aportantes: 1, aceptado: acep };
+      }
+      const acep = r.aceptado || {};
+      const antes = puenteListo();
+      pagar(acep);
+      const n = Object.values(acep).reduce((a, b) => a + b, 0);
+      ganarXP(Math.min(60, 5 + Math.floor(n / 4)));
+      obraPuente = r; guardar(true); pintarHUD();
+      if (escena && escena.rio) escena.actualizarPuente(!antes && puenteListo());
+      if (escena && escena.canal) escena.canal.emitir('obra', {});
+      toast(n ? `¡Aportaste ${Object.entries(acep).map(([k, v]) => `${v} ${nombreRec(k)}`).join(', ')} al puente!` : 'El puente ya tenía esos recursos completos.');
+      if (escena) escena.celebrar();
+      setTimeout(() => { if (!ui.abierto) abrirObra(); }, 400);
+    } });
+  }
+
   // ---------- Minijuego de pesca ----------
   // El pez se mueve por una barra vertical; con ESPACIO (o manteniendo presionado) se sube el aro.
   // Mientras el pez esté dentro del aro se llena la barra de captura; si sale, se vacía.
@@ -1090,7 +1213,32 @@
     { id: 'carpa', nombre: 'carpa', un: 'una', el: 'La', lo: 'la', peso: 30, dif: 1.3, vida: 2 },
     { id: 'salmon', nombre: 'salmón', un: 'un', el: 'El', lo: 'lo', peso: 20, dif: 1.8, vida: 3 },
     { id: 'dorado', nombre: 'pez dorado', un: 'un', el: 'El', lo: 'lo', peso: 10, dif: 2.4, vida: 4 },
+    // Solo en el estanque del Bosque profundo
+    { id: 'luna', nombre: 'pez luna', un: 'un', el: 'El', lo: 'lo', peso: 30, dif: 2.0, vida: 3, profundo: true },
+    { id: 'anguila', nombre: 'anguila de raíz', un: 'una', el: 'La', lo: 'la', peso: 22, dif: 2.6, vida: 3, profundo: true },
+    { id: 'ancestral', nombre: 'carpa ancestral', un: 'una', el: 'La', lo: 'la', peso: 8, dif: 3.2, vida: 5, profundo: true },
   ];
+  const DONDE_PEZ = (p) => (p.profundo ? 'Estanque del Bosque profundo' : 'Gran lago y estanque del bosque');
+  function abrirAlbum() {
+    const A = S.album || {}, tengo = PECES.filter((p) => A[p.id]).length;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Colección · ${tengo} de ${PECES.length} especies</span><h2 id="modal-titulo">📖 Álbum de peces</h2></div><button type="button" class="btn" id="al-cerrar">Cerrar</button></div>
+      <p class="nota">Pesca cada especie al menos una vez para completar el álbum. Premio al completarlo: un acuario exclusivo para tu pieza y 100 de experiencia.${S.albumPremio ? ' <strong>¡Ya lo completaste!</strong>' : ''}</p>
+      <div class="album">${PECES.map((p) => `<div class="pez-card ${A[p.id] ? '' : 'falta'}"><img class="px" src="${ICONO('pez_' + p.id)}" alt=""><strong>${A[p.id] ? esc(p.nombre[0].toUpperCase() + p.nombre.slice(1)) : '???'}</strong><small>${A[p.id] ? `Pescados: ${A[p.id]}` : esc(DONDE_PEZ(p))}</small></div>`).join('')}</div>`);
+    $('al-cerrar').addEventListener('click', () => ui.cerrar());
+  }
+  function registrarPez(pez) {
+    S.album = S.album || {};
+    const nuevo = !S.album[pez.id];
+    S.album[pez.id] = (S.album[pez.id] || 0) + 1;
+    if (!S.albumPremio && PECES.every((p) => S.album[p.id])) {
+      S.albumPremio = true;
+      S.inventario.acuario = (S.inventario.acuario || 0) + 1;
+      ganarXP(100);
+      setTimeout(() => avisoGrande('¡Completaste el álbum de peces!', 'Ganaste un acuario exclusivo para tu pieza', '+100 de experiencia'), 900);
+    }
+    return nuevo;
+  }
   // La caña dura 5 pescas; al agotarse se rompe y hay que fabricar otra
   const CANA_USOS = 5;
   function usosCana() { return tiene('cana') ? (typeof S.canaUsos === 'number' ? S.canaUsos : CANA_USOS) : 0; }
@@ -1101,15 +1249,16 @@
     pintarHUD(); guardar(true);
     return rota;
   }
-  function abrirPesca() {
+  function abrirPesca(profundo = false) {
     if (!tiene('cana')) { toast('Necesitas una caña de pescar. Fabrícala en la fogata de tu base (pestaña Equipo).'); return; }
-    let total = PECES.reduce((a, p) => a + p.peso, 0), r = Math.random() * total, pez = PECES[0];
-    for (const p of PECES) { if ((r -= p.peso) < 0) { pez = p; break; } }
+    const lista = PECES.filter((p) => (profundo ? p.profundo || p.id === 'dorado' : !p.profundo));
+    let total = lista.reduce((a, p) => a + p.peso, 0), r = Math.random() * total, pez = lista[0];
+    for (const p of lista) { if ((r -= p.peso) < 0) { pez = p; break; } }
     const H = 300, R = 44, PEZ = 30;
     const st = { fase: 'espera', aro: H - R, vAro: 0, pez: H * 0.6, vPez: 0, meta: H * 0.6, cambio: 0, prog: 0.3, sube: false, t0: performance.now(), pica: 800 + Math.random() * 1800 };
     let raf = 0, ultimo = performance.now(), fin = false;
     ui.abrir(`
-      <div class="modal-cab"><div><span class="etq">Gran lago del bosque · Caña: ${usosCana()} de ${CANA_USOS} usos</span><h2 id="modal-titulo">🎣 Pescar</h2></div><button type="button" class="btn" id="pz-salir">Salir</button></div>
+      <div class="modal-cab"><div><span class="etq">${profundo ? 'Estanque del Bosque profundo' : 'Gran lago del bosque'} · Caña: ${usosCana()} de ${CANA_USOS} usos</span><h2 id="modal-titulo">🎣 Pescar</h2></div><div><button type="button" class="btn sec" id="pz-album">📖 Álbum</button> <button type="button" class="btn" id="pz-salir">Salir</button></div></div>
       <div class="pesca">
         <div class="pesca-barra" id="pz-barra" aria-label="Barra de pesca"><div class="pesca-aro" id="pz-aro"></div><img class="pesca-pez px" id="pz-pez" src="${ICONO('pez')}" alt="Pez"></div>
         <div class="pesca-captura" aria-label="Captura"><i id="pz-prog"></i></div>
@@ -1134,6 +1283,7 @@
       el.addEventListener('pointercancel', () => { st.sube = false; });
     }
     $('pz-salir').addEventListener('click', () => ui.cerrar());
+    $('pz-album').addEventListener('click', () => { if (st.fase === 'espera') { ui.cerrar(); abrirAlbum(); } });
     const pintar = () => {
       aro.style.transform = `translateY(${st.aro - R}px)`;
       pezEl.style.transform = `translateY(${st.pez - PEZ / 2}px)`;
@@ -1148,10 +1298,11 @@
       let msg, clase = 'bien';
       if (atrapado) {
         avanzarMision('pescar'); ganarXP(6 + Math.round(pez.dif * 4));
+        const nuevo = registrarPez(pez);
         if (S.vida < vidaMax() && Math.random() < 0.65) {
           const antes = S.vida; S.vida = Math.min(vidaMax(), S.vida + pez.vida); pintarHUD();
           const n = S.vida - antes;
-          msg = `¡Pescaste ${pez.un} ${pez.nombre}! Te ${pez.lo} comiste y recuperaste ${n} ${n === 1 ? 'corazón' : 'corazones'}.`;
+          msg = `¡Pescaste ${pez.un} ${pez.nombre}!${nuevo ? ' (¡nueva en tu álbum!)' : ''} Te ${pez.lo} comiste y recuperaste ${n} ${n === 1 ? 'corazón' : 'corazones'}.`;
           if (escena) escena.flotante(escena.jugador.x, escena.jugador.y - 70, `+${n} ❤`, '#ff9a9a');
         } else {
           const lista = recursosDe(escena && MUNDOS[escena.zona] ? escena.zona : 'u1');
@@ -1159,7 +1310,7 @@
           const rec = pool[Math.floor(Math.random() * pool.length)];
           const cant = (rec === 'cristal' ? 1 : 2 + Math.floor(Math.random() * 2)) + (pez.id === 'dorado' ? 2 : 0);
           sumar(rec, cant);
-          msg = `¡Pescaste algo del fondo del lago! Recolectaste ${cant} ${nombreRec(rec)}.`;
+          msg = `¡Pescaste ${pez.un} ${pez.nombre}!${nuevo ? ' (¡nueva en tu álbum!)' : ''} Junto a ${pez.lo === 'lo' ? 'él' : 'ella'} sacaste del fondo ${cant} ${nombreRec(rec)}.`;
           if (escena) escena.flotante(escena.jugador.x, escena.jugador.y - 70, `+${cant} ${nombreRec(rec)}`);
         }
         if (escena) escena.celebrar(escena.jugador.x, escena.jugador.y - 60);
@@ -1176,7 +1327,7 @@
         info.innerHTML = `<div class="mensaje ${clase}" role="status" style="font-size:18px">${esc(msg)}</div>${cana}
           <div class="acciones">${rota ? '<span></span>' : '<button type="button" class="btn sec" id="pz-otra">Pescar otra vez</button>'}<button type="button" class="btn pri" id="pz-ok" data-foco>¡Listo!</button></div>`;
         $('pz-ok').addEventListener('click', () => ui.cerrar());
-        if (!rota) $('pz-otra').addEventListener('click', () => { ui.alCerrar = null; ui.cerrar(); abrirPesca(); });
+        if (!rota) $('pz-otra').addEventListener('click', () => { ui.alCerrar = null; ui.cerrar(); abrirPesca(profundo); });
         $('pz-ok').focus();
         ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
       }
@@ -1292,6 +1443,113 @@
       else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
     };
     pintar();
+  }
+
+  // ---------- Rey Jabalí Ancestral (jefe del Bosque profundo, se enfrenta solo) ----------
+  // Fase 1: preguntas normales. Fase 2 (≤ 2/3 de vida): llama a su manada y se cubre con un escudo de raíces que
+  // hay que romper con aciertos seguidos; además cada pregunta tiene tiempo. Fase 3 (≤ 1/3): furia ancestral:
+  // preguntas difíciles, menos tiempo, cada error quita 3 corazones y el jefe recupera vida.
+  const REY = { nombre: 'Rey Jabalí Ancestral', vida: 30, premio: { resina: 10, miel: 8, cristal: 6, madera: 20 }, xp: 180 };
+  function abrirReyJabali() {
+    const sc = escena;
+    if (S.arma && S.herramienta !== 'espada') equipar('espada');
+    const J = { hp: REY.vida, max: REY.vida, fase: 1, escudo: 0, limite: 0, t0: 0 };
+    let d = null, elegida = null, fallidas = new Set(), fin = null, ultimo = '', reloj = 0;
+    const primeraVez = !S.reyVencido;
+    sc.enCombate = true;
+    if (sc.rey) { sc.rey.setTint(0xffffff); sc.rey.anims.play('jefe_u1b_down', true); sc.cameras.main.shake(400, 0.008); }
+    const nueva = () => {
+      d = Preguntas.nuevo(S.curso, 'u1', J.fase === 3 ? 3 : 2, S.stats); elegida = null; fallidas = new Set();
+      J.limite = J.fase === 1 ? 0 : J.fase === 2 ? 25000 : 18000; J.t0 = performance.now();
+    };
+    const danioRecibido = () => (J.fase === 1 ? 1 : J.fase === 2 ? 2 : 3);
+    const faseDe = () => (J.hp <= J.max / 3 ? 3 : J.hp <= (2 * J.max) / 3 ? 2 : 1);
+    const cerrar = (res) => {
+      clearInterval(reloj); sc.enCombate = false;
+      if (res === 'victoria') {
+        Object.entries(REY.premio).forEach(([r, n]) => sumar(r, n)); ganarXP(REY.xp);
+        S.reyVencido = (S.reyVencido || 0) + 1; S.reyHasta = Date.now() + 10 * 60000;
+        if (S.reyVencido === 1) { S.inventario.estatua_jabali = (S.inventario.estatua_jabali || 0) + 1; }
+        avanzarMision('rey'); guardar(true);
+        sc.celebrar(sc.rey.x, sc.rey.y - 80);
+      } else if (res === 'derrota') { S.reyHasta = Date.now() + 2 * 60000; guardar(true); }
+      if (sc.actualizarRey) sc.actualizarRey();
+      if (res === 'derrota') morir(REY.nombre);
+    };
+    const pintar = () => {
+      const pct = Math.max(0, J.hp) / J.max * 100;
+      const banner = J.fase === 2 ? '<div class="mensaje pista rey-fase">🐗 ¡Llamó a su manada! Un escudo de raíces lo protege: rómpelo con aciertos. Cada pregunta tiene tiempo.</div>'
+        : J.fase === 3 ? '<div class="mensaje mal rey-fase">🔥 ¡Furia ancestral! Preguntas difíciles, menos tiempo y cada error quita 3 corazones.</div>' : '';
+      let cuerpo;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px">¡Venciste al Rey Jabalí Ancestral! Ganas ${Object.entries(REY.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${REY.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Rey Jabalí</strong> para tu base (Decorar).' : ''} Volverá a despertar en 10 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      else if (fin === 'derrota') cuerpo = '<div class="mensaje mal" role="status">Te quedaste sin corazones. Vuelves a tu base y pierdes lo que llevabas en la mochila. El Rey Jabalí descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>';
+      else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El Rey Jabalí recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
+      else cuerpo = `${banner}${ultimo}
+          ${J.limite ? `<div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>` : ''}
+          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${alternativasHTML(d, elegida, fallidas, false)}
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+      ui.abrir(`
+        <div class="combate-cab">
+          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u1b_retrato')}" alt="" width="72" height="72">
+            <div><span class="etq" style="color: var(--coral)">Jefe del Bosque profundo · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${REY.nombre}</h2>
+              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
+              ${J.escudo > 0 ? `<span class="rey-escudo">🛡️ Escudo de raíces: ${J.escudo}</span>` : ''}</div></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
+        </div>${cuerpo}`, 'combate jefe rey');
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+      on('r-ok', atacar);
+      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
+      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
+      ui.teclas = (e) => {
+        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
+        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
+      };
+    };
+    const golpeRecibido = (motivo) => {
+      if (escudoActivo()) { vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1; ultimo = `<div class="mensaje pista" role="status">${motivo} ¡Tu escudo de cristal bloqueó el golpe!</div>`; return; }
+      const n = danioRecibido();
+      S.vida = Math.max(0, S.vida - n); sc.dolor(); pintarHUD();
+      if (J.fase === 3) J.hp = Math.min(J.max, J.hp + 2);
+      if (J.fase === 2) J.escudo = Math.min(3, J.escudo + 1);
+      ultimo = `<div class="mensaje mal" role="status">${motivo} ¡El Rey Jabalí te embistió (−${n} ${n === 1 ? 'corazón' : 'corazones'})!${J.fase === 3 ? ' Y recuperó 2 de vida.' : J.fase === 2 ? ' Su escudo de raíces creció.' : ''}</div>`;
+      if (S.vida <= 0) fin = 'derrota';
+    };
+    const atacar = () => {
+      if (fin || elegida === null) return;
+      const ok = elegida === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) {
+        ganarXP(4 + 2 * J.fase);
+        if (J.escudo > 0) { J.escudo -= 1; ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.escudo ? `El escudo de raíces resiste: le quedan ${J.escudo}.` : '¡Rompiste el escudo de raíces!'}</div>`; }
+        else {
+          J.hp -= danio();
+          sc.flotante(sc.rey.x, sc.rey.y - 120, `−${danio()}`, '#ffd27a');
+          sc.tweens.add({ targets: sc.rey, x: sc.rey.x + 5, duration: 50, yoyo: true, repeat: 2 });
+          ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
+        }
+        if (J.hp <= 0) fin = 'victoria';
+      } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
+      if (!fin) {
+        const f = faseDe();
+        if (f > J.fase) {
+          J.fase = f; sc.cameras.main.shake(500, 0.01); sc.cameras.main.flash(300, f === 3 ? 230 : 120, f === 3 ? 80 : 160, 60);
+          if (f === 2) { J.escudo = 3; for (let i = 0; i < 2; i++) sc.soltarBichoJunto(); }
+          if (f === 3) sc.rey.setTint(0xff9a7a);
+        }
+        nueva();
+      }
+      pintar();
+    };
+    nueva();
+    pintar();
+    reloj = setInterval(() => {
+      if (fin || !J.limite) return;
+      const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
+      if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
+      if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
+    }, 200);
   }
 
   // ---------- Jefe final cooperativo ----------
@@ -1431,14 +1689,14 @@
     const cats = [...new Set(items.map((o) => o.cat))];
     return cats.map((cat) => `<h3 class="cat">${esc(cat)}</h3><div class="catalogo">${items.filter((o) => o.cat === cat).map((o) => {
       const n = S.inventario[o.id] || 0;
-      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : 'Premio al subir de nivel'}</span>`
+      const der = o.excl ? `<span class="nota">${cuantos(o.id) ? `Tienes ${cuantos(o.id)}` : o.trofeo ? 'Premio por vencer al Rey Jabalí Ancestral' : o.album ? 'Premio por completar el álbum de peces' : 'Premio al subir de nivel'}</span>`
         : `<div class="costo">${costoHTML(o.costo)}</div><button type="button" class="btn pri chico" data-o="${o.id}" ${alcanza(o.costo) ? '' : 'disabled'}>Fabricar</button>`;
       return `<div class="item ${o.excl ? 'excl' : ''}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><strong>${esc(o.nombre)}</strong><small>${n ? `${n} sin colocar` : ' '}</small>${der}</div>`;
     }).join('')}</div>`).join('');
   }
   // Recursos recolectados (cofre + mochila): se muestran al fabricar
   function recursosFabricarHTML() {
-    const lista = RECURSOS.filter((r) => r.grupo === 'u1' || recursosVisibles().includes(r) || (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0);
+    const lista = RECURSOS.filter((r) => r.grupo === 'u1' || r.grupo === 'u1p' || recursosVisibles().includes(r) || (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0);
     return `<section class="mis-recursos" aria-label="Tus recursos"><span class="etq">${esDocente() ? 'Tus recursos · docente: ilimitados' : 'Tus recursos recolectados'}</span>
       <div class="lista">${lista.map((r) => `<div class="recurso-fab" title="${esc(r.nombre)}"><img class="px" src="${ICONO(r.id)}" alt=""><span><small>${esc(r.corto || r.nombre)}</small><b>${esDocente() ? '∞' : (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0)}</b></span></div>`).join('')}</div></section>`;
   }
@@ -1617,7 +1875,8 @@
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
-        <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></div>`);
+        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
+    $('m-album').addEventListener('click', () => { ui.cerrar(); abrirAlbum(); });
     $('m-cerrar').addEventListener('click', () => ui.cerrar());
     $('m-salir').addEventListener('click', async () => {
       guardar(true); await subir();
@@ -2232,6 +2491,7 @@
   const DIRS = { up: 0, left: 1, down: 2, right: 3 };
   // Tamaño de los mundos (en casillas): portal a la izquierda y caminos en cruz
   const MAPA_W = 72, MAPA_H = 50, CENTRO_X = 36, PORTAL_Y = 24;
+  const RIO_ANCHO = 3, PROFUNDO_W = 26;   // el bosque (Unidad 1) tiene un río y, al otro lado, el Bosque profundo
   const PASTO = [fr(5, 0), fr(5, 1), fr(7, 0), fr(8, 0)];
   const CAMINO = fr(6, 0);
 
@@ -2255,6 +2515,8 @@
       if (!this.textures.exists('kenney_nieve')) this.load.image('kenney_nieve', 'assets/kenney_nieve.png');
       if (!this.textures.exists('kenney_prisma')) this.load.image('kenney_prisma', 'assets/kenney_prisma.png');
       if (!this.textures.exists('kenney_luz')) this.load.image('kenney_luz', 'assets/kenney_luz.png');
+      if (!this.textures.exists('kenney_profundo')) this.load.image('kenney_profundo', 'assets/kenney_profundo.png');
+      if (!this.textures.exists('jefe_u1b_hoja')) this.load.spritesheet('jefe_u1b_hoja', 'assets/enemigos/jefe_u1b.png', { frameWidth: 64, frameHeight: 64 });
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
       for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
@@ -2307,6 +2569,7 @@
       latir();
       if (MUNDOS[this.zona]) this.actualizarSello();
       this.des = { objs: [], items: [] };
+      if (this.rio) cargarObra();
       if (vivo.fase === 'activo') montarDesafio(this);
       if (this.zona === 'pieza' && !(S.pieza || []).length) setTimeout(() => toast('¡Esta es tu pieza! Fabrica muebles con B (pestaña Muebles) y colócalos con G.'), 700);
       revisarPendientes();
@@ -2347,12 +2610,15 @@
       for (const o of OBJETOS) {
         const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
         if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz' }[o.h] || 'kenney');
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz', f: 'kenney_profundo' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       this.crearTexturasDesierto();
       this.crearTexturasCueva();
       this.crearTexturasHielo();
+      // Bosque profundo (hoja propia)
+      const PF = { arbol_gigante: [0, 0, 2, 4], colmena: [2, 0, 1, 1], colmena_vacia: [3, 0, 1, 1], arana: [4, 0, 1, 1], raiz_viva: [5, 0, 1, 1], tocon_raiz: [6, 0, 1, 1], altar: [7, 0, 1, 1], helecho: [8, 0, 1, 1], columna_musgo: [9, 0, 1, 2], columna_rota_musgo: [10, 0, 1, 2], tronco_gigante: [11, 0, 2, 2] };
+      for (const [k, [c, r, w, h]] of Object.entries(PF)) { const partes = []; for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]); this.tex(k, w, h, partes, 'kenney_profundo'); }
       // Arbusto vivo: el mismo arbusto con ojos y boca
       if (!this.textures.exists('arbusto_vivo')) {
         const src = this.textures.get('kenney').getSourceImage();
@@ -2428,7 +2694,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -2531,7 +2797,7 @@
       const w = 15, h = 9;
       let L = null;
       for (let t = 0; t < 300 && !L; t++) {
-        const lx = 18 + Math.floor(this.rnd() * (this.ancho - w - 22)), ly = 4 + Math.floor(this.rnd() * (this.alto - h - 10));
+        const lx = 18 + Math.floor(this.rnd() * ((this.anchoUtil || this.ancho) - w - 22)), ly = 4 + Math.floor(this.rnd() * (this.alto - h - 10));
         if (lx <= CENTRO_X && lx + w >= CENTRO_X) continue;
         if (ly <= PORTAL_Y + 3 && ly + h + 3 >= PORTAL_Y) continue;
         let ok = true;
@@ -2539,7 +2805,11 @@
         if (ok) L = { lx, ly, w, h };
       }
       if (!L) L = { lx: CENTRO_X + 6, ly: 4, w, h };
-      const { lx, ly } = L, dx = lx + Math.floor(w / 2), dTop = ly + h - 5;   // el muelle entra 5 casillas al agua desde la orilla de abajo
+      this.lagoMuelle(data, L, 5, false);
+    }
+    // Lago que no se puede cruzar, con un muelle que entra "largo" casillas al agua desde la orilla de abajo
+    lagoMuelle(data, L, largo, profundo) {
+      const { lx, ly, w, h } = L, dx = lx + Math.floor(w / 2), dTop = ly + h - largo;
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const tx = x === 0 ? 0 : x === w - 1 ? 2 : 1, ty = y === 0 ? 0 : y === h - 1 ? 2 : 1;
         data[ly + y][lx + x] = fr(2 + tx, ty);
@@ -2552,20 +2822,23 @@
       for (let y = ly - 1; y <= ly + h; y++) for (let x = lx - 1; x <= lx + w; x++) this.marcar(x, y);
       for (let y = ly + h; y <= ly + h + 2; y++) for (let x = dx - 1; x <= dx + 1; x++) this.marcar(x, y);   // acceso libre al muelle
       this.lagos.push({ x: lx * TILE, y: ly * TILE, w: w * TILE, h: h * TILE });
-      this.granLago = { ...L, dx, dTop };
+      const m = { ...L, dx, dTop, profundo };
+      (this.muelles = this.muelles || []).push(m);
+      if (!profundo) this.granLago = m;
+      return m;
     }
-    decorarGranLago() {
-      const { lx, ly, w, h, dx, dTop } = this.granLago;
+    decorarGranLago(m) {
+      const { lx, ly, w, h, dx, dTop, profundo } = m;
       for (let y = dTop; y < ly + h + 1; y++) this.add.image(dx * TILE + 16, y * TILE + 16, 'muelle').setScale(2).setDepth(-6);
       for (const [px, py] of [[dx * TILE + 3, dTop * TILE + 6], [(dx + 1) * TILE - 3, dTop * TILE + 6], [dx * TILE + 3, (dTop + 3) * TILE], [(dx + 1) * TILE - 3, (dTop + 3) * TILE]]) this.add.image(px, py + 14, 'poste').setScale(2).setDepth(py);
       // nenúfares sobre el agua (decorativos)
-      for (let i = 0; i < 16; i++) {
+      for (let i = 0; i < (profundo ? 7 : 16); i++) {
         const x = lx + 1 + Math.floor(this.rnd() * (w - 2)), y = ly + 1 + Math.floor(this.rnd() * (h - 2));
         if (Math.abs(x - dx) < 2) continue;
         this.add.image(x * TILE + 16, y * TILE + 16, this.rnd() < 0.3 ? 'nenufar_flor' : 'nenufar').setScale(2).setDepth(-7).setFlipX(this.rnd() < 0.5);
       }
       // juncos en la orilla, un letrero y un barril junto al muelle
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < (profundo ? 8 : 14); i++) {
         const lado = Math.floor(this.rnd() * 4);
         const x = lado < 2 ? lx + Math.floor(this.rnd() * w) : lado === 2 ? lx - 1 : lx + w;
         const y = lado === 0 ? ly - 1 : lado === 1 ? ly + h : ly + Math.floor(this.rnd() * h);
@@ -2574,14 +2847,186 @@
       }
       const le = this.sprite('letrero', dx - 1, ly + h); this.solido(le.x, le.y - 8, 18, 10);
       const ba = this.sprite('barril', dx + 1, ly + h); this.solido(ba.x, ba.y - 8, 18, 10);
-      this.add.text(le.x, le.y - 44, 'Muelle', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffe9b8', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(le.y + 1);
-      this.objetos.push({ tipo: 'muelle', x: dx * TILE + 16, y: dTop * TILE + 20, activo: true });
+      this.add.text(le.x, le.y - 44, profundo ? 'Estanque' : 'Muelle', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffe9b8', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(le.y + 1);
+      this.objetos.push({ tipo: 'muelle', x: dx * TILE + 16, y: dTop * TILE + 20, activo: true, profundo });
       // de vez en cuando salta un pez
       this.time.addEvent({ delay: 3500, loop: true, callback: () => {
         const x = (lx + 1 + Math.random() * (w - 2)) * TILE, y = (ly + 1 + Math.random() * (h - 2)) * TILE;
         if (Math.abs(x - (dx * TILE + 16)) < 40) return;
         this.add.particles(x, y, 'p_agua', { speed: { min: 30, max: 90 }, angle: { min: 200, max: 340 }, gravityY: 220, lifespan: 600, scale: { start: 1.3, end: 0 }, emitting: false }).setDepth(-5).explode(12);
       } });
+    }
+    // ---------- río, puente cooperativo y Bosque profundo (Unidad 1) ----------
+    planearProfundo(data, P) {
+      const RX = MAPA_W - 1, by = P.y + 2;   // el río ocupa RX..RX+2; el puente cruza en las filas by y by+1
+      this.rio = { RX, by };
+      for (let y = 2; y < this.alto - 2; y++) for (let k = 0; k < RIO_ANCHO; k++) data[y][RX + k] = fr(2 + k, y === 2 ? 0 : y === this.alto - 3 ? 2 : 1);
+      // agua sólida arriba y abajo del puente; el tramo del puente es sólido hasta que se termine
+      const x0 = RX * TILE + 6, x1 = (RX + RIO_ANCHO) * TILE - 6;
+      const Z = (y0, y1) => { const z = this.add.zone((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0); this.obstaculos.add(z); const a = { x0, y0, x1, y1 }; this.aguas.push(a); return { z, a }; };
+      Z(2 * TILE, by * TILE);
+      Z((by + 2) * TILE, (this.alto - 2) * TILE);
+      this.tramoPuente = Z(by * TILE, (by + 2) * TILE);
+      this.lagos.push({ x: RX * TILE, y: 2 * TILE, w: RIO_ANCHO * TILE, h: (this.alto - 4) * TILE });
+      // el Bosque profundo queda reservado hasta poblarlo al final
+      for (let y = 0; y < this.alto; y++) for (let x = RX - 1; x < this.ancho; x++) this.marcar(x, y);
+      // santuario del Rey Jabalí y estanque profundo (posiciones fijas)
+      const SX = this.ancho - 12, SY = P.y - 9;
+      this.santuario = { x: SX, y: SY };
+      for (let y = SY + 2; y <= by; y++) data[y][SX] = CAMINO;
+      this.estanque = { lx: RX + 7, ly: this.alto - 16, w: 10, h: 6 };
+    }
+    decorarRio() {
+      const { RX, by } = this.rio;
+      // obra del puente en la orilla oeste
+      const ox = RX - 2, oy = by;
+      const le = this.sprite('letrero', ox, oy - 1); this.solido(le.x, le.y - 8, 18, 10);
+      const ma = this.sprite('lena', ox - 1, oy + 2); const pi = this.sprite('roca2', ox, oy + 2); this.sprite('barril', ox - 1, oy - 1);
+      this.solido(ma.x, ma.y - 8, 18, 10); this.solido(pi.x, pi.y - 8, 18, 10);
+      this.obraTag = this.add.text(le.x, le.y - 50, 'Puente en construcción', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffe9b8', stroke: '#2a1a0c', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.objObra = { tipo: 'obra', x: (RX - 1) * TILE + 8, y: (by + 1) * TILE, activo: true };
+      this.objetos.push(this.objObra);
+      for (const yy of [by, by + 2]) this.add.image(RX * TILE + 2, yy * TILE + 4, 'poste').setScale(2).setDepth(yy * TILE);
+      this.puenteSpr = [];
+      this.actualizarPuente();
+    }
+    // Dibuja el avance del puente: tablas parciales mientras se construye, completo y transitable al terminar
+    actualizarPuente(celebrar = false) {
+      if (!this.rio || !this.puenteSpr) return;
+      const { RX, by } = this.rio, o = obraPuente;
+      const metaT = o && o.meta ? Object.values(o.meta).reduce((a, b) => a + b, 0) : 1;
+      const hecho = o && o.aportes ? Object.entries(o.meta || {}).reduce((a, [k, n]) => a + Math.min(n, o.aportes[k] || 0), 0) : 0;
+      const listo = Boolean(o && o.completado);
+      const pct = listo ? 100 : Math.floor((hecho / metaT) * 100);
+      this.puenteSpr.forEach((sp) => sp.destroy()); this.puenteSpr = [];
+      const tablas = listo ? RIO_ANCHO * 2 : Math.floor((pct / 100) * RIO_ANCHO * 2 * 0.99);
+      let n = 0;
+      for (let k = 0; k < RIO_ANCHO; k++) for (const yy of [by, by + 1]) {
+        if (n++ >= tablas) continue;
+        this.puenteSpr.push(this.add.image((RX + k) * TILE + 16, yy * TILE + 16, 'muelle').setScale(2).setAngle(90).setDepth(-6));
+      }
+      if (listo) for (const yy of [by, by + 2]) for (const xx of [RX + RIO_ANCHO]) this.puenteSpr.push(this.add.image(xx * TILE - 2, yy * TILE + 4, 'poste').setScale(2).setDepth(yy * TILE));
+      if (listo && this.tramoPuente) {
+        this.obstaculos.remove(this.tramoPuente.z, true, true);
+        this.aguas = this.aguas.filter((a) => a !== this.tramoPuente.a);
+        this.tramoPuente = null;
+        if (celebrar) {
+          this.cameras.main.shake(500, 0.006); this.celebrar(RX * TILE + 48, by * TILE);
+          avisoGrande('¡El puente está terminado!', 'Ya pueden cruzar al Bosque profundo', 'Gracias a los aportes de todo el nivel');
+        }
+      }
+      if (this.obraTag) this.obraTag.setText(listo ? 'Puente al Bosque profundo' : `Puente en construcción\n${pct} % · E para aportar`);
+      if (this.objObra) this.objObra.listo = listo;
+    }
+    crearBosqueProfundo(M) {
+      const { RX, by } = this.rio, X0 = RX + RIO_ANCHO + 1, X1 = this.ancho - 3;
+      for (const k of [...this.ocupado]) { const x = Number(k.split(',')[0]); if (x >= X0) this.ocupado.delete(k); }
+      for (let x = X0; x <= X1; x++) { this.marcar(x, by); this.marcar(x, by + 1); }
+      for (let y = this.santuario.y; y <= by; y++) { this.marcar(this.santuario.x, y); this.marcar(this.santuario.x, y + 1); }
+      // sombra del bosque espeso y luciérnagas que flotan
+      this.add.rectangle((RX + RIO_ANCHO) * TILE, 0, (this.ancho - RX - RIO_ANCHO) * TILE, this.alto * TILE, 0x0a1c22, 0.36).setOrigin(0).setDepth(9400);
+      this.add.particles(0, 0, 'p_brillo', { x: { min: X0 * TILE, max: X1 * TILE }, y: { min: 2 * TILE, max: (this.alto - 3) * TILE }, lifespan: 4000, frequency: 260, speedX: { min: -10, max: 10 }, speedY: { min: -12, max: 4 }, scale: { start: 0.9, end: 0 }, alpha: { start: 0.9, end: 0 } }).setDepth(9401);
+      const lugarP = (alto = 1, ancho = 1) => {
+        for (let i = 0; i < 300; i++) {
+          const x = X0 + Math.floor(this.rnd() * (X1 - X0)), y = 3 + Math.floor(this.rnd() * (this.alto - 6));
+          let ok = true;
+          for (let dy = 0; dy < alto && ok; dy++) for (let dx = 0; dx < ancho && ok; dx++) if (!this.libre(x + dx, y - dy)) ok = false;
+          if (ok) return [x, y];
+        }
+        return null;
+      };
+      const reservar = (x, y) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 2; dx++) this.marcar(x + dx, y + dy); };
+      // santuario: círculo de columnas con musgo, altar y el Rey Jabalí dormido
+      const { x: SX, y: SY } = this.santuario;
+      for (let y = SY - 5; y <= SY + 3; y++) for (let x = SX - 5; x <= SX + 5; x++) this.marcar(x, y);
+      for (const [dx, dy, k] of [[-3, -2, 'columna_musgo'], [3, -2, 'columna_musgo'], [-4, 1, 'columna_rota_musgo'], [4, 1, 'columna_musgo'], [-2, -4, 'columna_rota_musgo'], [2, -4, 'columna_musgo']]) {
+        const c = this.sprite(k, SX + dx, SY + dy); this.solido(c.x, c.y - 10, 20, 14);
+      }
+      const al = this.sprite('altar', SX, SY + 1); this.solido(al.x, al.y - 8, 22, 12);
+      const cx = SX * TILE + 16, cy = (SY - 1) * TILE + 30;
+      this.rey = this.add.sprite(cx, cy, 'jefe_u1b_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.3).setDepth(cy).setTint(0x8a8a8a);
+      this.solido(cx, cy - 16, 50, 26);
+      this.reyTag = this.add.text(cx, cy - 136, 'Rey Jabalí Ancestral\n(dormido · sellado)', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.sello = this.add.particles(cx, cy - 30, 'p_morado', { x: { min: -60, max: 60 }, y: { min: -40, max: 30 }, lifespan: 1400, frequency: 90, speedY: { min: -20, max: -6 }, scale: { start: 1.2, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(9999);
+      this.tweens.add({ targets: this.rey, scaleY: 2.36, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.objetos.push({ tipo: 'santuario', x: cx, y: cy + 6, activo: true });
+      this.actualizarRey();
+      const E = this.estanque;
+      for (let y = E.ly - 2; y <= E.ly + E.h + 3; y++) for (let x = E.lx - 2; x <= E.lx + E.w + 1; x++) this.marcar(x, y);
+      // enemigos del bosque profundo (antes que la vegetación, para que tengan espacio)
+      for (let i = 0; i < 9; i++) {
+        const p = lugarP(1); if (!p) break;
+        const sp = this.add.image(p[0] * TILE + 16, (p[1] + 1) * TILE, 'arana').setOrigin(0.5, 1).setScale(2);
+        sp.setDepth(sp.y);
+        this.enemigos.push(this.nuevoEnemigo('arana', sp, { despierto: true, k: `p${i}` }));
+      }
+      for (let i = 0; i < 8; i++) {
+        const p = lugarP(1); if (!p) break;
+        const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'tocon_raiz').setOrigin(0.5, 1).setScale(2);
+        sp.setDepth(sp.y);
+        this.marcar(p[0], p[1]);
+        this.enemigos.push(this.nuevoEnemigo('raiz', sp, { despierto: false, k: `x${i}` }));
+      }
+      // árboles gigantes (resina, con hacha de hierro), colmenas (miel, con ahumador) y árboles oscuros
+      for (let i = 0; i < 18; i++) {
+        const p = lugarP(4, 2); if (!p) break;
+        const sp = this.sprite('arbol_gigante', p[0], p[1], 0.25);
+        const z = this.solido(sp.x + 16, sp.y - 14, 34, 18);
+        reservar(p[0], p[1]);
+        for (let dy = 1; dy <= 3; dy++) { this.marcar(p[0], p[1] - dy); this.marcar(p[0] + 1, p[1] - dy); }
+        this.objetos.push({ tipo: 'arbol', key: 'arbol_gigante', nombre: 'árbol gigante', rec: 'resina', req: 'hacha2', texTocon: 'tronco_gigante', texBrote: 'tronco_gigante', s: sp, z, x: sp.x + 16, y: sp.y - 8, estado: 'arbol', activo: true, bicho: false });
+      }
+      for (let i = 0; i < 14; i++) {
+        const p = lugarP(1); if (!p) break;
+        const sp = this.sprite('colmena', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 8, 20, 12);
+        reservar(p[0], p[1]);
+        this.add.particles(sp.x, sp.y - 22, 'p_brillo', { x: { min: -12, max: 12 }, y: { min: -10, max: 6 }, lifespan: 700, frequency: 260, speedX: { min: -30, max: 30 }, speedY: { min: -20, max: 20 }, scale: { start: 0.6, end: 0.2 }, tint: 0x302010 }).setDepth(sp.y + 1);
+        this.objetos.push({ tipo: 'arbol', key: 'colmena', nombre: 'colmena', rec: 'miel', req: 'ahumador', texTocon: 'colmena_vacia', texBrote: 'colmena_vacia', s: sp, z, x: sp.x, y: sp.y - 6, estado: 'arbol', activo: true, bicho: false });
+      }
+      for (let i = 0; i < 45; i++) {
+        const key = this.rnd() < 0.6 ? 'arbol_pino' : 'arbol_redondo';
+        const p = lugarP(2); if (!p) break;
+        const sp = this.sprite(key, p[0], p[1]).setTint(0x6f9a72);
+        const z = this.solido(sp.x, sp.y - 10, 18, 12);
+        reservar(p[0], p[1]);
+        this.objetos.push({ tipo: 'arbol', key, nombre: key === 'arbol_pino' ? 'pino' : 'roble', s: sp, z, x: sp.x, y: sp.y - 6, estado: 'arbol', activo: true, bicho: this.rnd() < 0.15 });
+      }
+      for (let i = 0; i < 8; i++) {
+        const p = lugarP(1); if (!p) break;
+        const sp = this.sprite('cofre', p[0], p[1]);
+        const z = this.solido(sp.x, sp.y - 10, 26, 14);
+        reservar(p[0], p[1]);
+        const conVida = i % 2 === 0;
+        let corazon = null;
+        if (conVida) { corazon = this.add.image(sp.x, sp.y - 44, 'corazon').setScale(2).setDepth(9999); this.tweens.add({ targets: corazon, y: sp.y - 50, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' }); }
+        this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
+      }
+      for (let r = 0; r < 4; r++) {
+        const p = lugarP(2); if (!p) break;
+        for (let k = 0; k < 5; k++) {
+          const x = p[0] - 2 + Math.floor(this.rnd() * 5), y = p[1] - 1 + Math.floor(this.rnd() * 3);
+          if (!this.libre(x, y) || !this.libre(x, y - 1)) continue;
+          const sp = this.sprite(this.rnd() < 0.5 ? 'columna_musgo' : 'columna_rota_musgo', x, y);
+          this.solido(sp.x, sp.y - 10, 20, 14); this.marcar(x, y); this.marcar(x, y - 1);
+        }
+      }
+      for (let i = 0; i < 60; i++) {
+        const p = lugarP(1); if (!p) break;
+        const k = this.rnd() < 0.7 ? 'helecho' : 'roca_musgo1';
+        const sp = this.sprite(k, p[0], p[1]);
+        if (k === 'helecho') sp.setDepth(-5); else { this.solido(sp.x, sp.y - 8, 18, 10); this.marcar(p[0], p[1]); }
+      }
+    }
+    // Rey Jabalí: dormido y sellado (sin amuleto), despierto (listo para luchar) o descansando tras una batalla
+    actualizarRey() {
+      if (!this.rey) return;
+      const descansa = (S.reyHasta || 0) > Date.now(), abierto = tiene('amuleto');
+      const despierto = abierto && !descansa;
+      this.rey.setTint(despierto ? 0xffffff : 0x8a8a8a);
+      if (despierto) this.rey.anims.play('jefe_u1b_down', true); else { this.rey.anims.stop(); this.rey.setFrame(DIRS.down * 9); }
+      this.sello.emitting = !abierto;
+      this.reyTag.setText(`Rey Jabalí Ancestral\n(${!abierto ? 'sellado: necesitas el amuleto ancestral' : descansa ? `descansa: vuelve en ${Math.ceil(((S.reyHasta || 0) - Date.now()) / 60000)} min` : '¡despierto! E para desafiarlo'})`);
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
@@ -2694,7 +3139,7 @@
       if (o.brillo) {
         // los objetos de luciérnagas brillan y sueltan chispitas
         const by = (c.y + 1) * TILE - h * 16;
-        const halo = this.add.image(cx, by, 'luz').setScale(0.36 + 0.12 * Math.max(w, h)).setTint(0xd8ff7a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.24).setDepth(o.piso ? -4 : s.depth + 1);
+        const halo = this.add.image(cx, by, 'luz').setScale(0.36 + 0.12 * Math.max(w, h)).setTint(typeof o.brillo === 'number' ? o.brillo : 0xd8ff7a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.24).setDepth(o.piso ? -4 : s.depth + 1);
         this.tweens.add({ targets: halo, alpha: 0.16, duration: 900 + Math.random() * 600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
         const chispas = this.add.particles(cx, by, 'p_brillo', { x: { min: -w * 12, max: w * 12 }, y: { min: -h * 10, max: h * 10 }, lifespan: 1300, frequency: 520, speedY: { min: -14, max: -4 }, speedX: { min: -8, max: 8 }, scale: { start: 0.9, end: 0 }, alpha: { start: 1, end: 0 } }).setDepth(s.depth + 2);
         extra = [halo, chispas];
@@ -2759,7 +3204,8 @@
       if (M.tipo === 'desierto') return this.crearDesierto(M);
       if (M.tipo === 'cueva') return this.crearCueva(M);
       if (M.tipo === 'hielo') return this.crearHielo(M);
-      this.ancho = MAPA_W; this.alto = MAPA_H;
+      this.ancho = MAPA_W + (M.profundo ? RIO_ANCHO + PROFUNDO_W : 0); this.alto = MAPA_H;
+      this.anchoUtil = M.profundo ? MAPA_W - 1 : 0;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       // suelo: el primero es la base y los demás se pintan en manchas redondeadas
       const data = [];
@@ -2782,8 +3228,10 @@
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      if (M.profundo) this.planearProfundo(data, P);
       this.prepararLugaresJefe(P);
       if (M.granLago) this.prepararGranLago(data);
+      if (M.profundo) this.lagoMuelle(data, this.estanque, 4, true);
       for (let i = 0; i < M.lagos; i++) {
         const w = 5 + Math.floor(this.rnd() * 5), h = 4 + Math.floor(this.rnd() * 3);
         for (let t = 0; t < 60; t++) {
@@ -2795,7 +3243,8 @@
       }
       this.suelo(data);
       if (M.tinte) this.add.rectangle(0, 0, this.ancho * TILE, this.alto * TILE, M.tinte[0], M.tinte[1]).setOrigin(0).setDepth(-9);
-      if (this.granLago) this.decorarGranLago();
+      (this.muelles || []).forEach((m) => this.decorarGranLago(m));
+      if (M.profundo) this.decorarRio();
       this.bordes();
       this.portal(P.x, P.y);
       this.crearGuarida();
@@ -2870,6 +3319,7 @@
         this.sprite(deco, p[0], p[1]).setDepth(deco.startsWith('flor') ? -5 : (p[1] + 1) * TILE);
         this.marcar(p[0], p[1]);
       }
+      if (M.profundo) this.crearBosqueProfundo(M);
       this.objetos.forEach((o, i) => { o.idx = i; });
       // Enemigos: arbustos vivos escondidos y nieblas
       for (let i = 0; i < M.arbustos; i++) {
@@ -3434,7 +3884,7 @@
     // Claros repartidos por el mapa donde puede aparecer el jefe (los mismos para todo el grupo)
     prepararLugaresJefe(P) {
       this.lugaresJefe = [];
-      const cols = 4, filas = 2, cw = (this.ancho - 8) / cols, ch = (this.alto - 10) / filas;
+      const cols = 4, filas = 2, cw = ((this.anchoUtil || this.ancho) - 8) / cols, ch = (this.alto - 10) / filas;
       for (let fy = 0; fy < filas; fy++) for (let fx = 0; fx < cols; fx++) {
         for (let t = 0; t < 120; t++) {
           const x = Math.floor(4 + fx * cw + 2 + this.rnd() * (cw - 4)), y = Math.floor(6 + fy * ch + 2 + this.rnd() * (ch - 4));
@@ -3715,7 +4165,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'jefe' || o.tipo === 'santuario' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle', 'obra'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -3736,6 +4186,8 @@
           if (o.rec === 'fibra') return o.estado === 'arbol' ? 'Cortar cactus' : 'Cactus pequeño: está creciendo';
           if (o.rec === 'hongo') return o.estado === 'arbol' ? 'Recolectar hongos' : 'Hongos pequeños: están creciendo';
           if (o.rec === 'baya') return o.estado === 'arbol' ? 'Recolectar bayas' : 'Arbusto sin bayas: volverán a crecer';
+          if (o.rec === 'resina') return o.estado !== 'arbol' ? 'Tocón ancestral: el árbol volverá a crecer' : tiene('hacha2') ? 'Sacar resina del árbol gigante' : 'Árbol gigante: necesitas el hacha de hierro';
+          if (o.rec === 'miel') return o.estado !== 'arbol' ? 'Colmena vacía: las abejas están haciendo más miel' : tiene('ahumador') ? 'Recolectar miel' : 'Colmena: necesitas un ahumador';
           return o.estado === 'arbol' ? `Talar ${o.nombre}` : o.estado === 'tocon' ? 'Tocón: volverá a crecer' : 'Brote: está creciendo';
         case 'roca':
           if (o.req && !tiene(o.req)) return `${o.nombre}: necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}`;
@@ -3747,6 +4199,8 @@
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
+        case 'obra': return o.listo ? null : 'Ver y aportar al puente';
+        case 'santuario': return !tiene('amuleto') ? 'Santuario sellado: necesitas el amuleto ancestral' : (S.reyHasta || 0) > Date.now() ? 'El Rey Jabalí descansa' : '¡Desafiar al Rey Jabalí Ancestral!';
         case 'muelle': return tiene('cana') ? `Pescar (caña: ${usosCana()} de ${CANA_USOS} usos)` : 'Muelle: necesitas una caña de pescar';
         case 'colocado': return o.carpa ? 'Entrar a tu pieza (R: guardar la carpa)' : `Guardar ${o.nombre.toLowerCase()}`;
         case 'puerta': return 'Salir a tu base';
@@ -3767,10 +4221,27 @@
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
+      if (o.tipo === 'obra') return o.listo ? null : abrirObra();
+      if (o.tipo === 'santuario') {
+        if (!tiene('amuleto')) return toast('El santuario está sellado. Fabrica el amuleto ancestral (resina y miel) en la fogata de tu base.', 'alerta');
+        if ((S.reyHasta || 0) > Date.now()) return toast(`El Rey Jabalí Ancestral descansa. Vuelve en ${Math.ceil((S.reyHasta - Date.now()) / 60000)} min.`);
+        return abrirReyJabali();
+      }
+      if (o.tipo === 'arbol' && (o.rec === 'resina' || o.rec === 'miel')) {
+        if (o.estado !== 'arbol') return toast(o.rec === 'miel' ? 'Esta colmena está vacía: vuelve más tarde.' : 'Este árbol gigante todavía está creciendo.');
+        if (!tiene(o.req)) return toast(o.rec === 'miel' ? 'Las abejas no te dejan acercarte: fabrica un ahumador en tu base.' : 'La corteza es muy dura: necesitas el hacha de hierro.', 'alerta');
+        if (o.rec === 'resina') equipar('hacha');
+        const dif = difPara(2), cant = o.rec === 'resina' ? 2 + (tiene('hacha3') ? 2 : 0) : 2 + (dif > 2 ? 1 : 0);
+        return abrirDesafio({ accion: o.rec === 'resina' ? 'Sacar resina del árbol gigante' : 'Recolectar miel', dif, premio: `Premio: ${cant} ${o.rec}${o.rec === 'resina' ? ' + 2 madera' : ''}`, onOk: () => {
+          this.golpe(o, o.rec, cant);
+          if (o.rec === 'resina') { sumar('madera', 2); this.time.delayedCall(350, () => this.flotante(o.x, o.y - 58, '+2 madera')); }
+          avanzarMision(o.rec === 'resina' ? 'resina' : 'colmena');
+        } });
+      }
       if (o.tipo === 'muelle') {
         if (!tiene('cana')) return toast('Necesitas una caña de pescar. Fabrícala en la fogata de tu base (pestaña Equipo).');
         this.dir = 'up';
-        return abrirPesca();
+        return abrirPesca(Boolean(o.profundo));
       }
       if (o.tipo === 'colocado') return o.carpa ? this.entrarPieza(o) : this.quitar(o);
       if (o.tipo === 'puerta') return this.salirPieza();
@@ -3801,7 +4272,7 @@
       if (o.tipo === 'arbol') {
         if (o.estado !== 'arbol') return toast('Este árbol todavía está creciendo.');
         equipar('hacha');
-        const dif = difPara(1), cant = 2 + (tiene('hacha2') ? 2 : 0) + dif - 1;
+        const dif = difPara(1), cant = 2 + (tiene('hacha2') ? 2 : 0) + (tiene('hacha3') ? 1 : 0) + dif - 1;
         return abrirDesafio({ accion: `Talar ${o.nombre}`, dif, premio: `Premio: ${cant} madera`, onOk: () => this.golpe(o, 'madera', cant) });
       }
       if (o.tipo === 'roca') {
@@ -3830,7 +4301,7 @@
       this.mirarA(o);
       const j = this.jugador;
       this.tweens.add({ targets: j, y: j.y - 3, duration: 80, yoyo: true, repeat: 1 });
-      const px = { madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua' }[recurso];
+      const px = { resina: 'p_cobre', miel: 'p_brillo', madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua' }[recurso];
       this.add.particles(o.x, o.y - 14, px, { speed: { min: 60, max: 150 }, angle: { min: 200, max: 340 }, gravityY: 320, lifespan: 600, scale: { start: 1.4, end: 0.4 }, emitting: false }).setDepth(o.y + 50).explode(16);
       if (o.s) this.tweens.add({ targets: o.s, x: o.s.x + 3, duration: 50, yoyo: true, repeat: 3 });
       sumar(recurso, cant);
@@ -3909,6 +4380,7 @@
       c.on('jefe', (d) => this.recibirJefe(d));
       c.on('jefe_lugar', (d) => this.fijarLugarJefe(d, false));
       c.on('prisma_prog', (d) => recibirPrismaProg(d));
+      c.on('obra', () => cargarObra());
       c.on('prisma_fin', (d) => recibirPrismaFin(d));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
@@ -4196,6 +4668,13 @@
       this.enemigos.push(e);
       this.add.particles(x, y - 16, 'p_morado', { speed: { min: 40, max: 130 }, lifespan: 500, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(18);
       return e;
+    }
+    // La manada del Rey Jabalí: jabalíes que salen junto al santuario
+    soltarBichoJunto() {
+      if (!this.rey) return;
+      const a = Math.random() * Math.PI * 2;
+      const e = this.crearBichoDesafio('bicho', this.rey.x + Math.cos(a) * 110, this.rey.y + 60 + Math.sin(a) * 50, { vida: 2 });
+      this.flotante(e.s.x, e.s.y - 50, '¡La manada!', '#ffb4a3');
     }
     soltarHorda(n, refuerzo = false) {
       const clases = { base: ['niebla', 'bicho', 'arbusto'], pieza: ['bicho', 'arbusto'], u1: ['niebla', 'bicho', 'arbusto'], u2: ['esqueleto', 'remolino', 'escorpion'], u3: ['murcielago', 'minero', 'golem'], u4: ['lobo_nieve', 'espiritu', 'muneco'] }[this.zona] || ['niebla', 'bicho'];

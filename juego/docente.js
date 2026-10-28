@@ -7,7 +7,7 @@
   const ZONAS_BASE = { base: 'En su base', pieza: 'En su pieza', u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' };
   // "u1-g3" -> "Unidad 1 · Grupo 3"
   const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
-  const MEJORAS = { pico: 'Pico', balde: 'Balde', cana: 'Caña de pescar', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal', cantimplora: 'Cantimplora', pico3: 'Pico de cobre', espada3: 'Espada de oro', armadura3: 'Armadura de oro', casco: 'Casco de minero', pico4: 'Pico de plata', espada4: 'Espada de amatista', armadura4: 'Armadura de plata', abrigo: 'Abrigo de piel', pico5: 'Pico de escarcha', espada5: 'Espada de hielo', armadura5: 'Armadura de escarcha', espada6: 'Espada prismática', armadura6: 'Armadura prismática' };
+  const MEJORAS = { pico: 'Pico', balde: 'Balde', cana: 'Caña de pescar', ahumador: 'Ahumador', hacha3: 'Hacha ancestral', amuleto: 'Amuleto ancestral', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal', cantimplora: 'Cantimplora', pico3: 'Pico de cobre', espada3: 'Espada de oro', armadura3: 'Armadura de oro', casco: 'Casco de minero', pico4: 'Pico de plata', espada4: 'Espada de amatista', armadura4: 'Armadura de plata', abrigo: 'Abrigo de piel', pico5: 'Pico de escarcha', espada5: 'Espada de hielo', armadura5: 'Armadura de escarcha', espada6: 'Espada prismática', armadura6: 'Armadura prismática' };
   let token = null, datos = [], curso = '7A', abiertos = null, mundos = null;
   try { token = sessionStorage.getItem('mw_docente'); } catch (e) { /* */ }
   if (!token || !Nube.activo) { location.replace('./'); return; }
@@ -111,7 +111,7 @@
         const pct = t.i ? Math.round((t.a / t.i) * 100) : 0;
         return `<div class="tema"><span>${esc(t.titulo)}</span><span><span class="barra"><i style="width:${pct}%"></i></span>${t.a} de ${t.i} (${pct} %)</span></div>`;
       }).join('')}</div>`).join('');
-    const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'prisma', 'luciernaga'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
+    const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'resina', 'miel', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'prisma', 'luciernaga'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
     $('det').innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
         <div><h3 id="det-nombre">${esc(e.nombre)}</h3><span class="muted">RUT ${esc(e.rut)} · ${esc(CURSOS.find((c) => c.id === e.curso).nombre)}</span></div>
@@ -311,6 +311,25 @@
     cargarDesafios();
   }
   setInterval(pintarEstadoDesafios, 1000);
+
+  // ---------- Obras cooperativas (puente al Bosque profundo) ----------
+  async function cargarObras() {
+    try {
+      const r = await Nube.docenteObras(token);
+      if (!r) return;
+      $('obras').innerHTML = ['7', '8'].map((n) => {
+        const o = r[n] || {}, meta = o.meta || {}, ap = o.aportes || {};
+        const tot = Object.values(meta).reduce((a, b) => a + b, 0), hecho = Object.entries(meta).reduce((a, [k, v]) => a + Math.min(v, ap[k] || 0), 0);
+        const pct = o.completado ? 100 : Math.floor((hecho / Math.max(1, tot)) * 100);
+        return `<div class="des-vivo ${o.completado ? '' : 'espera'}"><div class="fila-d"><strong>${n}° básico · Puente al Bosque profundo</strong><span class="reloj">${o.completado ? '¡Terminado!' : pct + ' %'}</span></div>
+          <div class="meta"><i style="width:${pct}%"></i></div>
+          <span class="muted">${Object.entries(meta).map(([k, v]) => `${k}: ${Math.min(v, ap[k] || 0)}/${v}`).join(' · ')}</span>
+          <span class="muted">${o.aportantes || 0} estudiantes han aportado${(o.top || []).length ? ` · Más aportes: ${o.top.slice(0, 3).map((x) => `${esc(x.nombre)} (${x.total})`).join(', ')}` : ''}</span></div>`;
+      }).join('');
+    } catch (e) { /* se reintenta */ }
+  }
+  cargarObras();
+  setInterval(cargarObras, 30000);
 
   $('abrir-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), true));
   $('cerrar-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), false));
