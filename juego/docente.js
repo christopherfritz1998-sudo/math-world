@@ -111,7 +111,7 @@
         const pct = t.i ? Math.round((t.a / t.i) * 100) : 0;
         return `<div class="tema"><span>${esc(t.titulo)}</span><span><span class="barra"><i style="width:${pct}%"></i></span>${t.a} de ${t.i} (${pct} %)</span></div>`;
       }).join('')}</div>`).join('');
-    const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'prisma'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
+    const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'prisma', 'luciernaga'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
     $('det').innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
         <div><h3 id="det-nombre">${esc(e.nombre)}</h3><span class="muted">RUT ${esc(e.rut)} · ${esc(CURSOS.find((c) => c.id === e.curso).nombre)}</span></div>

@@ -26,6 +26,8 @@
     { id: 'escarcha', nombre: 'Cristal de escarcha', corto: 'Escarcha', grupo: 'u4' }, { id: 'zafiro', nombre: 'Zafiro', grupo: 'u4' },
     // Recurso exclusivo: solo se consigue en el desafío "Prisma estelar"
     { id: 'prisma', nombre: 'Prisma estelar', corto: 'Prisma', grupo: 'especial' },
+    // Se atrapan en el desafío "Eclipse de luciérnagas"
+    { id: 'luciernaga', nombre: 'Luciérnagas', grupo: 'especial' },
   ];
   const REC = Object.fromEntries(RECURSOS.map((r) => [r.id, r]));
   const nombreRec = (id) => (REC[id] ? REC[id].nombre.toLowerCase() : id);
@@ -168,6 +170,19 @@
     D('alfombra_prisma', 'Alfombra arcoíris', 'Prismáticos', 'pieza', 'p', [0, 3, 3, 1], { prisma: 1, agua: 3 }, { piso: true }),
     D('piano_prisma', 'Piano de cristal', 'Prismáticos', 'pieza', 'p', [3, 3, 2, 2], { prisma: 2, madera: 10 }, { pie: 2 }),
     D('jarron_prisma', 'Jarrón prismático', 'Prismáticos', 'pieza', 'p', [5, 3, 1, 1], { prisma: 1 }),
+    // De luciérnagas (se consiguen en el desafío del eclipse); brillan con luz propia
+    D('frasco_luz', 'Frasco de luciérnagas', 'Luciérnagas', 'ambos', 'l', [0, 0, 1, 1], { luciernaga: 3 }, { brillo: true }),
+    D('farol_luz', 'Farol de luciérnagas', 'Luciérnagas', 'base', 'l', [1, 0, 1, 1], { luciernaga: 3, madera: 2 }, { brillo: true }),
+    D('arbol_luz', 'Árbol de luciérnagas', 'Luciérnagas', 'base', 'l', [2, 0, 1, 2], { luciernaga: 6, agua: 3 }, { brillo: true }),
+    D('arbusto_luz', 'Arbusto luminoso', 'Luciérnagas', 'base', 'l', [3, 0, 1, 1], { luciernaga: 4, agua: 2 }, { brillo: true }),
+    D('hongos_luz', 'Hongos brillantes', 'Luciérnagas', 'ambos', 'l', [4, 0, 1, 1], { luciernaga: 3 }, { brillo: true, paso: true }),
+    D('poste_luz', 'Poste con luciérnagas', 'Luciérnagas', 'base', 'l', [5, 0, 1, 1], { luciernaga: 3, madera: 2 }, { brillo: true }),
+    D('lampara_luz', 'Lámpara de luciérnagas', 'Luciérnagas', 'pieza', 'l', [6, 0, 1, 2], { luciernaga: 5, piedra: 3 }, { brillo: true }),
+    D('velador_luz', 'Velador de luciérnagas', 'Luciérnagas', 'pieza', 'l', [7, 0, 1, 1], { luciernaga: 4, cristal: 1 }, { brillo: true }),
+    D('cama_luz', 'Cama noche estrellada', 'Luciérnagas', 'pieza', 'l', [8, 0, 1, 2], { luciernaga: 8, madera: 10 }, { brillo: true, pie: 2 }),
+    D('cuadro_luz', 'Cuadro de luciérnagas', 'Luciérnagas', 'pieza', 'l', [9, 0, 1, 1], { luciernaga: 4, madera: 2 }, { brillo: true, pared: true }),
+    D('alfombra_luz', 'Alfombra nocturna', 'Luciérnagas', 'pieza', 'l', [0, 2, 3, 2], { luciernaga: 6, agua: 3 }, { brillo: true, piso: true }),
+    D('planta_luz', 'Planta luminosa', 'Luciérnagas', 'pieza', 'l', [3, 2, 1, 1], { luciernaga: 3, agua: 2 }, { brillo: true }),
     D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
     D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
     D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
@@ -1722,16 +1737,24 @@
 
   // Cada desafío: estado inicial, texto de progreso, montar (en la escena actual), tick, evento y cierre
   const IMPL = {
+    // La horda no tiene límite: llegan enemigos nuevos sin parar hasta que se acaba el tiempo
     horda: {
-      estado: () => ({ n: 0, meta: 5 }),
-      progreso: (st) => (st.logrado ? '¡Horda vencida!' : `Vencidos: ${st.n} de ${st.meta}`),
-      montar: (sc, st) => sc.soltarHorda(Math.min(6, st.meta - st.n + 1)),
-      evento(tipo, e, st) {
-        if (tipo !== 'vencer' || !e.horda || st.logrado) return;
-        st.n += 1;
-        if (st.n >= st.meta) lograr('Venciste a la horda', paquete(6, 3), 60);
+      estado: () => ({ n: 0 }),
+      progreso: (st) => `Vencidos: ${st.n} · ¡siguen llegando enemigos!`,
+      montar: (sc) => { sc.soltarHorda(5); sc.des.hordaT = 7000; },
+      tick(sc, dt) {
+        sc.des.hordaT -= dt;
+        if (sc.des.hordaT > 0) return;
+        const vivos = sc.enemigos.filter((x) => x.horda && x.activo).length;
+        sc.des.hordaT = vivos < 4 ? 4000 : 7000;
+        if (vivos < 16) sc.soltarHorda(vivos < 4 ? 4 : 3, true);
       },
-      fin: (st) => (st.logrado ? 'Venciste a la horda.' : `La horda se retiró. Venciste a ${st.n} de ${st.meta}.`),
+      evento(tipo, e, st) { if (tipo === 'vencer' && e.horda) st.n += 1; },
+      fin(st) {
+        if (!st.n) return 'La horda se retiró. Esta vez no venciste enemigos.';
+        const xp = Math.min(200, 8 * st.n), txt = darPremio(paquete(Math.min(12, 2 + Math.ceil(st.n / 2)), 3), xp);
+        return `¡La horda se retiró! Venciste a ${st.n} ${st.n === 1 ? 'enemigo' : 'enemigos'}: ganas ${txt} y ${xp} de experiencia.`;
+      },
     },
     dorado: {
       estado: () => ({}),
@@ -1780,16 +1803,19 @@
     },
     eclipse: {
       estado: () => ({ n: 0, meta: 8 }),
-      progreso: (st) => (st.logrado ? '¡Atrapaste todas las luciérnagas!' : `Luciérnagas: ${st.n} de ${st.meta}`),
-      montar(sc, st) { sc.crearEclipse(); for (let i = 0; i < st.meta - st.n; i++) sc.soltarLuciernaga(); },
+      progreso: (st) => `Luciérnagas atrapadas: ${st.n}${st.n < st.meta ? ` · bono al llegar a ${st.meta}` : ' · ¡sigue atrapando!'}`,
+      montar(sc) { sc.crearEclipse(); for (let i = 0; i < 8; i++) sc.soltarLuciernaga(); },
       tick(sc, dt, st) {
         if (sc.des.oscuro) sc.des.oscuro.setPosition(sc.jugador.x, sc.jugador.y - 16);
         sc.recoger('luz', (o) => {
-          st.n += 1; sc.flotante(o.x, o.y - 24, `${st.n} de ${st.meta}`, '#fff3a0');
-          if (st.n >= st.meta) lograr('Atrapaste todas las luciérnagas', paquete(5, 3), 50);
+          st.n += 1;
+          vivo.premiando = true; sumarCofre({ luciernaga: 1 }); vivo.premiando = false;   // al cofre: no se pierden
+          sc.flotante(o.x, o.y - 24, '+1 luciérnaga', '#fff3a0');
+          sc.soltarLuciernaga();   // siempre aparece otra
+          if (st.n === st.meta) { const txt = darPremio(paquete(5, 3), 50); toast(`¡${st.meta} luciérnagas! Bono: ${txt} y 50 de experiencia.`); sc.celebrar(); }
         });
       },
-      fin: (st) => (st.logrado ? 'Atrapaste todas las luciérnagas.' : `Volvió la luz: atrapaste ${st.n} de ${st.meta} luciérnagas.`),
+      fin: (st) => (st.n ? `Volvió la luz: atrapaste ${st.n} ${st.n === 1 ? 'luciérnaga' : 'luciérnagas'} (están en tu cofre). Úsalas para fabricar adornos y muebles que brillan.` : 'Volvió la luz y no atrapaste luciérnagas.'),
     },
     recolecta: {
       estado: () => ({ n: 0, meta: 12 }),
@@ -2228,6 +2254,7 @@
       if (!this.textures.exists('kenney_cueva')) this.load.image('kenney_cueva', 'assets/kenney_cueva.png');
       if (!this.textures.exists('kenney_nieve')) this.load.image('kenney_nieve', 'assets/kenney_nieve.png');
       if (!this.textures.exists('kenney_prisma')) this.load.image('kenney_prisma', 'assets/kenney_prisma.png');
+      if (!this.textures.exists('kenney_luz')) this.load.image('kenney_luz', 'assets/kenney_luz.png');
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
       for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
@@ -2319,7 +2346,7 @@
       for (const o of OBJETOS) {
         const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
         if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma' }[o.h] || 'kenney');
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       this.crearTexturasDesierto();
@@ -2661,7 +2688,16 @@
       const celdas = this.celdas(o, c.x, c.y), set = this.conjunto(o);
       celdas.forEach(([x, y]) => set.add(`${x},${y}`));
       const y = o.pared ? 3 * TILE - 4 : o.piso ? (c.y + 1) * TILE - (h * TILE) / 2 : (c.y + 1) * TILE - 10 - (pie - 1) * 16;
-      this.objetos.push({ tipo: 'colocado', c, s, z, x: cx, y, activo: true, nombre: o.nombre, carpa: Boolean(o.carpa), piso: Boolean(o.piso), celdas, set });
+      let extra = null;
+      if (o.brillo) {
+        // los objetos de luciérnagas brillan y sueltan chispitas
+        const by = (c.y + 1) * TILE - h * 16;
+        const halo = this.add.image(cx, by, 'luz').setScale(0.36 + 0.12 * Math.max(w, h)).setTint(0xd8ff7a).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.24).setDepth(o.piso ? -4 : s.depth + 1);
+        this.tweens.add({ targets: halo, alpha: 0.16, duration: 900 + Math.random() * 600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        const chispas = this.add.particles(cx, by, 'p_brillo', { x: { min: -w * 12, max: w * 12 }, y: { min: -h * 10, max: h * 10 }, lifespan: 1300, frequency: 520, speedY: { min: -14, max: -4 }, speedX: { min: -8, max: 8 }, scale: { start: 0.9, end: 0 }, alpha: { start: 1, end: 0 } }).setDepth(s.depth + 2);
+        extra = [halo, chispas];
+      }
+      this.objetos.push({ tipo: 'colocado', c, s, z, extra, x: cx, y, activo: true, nombre: o.nombre, carpa: Boolean(o.carpa), piso: Boolean(o.piso), celdas, set });
     }
     colocar(id) {
       const o = OBJ[id];
@@ -2698,6 +2734,7 @@
       else S.colocados = S.colocados.filter((c) => c !== obj.c);
       S.inventario[obj.c.k] = (S.inventario[obj.c.k] || 0) + 1;
       obj.s.destroy(); if (obj.z) obj.z.destroy();
+      (obj.extra || []).forEach((x) => x.destroy());
       obj.activo = false;
       obj.celdas.forEach(([x, y]) => obj.set.delete(`${x},${y}`));
       guardar(true);
@@ -4149,11 +4186,11 @@
       this.add.particles(x, y - 16, 'p_morado', { speed: { min: 40, max: 130 }, lifespan: 500, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(18);
       return e;
     }
-    soltarHorda(n) {
+    soltarHorda(n, refuerzo = false) {
       const clases = { base: ['niebla', 'bicho', 'arbusto'], pieza: ['bicho', 'arbusto'], u1: ['niebla', 'bicho', 'arbusto'], u2: ['esqueleto', 'remolino', 'escorpion'], u3: ['murcielago', 'minero', 'golem'], u4: ['lobo_nieve', 'espiritu', 'muneco'] }[this.zona] || ['niebla', 'bicho'];
       const j = this.jugador, W = this.ancho * TILE, H = this.alto * TILE, m = TILE * 2.6;
-      this.cameras.main.shake(260, 0.006);
-      this.flotante(j.x, j.y - 80, '¡Una horda te rodea!', '#ffb4a3');
+      this.cameras.main.shake(refuerzo ? 150 : 260, refuerzo ? 0.003 : 0.006);
+      this.flotante(j.x, j.y - 80, refuerzo ? '¡Llegan más enemigos!' : '¡Una horda te rodea!', '#ffb4a3');
       for (let i = 0; i < n; i++) {
         const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, r = 230 + Math.random() * 90;
         const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);

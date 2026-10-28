@@ -5,8 +5,8 @@
   'use strict';
   global.DESAFIOS = [
     { id: 'horda', nombre: 'Horda de enemigos', icono: '⚔️', seg: 90, color: '#c0392b',
-      resumen: 'Una horda rodea a cada jugador. Vence a 5 enemigos antes de que se acabe el tiempo.',
-      objetivo: 'Vence a 5 enemigos de la horda' },
+      resumen: 'Durante 1 minuto y medio llegan enemigos sin parar alrededor de cada jugador. Mientras más venzan, mayor es el premio.',
+      objetivo: 'Vence a la mayor cantidad de enemigos' },
     { id: 'arena', nombre: 'Duelo por el cofre', icono: '🏆', seg: 60, color: '#b8860b', preguntas: true,
       resumen: 'Lucha entre compañeros: 1 minuto respondiendo preguntas. Quien acierte más gana un cofre de suministros variados.',
       objetivo: 'Responde bien la mayor cantidad de preguntas' },
@@ -23,8 +23,8 @@
       resumen: 'Aparece una criatura dorada que huye de ti: atrápala y véncela para ganar un gran botín.',
       objetivo: 'Atrapa y vence a la criatura dorada' },
     { id: 'eclipse', nombre: 'Eclipse de luciérnagas', icono: '🌑', seg: 60, color: '#4b3f8f',
-      resumen: 'Todo se oscurece: atrapa 8 luciérnagas brillantes antes de que vuelva la luz.',
-      objetivo: 'Atrapa 8 luciérnagas' },
+      resumen: 'Todo se oscurece y aparecen luciérnagas sin parar. Cada una atrapada es un recurso para fabricar adornos y muebles que brillan; con 8 hay bono.',
+      objetivo: 'Atrapa todas las luciérnagas que puedas' },
     { id: 'relampago', nombre: 'Pregunta relámpago', icono: '⚡', seg: 20, color: '#2c6fbb', preguntas: true,
       resumen: 'Una sola pregunta y 20 segundos: mientras más rápido aciertes, mayor es el premio.',
       objetivo: 'Responde bien lo más rápido posible' },
