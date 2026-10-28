@@ -419,7 +419,8 @@
     return n;
   }
 
-  const tiene = (id) => S.mejoras.includes(id);
+  // El docente tiene todas las herramientas (para probar minijuegos y zonas); armas y armaduras las fabrica gratis
+  const tiene = (id) => S.mejoras.includes(id) || (Boolean(S.docente) && !ARMAS[id] && !ARMADURAS[id]);
   const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0);
   const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1);
   const esDocente = () => Boolean(S && S.docente);
@@ -594,8 +595,9 @@
   const textoMision = (m) => TIPOS_MISION[m.t].txt(m);
   // Estado de las obras cooperativas (lo trae el servidor; en modo sin conexión es personal)
   const obraE = { puente: null, valle: null };
-  const puenteListo = () => Boolean(obraE.puente && obraE.puente.completado);
-  const valleListo = () => Boolean(obraE.valle && obraE.valle.completado);
+  // El docente puede pasar aunque la obra de sus estudiantes no esté terminada (solo en su juego)
+  const puenteListo = () => esDocente() || Boolean(obraE.puente && obraE.puente.completado);
+  const valleListo = () => esDocente() || Boolean(obraE.valle && obraE.valle.completado);
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
 
   const TIPOS_DIARIA = {
@@ -1296,8 +1298,9 @@
   }
   // La caña dura 5 pescas; al agotarse se rompe y hay que fabricar otra
   const CANA_USOS = 5;
-  function usosCana() { return tiene('cana') ? (typeof S.canaUsos === 'number' ? S.canaUsos : CANA_USOS) : 0; }
+  function usosCana() { if (esDocente()) return CANA_USOS; return tiene('cana') ? (typeof S.canaUsos === 'number' ? S.canaUsos : CANA_USOS) : 0; }
   function gastarCana() {
+    if (esDocente()) return false;   // la caña del docente no se rompe
     S.canaUsos = Math.max(0, usosCana() - 1);
     const rota = S.canaUsos === 0;
     if (rota) { S.mejoras = S.mejoras.filter((m) => m !== 'cana'); toast('¡Tu caña de pescar se rompió! Fabrica una nueva en la fogata de tu base.', 'alerta'); }
@@ -3403,7 +3406,7 @@
       const { RX, by } = this.rio, o = obraE.puente;
       const metaT = o && o.meta ? Object.values(o.meta).reduce((a, b) => a + b, 0) : 1;
       const hecho = o && o.aportes ? Object.entries(o.meta || {}).reduce((a, [k, n]) => a + Math.min(n, o.aportes[k] || 0), 0) : 0;
-      const listo = Boolean(o && o.completado);
+      const listo = puenteListo();
       const pct = listo ? 100 : Math.floor((hecho / metaT) * 100);
       this.puenteSpr.forEach((sp) => sp.destroy()); this.puenteSpr = [];
       const tablas = listo ? RIO_ANCHO * 2 : Math.floor((pct / 100) * RIO_ANCHO * 2 * 0.99);
