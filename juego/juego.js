@@ -35,7 +35,7 @@
   const MEJORAS = [
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
-    { id: 'cana', nombre: 'Caña de pescar', desc: 'Herramienta: con ella puedes pescar en el muelle del gran lago del Bosque. No hace falta equiparla.', icono: 'cana', costo: { madera: 14, agua: 4, cristal: 1 } },
+    { id: 'cana', nombre: 'Caña de pescar', desc: 'Herramienta: con ella puedes pescar en el muelle del gran lago del Bosque. No hace falta equiparla. Dura 5 pescas: cuando se rompe, fabrica otra.', icono: 'cana', costo: { madera: 14, agua: 4, cristal: 1 } },
     { id: 'espada', nombre: 'Espada de piedra', desc: 'Equipada, cada acierto en combate quita 2 de vida.', icono: 'espada', costo: { madera: 15, piedra: 10 }, requiere: 'pico' },
     { id: 'hacha2', nombre: 'Hacha de hierro', desc: 'Ganas 2 maderas más por cada árbol.', icono: 'axe', costo: { madera: 25, piedra: 15 }, requiere: 'pico' },
     { id: 'armadura', nombre: 'Armadura de cuero', desc: 'Equipada, tu vida máxima sube a 7 corazones.', icono: 'armadura', costo: { piedra: 25, agua: 6, cristal: 2 }, requiere: 'espada' },
@@ -887,7 +887,7 @@
       { id: 'pico', icono: 'pickaxe', tecla: '2', ok: tiene('pico'), nombre: tiene('pico2') ? 'Pico reforzado' : 'Pico' },
       { id: 'espada', icono: 'espada', tecla: '3', ok: Boolean(S.arma), nombre: S.arma ? ARMAS[S.arma].nombre : 'Espada (equípala en Equipo)' },
       { id: 'balde', icono: 'agua', tecla: '', ok: tiene('balde'), nombre: 'Balde' },
-      { id: 'cana', icono: 'cana', tecla: '', ok: tiene('cana'), nombre: 'Caña de pescar (úsala en el muelle del lago del Bosque)' },
+      { id: 'cana', icono: 'cana', tecla: '', ok: tiene('cana'), nombre: tiene('cana') ? `Caña de pescar: le quedan ${usosCana()} de ${CANA_USOS} usos (úsala en el muelle del lago del Bosque)` : 'Caña de pescar' },
     ];
     $('hud-herramientas').innerHTML = ranuras.map((r) => `
       <div class="ranura ${S.herramienta === r.id ? 'activa' : ''} ${r.ok ? '' : 'falta'}" title="${esc(r.ok ? r.nombre : r.nombre + ' (fabrícalo en tu base)')}">
@@ -1076,14 +1076,25 @@
     { id: 'salmon', nombre: 'salmón', un: 'un', el: 'El', lo: 'lo', peso: 20, dif: 1.8, vida: 3 },
     { id: 'dorado', nombre: 'pez dorado', un: 'un', el: 'El', lo: 'lo', peso: 10, dif: 2.4, vida: 4 },
   ];
+  // La caña dura 5 pescas; al agotarse se rompe y hay que fabricar otra
+  const CANA_USOS = 5;
+  function usosCana() { return tiene('cana') ? (typeof S.canaUsos === 'number' ? S.canaUsos : CANA_USOS) : 0; }
+  function gastarCana() {
+    S.canaUsos = Math.max(0, usosCana() - 1);
+    const rota = S.canaUsos === 0;
+    if (rota) { S.mejoras = S.mejoras.filter((m) => m !== 'cana'); toast('¡Tu caña de pescar se rompió! Fabrica una nueva en la fogata de tu base.', 'alerta'); }
+    pintarHUD(); guardar(true);
+    return rota;
+  }
   function abrirPesca() {
+    if (!tiene('cana')) { toast('Necesitas una caña de pescar. Fabrícala en la fogata de tu base (pestaña Equipo).'); return; }
     let total = PECES.reduce((a, p) => a + p.peso, 0), r = Math.random() * total, pez = PECES[0];
     for (const p of PECES) { if ((r -= p.peso) < 0) { pez = p; break; } }
     const H = 300, R = 44, PEZ = 30;
     const st = { fase: 'espera', aro: H - R, vAro: 0, pez: H * 0.6, vPez: 0, meta: H * 0.6, cambio: 0, prog: 0.3, sube: false, t0: performance.now(), pica: 800 + Math.random() * 1800 };
     let raf = 0, ultimo = performance.now(), fin = false;
     ui.abrir(`
-      <div class="modal-cab"><div><span class="etq">Gran lago del bosque</span><h2 id="modal-titulo">🎣 Pescar</h2></div><button type="button" class="btn" id="pz-salir">Salir</button></div>
+      <div class="modal-cab"><div><span class="etq">Gran lago del bosque · Caña: ${usosCana()} de ${CANA_USOS} usos</span><h2 id="modal-titulo">🎣 Pescar</h2></div><button type="button" class="btn" id="pz-salir">Salir</button></div>
       <div class="pesca">
         <div class="pesca-barra" id="pz-barra" aria-label="Barra de pesca"><div class="pesca-aro" id="pz-aro"></div><img class="pesca-pez px" id="pz-pez" src="${ICONO('pez')}" alt="Pez"></div>
         <div class="pesca-captura" aria-label="Captura"><i id="pz-prog"></i></div>
@@ -1092,7 +1103,10 @@
           <p class="nota">Mantén presionada la tecla <kbd>ESPACIO</kbd> (o el botón) para subir el aro; suéltala para que baje. Mantén al pez dentro del aro hasta llenar la barra verde.</p>
           <button type="button" class="btn pri pesca-btn" id="pz-subir">Mantén para subir el aro</button>
         </div>
-      </div>`, 'pesca-modal', () => { fin = true; cancelAnimationFrame(raf); document.removeEventListener('keyup', soltar); });
+      </div>`, 'pesca-modal', () => {
+      fin = true; cancelAnimationFrame(raf); document.removeEventListener('keyup', soltar);
+      if (st.fase === 'lucha') { st.fase = 'fin'; toast(`Soltaste la caña y ${pez.el.toLowerCase()} ${pez.nombre} se escapó.`); gastarCana(); }   // salir con el pez enganchado gasta un uso
+    });
     const aro = $('pz-aro'), pezEl = $('pz-pez'), prog = $('pz-prog'), estado = $('pz-estado'), btn = $('pz-subir'), barra = $('pz-barra');
     if (document.activeElement) document.activeElement.blur();
     const soltar = (e) => { if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); st.sube = false; } };
@@ -1137,12 +1151,17 @@
         toast(msg);
         guardar(true);
       } else { msg = `¡${pez.el} ${pez.nombre} se escapó! Inténtalo otra vez.`; clase = 'mal'; }
+      const rota = gastarCana();
+      const cana = rota ? '<div class="mensaje mal" role="status">¡Tu caña de pescar se rompió! Fabrica una nueva en la fogata de tu base para volver a pescar.</div>'
+        : `<span class="nota">A tu caña le ${usosCana() === 1 ? 'queda 1 uso' : `quedan ${usosCana()} usos`}.</span>`;
+      const etq = document.querySelector('#modal .modal-cab .etq');
+      if (etq) etq.textContent = `Gran lago del bosque · Caña: ${usosCana()} de ${CANA_USOS} usos`;
       const info = document.querySelector('#modal .pesca-info');
       if (info) {
-        info.innerHTML = `<div class="mensaje ${clase}" role="status" style="font-size:18px">${esc(msg)}</div>
-          <div class="acciones"><button type="button" class="btn sec" id="pz-otra">Pescar otra vez</button><button type="button" class="btn pri" id="pz-ok" data-foco>¡Listo!</button></div>`;
+        info.innerHTML = `<div class="mensaje ${clase}" role="status" style="font-size:18px">${esc(msg)}</div>${cana}
+          <div class="acciones">${rota ? '<span></span>' : '<button type="button" class="btn sec" id="pz-otra">Pescar otra vez</button>'}<button type="button" class="btn pri" id="pz-ok" data-foco>¡Listo!</button></div>`;
         $('pz-ok').addEventListener('click', () => ui.cerrar());
-        $('pz-otra').addEventListener('click', () => { ui.alCerrar = null; ui.cerrar(); abrirPesca(); });
+        if (!rota) $('pz-otra').addEventListener('click', () => { ui.alCerrar = null; ui.cerrar(); abrirPesca(); });
         $('pz-ok').focus();
         ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
       }
@@ -1415,7 +1434,7 @@
       const equipable = ARMAS[m.id] || ARMADURAS[m.id];
       const puesta = S.arma === m.id || S.armadura === m.id;
       const der = hecha && equipable ? (puesta ? '<span class="estado-ok">Equipada</span>' : `<button type="button" class="btn sec" data-eq="${m.id}">Equipar</button>`)
-        : hecha ? '<span class="estado-ok">Fabricado</span>'
+        : hecha ? `<span class="estado-ok">${m.id === 'cana' ? `Fabricada · ${usosCana()} de ${CANA_USOS} usos` : 'Fabricado'}</span>`
         : bloq ? `<span class="nota" style="max-width: 150px">Primero: ${esc(NOMBRE_MEJORA[m.requiere])}</span>`
           : `<button type="button" class="btn pri" data-m="${m.id}" ${alcanza(m.costo) ? '' : 'disabled'}>Fabricar</button>`;
       return `<div class="mejora ${hecha ? 'hecha' : ''}"><img class="ico px" src="${ICONO(m.icono)}" alt="">
@@ -1443,6 +1462,7 @@
       const hacer = () => {
         if (!alcanza(m.costo) || tiene(m.id)) return;
         pagar(m.costo); S.mejoras.push(m.id);
+        if (m.id === 'cana') S.canaUsos = CANA_USOS;
         guardar(true); pintarHUD(); escena.celebrar();
         toast(ARMAS[m.id] || ARMADURAS[m.id] ? `¡Fabricaste: ${m.nombre}! Equípala con el botón Equipar.` : `¡Fabricaste: ${m.nombre}!`);
       };
@@ -3679,7 +3699,7 @@
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
-        case 'muelle': return tiene('cana') ? 'Pescar' : 'Muelle: necesitas una caña de pescar';
+        case 'muelle': return tiene('cana') ? `Pescar (caña: ${usosCana()} de ${CANA_USOS} usos)` : 'Muelle: necesitas una caña de pescar';
         case 'colocado': return o.carpa ? 'Entrar a tu pieza (R: guardar la carpa)' : `Guardar ${o.nombre.toLowerCase()}`;
         case 'puerta': return 'Salir a tu base';
         default: return null;
