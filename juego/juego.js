@@ -57,8 +57,8 @@
     { id: 'pico5', nombre: 'Pico de escarcha', desc: 'Permite extraer zafiros y saca más hielo y escarcha.', icono: 'pickaxe', costo: { escarcha: 10, hielo: 15, baya: 6 }, requiere: 'pico2' },
     { id: 'espada5', nombre: 'Espada de hielo', desc: 'Equipada, cada acierto en combate quita 6 de vida.', icono: 'espada', costo: { zafiro: 8, escarcha: 10 }, requiere: 'espada2' },
     // Equipo exclusivo (Prisma estelar)
-    { id: 'espada6', nombre: 'Espada prismática', desc: 'Exclusiva. Equipada, cada acierto en combate quita 7 de vida.', icono: 'espada_prisma', costo: { prisma: 2, cristal: 8, piedra: 20 }, requiere: 'espada2' },
-    { id: 'armadura6', nombre: 'Armadura prismática', desc: 'Exclusiva. Equipada, tu vida máxima sube a 17 corazones.', icono: 'armadura_prisma', costo: { prisma: 2, cristal: 10, agua: 15 }, requiere: 'armadura2' },
+    { id: 'espada6', nombre: 'Espada prismática', desc: 'Exclusiva. Equipada, cada acierto en combate quita 7 de vida.', icono: 'espada_prisma', costo: { prisma: 10, cristal: 8, piedra: 20 }, requiere: 'espada2' },
+    { id: 'armadura6', nombre: 'Armadura prismática', desc: 'Exclusiva. Equipada, tu vida máxima sube a 17 corazones.', icono: 'armadura_prisma', costo: { prisma: 10, cristal: 10, agua: 15 }, requiere: 'armadura2' },
     { id: 'armadura5', nombre: 'Armadura de escarcha', desc: 'Equipada, tu vida máxima sube a 15 corazones.', icono: 'armadura', costo: { escarcha: 14, hielo: 20, zafiro: 4 }, requiere: 'armadura2' },
   ];
   const NOMBRE_MEJORA = Object.fromEntries(MEJORAS.map((m) => [m.id, m.nombre]));
