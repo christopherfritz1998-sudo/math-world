@@ -361,3 +361,7 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .aviso-jefe.sale { transition: opacity .6s; opacity: 0; }
 @keyframes jefe-entra { 0% { transform: translate(-50%, -50%) scale(.4); opacity: 0; } 100% { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 @media (max-width: 760px) { .aviso-jefe { width: calc(100vw - 32px); padding: 14px 16px; } .aviso-jefe b { font-size: 30px; } .aviso-jefe span { font-size: 19px; } }
+.aviso-jefe.prisma { background: rgba(38, 16, 62, .92); border-color: #c99cff; box-shadow: 0 0 44px rgba(190, 140, 255, .6); }
+.aviso-jefe.prisma b { background: linear-gradient(90deg, #ff9ad5, #ffd27a, #8ff0c8, #7ec8ff, #c99cff); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
+.aviso-jefe.prisma small { color: #d9c2ff; }
+.modal.desafio-vivo.prisma { border-color: #c99cff; }

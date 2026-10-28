@@ -515,3 +515,60 @@ end $$;
 revoke all on function public.mw_ms(), public.mw_nombre_corto(text), public.mw_desafio_tabla(text, bigint, int, uuid) from public, anon, authenticated;
 revoke all on function public.mw_docente_desafios(uuid), public.mw_docente_desafio(uuid, text[], text, int), public.mw_desafio(uuid), public.mw_desafio_responder(uuid, bigint, boolean) from public, authenticated;
 grant execute on function public.mw_docente_desafios(uuid), public.mw_docente_desafio(uuid, text[], text, int), public.mw_desafio(uuid), public.mw_desafio_responder(uuid, bigint, boolean) to anon;
+-- Desafío "Prisma estelar": aparece en un mundo al azar (entre los abiertos del curso) y
+-- solo un jugador por grupo puede llevárselo (el primero que responde bien 5 preguntas).
+create table if not exists public.desafio_premios (
+  curso text not null,
+  n bigint not null,
+  grupo text not null,
+  estudiante_id uuid not null references public.estudiantes (id),
+  creado timestamptz not null default now(),
+  primary key (curso, n, grupo)
+);
+alter table public.desafio_premios enable row level security;
+revoke all on public.desafio_premios from anon, authenticated;
+
+create or replace function public.mw_docente_desafio(p_token uuid, p_cursos text[], p_id text, p_seg int)
+returns json language plpgsql security definer set search_path = public as $$
+declare c text; meta int; t0 bigint; m text[]; extra jsonb;
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  if p_id is null then
+    update cursos set desafio = desafio || jsonb_build_object('fin', mw_ms(), 'detenido', true)
+      where curso = any (p_cursos) and desafio is not null and (desafio->>'fin')::bigint > mw_ms();
+  else
+    for c in select curso from cursos where curso = any (p_cursos) loop
+      meta := greatest(15, 5 * (select count(*) from estudiantes e where e.curso = c and e.ultimo_ping > now() - interval '90 seconds'));
+      t0 := mw_ms() + 11000;
+      extra := '{}'::jsonb;
+      if p_id = 'prisma' then
+        m := mw_curso_mundos(c);
+        extra := jsonb_build_object('mundo', m[1 + floor(random() * cardinality(m))::int]);
+      end if;
+      update cursos set desafio = jsonb_build_object('n', nextval('mw_desafio_n'), 'id', left(p_id, 20), 'inicio', t0,
+          'fin', t0 + 1000 * least(greatest(coalesce(p_seg, 60), 10), 300), 'meta', meta) || extra
+        where curso = c;
+    end loop;
+  end if;
+  return mw_docente_desafios(p_token);
+end $$;
+
+-- Estudiante: reclama el prisma para su grupo (gana el primero; los demás reciben el nombre de quien lo tomó)
+create or replace function public.mw_prisma_reclamar(p_token uuid, p_n bigint, p_grupo text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; d jsonb; g uuid; ahora bigint := mw_ms();
+begin
+  if id_e is null then return json_build_object('ok', false, 'error', 'sesion'); end if;
+  select e.curso, k.desafio into c, d from estudiantes e join cursos k on k.curso = e.curso where e.id = id_e;
+  if d is null or d->>'id' <> 'prisma' or (d->>'n')::bigint <> p_n
+     or ahora < (d->>'inicio')::bigint or ahora > (d->>'fin')::bigint + 4000 then
+    return json_build_object('ok', false, 'error', 'fuera');
+  end if;
+  insert into desafio_premios (curso, n, grupo, estudiante_id) values (c, p_n, left(coalesce(p_grupo, ''), 60), id_e)
+    on conflict do nothing;
+  select estudiante_id into g from desafio_premios where curso = c and n = p_n and grupo = left(coalesce(p_grupo, ''), 60);
+  return json_build_object('ok', g = id_e, 'nombre', (select mw_nombre_corto(nombre) from estudiantes where id = g));
+end $$;
+
+revoke all on function public.mw_prisma_reclamar(uuid, bigint, text) from public, authenticated;
+grant execute on function public.mw_prisma_reclamar(uuid, bigint, text) to anon;

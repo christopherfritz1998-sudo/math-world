@@ -24,6 +24,8 @@
     { id: 'amatista', nombre: 'Amatista', grupo: 'u3' }, { id: 'hongo', nombre: 'Hongos luminosos', corto: 'Hongos', grupo: 'u3' },
     { id: 'baya', nombre: 'Bayas de invierno', corto: 'Bayas', grupo: 'u4' }, { id: 'hielo', nombre: 'Hielo', grupo: 'u4' },
     { id: 'escarcha', nombre: 'Cristal de escarcha', corto: 'Escarcha', grupo: 'u4' }, { id: 'zafiro', nombre: 'Zafiro', grupo: 'u4' },
+    // Recurso exclusivo: solo se consigue en el desafío "Prisma estelar"
+    { id: 'prisma', nombre: 'Prisma estelar', corto: 'Prisma', grupo: 'especial' },
   ];
   const REC = Object.fromEntries(RECURSOS.map((r) => [r.id, r]));
   const nombreRec = (id) => (REC[id] ? REC[id].nombre.toLowerCase() : id);
@@ -53,13 +55,16 @@
     { id: 'abrigo', nombre: 'Abrigo de piel', desc: 'Siempre activo: +1 corazón de vida máxima y la ventisca ya no te hace caminar lento.', icono: 'abrigo', costo: { baya: 8, hielo: 10, escarcha: 4 }, requiere: 'pico' },
     { id: 'pico5', nombre: 'Pico de escarcha', desc: 'Permite extraer zafiros y saca más hielo y escarcha.', icono: 'pickaxe', costo: { escarcha: 10, hielo: 15, baya: 6 }, requiere: 'pico2' },
     { id: 'espada5', nombre: 'Espada de hielo', desc: 'Equipada, cada acierto en combate quita 6 de vida.', icono: 'espada', costo: { zafiro: 8, escarcha: 10 }, requiere: 'espada2' },
+    // Equipo exclusivo (Prisma estelar)
+    { id: 'espada6', nombre: 'Espada prismática', desc: 'Exclusiva. Equipada, cada acierto en combate quita 7 de vida.', icono: 'espada_prisma', costo: { prisma: 2, cristal: 8, piedra: 20 }, requiere: 'espada2' },
+    { id: 'armadura6', nombre: 'Armadura prismática', desc: 'Exclusiva. Equipada, tu vida máxima sube a 17 corazones.', icono: 'armadura_prisma', costo: { prisma: 2, cristal: 10, agua: 15 }, requiere: 'armadura2' },
     { id: 'armadura5', nombre: 'Armadura de escarcha', desc: 'Equipada, tu vida máxima sube a 15 corazones.', icono: 'armadura', costo: { escarcha: 14, hielo: 20, zafiro: 4 }, requiere: 'armadura2' },
   ];
   const NOMBRE_MEJORA = Object.fromEntries(MEJORAS.map((m) => [m.id, m.nombre]));
   // Equipo que se ve en el personaje
-  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 }, espada5: { nombre: 'Espada de hielo', danio: 6 } };
-  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' }, armadura4: { nombre: 'Armadura de plata', vida: 8, tex: 'plata' }, armadura5: { nombre: 'Armadura de escarcha', vida: 10, tex: 'hielo' } };
-  const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata', 'hielo'];
+  const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 }, espada5: { nombre: 'Espada de hielo', danio: 6 }, espada6: { nombre: 'Espada prismática', danio: 7 } };
+  const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' }, armadura4: { nombre: 'Armadura de plata', vida: 8, tex: 'plata' }, armadura5: { nombre: 'Armadura de escarcha', vida: 10, tex: 'hielo' }, armadura6: { nombre: 'Armadura prismática', vida: 12, tex: 'prisma' } };
+  const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata', 'hielo', 'prisma'];
   const cuerpoDe = (pj) => (pj === 'luna' || pj === 'copihue' ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
@@ -146,6 +151,22 @@
     D('pinguino', 'Pingüino', 'Invierno', 'ambos', 'n', [0, 2, 1, 1], { baya: 3, hielo: 2 }),
     D('cristal_escarcha', 'Cristal de escarcha', 'Invierno', 'ambos', 'n', [2, 1, 1, 1], { escarcha: 3 }, { paso: true }),
     D('zafiros', 'Zafiros', 'Invierno', 'ambos', 'n', [3, 1, 1, 1], { zafiro: 2, escarcha: 1 }, { paso: true }),
+    // Exclusivos del Prisma estelar (hoja propia)
+    D('cristal_prisma', 'Cristal prismático', 'Prismáticos', 'ambos', 'p', [0, 0, 1, 1], { prisma: 1, cristal: 2 }),
+    D('estandarte_prisma', 'Estandarte arcoíris', 'Prismáticos', 'base', 'p', [1, 0, 1, 3], { prisma: 1, madera: 4 }),
+    D('arbol_prisma', 'Árbol de cristal', 'Prismáticos', 'base', 'p', [2, 0, 1, 2], { prisma: 1, agua: 4 }),
+    D('obelisco_prisma', 'Obelisco prismático', 'Prismáticos', 'base', 'p', [3, 0, 1, 2], { prisma: 1, piedra: 8 }),
+    D('geoda_prisma', 'Cristales prismáticos', 'Prismáticos', 'ambos', 'p', [4, 0, 1, 1], { prisma: 1 }, { paso: true }),
+    D('farol_prisma', 'Candelabro prismático', 'Prismáticos', 'ambos', 'p', [5, 0, 1, 1], { prisma: 1, piedra: 3 }),
+    D('arbusto_prisma', 'Arbusto de cristal', 'Prismáticos', 'base', 'p', [6, 0, 1, 1], { prisma: 1, agua: 2 }),
+    D('torre_prisma', 'Aguja de cristal', 'Prismáticos', 'base', 'p', [7, 0, 1, 1], { prisma: 1, piedra: 4 }),
+    D('cama_prisma', 'Cama prismática', 'Prismáticos', 'pieza', 'p', [8, 0, 1, 2], { prisma: 1, madera: 8 }, { pie: 2 }),
+    D('lampara_prisma', 'Lámpara prismática', 'Prismáticos', 'pieza', 'p', [9, 0, 1, 2], { prisma: 1, cristal: 2 }),
+    D('espejo_prisma', 'Espejo arcoíris', 'Prismáticos', 'pieza', 'p', [10, 0, 1, 2], { prisma: 1, cristal: 2 }, { pared: true }),
+    D('sillon_prisma', 'Sillón prismático', 'Prismáticos', 'pieza', 'p', [11, 0, 1, 1], { prisma: 1, madera: 4 }),
+    D('alfombra_prisma', 'Alfombra arcoíris', 'Prismáticos', 'pieza', 'p', [0, 3, 3, 1], { prisma: 1, agua: 3 }, { piso: true }),
+    D('piano_prisma', 'Piano de cristal', 'Prismáticos', 'pieza', 'p', [3, 3, 2, 2], { prisma: 2, madera: 10 }, { pie: 2 }),
+    D('jarron_prisma', 'Jarrón prismático', 'Prismáticos', 'pieza', 'p', [5, 3, 1, 1], { prisma: 1 }),
     D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
     D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
     D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
@@ -1030,9 +1051,13 @@
   }
 
   // Aviso grande cuando el jefe aparece en el mapa
-  function avisoJefe(nombre) {
+  function avisoJefe(nombre) { avisoGrande('¡El jefe ha aparecido!', 'Búscalo y derrótalo', nombre); }
+  function avisoGrande(titulo, sub, pie, clase = '') {
     const a = $('aviso-jefe');
-    a.querySelector('small').textContent = nombre;
+    a.querySelector('b').textContent = titulo;
+    a.querySelector('span').textContent = sub;
+    a.querySelector('small').textContent = pie;
+    a.className = `aviso-jefe ${clase}`;
     a.classList.remove('oculto', 'sale'); void a.offsetWidth; a.classList.add('entra');
     clearTimeout(avisoJefe._t);
     avisoJefe._t = setTimeout(() => { a.classList.add('sale'); setTimeout(() => a.classList.add('oculto'), 600); }, 4200);
@@ -1667,6 +1692,26 @@
       progreso: (st) => (st.respondida ? (st.logrado ? '¡Correcto!' : 'Respondida') : '¡Responde rápido!'),
       fin: (st) => (st.respondida ? (st.logrado ? `Acertaste la pregunta relámpago: ${st.premio}.` : 'Esta vez no fue. ¡A la próxima!') : 'Se acabó el tiempo de la pregunta relámpago.'),
     },
+    prisma: {
+      estado: () => ({ p: 0, otros: {} }),
+      progreso(st) {
+        const z = vivo.d.mundo;
+        if (st.gane) return '¡El prisma es tuyo! Está en tu cofre.';
+        if (st.tomado) return `${st.tomado} se llevó el prisma de tu grupo.`;
+        if (!escena || escena.zona !== z) return `Está en ${MUNDOS[z] ? nombreZona(z) : 'otro mundo'}: ¡viaja por el portal!`;
+        return `¡Búscalo! Tu avance: ${st.p} de 5 respuestas`;
+      },
+      montar(sc, st) { if (sc.zona === vivo.d.mundo && !st.gane && !st.tomado) sc.soltarPrisma(); },
+      tick(sc, dt, st) {
+        const it = sc.des.prisma, j = sc.jugador;
+        if (!it) return;
+        if (!sc.des.flecha) { sc.des.flecha = sc.add.triangle(0, 0, 0, -9, 18, 0, 0, 9, 0xd7a8ff).setStrokeStyle(2, 0x3a1a5a).setDepth(99998); sc.des.objs.push(sc.des.flecha); }
+        const lejos = Phaser.Math.Distance.Between(j.x, j.y, it.x, it.y) > 170;
+        sc.des.flecha.setVisible(lejos);
+        if (lejos) { const a = Phaser.Math.Angle.Between(j.x, j.y - 20, it.x, it.y - 10); sc.des.flecha.setPosition(j.x + Math.cos(a) * 46, j.y - 20 + Math.sin(a) * 46).setRotation(a); }
+      },
+      fin: (st) => (st.gane ? '¡Te llevaste el prisma estelar! Está guardado en tu cofre.' : st.tomado ? `${st.tomado} se llevó el prisma estelar de tu grupo.` : 'El prisma estelar desapareció.'),
+    },
     arena: { estado: () => ({ mios: 0 }), progreso: () => `Tus aciertos: ${vivo.d.aciertos || 0}` },
     curso: { estado: () => ({ mios: 0 }), progreso: () => `Curso: ${vivo.d.total || 0} de ${vivo.d.meta} correctas` },
   };
@@ -1701,7 +1746,11 @@
     vivo.fase = 'activo';
     const I = IMPL[vivo.def.id];
     vivo.st = I.estado ? I.estado() : {};
-    toast(`¡Comienza el desafío: ${vivo.def.nombre}!`);
+    if (vivo.def.id === 'prisma') {
+      const z = vivo.d.mundo;
+      avisoGrande('¡Apareció un recurso exclusivo!', `Prisma estelar en ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Dura 2 minutos · Responde bien 5 preguntas para llevártelo', 'prisma');
+      if (escena && escena.jugador) escena.cameras.main.flash(500, 200, 160, 255);
+    } else toast(`¡Comienza el desafío: ${vivo.def.nombre}!`);
     if (escena && escena.jugador) montarDesafio(escena);
     if (vivo.def.preguntas) vivo.pendienteModal = true;
   }
@@ -1718,6 +1767,7 @@
   function terminarDesafio() {
     const I = IMPL[vivo.def.id];
     if (escena && escena.jugador) escena.limpiarDesafio();
+    if (vivo.def.id === 'prisma' && !vivo.st.reclamando && vivo.modal && ui.abierto && $('modal').classList.contains('prisma')) ui.cerrar();
     if (vivo.def.id === 'relampago' && !vivo.st.respondida && vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo')) ui.cerrar();
     if (porServidor(vivo.def)) { vivo.fase = 'fin'; vivo.pendienteModal = false; pintarModalFin(); consultarDesafio(); return; }
     const txt = I.fin ? I.fin(vivo.st) : 'Terminó el desafío.';
@@ -1859,6 +1909,94 @@
     ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
   }
 
+  // ---------- Prisma estelar: el primero del grupo en responder bien 5 preguntas se lo lleva ----------
+  const PRISMA_META = 5;
+  const grupoPrisma = () => (S.grupo && escena && escena.canal ? `${escena.zona}-g${S.grupo}` : `solo-${idJuego}`);
+  function tablaPrismaHTML() {
+    const st = vivo.st, otros = Object.values(st.otros || {}).sort((a, b) => b.p - a.p);
+    const pct = Math.round((st.p / PRISMA_META) * 100);
+    return `<span class="etq">Tu avance</span><div class="des-meta"><b>${st.p}</b> de ${PRISMA_META}</div>
+      <div class="barra meta" role="img" aria-label="Llevas ${st.p} de ${PRISMA_META}"><i style="width:${pct}%"></i></div>
+      ${otros.length ? `<span class="etq">Tu grupo</span><ol class="des-ranking">${otros.map((o) => `<li><span>⚔️</span><span>${esc(o.nombre)}</span><b>${o.p}/${PRISMA_META}</b></li>`).join('')}</ol>` : '<span class="nota">Nadie más de tu grupo lo está intentando… ¡por ahora!</span>'}`;
+  }
+  function abrirPrisma() {
+    const st = vivo.st;
+    if (!desActivo('prisma') || st.gane || st.tomado || st.reclamando) return;
+    if (sesion.modo !== 'nube') return toast('El prisma estelar solo se puede tomar con tu cuenta del curso.', 'alerta');
+    vivo.modal = true;
+    const u = unidadDesafio();
+    let d = Preguntas.nuevo(S.curso, u, 2, S.stats), fb = '', espera = false;
+    const pintar = () => {
+      ui.abrir(`
+        <div class="modal-cab"><div><span class="etq">Recurso exclusivo · ${esc(d.titulo)}</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
+        <div class="des-cols">
+          <div class="des-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
+          <aside class="des-tabla" id="prisma-tabla">${tablaPrismaHTML()}</aside>
+        </div>
+        <div class="acciones"><span class="nota">Responde bien ${PRISMA_META} preguntas antes que tus compañeros de grupo para llevártelo.</span><button type="button" class="btn" id="dv-salir">Salir</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
+      $('dv-salir').addEventListener('click', () => ui.cerrar());
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
+    };
+    const responder = (i) => {
+      if (espera || !desActivo('prisma') || st.gane || st.tomado || st.reclamando || i >= d.opciones.length) return;
+      const ok = i === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) {
+        st.p += 1; ganarXP(4);
+        if (escena && escena.canal) escena.canal.emitir('prisma_prog', { n: vivo.d.n, id: idJuego, nombre: S.nombre, p: st.p });
+        if (st.p >= PRISMA_META) { reclamarPrisma(); return; }
+        fb = `<div class="mensaje bien" role="status">¡Correcto! Llevas ${st.p} de ${PRISMA_META}.</div>`;
+      } else fb = `<div class="mensaje mal" role="status">No era esa: la respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+      d = Preguntas.nuevo(S.curso, u, 2, S.stats);
+      pintar();
+      if (!ok) { espera = true; document.querySelectorAll('.alt').forEach((b) => { b.disabled = true; }); setTimeout(() => { espera = false; document.querySelectorAll('#modal .alt').forEach((b) => { b.disabled = false; }); }, 1500); }
+    };
+    pintar();
+  }
+  async function reclamarPrisma() {
+    const st = vivo.st, n = vivo.d.n;
+    st.reclamando = true;
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Recurso exclusivo</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div></div><p class="enunciado">¡${PRISMA_META} de ${PRISMA_META}! Tomando el prisma…</p>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
+    let r = null;
+    try { r = await Nube.prismaReclamar(sesion.token, n, grupoPrisma()); } catch (e) { r = null; }
+    st.reclamando = false;
+    let html;
+    if (r && r.ok) {
+      st.gane = true;
+      sumarCofre({ prisma: 1 }); ganarXP(60); guardar(true);
+      if (escena && escena.canal) escena.canal.emitir('prisma_fin', { n, id: idJuego, nombre: S.nombre });
+      if (escena && escena.jugador) { escena.celebrar(); escena.limpiarDesafio(); }
+      avisoGrande('¡Es tuyo!', 'Conseguiste el Prisma estelar', 'Se guardó en tu cofre', 'prisma');
+      html = `<div class="mensaje bien" role="status" style="font-size:18px">¡Te llevaste el Prisma estelar! Se guardó en tu cofre (no se pierde aunque caigas en combate) y ganaste 60 de experiencia. Úsalo en la fogata de tu base para fabricar la espada y la armadura prismáticas, y adornos y muebles exclusivos (pestaña «Prismáticos»).</div>`;
+    } else if (r && r.nombre) {
+      st.tomado = r.nombre;
+      if (escena && escena.jugador) escena.limpiarDesafio();
+      html = `<div class="mensaje mal" role="status" style="font-size:18px">¡Casi! ${esc(r.nombre)} se llevó el prisma de tu grupo justo antes que tú.</div>`;
+    } else html = '<div class="mensaje mal" role="status" style="font-size:18px">Se acabó el tiempo o no hubo conexión: el prisma desapareció.</div>';
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Recurso exclusivo</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div></div>${html}
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="dv-ok" data-foco>¡Seguir!</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
+    $('dv-ok').addEventListener('click', () => ui.cerrar());
+  }
+  function recibirPrismaProg(d) {
+    if (!d || !vivo.d || d.n !== vivo.d.n || vivo.def.id !== 'prisma') return;
+    vivo.st.otros = vivo.st.otros || {};
+    vivo.st.otros[d.id] = { nombre: String(d.nombre || 'Compañero').slice(0, 24), p: Number(d.p) || 0 };
+    const t = $('prisma-tabla'); if (t) t.innerHTML = tablaPrismaHTML();
+  }
+  function recibirPrismaFin(d) {
+    if (!d || !vivo.d || d.n !== vivo.d.n || vivo.def.id !== 'prisma' || vivo.st.gane || vivo.st.reclamando) return;
+    vivo.st.tomado = String(d.nombre || 'Un compañero').slice(0, 24);
+    if (escena && escena.jugador) escena.limpiarDesafio();
+    toast(`${vivo.st.tomado} se llevó el prisma estelar de tu grupo.`);
+    if (vivo.modal && ui.abierto && $('modal').classList.contains('prisma')) {
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">Recurso exclusivo</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div></div>
+        <div class="mensaje mal" role="status" style="font-size:18px">${esc(vivo.st.tomado)} respondió primero sus ${PRISMA_META} preguntas y se llevó el prisma de tu grupo.</div>
+        <div class="acciones"><span></span><button type="button" class="btn pri" id="dv-ok" data-foco>Entendido</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
+      $('dv-ok').addEventListener('click', () => ui.cerrar());
+    }
+  }
+
   // ---------- Aviso en pantalla (contador y avance) ----------
   function pintarBanner() {
     const b = $('desafio'), cuenta = $('desafio-cuenta');
@@ -1953,11 +2091,13 @@
       if (!this.textures.exists('kenney_in')) this.load.image('kenney_in', 'assets/kenney_indoor.png');
       if (!this.textures.exists('kenney_cueva')) this.load.image('kenney_cueva', 'assets/kenney_cueva.png');
       if (!this.textures.exists('kenney_nieve')) this.load.image('kenney_nieve', 'assets/kenney_nieve.png');
+      if (!this.textures.exists('kenney_prisma')) this.load.image('kenney_prisma', 'assets/kenney_prisma.png');
+      if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
       for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
-      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
+      for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
     }
 
     create() {
@@ -2043,7 +2183,7 @@
       for (const o of OBJETOS) {
         const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
         if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve' }[o.h] || 'kenney');
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       this.crearTexturasDesierto();
@@ -3321,7 +3461,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -3352,6 +3492,7 @@
         case 'cofre_base': return 'Ver tu cofre';
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
+        case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
         case 'colocado': return o.carpa ? 'Entrar a tu pieza (R: guardar la carpa)' : `Guardar ${o.nombre.toLowerCase()}`;
         case 'puerta': return 'Salir a tu base';
         default: return null;
@@ -3370,6 +3511,7 @@
       if (o.tipo === 'cofre_base') return abrirCofre();
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'jefe') return this.pedirJefe();
+      if (o.tipo === 'prisma') return abrirPrisma();
       if (o.tipo === 'colocado') return o.carpa ? this.entrarPieza(o) : this.quitar(o);
       if (o.tipo === 'puerta') return this.salirPieza();
       if (o.tipo === 'arbol' && o.rec === 'baya') {
@@ -3506,6 +3648,8 @@
       c.on('guarida', (d) => { if (d && d.id) this.estadoJug.set(d.id, { dentro: Boolean(d.dentro), listo: d.listo === true }); });
       c.on('jefe', (d) => this.recibirJefe(d));
       c.on('jefe_lugar', (d) => this.fijarLugarJefe(d, false));
+      c.on('prisma_prog', (d) => recibirPrismaProg(d));
+      c.on('prisma_fin', (d) => recibirPrismaFin(d));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
       c.on('lucha', (d) => { const e = this.enemigo(d.k); if (e && e.activo) { e.ocupado = d.id; if (ENEMIGOS[e.clase].oculto && !e.despierto) this.despertar(e); } });
@@ -3899,6 +4043,29 @@
       vagar();
       this.des.items.push(it); this.des.objs.push(halo, punto);
     }
+    // El prisma aparece en el mismo lugar para todo el grupo (depende del desafío y del grupo)
+    soltarPrisma() {
+      if (this.des.prisma) return;
+      const d = vivo.d, rnd = azar(d.n * 7919 + (S.grupo || 0) * 131 + (S.grupo ? 0 : Math.floor(Math.random() * 1e6)));
+      let p = null;
+      for (let i = 0; i < 600 && !p; i++) {
+        const x = 3 + Math.floor(rnd() * (this.ancho - 6)), y = 4 + Math.floor(rnd() * (this.alto - 7));
+        if (Math.abs(x - 6) < 14 && Math.abs(y - PORTAL_Y) < 10) continue;
+        if (this.libre(x, y) && this.libre(x, y - 1)) p = { x: x * TILE + 16, y: y * TILE + 24 };
+      }
+      if (!p) p = { x: CENTRO_X * TILE + 200, y: 10 * TILE };
+      const top = cueva(this.zona) ? 9503 : p.y + 2;
+      const halo = this.add.image(p.x, p.y - 14, 'luz').setScale(0.9).setTint(0xd7a8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.7).setDepth(cueva(this.zona) ? 9502 : p.y + 1);
+      const gema = this.add.image(p.x, p.y - 16, 'item_prisma').setScale(0.75).setDepth(top);
+      this.tweens.add({ targets: gema, y: p.y - 26, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.tweens.add({ targets: halo, alpha: 0.35, scale: 1.1, duration: 700, yoyo: true, repeat: -1 });
+      const chispas = ['p_brillo', 'p_morado', 'p_agua'].map((k, i) => this.add.particles(p.x, p.y - 18, k, { x: { min: -22, max: 22 }, speedY: { min: -70, max: -25 }, lifespan: 1100, frequency: 140 + i * 40, scale: { start: 1.3, end: 0 }, alpha: { start: 0.9, end: 0 } }).setDepth(top + 1));
+      const o = { tipo: 'prisma', x: p.x, y: p.y - 4, activo: true };
+      this.objetos.push(o);
+      this.des.prisma = { x: p.x, y: p.y, o };
+      this.des.objs.push(halo, gema, ...chispas);
+      this.add.particles(p.x, p.y - 20, 'p_brillo', { speed: { min: 60, max: 200 }, lifespan: 900, scale: { start: 2, end: 0 }, emitting: false }).setDepth(99999).explode(40);
+    }
     recoger(tipo, fn) {
       const j = this.jugador;
       for (const it of [...this.des.items]) {
@@ -3925,6 +4092,8 @@
       this.des.oscuro = null; this.des.burbuja = null; this.des.polvo = null;
       for (const o of this.des.objs) if (o && o.active && o !== oscuro) o.destroy();
       this.des.objs = []; this.des.items = [];
+      this.des.flecha = null;
+      if (this.des.prisma) { this.objetos = this.objetos.filter((o) => o !== this.des.prisma.o); this.des.prisma = null; }
       if (oscuro && oscuro.active) this.tweens.add({ targets: oscuro, alpha: 0, duration: 1000, onComplete: () => oscuro.destroy() });
     }
     flotante(x, y, txt, color = '#ffffff') {

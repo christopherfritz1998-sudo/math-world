@@ -44,6 +44,7 @@
     docenteMundo: (token, cursos, unidad, abierta) => rpc('mw_docente_mundo', { p_token: token, p_cursos: cursos, p_unidad: unidad, p_abierta: abierta }),
     desafio: (token) => rpc('mw_desafio', { p_token: token }),
     desafioResponder: (token, n, ok) => rpc('mw_desafio_responder', { p_token: token, p_n: n, p_ok: ok }),
+    prismaReclamar: (token, n, grupo) => rpc('mw_prisma_reclamar', { p_token: token, p_n: n, p_grupo: grupo }),
     docenteDesafios: (token) => rpc('mw_docente_desafios', { p_token: token }),
     docenteDesafio: (token, cursos, id, seg) => rpc('mw_docente_desafio', { p_token: token, p_cursos: cursos, p_id: id, p_seg: seg }),
     salir: (token) => rpc('mw_salir', { p_token: token }, { keepalive: true }),
