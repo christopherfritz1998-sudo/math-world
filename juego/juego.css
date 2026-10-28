@@ -402,3 +402,22 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .rey-tiempo { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; }
 .rey-tiempo i { display: block; height: 100%; background: var(--amber); transition: width .2s linear; }
 @media (max-width: 760px) { .obra-fila { grid-template-columns: 30px 1fr; } .obra-aporte { grid-column: 1 / -1; } }
+
+/* ---------- Sonido ---------- */
+.btn-sonido { position: absolute; right: 12px; top: 92px; width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--line); background: rgba(18, 32, 26, .92); font-size: 22px; cursor: pointer; z-index: 6; }
+.btn-sonido.apagado { border-color: var(--amber); animation: son-llama 2.4s ease-in-out 3; }
+@keyframes son-llama { 50% { box-shadow: 0 0 0 6px rgba(242, 181, 68, .3); } }
+.panel-sonido { position: absolute; right: 12px; top: 146px; width: 240px; display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 14px; background: var(--panel); border: 2px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 7; }
+.panel-sonido .btn { width: 100%; min-height: 42px; }
+.fila-son { display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); color: var(--text); font-weight: 800; cursor: pointer; }
+.fila-son i { width: 40px; height: 22px; border-radius: 999px; background: #55615a; position: relative; transition: background .2s; }
+.fila-son i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.fila-son[aria-checked="true"] i { background: var(--ok); }
+.fila-son[aria-checked="true"] i::after { transform: translateX(18px); }
+.panel-sonido .vol { display: flex; flex-direction: column; gap: 4px; font-weight: 800; font-size: 13px; }
+.panel-sonido .vol input { width: 100%; accent-color: var(--amber); }
+.panel-sonido small { color: var(--muted); font-size: 12px; }
+@media (max-width: 760px) {
+  .btn-sonido { right: 70px; top: 10px; width: 42px; height: 42px; font-size: 20px; }
+  .panel-sonido { right: 12px; top: 60px; }
+}

@@ -339,6 +339,7 @@
   const corazon = (lleno) => `<svg class="cor ${lleno ? '' : 'vacio'}" viewBox="0 0 16 14" aria-hidden="true"><path d="M8 13.5 1.6 7.4A3.9 3.9 0 0 1 8 2.5a3.9 3.9 0 0 1 6.4 4.9z"/></svg>`;
   const corazones = (n, max) => Array.from({ length: max }, (_, i) => corazon(i < n)).join('');
 
+  const sfx = (n) => { if (window.Sonido) Sonido.sfx(n); };
   function toast(msg, tipo = '') {
     const t = $('toast');
     t.textContent = msg;
@@ -482,7 +483,7 @@
     while (S.xp >= xpPara(S.nivel)) {
       S.xp -= xpPara(S.nivel); S.nivel += 1; subio = true;
       S.premiosNivel = (S.premiosNivel || 0) + 1;
-      toast(`¡Subiste a nivel ${S.nivel}! Elige tu recompensa.`);
+      toast(`¡Subiste a nivel ${S.nivel}! Elige tu recompensa.`); sfx('nivel');
     }
     if (subio) premioPospuesto = false;
     pintarHUD();
@@ -593,7 +594,7 @@
         for (const m of M.lista) {
           if (m.p >= m.n || m.t !== ev || (ev === 'acierto' && m.tema !== tema)) continue;
           m.p += 1; cambio = true;
-          if (m.p >= m.n) toast(`Misión cumplida: ${textoMision(m)}`);
+          if (m.p >= m.n) { toast(`Misión cumplida: ${textoMision(m)}`); sfx('mision'); }
         }
         if (cambio && M.lista.every((m) => m.p >= m.n)) {
           M.ok = true;
@@ -899,6 +900,7 @@
     pintarHUD();
     iniciarPhaser('base');
     if (guardado.length) setTimeout(() => toast(`Volviste a tu base. Lo que llevabas quedó en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`), 3600);
+    if (window.Sonido && !Sonido.cfg.on) setTimeout(() => toast('🔊 El juego tiene música y efectos: actívalos con el botón de sonido (arriba). En clases, usa audífonos.'), 7000);
     setTimeout(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`), 700);
   }
 
@@ -1090,8 +1092,8 @@
       if (elegida === null || resuelto) return;
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
-      if (ok) { resuelto = true; ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4); }
-      else { fallos += 1; fallidas.add(elegida); elegida = null; }
+      if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4); }
+      else { fallos += 1; sfx('error'); fallidas.add(elegida); elegida = null; }
       guardar();
       pintar();
     };
@@ -1193,7 +1195,7 @@
       }
       const acep = r.aceptado || {};
       const antes = puenteListo();
-      pagar(acep);
+      pagar(acep); sfx('fabricar');
       const n = Object.values(acep).reduce((a, b) => a + b, 0);
       ganarXP(Math.min(60, 5 + Math.floor(n / 4)));
       obraPuente = r; guardar(true); pintarHUD();
@@ -1257,6 +1259,7 @@
     const H = 300, R = 44, PEZ = 30;
     const st = { fase: 'espera', aro: H - R, vAro: 0, pez: H * 0.6, vPez: 0, meta: H * 0.6, cambio: 0, prog: 0.3, sube: false, t0: performance.now(), pica: 800 + Math.random() * 1800 };
     let raf = 0, ultimo = performance.now(), fin = false;
+    sfx('lanzar');
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">${profundo ? 'Estanque del Bosque profundo' : 'Gran lago del bosque'} · Caña: ${usosCana()} de ${CANA_USOS} usos</span><h2 id="modal-titulo">🎣 Pescar</h2></div><div><button type="button" class="btn sec" id="pz-album">📖 Álbum</button> <button type="button" class="btn" id="pz-salir">Salir</button></div></div>
       <div class="pesca">
@@ -1297,7 +1300,7 @@
       document.removeEventListener('keyup', soltar); ui.teclas = null;
       let msg, clase = 'bien';
       if (atrapado) {
-        avanzarMision('pescar'); ganarXP(6 + Math.round(pez.dif * 4));
+        sfx('pesca'); avanzarMision('pescar'); ganarXP(6 + Math.round(pez.dif * 4));
         const nuevo = registrarPez(pez);
         if (S.vida < vidaMax() && Math.random() < 0.65) {
           const antes = S.vida; S.vida = Math.min(vidaMax(), S.vida + pez.vida); pintarHUD();
@@ -1316,7 +1319,7 @@
         if (escena) escena.celebrar(escena.jugador.x, escena.jugador.y - 60);
         toast(msg);
         guardar(true);
-      } else { msg = `¡${pez.el} ${pez.nombre} se escapó! Inténtalo otra vez.`; clase = 'mal'; }
+      } else { sfx('error'); msg = `¡${pez.el} ${pez.nombre} se escapó! Inténtalo otra vez.`; clase = 'mal'; }
       const rota = gastarCana();
       const cana = rota ? '<div class="mensaje mal" role="status">¡Tu caña de pescar se rompió! Fabrica una nueva en la fogata de tu base para volver a pescar.</div>'
         : `<span class="nota">A tu caña le ${usosCana() === 1 ? 'queda 1 uso' : `quedan ${usosCana()} usos`}.</span>`;
@@ -1343,7 +1346,7 @@
       if (st.aro > H - R) { st.aro = H - R; st.vAro *= -0.25; }
       if (st.fase === 'espera') {
         st.pez = H * 0.6 + Math.sin(ahora / 300) * 6;
-        if (ahora - st.t0 > st.pica) { st.fase = 'lucha'; estado.textContent = `¡Picó ${pez.un} ${pez.nombre}! Mantenlo dentro del aro.`; if (escena) escena.cameras.main.shake(160, 0.004); }
+        if (ahora - st.t0 > st.pica) { st.fase = 'lucha'; sfx('pica'); estado.textContent = `¡Picó ${pez.un} ${pez.nombre}! Mantenlo dentro del aro.`; if (escena) escena.cameras.main.shake(160, 0.004); }
       } else {
         // el pez cambia de rumbo cada cierto tiempo; los más difíciles son más rápidos y nerviosos
         st.cambio -= dt;
@@ -1418,16 +1421,16 @@
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
       if (ok) {
-        enemigo.vida -= danio();
+        enemigo.vida -= danio(); sfx('golpe');
         ganarXP(4 + 2 * dif);
         escena.golpeEnemigo(enemigo, danio());
         ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
-        if (enemigo.vida <= 0) fase = 'victoria';
+        if (enemigo.vida <= 0) { fase = 'victoria'; setTimeout(() => sfx('victoria'), 150); }
       } else if (escudoActivo()) {
         vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1;
         ultimo = `<div class="mensaje pista" role="status">¡Tu escudo de cristal bloqueó el golpe! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
       } else {
-        S.vida -= 1;
+        S.vida -= 1; sfx('dano');
         escena.dolor();
         pintarHUD();
         ultimo = `<div class="mensaje mal" role="status">¡Te golpeó! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
@@ -1457,7 +1460,7 @@
     let d = null, elegida = null, fallidas = new Set(), fin = null, ultimo = '', reloj = 0;
     const primeraVez = !S.reyVencido;
     sc.enCombate = true;
-    if (sc.rey) { sc.rey.setTint(0xffffff); sc.rey.anims.play('jefe_u1b_down', true); sc.cameras.main.shake(400, 0.008); }
+    if (sc.rey) { sc.rey.setTint(0xffffff); sc.rey.anims.play('jefe_u1b_down', true); sc.cameras.main.shake(400, 0.008); sfx('rugido'); }
     const nueva = () => {
       d = Preguntas.nuevo(S.curso, 'u1', J.fase === 3 ? 3 : 2, S.stats); elegida = null; fallidas = new Set();
       J.limite = J.fase === 1 ? 0 : J.fase === 2 ? 25000 : 18000; J.t0 = performance.now();
@@ -1467,6 +1470,7 @@
     const cerrar = (res) => {
       clearInterval(reloj); sc.enCombate = false;
       if (res === 'victoria') {
+        sfx('logro');
         Object.entries(REY.premio).forEach(([r, n]) => sumar(r, n)); ganarXP(REY.xp);
         S.reyVencido = (S.reyVencido || 0) + 1; S.reyHasta = Date.now() + 10 * 60000;
         if (S.reyVencido === 1) { S.inventario.estatua_jabali = (S.inventario.estatua_jabali || 0) + 1; }
@@ -1508,6 +1512,7 @@
       };
     };
     const golpeRecibido = (motivo) => {
+      sfx('dano');
       if (escudoActivo()) { vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1; ultimo = `<div class="mensaje pista" role="status">${motivo} ¡Tu escudo de cristal bloqueó el golpe!</div>`; return; }
       const n = danioRecibido();
       S.vida = Math.max(0, S.vida - n); sc.dolor(); pintarHUD();
@@ -1521,7 +1526,7 @@
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
       if (ok) {
-        ganarXP(4 + 2 * J.fase);
+        ganarXP(4 + 2 * J.fase); sfx('golpe');
         if (J.escudo > 0) { J.escudo -= 1; ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.escudo ? `El escudo de raíces resiste: le quedan ${J.escudo}.` : '¡Rompiste el escudo de raíces!'}</div>`; }
         else {
           J.hp -= danio();
@@ -1535,6 +1540,7 @@
         const f = faseDe();
         if (f > J.fase) {
           J.fase = f; sc.cameras.main.shake(500, 0.01); sc.cameras.main.flash(300, f === 3 ? 230 : 120, f === 3 ? 80 : 160, 60);
+          sfx('rugido');
           if (f === 2) { J.escudo = 3; for (let i = 0; i < 2; i++) sc.soltarBichoJunto(); }
           if (f === 3) sc.rey.setTint(0xff9a7a);
         }
@@ -1625,9 +1631,9 @@
       if (elegida === null || fase !== 'pregunta') return;
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
-      if (ok) { ganarXP(4 + 2 * dif); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; e.golpeLocal(danio()); }
+      if (ok) { sfx('golpe'); ganarXP(4 + 2 * dif); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; e.golpeLocal(danio()); }
       else {
-        const dj = danioJefe();
+        const dj = danioJefe(); sfx('dano');
         if (escudoActivo()) {
           vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1;
           ultimo = `<div class="mensaje pista" role="status">¡Tu escudo de cristal bloqueó el golpe del jefe! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
@@ -1734,7 +1740,7 @@
       const m = MEJORAS.find((x) => x.id === b.dataset.m);
       const hacer = () => {
         if (!alcanza(m.costo) || tiene(m.id)) return;
-        pagar(m.costo); S.mejoras.push(m.id);
+        pagar(m.costo); S.mejoras.push(m.id); sfx('fabricar');
         if (m.id === 'cana') S.canaUsos = CANA_USOS;
         guardar(true); pintarHUD(); escena.celebrar();
         toast(ARMAS[m.id] || ARMADURAS[m.id] ? `¡Fabricaste: ${m.nombre}! Equípala con el botón Equipar.` : `¡Fabricaste: ${m.nombre}!`);
@@ -1747,7 +1753,7 @@
       if (!o || o.excl || !alcanza(o.costo)) return;
       const scroll = $('modal').scrollTop;
       pagar(o.costo);
-      S.inventario[o.id] = (S.inventario[o.id] || 0) + 1;
+      S.inventario[o.id] = (S.inventario[o.id] || 0) + 1; sfx('fabricar');
       guardar(true); pintarHUD();
       toast(`Fabricaste: ${o.nombre}. Colócalo con Decorar (G).`);
       avanzarMision('fabricar');
@@ -1844,10 +1850,12 @@
     }
     S.zona = zona;
     guardar(true);
+    sfx('portal');
     escena.scene.restart({ zona, desde });
   }
 
   function morir(enemigo) {
+    sfx('derrota');
     const perdido = RECURSOS.map((r) => [r.id, S.mochila[r.id] || 0]).filter(([, n]) => n > 0);
     RECURSOS.forEach((r) => { S.mochila[r.id] = 0; });
     S.muertes = (S.muertes || 0) + 1;
@@ -2167,6 +2175,7 @@
     vivo.fase = 'activo';
     const I = IMPL[vivo.def.id];
     vivo.st = I.estado ? I.estado() : {};
+    sfx('inicio');
     if (vivo.def.id === 'prisma') {
       const z = vivo.d.mundo;
       avisoGrande('¡Apareció un recurso exclusivo!', `Prisma estelar en ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Dura 2 minutos · Responde bien 5 preguntas para llevártelo', 'prisma');
@@ -2225,6 +2234,7 @@
       else txt = `No alcanzaron la meta: ${d.total} de ${d.meta} respuestas correctas. ¡A la próxima!`;
     }
     vivo.fase = 'cerrado'; vivo.resultado = txt; vivo.hasta = Date.now() + 9000;
+    sfx(gano ? 'logro' : 'mision');
     if (gano && escena && escena.jugador) escena.celebrar();
     guardar(true);
     if (vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo')) pintarModalFin();
@@ -2382,6 +2392,7 @@
     let r = null;
     try { r = await Nube.prismaReclamar(sesion.token, n, grupoPrisma()); } catch (e) { r = null; }
     st.reclamando = false;
+    sfx(r && r.ok ? 'logro' : 'error');
     let html;
     if (r && r.ok) {
       st.gane = true;
@@ -2449,7 +2460,7 @@
     if (seg > 0) {
       cuenta.classList.remove('oculto');
       if (cuenta.dataset.n !== String(seg)) {
-        cuenta.dataset.n = String(seg);
+        cuenta.dataset.n = String(seg); sfx('tick');
         cuenta.querySelector('b').textContent = seg;
         cuenta.querySelector('small').textContent = `${D.icono} ${D.nombre}`;
         cuenta.classList.remove('late'); void cuenta.offsetWidth; cuenta.classList.add('late');
@@ -2479,6 +2490,48 @@
     }
     pintarBanner();
   }, 250);
+
+  // ---------- Música: cambia según el mundo, el combate con jefes y los desafíos ----------
+  function pistaActual() {
+    if (!escena || !escena.jugador || $('hud').classList.contains('oculto')) return null;
+    const z = escena.zona;
+    if (escena.enJefe || (escena.enCombate && ui.abierto && $('modal').classList.contains('rey'))) return 'jefe';
+    if (vivo.fase === 'activo') return 'desafio';
+    if (z === 'base') return 'base';
+    if (z === 'pieza') return 'pieza';
+    if (z === 'u1') return escena.rio && escena.jugador.x > (escena.rio.RX + RIO_ANCHO) * TILE ? 'profundo' : 'bosque';
+    return { u2: 'desierto', u3: 'mina', u4: 'glaciar' }[z] || 'bosque';
+  }
+  setInterval(() => { if (window.Sonido) Sonido.musica(pistaActual()); }, 700);
+  // Botón y panel de sonido
+  function pintarSonido() {
+    if (!window.Sonido) return;
+    const c = Sonido.cfg, b = $('btn-sonido');
+    b.textContent = c.on ? (c.musica || c.efectos ? '🔊' : '🔈') : '🔇';
+    b.setAttribute('aria-label', c.on ? 'Sonido activado: abrir ajustes de sonido' : 'Sonido silenciado: abrir ajustes de sonido');
+    b.classList.toggle('apagado', !c.on);
+    const p = $('panel-sonido');
+    p.querySelector('[data-s="on"]').textContent = c.on ? '🔇 Silenciar todo' : '🔊 Activar sonido';
+    p.querySelector('[data-s="musica"]').setAttribute('aria-checked', String(c.musica));
+    p.querySelector('[data-s="efectos"]').setAttribute('aria-checked', String(c.efectos));
+    p.querySelector('input').value = Math.round(c.vol * 100);
+  }
+  $('btn-sonido').addEventListener('click', (e) => { e.stopPropagation(); $('panel-sonido').classList.toggle('oculto'); pintarSonido(); });
+  $('panel-sonido').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const k = e.target.closest('[data-s]'); if (!k || !window.Sonido) return;
+    const c = Sonido.cfg;
+    if (k.dataset.s === 'on') Sonido.config({ on: !c.on });
+    else if (k.dataset.s === 'musica') Sonido.config({ musica: !c.musica, on: true });
+    else if (k.dataset.s === 'efectos') Sonido.config({ efectos: !c.efectos, on: true });
+    pintarSonido(); sfx('clic');
+  });
+  $('panel-sonido').querySelector('input').addEventListener('input', (e) => { if (window.Sonido) Sonido.config({ vol: Number(e.target.value) / 100, on: true }); pintarSonido(); });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#panel-sonido') && !e.target.closest('#btn-sonido')) $('panel-sonido').classList.add('oculto');
+    if (e.target.closest('#modal .btn, #modal .alt, .btn-hud')) sfx('clic');
+  });
+  pintarSonido();
 
   // ===================================================================
   // Escena (Phaser): base o mundo según la zona
@@ -2912,6 +2965,7 @@
         this.tramoPuente = null;
         if (celebrar) {
           this.cameras.main.shake(500, 0.006); this.celebrar(RX * TILE + 48, by * TILE);
+          sfx('logro');
           avisoGrande('¡El puente está terminado!', 'Ya pueden cruzar al Bosque profundo', 'Gracias a los aportes de todo el nivel');
         }
       }
@@ -3169,7 +3223,7 @@
         toast(o.pared ? 'No hay espacio en esa parte de la pared. Muévete un poco.' : 'No hay espacio libre justo delante. Muévete a un lugar despejado.', 'alerta');
         return false;
       }
-      const c = { k: id, x: tx, y: ty };
+      const c = { k: id, x: tx, y: ty }; sfx('colocar');
       lista.push(c);
       this.dibujarColocado(c);
       this.celebrar((tx + 1) * TILE - w * 16, (ty + 1) * TILE - 20);
@@ -3833,7 +3887,7 @@
     // Ventisca: 15 segundos de viento con nieve; sin abrigo se camina más lento
     empezarVentisca() {
       if (this.ventisca || !this.jugador) return;
-      this.ventisca = true;
+      this.ventisca = true; sfx('viento');
       toast(tiene('abrigo') ? '¡Ventisca! Tu abrigo de piel te protege del frío.' : '¡Ventisca! Caminas más lento. Un abrigo de piel te protegería.', 'alerta');
       const cam = this.cameras.main;
       const p = this.add.particles(0, 0, 'p_nieve', { x: -20, y: { min: 0, max: cam.height }, lifespan: 2200, frequency: 12, speedX: { min: 380, max: 620 }, speedY: { min: -30, max: 60 }, scale: { start: 1.5, end: 0.6 }, alpha: { start: 0.95, end: 0.2 } }).setScrollFactor(0).setDepth(99991);
@@ -3870,6 +3924,7 @@
     }
     // Fase de furia de los jefes con fases: tormenta de arena (desierto) o derrumbe (mina)
     furiaJefe() {
+      sfx('rugido');
       const J = JEFES[this.zona], F = J.furia || { toast: 'se enfureció', particula: 'p_brillo', tinte: 0xff9f9f, flash: [200, 80, 80] };
       toast(`¡${J.nombre} ${F.toast}! Las preguntas son más difíciles.`, 'alerta');
       this.cameras.main.shake(500, 0.008); this.cameras.main.flash(300, ...F.flash);
@@ -4091,7 +4146,7 @@
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
       this.enCombate = true;
       this.jugador.setVelocity(0, 0);
-      this.cameras.main.shake(150, 0.004);
+      this.cameras.main.shake(150, 0.004); sfx('alerta');
       if (this.canal && e.k) this.canal.emitir('lucha', { k: e.k, id: idJuego });
       combateActual = e;
       abrirCombate(e, (resultado) => {
@@ -4299,6 +4354,8 @@
 
     golpe(o, recurso, cant) {
       this.mirarA(o);
+      sfx(o.tipo === 'roca' ? 'picar' : o.tipo === 'agua' ? 'agua' : o.tipo === 'cofre' ? 'cofre' : ['baya', 'hongo', 'miel'].includes(o.rec) ? 'recolectar' : 'talar');
+      setTimeout(() => sfx('moneda'), 180);
       const j = this.jugador;
       this.tweens.add({ targets: j, y: j.y - 3, duration: 80, yoyo: true, repeat: 1 });
       const px = { resina: 'p_cobre', miel: 'p_brillo', madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua' }[recurso];
@@ -4545,7 +4602,7 @@
           this.add.particles(this.jefeSpr.x, this.jefeSpr.y - 40, 'p_morado', { speed: { min: 60, max: 200 }, lifespan: 900, scale: { start: 2, end: 0 }, emitting: false }).setDepth(99999).explode(40);
           if (this.jefe.estado !== 'combate') {
             // temblor: el jefe acaba de aparecer en algún lugar del mapa
-            this.cameras.main.shake(1400, 0.012);
+            this.cameras.main.shake(1400, 0.012); sfx('jefe');
             avisoJefe(nombre);
           }
         } else {
@@ -4731,6 +4788,7 @@
         if (vivo.fase !== 'activo' || !this.jugador) return;
         this.add.particles(p.x, p.y - 6, 'p_rojo', { speed: { min: 60, max: 200 }, angle: { min: 190, max: 350 }, gravityY: 300, lifespan: 600, scale: { start: 1.8, end: 0 }, emitting: false }).setDepth(99990).explode(26);
         const dj = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, p.x, p.y);
+        if (dj < 500) sfx('boom');
         if (dj < 240) this.cameras.main.shake(140, dj < 70 ? 0.008 : 0.003);
         if (dj < 34) {
           vivo.st.golpes += 1; this.aturdidoHasta = this.time.now + 1100; this.dolor();
@@ -4812,7 +4870,7 @@
       const j = this.jugador;
       for (const it of [...this.des.items]) {
         if (it.tipo !== tipo) continue;
-        if (Phaser.Math.Distance.Between(j.x, j.y - 10, it.x, it.y - 10) < 34) { this.quitarItem(it); fn(it); }
+        if (Phaser.Math.Distance.Between(j.x, j.y - 10, it.x, it.y - 10) < 34) { this.quitarItem(it); sfx(tipo === 'cofre' ? 'cofre' : 'brillo'); fn(it); }
       }
     }
     quitarItem(it) {

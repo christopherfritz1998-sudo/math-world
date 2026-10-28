@@ -113,6 +113,14 @@
     </div>
     <div class="desafio-cuenta oculto" id="desafio-cuenta" aria-hidden="true"><small></small><b></b></div>
     <div class="aviso-jefe oculto" id="aviso-jefe" role="alert"><b>¡El jefe ha aparecido!</b><span>Búscalo y derrótalo</span><small></small></div>
+    <button type="button" class="btn-sonido apagado" id="btn-sonido" aria-label="Ajustes de sonido">🔇</button>
+    <div class="panel-sonido oculto" id="panel-sonido" role="dialog" aria-label="Sonido">
+      <button type="button" class="btn pri" data-s="on">🔊 Activar sonido</button>
+      <button type="button" class="fila-son" data-s="musica" role="switch" aria-checked="true"><span>🎵 Música</span><i></i></button>
+      <button type="button" class="fila-son" data-s="efectos" role="switch" aria-checked="true"><span>💥 Efectos</span><i></i></button>
+      <label class="vol"><span>Volumen</span><input type="range" min="5" max="100" value="60" aria-label="Volumen"></label>
+      <small>En la sala de clases, usa audífonos.</small>
+    </div>
     <button type="button" class="btn-portal oculto" id="btn-portal">← Portal docente</button>
     <div class="botones">
       <button type="button" class="btn-hud" id="btn-base"><img class="px" src="assets/iconos/fogata.png" alt="">Fabricar <kbd>B</kbd></button>
@@ -142,6 +150,7 @@
   <script src="preguntas_ext.js"></script>
   <script src="preguntas_mas.js"></script>
   <script src="desafios.js"></script>
+  <script src="sonido.js"></script>
   <script src="juego.js"></script>
 </body>
 </html>
