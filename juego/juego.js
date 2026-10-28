@@ -35,6 +35,7 @@
   const MEJORAS = [
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
+    { id: 'cana', nombre: 'Caña de pescar', desc: 'Herramienta: con ella puedes pescar en el muelle del gran lago del Bosque. No hace falta equiparla.', icono: 'cana', costo: { madera: 14, agua: 4, cristal: 1 } },
     { id: 'espada', nombre: 'Espada de piedra', desc: 'Equipada, cada acierto en combate quita 2 de vida.', icono: 'espada', costo: { madera: 15, piedra: 10 }, requiere: 'pico' },
     { id: 'hacha2', nombre: 'Hacha de hierro', desc: 'Ganas 2 maderas más por cada árbol.', icono: 'axe', costo: { madera: 25, piedra: 15 }, requiere: 'pico' },
     { id: 'armadura', nombre: 'Armadura de cuero', desc: 'Equipada, tu vida máxima sube a 7 corazones.', icono: 'armadura', costo: { piedra: 25, agua: 6, cristal: 2 }, requiere: 'espada' },
@@ -228,7 +229,7 @@
   const MUNDOS = {
     u1: { nombre: { '7basico': 'Bosque de los Enteros', '8basico': 'Bosque de las Potencias' }, semilla: 11, fondo: '#2f6b47',
       suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 175,
-      rocas: ['roca3'], nRocas: 48, lagos: 3, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
+      rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
     // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
     u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
       suelo: [[8, 22, 1], [3, 19, 0.07]], nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
@@ -461,6 +462,7 @@
     talar: { n: [4, 6], txt: (m) => (desierto(m.u) ? `Corta ${m.n} cactus` : cueva(m.u) ? `Recolecta ${m.n} grupos de hongos luminosos` : helado(m.u) ? `Recolecta bayas de ${m.n} arbustos` : `Tala ${m.n} árboles`) },
     picar: { n: [3, 5], txt: (m) => (desierto(m.u) ? `Pica ${m.n} rocas de arenisca` : cueva(m.u) ? `Pica ${m.n} rocas de carbón` : helado(m.u) ? `Pica ${m.n} bloques de hielo` : `Pica ${m.n} rocas`), req: () => tiene('pico') },
     agua: { n: [2, 3], txt: (m) => `Saca agua del lago ${m.n} veces`, req: () => tiene('balde'), mundos: bosque },
+    pescar: { n: [2, 3], txt: (m) => `Pesca ${m.n} veces en el muelle del gran lago`, req: () => tiene('cana'), mundos: bosque },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
     arbusto: { n: [2, 3], txt: (m) => `Vence ${m.n} duendes del bosque`, mundos: bosque },
     niebla: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 hombre lobo' : `Vence ${m.n} hombres lobo`), mundos: bosque },
@@ -885,6 +887,7 @@
       { id: 'pico', icono: 'pickaxe', tecla: '2', ok: tiene('pico'), nombre: tiene('pico2') ? 'Pico reforzado' : 'Pico' },
       { id: 'espada', icono: 'espada', tecla: '3', ok: Boolean(S.arma), nombre: S.arma ? ARMAS[S.arma].nombre : 'Espada (equípala en Equipo)' },
       { id: 'balde', icono: 'agua', tecla: '', ok: tiene('balde'), nombre: 'Balde' },
+      { id: 'cana', icono: 'cana', tecla: '', ok: tiene('cana'), nombre: 'Caña de pescar (úsala en el muelle del lago del Bosque)' },
     ];
     $('hud-herramientas').innerHTML = ranuras.map((r) => `
       <div class="ranura ${S.herramienta === r.id ? 'activa' : ''} ${r.ok ? '' : 'falta'}" title="${esc(r.ok ? r.nombre : r.nombre + ' (fabrícalo en tu base)')}">
@@ -1062,6 +1065,119 @@
     clearTimeout(avisoJefe._t);
     avisoJefe._t = setTimeout(() => { a.classList.add('sale'); setTimeout(() => a.classList.add('oculto'), 600); }, 4200);
     if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch (e) { /* */ } }
+  }
+
+  // ---------- Minijuego de pesca ----------
+  // El pez se mueve por una barra vertical; con ESPACIO (o manteniendo presionado) se sube el aro.
+  // Mientras el pez esté dentro del aro se llena la barra de captura; si sale, se vacía.
+  const PECES = [
+    { id: 'trucha', nombre: 'trucha', un: 'una', el: 'La', lo: 'la', peso: 40, dif: 1, vida: 2 },
+    { id: 'carpa', nombre: 'carpa', un: 'una', el: 'La', lo: 'la', peso: 30, dif: 1.3, vida: 2 },
+    { id: 'salmon', nombre: 'salmón', un: 'un', el: 'El', lo: 'lo', peso: 20, dif: 1.8, vida: 3 },
+    { id: 'dorado', nombre: 'pez dorado', un: 'un', el: 'El', lo: 'lo', peso: 10, dif: 2.4, vida: 4 },
+  ];
+  function abrirPesca() {
+    let total = PECES.reduce((a, p) => a + p.peso, 0), r = Math.random() * total, pez = PECES[0];
+    for (const p of PECES) { if ((r -= p.peso) < 0) { pez = p; break; } }
+    const H = 300, R = 44, PEZ = 30;
+    const st = { fase: 'espera', aro: H - R, vAro: 0, pez: H * 0.6, vPez: 0, meta: H * 0.6, cambio: 0, prog: 0.3, sube: false, t0: performance.now(), pica: 800 + Math.random() * 1800 };
+    let raf = 0, ultimo = performance.now(), fin = false;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Gran lago del bosque</span><h2 id="modal-titulo">🎣 Pescar</h2></div><button type="button" class="btn" id="pz-salir">Salir</button></div>
+      <div class="pesca">
+        <div class="pesca-barra" id="pz-barra" aria-label="Barra de pesca"><div class="pesca-aro" id="pz-aro"></div><img class="pesca-pez px" id="pz-pez" src="${ICONO('pez')}" alt="Pez"></div>
+        <div class="pesca-captura" aria-label="Captura"><i id="pz-prog"></i></div>
+        <div class="pesca-info">
+          <p class="enunciado" id="pz-estado">Lanzaste el anzuelo… espera a que pique.</p>
+          <p class="nota">Mantén presionada la tecla <kbd>ESPACIO</kbd> (o el botón) para subir el aro; suéltala para que baje. Mantén al pez dentro del aro hasta llenar la barra verde.</p>
+          <button type="button" class="btn pri pesca-btn" id="pz-subir">Mantén para subir el aro</button>
+        </div>
+      </div>`, 'pesca-modal', () => { fin = true; cancelAnimationFrame(raf); document.removeEventListener('keyup', soltar); });
+    const aro = $('pz-aro'), pezEl = $('pz-pez'), prog = $('pz-prog'), estado = $('pz-estado'), btn = $('pz-subir'), barra = $('pz-barra');
+    if (document.activeElement) document.activeElement.blur();
+    const soltar = (e) => { if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); st.sube = false; } };
+    document.addEventListener('keyup', soltar);
+    ui.teclas = (e) => { if (e.key === ' ' || e.code === 'Space') { e.preventDefault(); st.sube = true; } };
+    for (const el of [btn, barra]) {
+      el.addEventListener('pointerdown', (e) => { e.preventDefault(); st.sube = true; });
+      el.addEventListener('pointerup', () => { st.sube = false; });
+      el.addEventListener('pointerleave', () => { st.sube = false; });
+      el.addEventListener('pointercancel', () => { st.sube = false; });
+    }
+    $('pz-salir').addEventListener('click', () => ui.cerrar());
+    const pintar = () => {
+      aro.style.transform = `translateY(${st.aro - R}px)`;
+      pezEl.style.transform = `translateY(${st.pez - PEZ / 2}px)`;
+      prog.style.height = `${Math.round(st.prog * 100)}%`;
+      const dentro = Math.abs(st.pez - st.aro) < R - 4;
+      aro.classList.toggle('dentro', st.fase === 'lucha' && dentro);
+      return dentro;
+    };
+    const terminar = (atrapado) => {
+      st.fase = 'fin'; cancelAnimationFrame(raf);
+      document.removeEventListener('keyup', soltar); ui.teclas = null;
+      let msg, clase = 'bien';
+      if (atrapado) {
+        avanzarMision('pescar'); ganarXP(6 + Math.round(pez.dif * 4));
+        if (S.vida < vidaMax() && Math.random() < 0.65) {
+          const antes = S.vida; S.vida = Math.min(vidaMax(), S.vida + pez.vida); pintarHUD();
+          const n = S.vida - antes;
+          msg = `¡Pescaste ${pez.un} ${pez.nombre}! Te ${pez.lo} comiste y recuperaste ${n} ${n === 1 ? 'corazón' : 'corazones'}.`;
+          if (escena) escena.flotante(escena.jugador.x, escena.jugador.y - 70, `+${n} ❤`, '#ff9a9a');
+        } else {
+          const lista = recursosDe(escena && MUNDOS[escena.zona] ? escena.zona : 'u1');
+          const pool = []; lista.forEach((x, i) => { for (let k = 0; k < 4 - i; k++) pool.push(x.id); });
+          const rec = pool[Math.floor(Math.random() * pool.length)];
+          const cant = (rec === 'cristal' ? 1 : 2 + Math.floor(Math.random() * 2)) + (pez.id === 'dorado' ? 2 : 0);
+          sumar(rec, cant);
+          msg = `¡Pescaste algo del fondo del lago! Recolectaste ${cant} ${nombreRec(rec)}.`;
+          if (escena) escena.flotante(escena.jugador.x, escena.jugador.y - 70, `+${cant} ${nombreRec(rec)}`);
+        }
+        if (escena) escena.celebrar(escena.jugador.x, escena.jugador.y - 60);
+        toast(msg);
+        guardar(true);
+      } else { msg = `¡${pez.el} ${pez.nombre} se escapó! Inténtalo otra vez.`; clase = 'mal'; }
+      const info = document.querySelector('#modal .pesca-info');
+      if (info) {
+        info.innerHTML = `<div class="mensaje ${clase}" role="status" style="font-size:18px">${esc(msg)}</div>
+          <div class="acciones"><button type="button" class="btn sec" id="pz-otra">Pescar otra vez</button><button type="button" class="btn pri" id="pz-ok" data-foco>¡Listo!</button></div>`;
+        $('pz-ok').addEventListener('click', () => ui.cerrar());
+        $('pz-otra').addEventListener('click', () => { ui.alCerrar = null; ui.cerrar(); abrirPesca(); });
+        $('pz-ok').focus();
+        ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+      }
+    };
+    const paso = (ahora) => {
+      if (fin || st.fase === 'fin') return;
+      const dt = Math.min(0.05, (ahora - ultimo) / 1000); ultimo = ahora;
+      // el aro: sube mientras se mantiene presionado, cae al soltar
+      st.vAro += (st.sube ? -950 : 720) * dt;
+      st.vAro = Math.max(-360, Math.min(360, st.vAro));
+      st.aro += st.vAro * dt;
+      if (st.aro < R) { st.aro = R; st.vAro *= -0.25; }
+      if (st.aro > H - R) { st.aro = H - R; st.vAro *= -0.25; }
+      if (st.fase === 'espera') {
+        st.pez = H * 0.6 + Math.sin(ahora / 300) * 6;
+        if (ahora - st.t0 > st.pica) { st.fase = 'lucha'; estado.textContent = `¡Picó ${pez.un} ${pez.nombre}! Mantenlo dentro del aro.`; if (escena) escena.cameras.main.shake(160, 0.004); }
+      } else {
+        // el pez cambia de rumbo cada cierto tiempo; los más difíciles son más rápidos y nerviosos
+        st.cambio -= dt;
+        if (st.cambio <= 0) { st.meta = PEZ + Math.random() * (H - 2 * PEZ); st.cambio = (0.8 + Math.random() * 1.4) / Math.sqrt(pez.dif); }
+        const fuerza = (st.meta - st.pez) * 4 * pez.dif;
+        st.vPez += fuerza * dt; st.vPez *= Math.pow(0.08, dt);
+        const vmax = 70 + 60 * pez.dif; st.vPez = Math.max(-vmax, Math.min(vmax, st.vPez));
+        st.pez = Math.max(PEZ / 2, Math.min(H - PEZ / 2, st.pez + st.vPez * dt));
+      }
+      const dentro = pintar();
+      if (st.fase === 'lucha') {
+        st.prog += (dentro ? 0.32 : -0.13 - 0.03 * pez.dif) * dt;
+        if (st.prog >= 1) { st.prog = 1; pintar(); terminar(true); return; }
+        if (st.prog <= 0) { st.prog = 0; pintar(); terminar(false); return; }
+      }
+      raf = requestAnimationFrame(paso);
+    };
+    pintar();
+    raf = requestAnimationFrame(paso);
   }
 
   // ---------- Combate ----------
@@ -2208,6 +2324,17 @@
         '.xggggggggggggggx.', '.xgggmmmmmmmmgggx.', '..xggggggggggggx..', 'xxxxggggggggggxxxx', 'xggxggggggggggxggx',
         'xggxgggxxxxgggxggx', 'xggxggx....xggxggx', '.xx.xgx....xgx.xx.', '....xgx....xgx....', '...xggx....xggx...', '...xxxx....xxxx...',
       ], { x: '#1b1a12', g: J.color, e: '#ffd23f', m: '#3a1f22' });
+      // Gran lago del bosque: tablas del muelle, postes, nenúfares y juncos
+      this.pixeles('muelle', ['nccccccccccccccn', 'naaaaaaaaaaaaaan', 'naaaaaaaaaaaaaan', 'nbbbbbbbbbbbbbbn', 'nccccccccccccccn', 'naaaaaaakaaaaaan', 'naaaaaaaaaaaaaan', 'nbbbbbbbbbbbbbbn',
+        'nccccccccccccccn', 'naaaaaaaaaaaaaan', 'naakaaaaaaaaaaan', 'nbbbbbbbbbbbbbbn', 'nccccccccccccccn', 'naaaaaaaaaaakaan', 'naaaaaaaaaaaaaan', 'nbbbbbbbbbbbbbbn'],
+        { a: '#9a6638', b: '#5e3b1f', c: '#bf8a52', n: '#4a2e17', k: '#3a2412' });
+      this.pixeles('poste', ['.kk.', 'kccn', 'kaan', 'kaan', 'kaan', 'kaan', 'kaan', 'wwww'], { a: '#7a4f2a', c: '#a8743f', k: '#3a2412', n: '#4a2e17', w: '#cfe9f5' });
+      this.pixeles('nenufar', ['................', '................', '.....gggg.......', '...gggggggg.....', '..gggggllgggg...', '..ggglggggggg...', '.gggggggg..gg...', '.gggglggg.......', '..gggggggggg....',
+        '...gggggggg.....', '.....gggg.......', '................'], { g: '#3f8f4a', l: '#6cbf6a' });
+      this.pixeles('nenufar_flor', ['................', '.......pp.......', '......pwwp......', '...ggpwwwwpg....', '..gggpppppggg...', '.gggggggggg.gg..', '.ggglggg........', '..gggggggggg....', '...gggggggg.....', '.....gggg.......'],
+        { g: '#3f8f4a', l: '#6cbf6a', p: '#f08cb4', w: '#ffe2ee' });
+      this.pixeles('juncos', ['...c......c.....', '...c...c..c.....', '..gc...c..c..c..', '..g....c.gg..c..', '..g..g.g.g...c..', '.gg..g.g.g..g...', '.g..gg.g.g..g...', '.g..g..gg..gg...', '.g..g..g...g....', 'gg..g..g...g....',
+        'g..gg..g..gg....', 'g..g...g..g.....', 'g..g..gg..g.....', 'gg.g..g..gg.....', '.ggg..g..g......', '..gggggggg......'], { g: '#4c8a3a', c: '#7a4a24' });
       this.pixeles('corazon', ['.rr.rr.', 'rwrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'], { r: '#e8524a', w: '#ffd0c8' });
       this.pixeles('hilo', ['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'], { x: '#e8e8e8' });
       this.pixeles('niebla', [
@@ -2349,6 +2476,63 @@
       this.obstaculos.add(this.add.zone((lx + w / 2) * TILE, (ly + h / 2) * TILE, w * TILE - 24, h * TILE - 24));
       if (interactivo) this.lagos.push({ x: lx * TILE, y: ly * TILE, w: w * TILE, h: h * TILE });
       for (let y = ly - 1; y <= ly + h; y++) for (let x = lx - 1; x <= lx + w; x++) this.marcar(x, y);
+    }
+    // Gran lago del bosque (no se puede cruzar) con un muelle para pescar
+    prepararGranLago(data) {
+      const w = 15, h = 9;
+      let L = null;
+      for (let t = 0; t < 300 && !L; t++) {
+        const lx = 18 + Math.floor(this.rnd() * (this.ancho - w - 22)), ly = 4 + Math.floor(this.rnd() * (this.alto - h - 10));
+        if (lx <= CENTRO_X && lx + w >= CENTRO_X) continue;
+        if (ly <= PORTAL_Y + 3 && ly + h + 3 >= PORTAL_Y) continue;
+        let ok = true;
+        for (let y = ly - 2; y <= ly + h + 3 && ok; y++) for (let x = lx - 2; x <= lx + w + 1 && ok; x++) if (this.ocupado.has(`${x},${y}`)) ok = false;
+        if (ok) L = { lx, ly, w, h };
+      }
+      if (!L) L = { lx: CENTRO_X + 6, ly: 4, w, h };
+      const { lx, ly } = L, dx = lx + Math.floor(w / 2), dTop = ly + h - 5;   // el muelle entra 5 casillas al agua desde la orilla de abajo
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+        const tx = x === 0 ? 0 : x === w - 1 ? 2 : 1, ty = y === 0 ? 0 : y === h - 1 ? 2 : 1;
+        data[ly + y][lx + x] = fr(2 + tx, ty);
+      }
+      // zonas sólidas alrededor del muelle (por el agua no se puede pasar)
+      const Z = (x0, y0, x1, y1) => this.obstaculos.add(this.add.zone((x0 + x1) / 2, (y0 + y1) / 2, x1 - x0, y1 - y0));
+      Z(lx * TILE + 10, ly * TILE + 10, dx * TILE, (ly + h) * TILE - 12);
+      Z((dx + 1) * TILE, ly * TILE + 10, (lx + w) * TILE - 10, (ly + h) * TILE - 12);
+      Z(dx * TILE, ly * TILE + 10, (dx + 1) * TILE, dTop * TILE + 6);
+      for (let y = ly - 1; y <= ly + h; y++) for (let x = lx - 1; x <= lx + w; x++) this.marcar(x, y);
+      for (let y = ly + h; y <= ly + h + 2; y++) for (let x = dx - 1; x <= dx + 1; x++) this.marcar(x, y);   // acceso libre al muelle
+      this.lagos.push({ x: lx * TILE, y: ly * TILE, w: w * TILE, h: h * TILE });
+      this.granLago = { ...L, dx, dTop };
+    }
+    decorarGranLago() {
+      const { lx, ly, w, h, dx, dTop } = this.granLago;
+      for (let y = dTop; y < ly + h + 1; y++) this.add.image(dx * TILE + 16, y * TILE + 16, 'muelle').setScale(2).setDepth(-6);
+      for (const [px, py] of [[dx * TILE + 3, dTop * TILE + 6], [(dx + 1) * TILE - 3, dTop * TILE + 6], [dx * TILE + 3, (dTop + 3) * TILE], [(dx + 1) * TILE - 3, (dTop + 3) * TILE]]) this.add.image(px, py + 14, 'poste').setScale(2).setDepth(py);
+      // nenúfares sobre el agua (decorativos)
+      for (let i = 0; i < 16; i++) {
+        const x = lx + 1 + Math.floor(this.rnd() * (w - 2)), y = ly + 1 + Math.floor(this.rnd() * (h - 2));
+        if (Math.abs(x - dx) < 2) continue;
+        this.add.image(x * TILE + 16, y * TILE + 16, this.rnd() < 0.3 ? 'nenufar_flor' : 'nenufar').setScale(2).setDepth(-7).setFlipX(this.rnd() < 0.5);
+      }
+      // juncos en la orilla, un letrero y un barril junto al muelle
+      for (let i = 0; i < 14; i++) {
+        const lado = Math.floor(this.rnd() * 4);
+        const x = lado < 2 ? lx + Math.floor(this.rnd() * w) : lado === 2 ? lx - 1 : lx + w;
+        const y = lado === 0 ? ly - 1 : lado === 1 ? ly + h : ly + Math.floor(this.rnd() * h);
+        if (Math.abs(x - dx) < 2 && y >= ly + h) continue;
+        this.add.image(x * TILE + 16, (y + 1) * TILE, 'juncos').setOrigin(0.5, 1).setScale(2).setDepth((y + 1) * TILE - 4);
+      }
+      const le = this.sprite('letrero', dx - 1, ly + h); this.solido(le.x, le.y - 8, 18, 10);
+      const ba = this.sprite('barril', dx + 1, ly + h); this.solido(ba.x, ba.y - 8, 18, 10);
+      this.add.text(le.x, le.y - 44, 'Muelle', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffe9b8', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(le.y + 1);
+      this.objetos.push({ tipo: 'muelle', x: dx * TILE + 16, y: dTop * TILE + 20, activo: true });
+      // de vez en cuando salta un pez
+      this.time.addEvent({ delay: 3500, loop: true, callback: () => {
+        const x = (lx + 1 + Math.random() * (w - 2)) * TILE, y = (ly + 1 + Math.random() * (h - 2)) * TILE;
+        if (Math.abs(x - (dx * TILE + 16)) < 40) return;
+        this.add.particles(x, y, 'p_agua', { speed: { min: 30, max: 90 }, angle: { min: 200, max: 340 }, gravityY: 220, lifespan: 600, scale: { start: 1.3, end: 0 }, emitting: false }).setDepth(-5).explode(12);
+      } });
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
@@ -2540,6 +2724,7 @@
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
       this.prepararLugaresJefe(P);
+      if (M.granLago) this.prepararGranLago(data);
       for (let i = 0; i < M.lagos; i++) {
         const w = 5 + Math.floor(this.rnd() * 5), h = 4 + Math.floor(this.rnd() * 3);
         for (let t = 0; t < 60; t++) {
@@ -2551,6 +2736,7 @@
       }
       this.suelo(data);
       if (M.tinte) this.add.rectangle(0, 0, this.ancho * TILE, this.alto * TILE, M.tinte[0], M.tinte[1]).setOrigin(0).setDepth(-9);
+      if (this.granLago) this.decorarGranLago();
       this.bordes();
       this.portal(P.x, P.y);
       this.crearGuarida();
@@ -3461,7 +3647,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'jefe' ? 80 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -3493,6 +3679,7 @@
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
+        case 'muelle': return tiene('cana') ? 'Pescar' : 'Muelle: necesitas una caña de pescar';
         case 'colocado': return o.carpa ? 'Entrar a tu pieza (R: guardar la carpa)' : `Guardar ${o.nombre.toLowerCase()}`;
         case 'puerta': return 'Salir a tu base';
         default: return null;
@@ -3512,6 +3699,11 @@
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
+      if (o.tipo === 'muelle') {
+        if (!tiene('cana')) return toast('Necesitas una caña de pescar. Fabrícala en la fogata de tu base (pestaña Equipo).');
+        this.dir = 'up';
+        return abrirPesca();
+      }
       if (o.tipo === 'colocado') return o.carpa ? this.entrarPieza(o) : this.quitar(o);
       if (o.tipo === 'puerta') return this.salirPieza();
       if (o.tipo === 'arbol' && o.rec === 'baya') {

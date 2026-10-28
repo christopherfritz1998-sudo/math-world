@@ -365,3 +365,20 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .aviso-jefe.prisma b { background: linear-gradient(90deg, #ff9ad5, #ffd27a, #8ff0c8, #7ec8ff, #c99cff); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
 .aviso-jefe.prisma small { color: #d9c2ff; }
 .modal.desafio-vivo.prisma { border-color: #c99cff; }
+
+/* ---------- Minijuego de pesca ---------- */
+.pesca { display: grid; grid-template-columns: 100px 26px 1fr; gap: 18px; align-items: stretch; }
+.pesca-barra { position: relative; height: 300px; border-radius: 16px; background: linear-gradient(#5fb6d8, #1f5f86 70%, #173f5c); border: 3px solid #0f2c40; overflow: hidden; touch-action: none; user-select: none; cursor: pointer; }
+.pesca-barra::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(180deg, rgba(255,255,255,.07) 0 2px, transparent 2px 18px); }
+.pesca-aro { position: absolute; left: 50%; top: 0; width: 88px; height: 88px; margin-left: -44px; border-radius: 50%; border: 5px solid rgba(255, 255, 255, .55); box-shadow: inset 0 0 0 3px rgba(15, 44, 64, .35); background: rgba(255, 255, 255, .08); will-change: transform; }
+.pesca-aro.dentro { border-color: var(--ok); box-shadow: 0 0 16px rgba(123, 216, 143, .8), inset 0 0 0 3px rgba(15, 44, 64, .35); background: rgba(123, 216, 143, .15); }
+.pesca-pez { position: absolute; left: 50%; top: 0; width: 36px; height: 36px; margin-left: -18px; margin-top: -3px; will-change: transform; pointer-events: none; }
+.pesca-captura { position: relative; height: 300px; border-radius: 13px; background: var(--bg); border: 3px solid var(--line); overflow: hidden; }
+.pesca-captura i { position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: linear-gradient(#a8f0b8, var(--ok)); transition: height .08s linear; }
+.pesca-info { display: flex; flex-direction: column; gap: 12px; justify-content: center; }
+.pesca-info kbd { padding: 1px 6px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line); font-size: 12px; }
+.pesca-btn { min-height: 64px; touch-action: none; user-select: none; }
+@media (max-width: 760px) {
+  .pesca { grid-template-columns: 96px 22px 1fr; gap: 10px; }
+  .pesca-info .enunciado { font-size: 16px; }
+}
