@@ -587,3 +587,31 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .cz-c { min-height: 0; min-width: 0; overflow: hidden; }
 
 .capa:has(.modal.pantalla) { padding: 8px; }
+
+/* ---------- Logros y títulos ---------- */
+.titulo-pj { font-family: Fredoka, Nunito, sans-serif; font-size: 12px; font-weight: 700; color: var(--amber); letter-spacing: .02em; line-height: 1.1; margin-bottom: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.modal.logros-modal { width: min(1040px, 100%); }
+.lg-resumen { display: flex; flex-direction: column; gap: 6px; }
+.lg-equipado { color: var(--amber); }
+.lg-pestanas { flex-wrap: wrap; }
+.lg-pestanas button small { opacity: .75; font-weight: 700; margin-left: 2px; }
+.logros { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.logro { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 14px; background: var(--bg); border: 2px solid var(--line); }
+.logro .lg-icono { font-size: 30px; text-align: center; filter: grayscale(1) opacity(.55); }
+.logro.ok { border-color: var(--teal); }
+.logro.ok .lg-icono { filter: none; }
+.logro.puesto { border-color: var(--amber); box-shadow: 0 0 0 2px rgba(242, 181, 68, .25); }
+.lg-info { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.lg-info > span { font-size: 13px; color: var(--muted); }
+.lg-info small { font-size: 12px; color: var(--muted); }
+.lg-info .barra { height: 8px; }
+.lg-titulo { color: var(--amber) !important; font-weight: 700; }
+.lg-candado { font-size: 18px; opacity: .6; }
+.aviso-logro { position: fixed; top: 14px; left: 50%; transform: translate(-50%, -140%); z-index: 30; display: flex; gap: 12px; align-items: center; padding: 10px 18px 10px 12px; border-radius: 16px; background: rgba(28, 22, 8, .95); border: 3px solid var(--amber); box-shadow: 0 8px 30px rgba(0, 0, 0, .45), 0 0 24px rgba(242, 181, 68, .35); color: var(--text); font: inherit; cursor: pointer; transition: transform .45s cubic-bezier(.2, 1.4, .4, 1); text-align: left; }
+.aviso-logro.entra { transform: translate(-50%, 0); }
+.aviso-logro.sale { transform: translate(-50%, -140%); transition-timing-function: ease-in; }
+.aviso-logro .al-icono { font-size: 34px; }
+.aviso-logro span { display: flex; flex-direction: column; }
+.aviso-logro small { color: var(--amber); font-weight: 800; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; }
+.aviso-logro b { font-size: 17px; }
+.aviso-logro em { font-style: normal; font-size: 13px; color: var(--muted); }

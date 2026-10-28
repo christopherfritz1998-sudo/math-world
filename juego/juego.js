@@ -563,6 +563,7 @@
       eventoDesafio('recurso', n);
     }
     S.mochila[recurso] = (S.mochila[recurso] || 0) + n;
+    contar('recurso', n);
     pintarHUD();
     const el = document.querySelector(`.recurso[data-r="${recurso}"]`);
     if (el) { el.classList.add('sube'); setTimeout(() => el.classList.remove('sube'), 350); }
@@ -697,6 +698,7 @@
   // Se llama cada vez que el jugador hace algo que puede contar para una misión
   function avanzarMision(ev, tema) {
     if (!S) return;
+    contar(ev);
     const u = escena && MUNDOS[escena.zona] ? escena.zona : null;
     if (u) {
       const M = misionesDe(u);
@@ -777,7 +779,7 @@
     const bc = $('mi-cobrar');
     if (bc) bc.addEventListener('click', () => {
       if (Dd.cobrada || Dd.p < Dd.n) return;
-      Dd.cobrada = true;
+      Dd.cobrada = true; contar('diaria');
       sumarCofre(p.rec);
       S.inventario[p.obj] = (S.inventario[p.obj] || 0) + 1;
       guardar(true); escena.celebrar();
@@ -1032,6 +1034,7 @@
     const enBase = enCasa();
     $('hud-foto').style.backgroundImage = `url('assets/pj/${S.pj}_${texArmadura(S.armadura)}.png')`;
     $('hud-apodo').textContent = S.nombre;
+    const tit = $('hud-titulo'); if (tit) { const t = tituloActual(); tit.textContent = t ? `«${t}»` : ''; tit.classList.toggle('oculto', !t); }
     $('hud-nivel').textContent = `Nivel ${S.nivel}`;
     $('hud-vida').innerHTML = corazones(S.vida, vidaMax());
     $('hud-vida').setAttribute('aria-label', `Vida: ${S.vida} de ${vidaMax()}`);
@@ -1169,6 +1172,7 @@
   function registrar(tema, acierto) {
     const st = S.stats[tema] || (S.stats[tema] = { a: 0, i: 0 });
     st.i += 1; if (acierto) st.a += 1;
+    S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
     if (acierto) avanzarMision('acierto', tema);
   }
   function alternativasHTML(d, elegida, fallidas, resuelto) {
@@ -1275,6 +1279,7 @@
       o = { meta: O.meta, aportes: L.aportes, completado: L.completado, mio: L.mio, top: [], aportantes: 1 };
     }
     obraE[k] = o;
+    if (o.completado && !(S.obrasVistas && S.obrasVistas[k])) { S.obrasVistas = S.obrasVistas || {}; S.obrasVistas[k] = 1; programarLogros(); }
     if (escena && obraDeEscena() === k) escena.actualizarObra(antes === false && Boolean(o.completado));
     if ($('obra-cuerpo')) pintarObra(k);
   }
@@ -1341,7 +1346,8 @@
       const antes = Boolean(obraE[k] && obraE[k].completado);
       pagar(acep); sfx('fabricar');
       const n = Object.values(acep).reduce((a, b) => a + b, 0);
-      ganarXP(Math.min(60, 5 + Math.floor(n / 4)));
+      ganarXP(Math.min(60, 5 + Math.floor(n / 4))); contar('aporte', n);
+      if (r.completado) { S.obrasVistas = S.obrasVistas || {}; S.obrasVistas[k] = 1; }
       obraE[k] = r; guardar(true); pintarHUD();
       if (escena && obraDeEscena() === k) escena.actualizarObra(!antes && Boolean(r.completado));
       if (escena && escena.canal) escena.canal.emitir('obra', {});
@@ -2114,7 +2120,7 @@
     const k = terminado ? Math.min(pos, 3) : 3, premio = { ...PREMIO_CARRERA[k] };
     if (C.yo.gemas) premio.carbon = (premio.carbon || 0) + Math.ceil(C.yo.gemas / 2), premio.plata = (premio.plata || 0) + Math.floor(C.yo.gemas / 4);
     Object.entries(premio).forEach(([r, n]) => { if (n) sumar(r, n); });
-    ganarXP(XP_CARRERA[k]); avanzarMision('carrera');
+    ganarXP(XP_CARRERA[k]); avanzarMision('carrera'); if (terminado && pos === 0) contar('carrera_gana');
     let extra = '';
     if (terminado && pos === 0 && !S.carreraGanada) { S.carreraGanada = true; S.inventario.vagoneta_dorada = (S.inventario.vagoneta_dorada || 0) + 1; extra = '<p class="nota">🏆 ¡Tu primera victoria! Ganaste la <b>vagoneta dorada</b> para tu base (Decorar).</p>'; }
     S.carreras = (S.carreras || 0) + 1; guardar(true);
@@ -2777,7 +2783,7 @@
           const pos = lista.findIndex((j) => j.yo), k = Math.min(3, pos);
           let extra = '';
           if (pos === 0 && yo.golpes > 0 && !S.bolasGanada) { S.bolasGanada = true; S.inventario.fuerte_nieve = (S.inventario.fuerte_nieve || 0) + 1; extra = '<p class="nota">🏆 ¡Tu primera victoria! Ganaste el <b>fuerte de nieve</b> para tu base (Decorar).</p>'; }
-          avanzarMision('bolas'); sfx(pos === 0 ? 'logro' : 'mision');
+          avanzarMision('bolas'); if (pos === 0 && yo.golpes > 0) contar('bolas_gana'); sfx(pos === 0 ? 'logro' : 'mision');
           finalSala(G, `<h3>${pos === 0 ? '🥇 ¡Ganaste la guerra de bolas de nieve!' : `Quedaste en el lugar ${pos + 1}`}</h3>
             <ol class="cr-ranking">${lista.map((j, i) => `<li class="${j.yo ? 'yo' : ''}"><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'}</span><b>${esc(j.yo ? `${j.nombre} (tú)` : j.nombre)}${j.bot ? ' ☃️' : ''}</b><span>🎯 ${j.golpes} · recibió ${j.recibidos}</span></li>`).join('')}</ol>`, PREMIO_BOLAS[k], XP_BOLAS[k], extra);
         }
@@ -2891,7 +2897,7 @@
           extra = `<div class="lab-premio"><img class="px gema-grande" src="${ICONO('copo_' + copo.id)}" alt=""><div><span class="etq">¡Quedaste en pie! Ganaste un copo de nieve</span><h3>${esc(copo.nombre)} <small class="rareza ${CLASE_RAREZA[copo.rareza]}">${esc(copo.rareza)}</small></h3><p>${nuevo ? '¡Nuevo en tu álbum!' : 'Ya lo tenías: se suma a tu colección.'}</p></div></div><div class="acciones"><button type="button" class="btn sec" id="mj-album">❄️ Ver álbum</button><span></span></div>`;
           sfx('logro');
         } else sfx('mision');
-        avanzarMision('movedizo');
+        avanzarMision('movedizo'); if (gane) contar('movedizo_gana');
         finalSala(G, `<h3>${gane ? '🧊 ¡Quedaste en pie!' : '🌊 Te caíste al agua'}</h3>
           <ol class="cr-ranking">${orden.map((j) => `<li class="${j.yo ? 'yo' : ''}"><span>${j.cayo == null ? '🏆' : '🌊'}</span><b>${esc(j.yo ? `${j.nombre} (tú)` : j.nombre)}${j.bot ? ' ☃️' : ''}</b><span>${j.cayo == null ? 'en pie' : `cayó a los ${Math.max(0, Math.floor(j.cayo))} s`}</span></li>`).join('')}</ol>`, premio, xp, extra);
       },
@@ -3028,6 +3034,190 @@
       if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
       if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
     }, 200);
+  }
+
+  // ===================================================================
+  // Logros (metas a largo plazo) y títulos
+  // ===================================================================
+  // Cada logro se cumple con el avance del jugador y desbloquea un título que se puede equipar:
+  // se muestra arriba del nombre (en el HUD y sobre el personaje, también para los compañeros).
+  const CN = (k) => (S && S.cont && S.cont[k]) || 0;
+  const sumaC = (...ks) => ks.reduce((a, k) => a + CN(k), 0);
+  const visto = (k) => Boolean(S.visitados && S.visitados[k]);
+  const aciertosTotales = () => Object.values(S.stats || {}).reduce((a, s) => a + (s.a || 0), 0);
+  const albumListo = (lista, A) => lista.filter((x) => A && A[x.id]).length;
+  const ENE_MUNDO = { bosque: ['arbusto', 'niebla', 'bicho', 'arana', 'raiz'], desierto: ['escorpion', 'remolino', 'esqueleto', 'escarabajo', 'momia'], mina: ['murcielago', 'golem', 'minero', 'salamandra', 'golem_cristal'], hielo: ['lobo_nieve', 'espiritu', 'muneco', 'halcon', 'golem_hielo'] };
+  const CATS_LOGRO = { explorar: '🧭 Exploración', recolectar: '🪓 Recolección', combate: '⚔️ Combate', aprender: '🧠 Aprendizaje', nivel: '⭐ Niveles', fabricar: '🔨 Fabricación', coleccion: '📖 Colecciones', minijuegos: '🎮 Minijuegos', equipo: '🤝 Trabajo en equipo' };
+  const L = (id, cat, icono, nombre, desc, meta, v, titulo) => ({ id, cat, icono, nombre, desc, meta, v, titulo });
+  const LOGROS = [
+    // Exploración
+    L('viaje1', 'explorar', '🧭', 'Primer viaje', 'Viaja a tu primer mundo por el portal de tu base.', 1, () => ['u1', 'u2', 'u3', 'u4'].filter(visto).length, 'Pies Inquietos'),
+    L('viaje4', 'explorar', '🗺️', 'Trotamundos', 'Visita los 4 mundos.', 4, () => ['u1', 'u2', 'u3', 'u4'].filter(visto).length, 'Trotamundos'),
+    L('profundo', 'explorar', '🌲', 'Más allá del río', 'Cruza el puente y entra al Bosque profundo.', 1, () => (visto('profundo') ? 1 : 0), 'Alma del Bosque'),
+    L('valle', 'explorar', '🏺', 'Secretos de arena', 'Sube por el montacargas al Valle de la Esfinge.', 1, () => (visto('valle') ? 1 : 0), 'Arena Dorada'),
+    L('abismo', 'explorar', '🌋', 'Hacia el abismo', 'Baja en el elevador a las Profundidades de la mina.', 1, () => (visto('abismo') ? 1 : 0), 'Corazón de Magma'),
+    L('cima', 'explorar', '🏔️', 'Sobre las nubes', 'Escala el glaciar y llega a la Cima.', 1, () => (visto('cima') ? 1 : 0), 'Cumbre Helada'),
+    L('zonas8', 'explorar', '🌍', 'Sin rincón por descubrir', 'Visita los 4 mundos y sus 4 zonas secretas.', 8, () => ['u1', 'u2', 'u3', 'u4', 'profundo', 'valle', 'abismo', 'cima'].filter(visto).length, 'Mapa Viviente'),
+    L('escalar10', 'explorar', '🧗', 'Escalada experta', 'Escala la pared del glaciar 10 veces.', 10, () => CN('escalar'), 'Piolet de Oro'),
+    // Recolección
+    L('talar50', 'recolectar', '🪓', 'Leña para el invierno', 'Tala, corta o recolecta 50 veces (árboles, cactus, hongos y bayas).', 50, () => CN('talar'), 'Mano de Hacha'),
+    L('talar300', 'recolectar', '🌳', 'Terror de los bosques', 'Tala, corta o recolecta 300 veces.', 300, () => CN('talar'), 'Terror de los Bosques'),
+    L('picar50', 'recolectar', '⛏️', 'Golpe de pico', 'Pica 50 rocas o vetas.', 50, () => sumaC('picar', 'veta', 'obsidiana', 'magma', 'hielo_eterno'), 'Puño de Piedra'),
+    L('picar300', 'recolectar', '🪨', 'Rompemontañas', 'Pica 300 rocas o vetas.', 300, () => sumaC('picar', 'veta', 'obsidiana', 'magma', 'hielo_eterno'), 'Rompemontañas'),
+    L('agua20', 'recolectar', '💧', 'Agua fresca', 'Saca agua de los lagos 20 veces.', 20, () => CN('agua'), 'Gota Viajera'),
+    L('cofre25', 'recolectar', '🧰', 'Cazatesoros', 'Abre 25 cofres en los mundos.', 25, () => CN('cofre'), 'Cazatesoros'),
+    L('cofre100', 'recolectar', '💰', 'Bolsillos de oro', 'Abre 100 cofres en los mundos.', 100, () => CN('cofre'), 'Bolsillos de Oro'),
+    L('rec1000', 'recolectar', '🎒', 'Mochila llena', 'Junta 1.000 recursos en total.', 1000, () => CN('recurso'), 'Manos Llenas'),
+    L('rec10000', 'recolectar', '🏔️', 'Montaña de tesoros', 'Junta 10.000 recursos en total.', 10000, () => CN('recurso'), 'Montaña de Tesoros'),
+    L('miel30', 'recolectar', '🍯', 'Dulce recompensa', 'Saca resina o miel 30 veces en el Bosque profundo.', 30, () => sumaC('resina', 'colmena'), 'Dulce como la Miel'),
+    L('aurora20', 'recolectar', '✨', 'Polvo de estrellas del norte', 'Recolecta polvo de aurora 20 veces.', 20, () => CN('aurora'), 'Alma de Aurora'),
+    L('prisma', 'recolectar', '🌈', 'Prisma estelar', 'Consigue un prisma estelar en un desafío en vivo.', 1, () => CN('prisma'), 'Polvo de Estrellas'),
+    L('luz30', 'recolectar', '🪲', 'Noche de luciérnagas', 'Atrapa 30 luciérnagas en los eclipses.', 30, () => CN('luciernaga'), 'Luz en la Noche'),
+    // Combate
+    L('vencer1', 'combate', '🗡️', 'Primer golpe', 'Vence a tu primer enemigo.', 1, () => S.vencidos || 0, 'Primer Golpe'),
+    L('vencer100', 'combate', '⚔️', 'Espada firme', 'Vence a 100 enemigos.', 100, () => S.vencidos || 0, 'Espada Firme'),
+    L('vencer500', 'combate', '🛡️', 'Leyenda de batalla', 'Vence a 500 enemigos.', 500, () => S.vencidos || 0, 'Leyenda de Batalla'),
+    L('bosque40', 'combate', '🐗', 'Defensa del bosque', 'Vence a 40 enemigos del Bosque.', 40, () => sumaC(...ENE_MUNDO.bosque), 'Escudo del Bosque'),
+    L('desierto40', 'combate', '🦂', 'Defensa de las dunas', 'Vence a 40 enemigos del Desierto.', 40, () => sumaC(...ENE_MUNDO.desierto), 'Viento de las Dunas'),
+    L('mina40', 'combate', '🦇', 'Defensa de la mina', 'Vence a 40 enemigos de la Mina.', 40, () => sumaC(...ENE_MUNDO.mina), 'Linterna de la Mina'),
+    L('hielo40', 'combate', '🐺', 'Defensa del glaciar', 'Vence a 40 enemigos del Glaciar.', 40, () => sumaC(...ENE_MUNDO.hielo), 'Escudo de Escarcha'),
+    L('dorado', 'combate', '🐾', 'Ojo de lince', 'Atrapa y vence a la criatura dorada.', 1, () => CN('dorado'), 'Ojo de Lince'),
+    L('caer', 'combate', '💫', 'Caer y levantarse', 'Quédate sin corazones una vez… y sigue adelante.', 1, () => S.muertes || 0, 'Nunca Me Rindo'),
+    L('jefe1', 'combate', '👹', 'Mata gigantes', 'Vence a un jefe final junto a tu grupo.', 1, () => Object.values(S.jefes || {}).reduce((a, b) => a + b, 0), 'Mata Gigantes'),
+    L('jefe4', 'combate', '🏆', 'Terror de los jefes', 'Vence a los 4 jefes finales de grupo (uno por mundo).', 4, () => Object.values(S.jefes || {}).filter((n) => n > 0).length, 'Pesadilla de los Jefes'),
+    L('rey', 'combate', '👑', 'Corona de raíces', 'Vence al Rey Jabalí Ancestral.', 1, () => S.reyVencido || 0, 'Corona de Raíces'),
+    L('coloso', 'combate', '🌋', 'Corazón ardiente', 'Vence al Coloso de Magma.', 1, () => S.colosoVencido || 0, 'Puño de Magma'),
+    L('dragon', 'combate', '🐉', 'Domar a la aurora', 'Vence al Dragón de la Aurora.', 1, () => S.dragonVencido || 0, 'Jinete de la Aurora'),
+    L('ancestrales', 'combate', '🌟', 'Leyenda ancestral', 'Vence al Rey Jabalí, al Coloso de Magma y al Dragón de la Aurora.', 3, () => [S.reyVencido, S.colosoVencido, S.dragonVencido].filter(Boolean).length, 'Leyenda Ancestral'),
+    // Aprendizaje
+    L('aciertos50', 'aprender', '🧠', 'Mente brillante', 'Responde bien 50 ejercicios.', 50, aciertosTotales, 'Mente Brillante'),
+    L('aciertos250', 'aprender', '⚡', 'Cerebro veloz', 'Responde bien 250 ejercicios.', 250, aciertosTotales, 'Cerebro Veloz'),
+    L('aciertos1000', 'aprender', '🎓', 'Genio matemático', 'Responde bien 1.000 ejercicios.', 1000, aciertosTotales, 'Genio Matemático'),
+    L('racha10', 'aprender', '🔥', 'Imparable', 'Responde bien 10 ejercicios seguidos.', 10, () => S.rachaMax || 0, 'Imparable'),
+    L('racha25', 'aprender', '💎', 'Mente de acero', 'Responde bien 25 ejercicios seguidos.', 25, () => S.rachaMax || 0, 'Mente de Acero'),
+    L('temas10', 'aprender', '📚', 'Saber de todo', 'Responde bien ejercicios de 10 temas distintos.', 10, () => Object.values(S.stats || {}).filter((s) => s.a > 0).length, 'Saber Infinito'),
+    L('diaria7', 'aprender', '📅', 'Constancia', 'Cobra 7 recompensas de misiones diarias.', 7, () => CN('diaria'), 'Constancia de Hierro'),
+    // Niveles
+    L('nivel5', 'nivel', '🌱', 'Brote valiente', 'Llega al nivel 5.', 5, () => S.nivel, 'Brote Valiente'),
+    L('nivel10', 'nivel', '⭐', 'Estrella naciente', 'Llega al nivel 10.', 10, () => S.nivel, 'Estrella Naciente'),
+    L('nivel20', 'nivel', '🌟', 'Estrella de Math World', 'Llega al nivel 20.', 20, () => S.nivel, 'Estrella de Math World'),
+    L('nivel30', 'nivel', '💫', 'Leyenda viviente', 'Llega al nivel 30.', 30, () => S.nivel, 'Leyenda Viviente'),
+    // Fabricación
+    L('mejora5', 'fabricar', '🔧', 'Manos habilidosas', 'Fabrica 5 herramientas o piezas de equipo.', 5, () => (S.mejoras || []).length, 'Manos Habilidosas'),
+    L('mejora20', 'fabricar', '⚒️', 'Forja legendaria', 'Fabrica 20 herramientas o piezas de equipo.', 20, () => (S.mejoras || []).length, 'Forja Legendaria'),
+    L('prismatica', 'fabricar', '🗡️', 'Filo de arcoíris', 'Fabrica la espada prismática.', 1, () => ((S.mejoras || []).includes('espada6') ? 1 : 0), 'Filo Prismático'),
+    L('objeto10', 'fabricar', '🪑', 'Alma decoradora', 'Fabrica 10 adornos o muebles.', 10, () => CN('fabricar'), 'Alma Decoradora'),
+    L('objeto50', 'fabricar', '🏡', 'Arquitectura de ensueño', 'Fabrica 50 adornos o muebles.', 50, () => CN('fabricar'), 'Arquitectura de Ensueño'),
+    L('colocar25', 'fabricar', '🛋️', 'Hogar, dulce hogar', 'Coloca 25 objetos en tu base y tu pieza.', 25, () => (S.colocados || []).length + (S.pieza || []).length, 'Hogar Dulce Hogar'),
+    // Colecciones
+    L('pescar25', 'coleccion', '🎣', 'Paciencia de pescador', 'Pesca 25 veces.', 25, () => CN('pescar'), 'Caña Paciente'),
+    L('peces', 'coleccion', '🐟', 'Álbum de peces', 'Completa el álbum de peces.', PECES.length, () => albumListo(PECES, S.album), 'Anzuelo de Oro'),
+    L('gemas', 'coleccion', '💎', 'Álbum de gemas', 'Completa el álbum de gemas.', GEMAS.length, () => albumListo(GEMAS, S.gemas), 'Brillo de Gemas'),
+    L('copos', 'coleccion', '❄️', 'Álbum de copos', 'Completa el álbum de copos de nieve.', COPOS.length, () => albumListo(COPOS, S.copos), 'Copo Eterno'),
+    L('albumes', 'coleccion', '🏛️', 'Museo viviente', 'Completa los 3 álbumes (peces, gemas y copos).', 3, () => [S.albumPremio, S.gemasPremio, S.coposPremio].filter(Boolean).length, 'Museo Viviente'),
+    // Minijuegos
+    L('excavar20', 'minijuegos', '🏺', 'Huellas del pasado', 'Excava 20 sitios arqueológicos.', 20, () => CN('excavar'), 'Huellas del Pasado'),
+    L('laberinto5', 'minijuegos', '🐫', 'Sin miedo a la oscuridad', 'Supera 5 veces el laberinto de la Gran Esfinge.', 5, () => CN('laberinto'), 'Guía de la Esfinge'),
+    L('cristales10', 'minijuegos', '🔮', 'Mirada de cristal', 'Resuelve 10 rompecabezas de cristales.', 10, () => CN('cristales'), 'Mirada de Cristal'),
+    L('carrera_gana', 'minijuegos', '🛤️', 'Rayo de los rieles', 'Gana una carrera de vagonetas.', 1, () => CN('carrera_gana'), 'Rayo de los Rieles'),
+    L('carrera10', 'minijuegos', '🏁', 'Ruedas de fuego', 'Corre 10 carreras de vagonetas.', 10, () => CN('carrera'), 'Ruedas de Fuego'),
+    L('bolas_gana', 'minijuegos', '☃️', 'Puntería de nieve', 'Gana una guerra de bolas de nieve.', 1, () => CN('bolas_gana'), 'Puntería de Nieve'),
+    L('bolas10', 'minijuegos', '❄️', 'Batalla helada', 'Juega 10 guerras de bolas de nieve.', 10, () => CN('bolas'), 'Guerra de Escarcha'),
+    L('movedizo3', 'minijuegos', '🧊', 'Pies ligeros', 'Queda en pie 3 veces en el hielo movedizo.', 3, () => CN('movedizo_gana'), 'Pies Ligeros'),
+    // Trabajo en equipo
+    L('aporte100', 'equipo', '🤝', 'Mano amiga', 'Aporta 100 recursos a las obras de tu nivel.', 100, () => CN('aporte'), 'Mano Amiga'),
+    L('aporte1000', 'equipo', '🏗️', 'Pilar del nivel', 'Aporta 1.000 recursos a las obras de tu nivel.', 1000, () => CN('aporte'), 'Pilar del Nivel'),
+    L('obras4', 'equipo', '🌉', 'Gran equipo', 'Ve terminadas las 4 obras de tu nivel (puente, montacargas, elevador y ruta).', 4, () => Object.keys(S.obrasVistas || {}).length, 'Gran Equipo'),
+    L('desafio10', 'equipo', '🎯', 'Siempre listo', 'Participa en 10 desafíos en vivo.', 10, () => CN('desafio'), 'Espíritu de Desafío'),
+    L('duelo', 'equipo', '🥇', 'Rey del duelo', 'Gana un duelo por el cofre de suministros.', 1, () => CN('duelo'), 'Corona del Duelo'),
+    L('meta_curso', 'equipo', '🙌', 'Todos para uno', 'Logra con tu curso la meta de un desafío en vivo.', 1, () => CN('meta_curso'), 'Fuerza de Equipo'),
+  ];
+  const LOGRO = Object.fromEntries(LOGROS.map((l) => [l.id, l]));
+  const tituloDe = (id) => (LOGRO[id] ? LOGRO[id].titulo : '');
+  const tituloActual = () => (S && S.titulo && S.logros && S.logros[S.titulo] ? tituloDe(S.titulo) : '');
+  // Cuenta una acción del jugador (se llama desde muchos lugares del juego)
+  function contar(ev, n = 1) {
+    if (!S || !ev || !(n > 0)) return;
+    S.cont = S.cont || {};
+    S.cont[ev] = (S.cont[ev] || 0) + n;
+    programarLogros();
+  }
+  let logrosPend = 0;
+  function programarLogros() { if (!logrosPend) logrosPend = setTimeout(() => { logrosPend = 0; revisarLogros(); }, 400); }
+  function revisarLogros() {
+    if (!S) return;
+    const primera = !S.logros;
+    S.logros = S.logros || {};
+    const nuevos = [];
+    for (const l of LOGROS) {
+      if (S.logros[l.id]) continue;
+      let v = 0; try { v = l.v() || 0; } catch (e) { v = 0; }
+      if (v >= l.meta) { S.logros[l.id] = Date.now(); nuevos.push(l); }
+    }
+    if (!nuevos.length) return;
+    guardar(true);
+    // la primera vez se desbloquea en silencio lo que ya se había logrado antes de que existieran los logros
+    if (primera) { setTimeout(() => toast(`¡Tu avance ya desbloqueó ${nuevos.length} ${nuevos.length === 1 ? 'logro' : 'logros'}! Míralos y equipa un título en Logros (tecla L).`), 2500); pintarHUD(); return; }
+    nuevos.forEach((l) => avisosLogro.push(l));
+    mostrarAvisoLogro();
+  }
+  const avisosLogro = [];
+  let avisoLogroActivo = false;
+  function mostrarAvisoLogro() {
+    if (avisoLogroActivo || !avisosLogro.length) return;
+    const l = avisosLogro.shift(); avisoLogroActivo = true;
+    let el = $('aviso-logro');
+    if (!el) { el = document.createElement('button'); el.type = 'button'; el.id = 'aviso-logro'; el.className = 'aviso-logro'; document.body.appendChild(el); el.addEventListener('click', () => { if (!ui.abierto) abrirLogros(); }); }
+    el.innerHTML = `<span class="al-icono">${l.icono}</span><span><small>¡Logro desbloqueado!</small><b>${esc(l.nombre)}</b><em>Nuevo título: «${esc(l.titulo)}»</em></span>`;
+    el.classList.remove('sale'); el.classList.add('entra');
+    sfx('logro');
+    setTimeout(() => { el.classList.remove('entra'); el.classList.add('sale'); setTimeout(() => { avisoLogroActivo = false; mostrarAvisoLogro(); }, 500); }, 3800);
+  }
+  setInterval(() => { if (S) revisarLogros(); }, 4000);
+  // Zonas visitadas (para los logros de exploración)
+  setInterval(() => {
+    if (!S || !escena || !escena.jugador || !MUNDOS[escena.zona]) return;
+    S.visitados = S.visitados || {};
+    const marcar = (k) => { if (!S.visitados[k]) { S.visitados[k] = 1; programarLogros(); } };
+    marcar(escena.zona);
+    const j = escena.jugador;
+    if (escena.rio && j.x > (escena.rio.RX + RIO_ANCHO) * TILE) marcar('profundo');
+    if (escena.valle && j.y < escena.valle.cy0 * TILE) marcar('valle');
+    if (escena.prof && j.y > (escena.prof.yb + 2) * TILE) marcar('abismo');
+    if (escena.cima && j.y < escena.cima.cy0 * TILE) marcar('cima');
+  }, 2000);
+  function equiparTitulo(id) {
+    S.titulo = id && S.logros && S.logros[id] ? id : null;
+    S.tituloTxt = tituloActual();
+    guardar(true); pintarHUD();
+    if (escena && escena.pintarTituloYo) escena.pintarTituloYo();
+    if (escena && escena.ultimoMov) escena.ultimoMov.t = 0;   // avisa a los compañeros en el próximo envío
+  }
+  function abrirLogros(cat = null) {
+    S.logros = S.logros || {};
+    const tengo = LOGROS.filter((l) => S.logros[l.id]).length;
+    const cats = Object.keys(CATS_LOGRO), actual = cat || cats[0];
+    const tarjeta = (l) => {
+      const ok = Boolean(S.logros[l.id]); let v = 0; try { v = l.v() || 0; } catch (e) { v = 0; }
+      const pct = Math.min(100, Math.round((Math.min(v, l.meta) / l.meta) * 100)), puesto = S.titulo === l.id;
+      return `<div class="logro ${ok ? 'ok' : ''} ${puesto ? 'puesto' : ''}">
+        <span class="lg-icono">${l.icono}</span>
+        <div class="lg-info"><strong>${esc(l.nombre)}</strong><span>${esc(l.desc)}</span>
+          ${ok ? `<span class="lg-titulo">🏷️ Título: «${esc(l.titulo)}»</span>` : `<div class="barra"><i style="width:${pct}%"></i></div><small>${Math.min(v, l.meta).toLocaleString('es-CL')} de ${l.meta.toLocaleString('es-CL')} · Título: «${esc(l.titulo)}»</small>`}</div>
+        ${ok ? (puesto ? '<button type="button" class="btn sec chico" data-quitar-titulo>Quitar</button>' : `<button type="button" class="btn pri chico" data-titulo="${l.id}">Equipar</button>`) : '<span class="lg-candado">🔒</span>'}
+      </div>`;
+    };
+    const porCat = (c) => LOGROS.filter((l) => l.cat === c);
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Metas a largo plazo · ${tengo} de ${LOGROS.length} logros</span><h2 id="modal-titulo">🏆 Logros y títulos</h2></div><button type="button" class="btn" id="lg-cerrar">Cerrar</button></div>
+      <div class="lg-resumen"><div class="barra meta"><i style="width:${Math.round((tengo / LOGROS.length) * 100)}%"></i></div>
+        <span>Título equipado: ${tituloActual() ? `<b class="lg-equipado">«${esc(tituloActual())}»</b>` : '<span class="nota">ninguno · cada logro desbloquea un título que se muestra arriba de tu nombre</span>'}</span></div>
+      <div class="pestanas lg-pestanas" role="tablist">${cats.map((c) => { const n = porCat(c).filter((l) => S.logros[l.id]).length; return `<button type="button" role="tab" data-cat="${c}" aria-selected="${c === actual}">${CATS_LOGRO[c]} <small>${n}/${porCat(c).length}</small></button>`; }).join('')}</div>
+      <div class="logros">${porCat(actual).map(tarjeta).join('')}</div>`, 'ancho logros-modal');
+    $('lg-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => abrirLogros(b.dataset.cat)));
+    document.querySelectorAll('[data-titulo]').forEach((b) => b.addEventListener('click', () => { equiparTitulo(b.dataset.titulo); sfx('clic'); toast(`Ahora tu título es «${tituloActual()}».`); abrirLogros(actual); }));
+    document.querySelectorAll('[data-quitar-titulo]').forEach((b) => b.addEventListener('click', () => { equiparTitulo(null); abrirLogros(actual); }));
   }
 
   // ---------- Combate ----------
@@ -3586,7 +3776,9 @@
     else if (k === '2') equipar('pico');
     else if (k === '3') equipar('espada');
     else if (k === 'q') abrirEquipo();
+    else if (k === 'l') abrirLogros();
   });
+  $('btn-logros').addEventListener('click', () => abrirLogros());
   $('btn-equipo').addEventListener('click', abrirEquipo);
   $('btn-base').addEventListener('click', () => abrirFabricar());
   $('btn-decorar').addEventListener('click', abrirDecorar);
@@ -3740,7 +3932,7 @@
         if (sc.des.oscuro) sc.des.oscuro.setPosition(sc.jugador.x, sc.jugador.y - 16);
         sc.recoger('luz', (o) => {
           st.n += 1;
-          vivo.premiando = true; sumarCofre({ luciernaga: 1 }); vivo.premiando = false;   // al cofre: no se pierden
+          vivo.premiando = true; sumarCofre({ luciernaga: 1 }); vivo.premiando = false; contar('luciernaga');   // al cofre: no se pierden
           sc.flotante(o.x, o.y - 24, '+1 luciérnaga', '#fff3a0');
           sc.soltarLuciernaga();   // siempre aparece otra
           if (st.n === st.meta) { const txt = darPremio(paquete(5, 3), 50); toast(`¡${st.meta} luciérnagas! Bono: ${txt} y 50 de experiencia.`); sc.celebrar(); }
@@ -3836,6 +4028,7 @@
     if (vivo.fase === 'fin' && porServidor(vivo.def)) resultadoPreguntas();
   }
   function iniciarDesafio() {
+    contar('desafio');
     vivo.fase = 'activo';
     const I = IMPL[vivo.def.id];
     vivo.st = I.estado ? I.estado() : {};
@@ -3884,7 +4077,7 @@
     const top = (d.ranking || [])[0];
     if (d.id === 'arena') {
       if (d.gane && !cobrado(d.n)) {
-        marcarCobrado(d.n); gano = true;
+        marcarCobrado(d.n); gano = true; contar('duelo');
         txt = `¡Ganaste el duelo con ${plural(d.aciertos, 'acierto')}! Tu cofre de suministros trae ${darPremio(paquete(6, 4, true), 80)} y 80 de experiencia.`;
       } else if (d.gane) txt = '¡Ganaste el duelo! (El premio ya está en tu inventario.)';
       else if (d.ganador_nombre) txt = `Ganó ${d.ganador_nombre} con ${top ? plural(top.aciertos, 'acierto') : 'más aciertos'}. Tú lograste ${d.aciertos || 0}.`;
@@ -3892,7 +4085,7 @@
     } else {
       const logro = d.total >= d.meta;
       if (logro && d.aciertos > 0 && !cobrado(d.n)) {
-        marcarCobrado(d.n); gano = true;
+        marcarCobrado(d.n); gano = true; contar('meta_curso');
         txt = `¡El curso logró la meta (${d.total} de ${d.meta})! Tu premio: ${darPremio(paquete(4, 3, true), 50)} y 50 de experiencia.`;
       } else if (logro) txt = `¡El curso logró la meta (${d.total} de ${d.meta})!${d.aciertos > 0 ? '' : ' Para ganar premio hay que aportar al menos una respuesta correcta.'}`;
       else txt = `No alcanzaron la meta: ${d.total} de ${d.meta} respuestas correctas. ¡A la próxima!`;
@@ -4060,7 +4253,7 @@
     let html;
     if (r && r.ok) {
       st.gane = true;
-      sumarCofre({ prisma: 1 }); ganarXP(60); guardar(true);
+      sumarCofre({ prisma: 1 }); ganarXP(60); contar('prisma'); guardar(true);
       if (escena && escena.canal) escena.canal.emitir('prisma_fin', { n, id: idJuego, nombre: S.nombre });
       if (escena && escena.jugador) { escena.celebrar(); escena.limpiarDesafio(); }
       avisoGrande('¡Es tuyo!', 'Conseguiste el Prisma estelar', 'Se guardó en tu cofre', 'prisma');
@@ -6280,6 +6473,7 @@
       this.physics.add.collider(this.jugador, this.obstaculos);
       this.capasJ = this.crearCapas();
       this.vestirJugador();
+      this.tagYo = null; this.pintarTituloYo();
     }
     // Capas que acompañan a un personaje: la parte trasera de la espada y lo que lleva en la mano
     crearCapas() {
@@ -6342,6 +6536,7 @@
       } else { j.setVelocity(0, 0); j.anims.stop(); j.setFrame(DIRS[this.dir] * 9); }
       j.setDepth(j.y);
       this.seguir(j, this.capasJ);
+      if (this.tagYo) { this.tagYo.setPosition(j.x, j.y - 62); this.tagYoT.setPosition(j.x, j.y - 78); }
       if (this.luz) this.luz.setPosition(j.x, j.y - 24);
       if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
       if (vivo.fase === 'activo') actualizarDesafio(this, dt);
@@ -6744,7 +6939,7 @@
     }
     // ---------- modo cooperativo ----------
     iniciarCoop() {
-      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente) };
+      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '' };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
       this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
@@ -6818,12 +7013,14 @@
       const tag = this.add.text(spr.x, spr.y - 60, String(meta.nombre || 'Compañero').slice(0, 28), {
         fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: meta.docente ? '#ffd27a' : '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 },
       }).setOrigin(0.5).setResolution(3).setDepth(99990).setAlpha(0);
-      this.otros.set(id, { spr, tag, capas, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', a: null, w: null, m: false, visto: false });
+      const tagT = this.add.text(spr.x, spr.y - 76, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99991).setAlpha(0);
+      this.otros.set(id, { spr, tag, tagT, ti: '', capas, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', a: null, w: null, m: false, visto: false });
+      this.ponerTituloOtro(this.otros.get(id), meta.ti);
       this.vestir(spr, capas, pj, null, 'hacha', null);
     }
     quitarOtro(id) {
       const o = this.otros.get(id); if (!o) return;
-      o.spr.destroy(); o.tag.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); this.otros.delete(id);
+      o.spr.destroy(); o.tag.destroy(); if (o.tagT) o.tagT.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); this.otros.delete(id);
     }
     recibirMov(d) {
       const o = this.otros.get(d.id); if (!o) return;
@@ -6831,7 +7028,8 @@
       const a = ARMADURAS[d.a] ? d.a : null, w = ARMAS[d.w] ? d.w : null;
       if (h !== o.h || a !== o.a || w !== o.w) { o.h = h; o.a = a; o.w = w; this.vestir(o.spr, o.capas, o.pj, a, h, w); }
       o.obj = { x: Number(d.x) || 0, y: Number(d.y) || 0 }; o.dir = DIRS[d.d] !== undefined ? d.d : 'down'; o.m = Boolean(d.m);
-      if (!o.visto || Phaser.Math.Distance.Between(o.spr.x, o.spr.y, o.obj.x, o.obj.y) > 400) { o.spr.setPosition(o.obj.x, o.obj.y); o.visto = true; o.spr.setAlpha(1); o.tag.setAlpha(1); }
+      if (d.ti !== undefined && d.ti !== o.ti) this.ponerTituloOtro(o, d.ti);
+      if (!o.visto || Phaser.Math.Distance.Between(o.spr.x, o.spr.y, o.obj.x, o.obj.y) > 400) { o.spr.setPosition(o.obj.x, o.obj.y); o.visto = true; o.spr.setAlpha(1); o.tag.setAlpha(1); if (o.tagT) o.tagT.setAlpha(1); }
     }
     moverOtros(seg) {
       for (const o of this.otros.values()) {
@@ -6846,6 +7044,7 @@
         o.spr.setDepth(o.spr.y);
         this.seguir(o.spr, o.capas);
         o.tag.setPosition(o.spr.x, o.spr.y - 62);
+        if (o.tagT) o.tagT.setPosition(o.spr.x, o.spr.y - 78);
       }
     }
     enviarMovimiento(moviendo) {
@@ -6858,7 +7057,24 @@
       if (u.t && !moviendo && !u.m && dist < 2) return;
       if (u.t && moviendo && dist < 4) return;
       u.t = ahora; u.x = j.x; u.y = j.y; u.m = moviendo;
-      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo });
+      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '' });
+    }
+    // Título equipado de un compañero (solo se aceptan títulos que existen)
+    ponerTituloOtro(o, id) {
+      if (!o) return;
+      o.ti = LOGRO[id] ? id : '';
+      if (o.tagT) o.tagT.setText(o.ti ? `«${tituloDe(o.ti)}»` : '');
+    }
+    // Mi propio título y nombre sobre mi personaje
+    pintarTituloYo() {
+      if (!this.jugador) return;
+      const t = tituloActual();
+      if (!this.tagYo) {
+        this.tagYo = this.add.text(0, 0, '', { fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 } }).setOrigin(0.5).setResolution(3).setDepth(99990);
+        this.tagYoT = this.add.text(0, 0, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99991);
+      }
+      this.tagYo.setText(String(S.docente ? 'Profe' : S.nombre || '').split(' ')[0]).setVisible(Boolean(t));
+      this.tagYoT.setText(t ? `«${t}»` : '').setVisible(Boolean(t));
     }
     compartirNodo(o, n) {
       if (!this.canal || o.idx === undefined) return;

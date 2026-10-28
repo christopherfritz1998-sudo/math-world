@@ -130,6 +130,7 @@
       <div class="muted">Cofre: ${rec(p.cofre)}</div>
       <div class="muted">Objetos colocados: ${(p.colocados || []).length} en su base · ${(p.pieza || []).length} en su pieza</div>
       <h4>Misiones</h4>
+      <div class="muted">Logros: ${Object.keys(p.logros || {}).length}${p.tituloTxt ? ` · Título equipado: «${esc(p.tituloTxt)}»` : ''}</div>
       <div class="muted">Misión diaria: ${p.diaria ? `${p.diaria.cobrada ? 'cumplida y cobrada' : p.diaria.p >= p.diaria.n ? 'cumplida (sin cobrar)' : `${p.diaria.p} de ${p.diaria.n}`} (${esc(p.diaria.fecha)})` : 'sin registro'}</div>
       <div class="muted">Jefes desbloqueados: ${['u1', 'u2', 'u3', 'u4'].map((u) => { const m = (p.misiones || {})[u]; return m ? `${ZONAS[u]}: ${m.ok ? 'listo' : `${m.lista.filter((x) => x.p >= x.n).length} de ${m.lista.length} misiones`}` : null; }).filter(Boolean).join(' · ') || 'aún no recibe misiones'}</div>
       <div class="muted">Jefes vencidos: ${Object.values(p.jefes || {}).reduce((a, b) => a + b, 0)}</div>
