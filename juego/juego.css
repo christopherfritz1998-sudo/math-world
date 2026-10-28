@@ -534,3 +534,24 @@ ul.misiones li.ok .fila span { color: var(--ok); }
   .carrera-sala, .cristales { grid-template-columns: 1fr; }
   .cz-tablero { margin-left: 24px; width: calc(100% - 24px); }
 }
+
+/* ---------- Glaciar: escalada, bolas de nieve y hielo movedizo ---------- */
+.modal.escalada-modal { width: min(820px, 100%); border-color: #8fd8ff; }
+.escalada { display: grid; grid-template-columns: minmax(0, 420px) 1fr; gap: 16px; align-items: start; }
+.es-cuadro { position: relative; border-radius: 12px; overflow: hidden; border: 3px solid #5fa8d6; }
+.es-cuadro canvas { display: block; width: 100%; height: auto; }
+.es-lado { display: flex; flex-direction: column; gap: 10px; }
+.es-manos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.es-manos .btn { min-height: 64px; font-size: 18px; touch-action: manipulation; }
+.es-info { display: flex; gap: 8px; flex-wrap: wrap; }
+.es-pregunta { position: absolute; left: 4%; right: 4%; top: 50%; transform: translateY(-50%); max-height: 94%; overflow: auto; background: rgba(12, 28, 44, .96); border: 3px solid var(--coral); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.es-pregunta .enunciado { margin: 0; font-size: 17px; }
+.modal.minijuego { width: min(980px, 100%); border-color: #8fd8ff; }
+.minijuego-juego { display: flex; flex-direction: column; gap: 8px; }
+.mj-cuadro { position: relative; border-radius: 12px; overflow: hidden; border: 3px solid #5fa8d6; }
+.mj-cuadro canvas { display: block; width: 100%; height: auto; cursor: crosshair; touch-action: none; }
+.mj-controles { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mj-cruz { grid-template-columns: repeat(3, 44px); grid-auto-rows: 38px; margin: 0; }
+.mj-acciones { display: flex; gap: 10px; align-items: center; }
+.mj-pregunta { top: auto; bottom: 8px; transform: translateX(-50%); }
+@media (max-width: 760px) { .escalada { grid-template-columns: 1fr; } }

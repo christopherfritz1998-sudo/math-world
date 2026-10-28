@@ -30,6 +30,8 @@
     { id: 'magma', nombre: 'Roca de magma', corto: 'Magma', grupo: 'u3p' }, { id: 'cristal_eco', nombre: 'Cristal resonante', corto: 'Cristal res.', grupo: 'u3p' },
     { id: 'baya', nombre: 'Bayas de invierno', corto: 'Bayas', grupo: 'u4' }, { id: 'hielo', nombre: 'Hielo', grupo: 'u4' },
     { id: 'escarcha', nombre: 'Cristal de escarcha', corto: 'Escarcha', grupo: 'u4' }, { id: 'zafiro', nombre: 'Zafiro', grupo: 'u4' },
+    // Cima del Glaciar (tras escalar la pared de hielo)
+    { id: 'hielo_eterno', nombre: 'Hielo eterno', corto: 'H. eterno', grupo: 'u4c' }, { id: 'aurora', nombre: 'Polvo de aurora', corto: 'Aurora', grupo: 'u4c' },
     // Recurso exclusivo: solo se consigue en el desafío "Prisma estelar"
     { id: 'prisma', nombre: 'Prisma estelar', corto: 'Prisma', grupo: 'especial' },
     // Se atrapan en el desafío "Eclipse de luciérnagas"
@@ -74,6 +76,12 @@
     { id: 'espada4', nombre: 'Espada de amatista', desc: 'Equipada, cada acierto en combate quita 5 de vida.', icono: 'espada', costo: { amatista: 8, plata: 10 }, requiere: 'espada2' },
     { id: 'armadura4', nombre: 'Armadura de plata', desc: 'Equipada, tu vida máxima sube a 13 corazones.', icono: 'armadura', costo: { plata: 14, carbon: 20, amatista: 4 }, requiere: 'armadura2' },
     // Equipo del mundo helado (Unidad 4)
+    // Escalada del glaciar y Cima
+    { id: 'piolet', nombre: 'Piolet de escarcha', desc: 'Herramienta de escalada: con el piolet y los crampones puedes subir la pared del glaciar. Si resbalas, te sujetas respondiendo bien.', icono: 'piolet', costo: { hielo: 60, escarcha: 30, zafiro: 8, madera: 20 }, requiere: 'pico' },
+    { id: 'crampones', nombre: 'Crampones de hielo', desc: 'Herramienta de escalada: puntas de metal para las botas. Se necesitan junto con el piolet para subir al glaciar.', icono: 'crampones', costo: { hielo: 50, escarcha: 25, baya: 20, piedra: 30 }, requiere: 'pico' },
+    { id: 'frasco_aurora', nombre: 'Frasco de aurora', desc: 'Herramienta: guarda el polvo de aurora de las flores que brillan en la Cima del Glaciar.', icono: 'frasco_aurora', costo: { hielo: 12, escarcha: 8, cristal: 2 } },
+    { id: 'pico_eterno', nombre: 'Pico de hielo eterno', desc: 'Saca más hielo eterno de los pilares de la Cima y más zafiros.', icono: 'pickaxe', costo: { hielo_eterno: 12, zafiro: 8, escarcha: 10 }, requiere: 'pico5' },
+    { id: 'cetro_aurora', nombre: 'Cetro de la aurora', desc: 'Despierta al Dragón de la Aurora en su trono, en lo más alto de la Cima del Glaciar.', icono: 'cetro_aurora', costo: { aurora: 14, hielo_eterno: 12, zafiro: 8 } },
     { id: 'abrigo', nombre: 'Abrigo de piel', desc: 'Siempre activo: +1 corazón de vida máxima y la ventisca ya no te hace caminar lento.', icono: 'abrigo', costo: { baya: 8, hielo: 10, escarcha: 4 }, requiere: 'pico' },
     { id: 'pico5', nombre: 'Pico de escarcha', desc: 'Permite extraer zafiros y saca más hielo y escarcha.', icono: 'pickaxe', costo: { escarcha: 10, hielo: 15, baya: 6 }, requiere: 'pico2' },
     { id: 'espada5', nombre: 'Espada de hielo', desc: 'Equipada, cada acierto en combate quita 6 de vida.', icono: 'espada', costo: { zafiro: 8, escarcha: 10 }, requiere: 'espada2' },
@@ -258,6 +266,25 @@
     D('alfombra_cristal', 'Alfombra de cristal', 'Profundidades', 'pieza', 'a', [3, 0, 3, 2], { cristal_eco: 4, hongo: 3 }, { piso: true }),
     D('estatua_coloso', 'Estatua del Coloso de Magma', 'Profundidades', 'base', 'a', [8, 0, 2, 3], {}, { excl: true, pie: 2, premio: 'Premio por vencer al Coloso de Magma' }),
     D('vagoneta_dorada', 'Vagoneta dorada', 'Profundidades', 'ambos', 'a', [12, 3, 1, 1], {}, { excl: true, premio: 'Premio por ganar tu primera carrera de vagonetas' }),
+    // Cima del Glaciar: se fabrican con hielo eterno y polvo de aurora (hoja propia)
+    D('iglu_eterno', 'Iglú de hielo eterno', 'Cima del Glaciar', 'base', 'g', [8, 0, 2, 1], { hielo_eterno: 8, hielo: 10 }),
+    D('pilar_eterno', 'Pilar de hielo eterno', 'Cima del Glaciar', 'base', 'g', [12, 0, 1, 2], { hielo_eterno: 4 }, { brillo: 0x8fd8ff }),
+    D('arbol_aurora', 'Árbol de aurora', 'Cima del Glaciar', 'base', 'g', [13, 0, 1, 2], { aurora: 4, madera: 3 }, { brillo: 0x7af0c0 }),
+    D('estatua_hielo', 'Estatua de hielo', 'Cima del Glaciar', 'base', 'g', [14, 0, 1, 2], { hielo_eterno: 5, piedra: 4 }),
+    D('bandera_cumbre', 'Bandera de la cumbre', 'Cima del Glaciar', 'base', 'g', [1, 3, 1, 2], { hielo_eterno: 2, madera: 3 }),
+    D('flor_aurora', 'Flor de aurora', 'Cima del Glaciar', 'base', 'g', [2, 3, 1, 1], { aurora: 2, agua: 1 }, { paso: true, brillo: 0x7af0c0 }),
+    D('farol_aurora', 'Farol de aurora', 'Cima del Glaciar', 'ambos', 'g', [8, 3, 1, 1], { aurora: 3, plata: 1 }, { brillo: 0x7af0c0 }),
+    D('pinguino_rey', 'Pingüino rey', 'Cima del Glaciar', 'ambos', 'g', [10, 3, 1, 1], { hielo_eterno: 2, baya: 3 }),
+    D('foca', 'Foca de las nieves', 'Cima del Glaciar', 'base', 'g', [11, 3, 1, 1], { hielo_eterno: 2, baya: 2 }),
+    D('trineo_aurora', 'Trineo de aurora', 'Cima del Glaciar', 'ambos', 'g', [12, 3, 1, 1], { aurora: 2, madera: 5 }),
+    D('cristal_aurora', 'Cristales de aurora', 'Cima del Glaciar', 'ambos', 'g', [13, 3, 1, 1], { aurora: 3, hielo_eterno: 1 }, { paso: true, brillo: 0xb090ff }),
+    D('trono_hielo', 'Trono de hielo', 'Cima del Glaciar', 'pieza', 'g', [9, 3, 1, 1], { hielo_eterno: 5, zafiro: 2 }),
+    D('cama_hielo', 'Cama de la aurora', 'Cima del Glaciar', 'pieza', 'g', [15, 0, 1, 2], { hielo_eterno: 6, aurora: 3, baya: 4 }, { pie: 2 }),
+    D('lampara_aurora', 'Lámpara de aurora', 'Cima del Glaciar', 'pieza', 'g', [0, 3, 1, 2], { aurora: 3, hielo_eterno: 2 }, { brillo: 0xb090ff }),
+    D('alfombra_polar', 'Alfombra polar', 'Cima del Glaciar', 'pieza', 'g', [3, 0, 3, 2], { hielo_eterno: 3, baya: 6 }, { piso: true }),
+    D('estatua_dragon', 'Estatua del Dragón de la Aurora', 'Cima del Glaciar', 'base', 'g', [6, 0, 2, 3], {}, { excl: true, pie: 2, premio: 'Premio por vencer al Dragón de la Aurora' }),
+    D('globo_nieve', 'Globo de nieve', 'Cima del Glaciar', 'pieza', 'g', [14, 3, 1, 1], {}, { excl: true, premio: 'Premio por completar el álbum de copos de nieve', brillo: 0x9fd8ff }),
+    D('fuerte_nieve', 'Fuerte de nieve', 'Cima del Glaciar', 'base', 'g', [10, 0, 2, 1], {}, { excl: true, premio: 'Premio por ganar tu primera guerra de bolas de nieve' }),
     D('band_r', 'Estandarte rojo', 'Exclusivos', 'base', 'o', [49, 0, 1, 3], {}, { excl: true }),
     D('band_t', 'Estandarte turquesa', 'Exclusivos', 'base', 'o', [49, 3, 1, 3], {}, { excl: true }),
     D('band_v', 'Estandarte verde', 'Exclusivos', 'base', 'o', [49, 6, 1, 3], {}, { excl: true }),
@@ -331,10 +358,10 @@
     // Unidad 4: mundo helado con ventiscas y recursos propios (bayas de invierno, hielo, escarcha y zafiros)
     u4: { nombre: { '7basico': 'Glaciar de los Datos', '8basico': 'Glaciar del Azar' }, tipo: 'hielo', recursos: 'u4', semilla: 44, fondo: '#e4eef7',
       suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 112, nArbustos: 88, nRocas: 66, vetasEscarcha: 19, vetasZafiro: 9, cofres: 11,
-      lobos: 12, espiritus: 9, munecos: 12, cofre: { escarcha: 2, zafiro: 1 } },
+      lobos: 12, espiritus: 9, munecos: 12, cofre: { escarcha: 2, zafiro: 1 }, cima: true },
   };
   // Cada mundo puede tener una zona extra con recursos propios (Bosque profundo, Valle de la Esfinge)
-  const SUBZONA = { u1: 'u1p', u2: 'u2v', u3: 'u3p' };
+  const SUBZONA = { u1: 'u1p', u2: 'u2v', u3: 'u3p', u4: 'u4c' };
   const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || r.grupo === SUBZONA[g]); };
   const nombreZona = (z) => (z === 'base' ? 'Tu base' : z === 'pieza' ? 'Tu pieza' : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
@@ -360,6 +387,9 @@
     raiz: { nombre: 'Raíz viviente', vida: 7, dif: 3, botin: { resina: 2, madera: 3 }, xp: 34, vel: 50, oculto: true, tex: 'tocon_raiz', texVivo: 'raiz_viva', retrato: 'raiz_viva', radio: 200 },
     // Profundidades de la mina
     salamandra: { nombre: 'Salamandra de magma', vida: 6, dif: 3, botin: { magma: 1, carbon: 2 }, xp: 34, vel: 104, retrato: 'a_salamandra', texVivo: 'a_salamandra', radio: 220 },
+    // Cima del Glaciar
+    halcon: { nombre: 'Halcón de escarcha', vida: 6, dif: 3, botin: { aurora: 1, baya: 2 }, xp: 36, vel: 110, flota: true, retrato: 'g_halcon', texVivo: 'g_halcon', radio: 230 },
+    golem_hielo: { nombre: 'Gólem de hielo eterno', vida: 10, dif: 3, botin: { hielo_eterno: 1, hielo: 3 }, xp: 46, vel: 48, oculto: true, tex: 'g_bloque_eterno', texVivo: 'g_golem_hielo', retrato: 'g_golem_hielo', radio: 190 },
     golem_cristal: { nombre: 'Gólem de cristal', vida: 9, dif: 3, botin: { cristal_eco: 1, amatista: 1 }, xp: 42, vel: 50, oculto: true, tex: 'a_cristal_n', texVivo: 'a_golem_cristal', retrato: 'a_golem_cristal', radio: 190 },
     // Desafío en vivo "Criatura dorada": huye del jugador
     dorado: { nombre: 'Criatura dorada', vida: 3, dif: 2, botin: {}, xp: 45, vel: 112, anim: 'jabali', retrato: 'jabali_retrato', radio: 3000 },
@@ -578,6 +608,13 @@
     cristales: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Resuelve 1 rompecabezas de cristales' : `Resuelve ${m.n} rompecabezas de cristales`), mundos: (u) => cueva(u) && minaListo() },
     magma: { n: [2, 3], txt: (m) => `Extrae magma de ${m.n} vetas de las Profundidades`, req: () => tiene('guantes') && tiene('pico'), mundos: (u) => cueva(u) && minaListo() },
     salamandra: { n: [2, 3], txt: (m) => `Vence ${m.n} salamandras de magma`, mundos: (u) => cueva(u) && minaListo() },
+    escalar: { n: [1, 1], txt: () => 'Escala la pared del glaciar hasta la cima', req: () => tiene('piolet') && tiene('crampones'), mundos: (u) => helado(u) && cimaListo() },
+    bolas: { n: [1, 1], txt: () => 'Juega una guerra de bolas de nieve', mundos: helado },
+    movedizo: { n: [1, 1], txt: () => 'Juega una partida de hielo movedizo', mundos: helado },
+    hielo_eterno: { n: [2, 3], txt: (m) => `Extrae hielo eterno de ${m.n} pilares de la cima`, req: () => tiene('pico5'), mundos: (u) => helado(u) && cimaListo() },
+    aurora: { n: [2, 3], txt: (m) => `Recolecta polvo de aurora de ${m.n} flores`, req: () => tiene('frasco_aurora'), mundos: (u) => helado(u) && cimaListo() },
+    halcon: { n: [2, 3], txt: (m) => `Vence ${m.n} halcones de escarcha`, mundos: (u) => helado(u) && cimaListo() },
+    golem_hielo: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 gólem de hielo eterno' : `Vence ${m.n} gólems de hielo eterno`), mundos: (u) => helado(u) && cimaListo() },
     golem_cristal: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Vence 1 gólem de cristal' : `Vence ${m.n} gólems de cristal`), mundos: (u) => cueva(u) && minaListo() },
     pescar: { n: [2, 3], txt: (m) => `Pesca ${m.n} veces en el muelle del gran lago`, req: () => tiene('cana'), mundos: bosque },
     cofre: { n: [1, 2], txt: (m) => (m.n === 1 ? 'Abre 1 cofre del mundo' : `Abre ${m.n} cofres del mundo`) },
@@ -626,11 +663,12 @@
   }
   const textoMision = (m) => TIPOS_MISION[m.t].txt(m);
   // Estado de las obras cooperativas (lo trae el servidor; en modo sin conexión es personal)
-  const obraE = { puente: null, valle: null, mina: null };
+  const obraE = { puente: null, valle: null, mina: null, cima: null };
   // El docente puede pasar aunque la obra de sus estudiantes no esté terminada (solo en su juego)
   const puenteListo = () => esDocente() || Boolean(obraE.puente && obraE.puente.completado);
   const valleListo = () => esDocente() || Boolean(obraE.valle && obraE.valle.completado);
   const minaListo = () => esDocente() || Boolean(obraE.mina && obraE.mina.completado);
+  const cimaListo = () => esDocente() || Boolean(obraE.cima && obraE.cima.completado);
   const misionesListas = (u) => esDocente() || Boolean(S.misiones && S.misiones[u] && S.misiones[u].ok);
 
   const TIPOS_DIARIA = {
@@ -1205,8 +1243,11 @@
     mina: { id: 'elevador_mina', meta: { carbon: 500, plata: 300, hongo: 150, amatista: 50 }, icono: '⛓️', nombre: 'Elevador a las Profundidades', corto: 'el elevador', al: 'al elevador', local: 'obraLocalMina',
       intro: 'La fosa no se puede bajar a pie. Todo tu nivel construye el elevador de la mina: carbón para la máquina, plata para los cables, hongos luminosos para alumbrar y amatista para el mecanismo. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
       listo: 'El elevador está terminado para siempre: baja por él hacia las Profundidades.', fin: '¡Elevador terminado!' },
+    cima: { id: 'ruta_glaciar', meta: { hielo: 500, escarcha: 260, baya: 150, zafiro: 50 }, icono: '🧗', nombre: 'Ruta de escalada del glaciar', corto: 'la ruta de escalada', al: 'a la ruta de escalada', local: 'obraLocalCima',
+      intro: 'La pared del glaciar es demasiado alta y lisa. Todo tu nivel equipa la ruta de escalada: bloques de hielo para los peldaños, escarcha para fijar los anclajes, bayas para los escaladores y zafiros para los ganchos. El avance se guarda y, cuando se completa, la ruta queda lista para siempre. Además, cada escalador necesita su propio piolet y sus crampones.',
+      listo: 'La ruta de escalada está lista para siempre: con piolet y crampones puedes subir a la Cima del Glaciar.', fin: '¡Ruta de escalada terminada!' },
   };
-  const obraDeEscena = () => (escena && escena.rio ? 'puente' : escena && escena.valle ? 'valle' : escena && escena.prof ? 'mina' : null);
+  const obraDeEscena = () => (escena && escena.rio ? 'puente' : escena && escena.valle ? 'valle' : escena && escena.prof ? 'mina' : escena && escena.cima ? 'cima' : null);
   let cargandoObra = false;
   async function cargarObra(k = obraDeEscena()) {
     if (!S || !k || cargandoObra) return;
@@ -2341,6 +2382,641 @@
     }, 200);
   }
 
+  // ---------- Escalada del glaciar ----------
+  // Se sube alternando las manos (← →). En cada tramo el hielo se quiebra: si respondes bien te sujetas;
+  // si fallas (o se acaba el tiempo) caes hasta el último anclaje y pierdes un corazón.
+  const ALTO_GLACIAR = 60, ANCLAJES = [0, 20, 40];
+  function abrirEscalada(alSubir) {
+    if (!tiene('piolet') || !tiene('crampones')) { toast('Para escalar necesitas el piolet de escarcha y los crampones de hielo. Fabrícalos en la fogata de tu base.', 'alerta'); return; }
+    const sustos = [5 + Math.random() * 11, 24 + Math.random() * 12, 44 + Math.random() * 12];
+    const st = { h: 0, vh: 0, mano: null, anclaje: 0, fase: 'sube', caida: 0, susto: 0, pregunta: null, t0: 0, limite: 12000, caidas: 0, golpe: 0 };
+    let raf = 0, ultimo = performance.now(), fin = false;
+    const pjKey = `pj_${S.pj}_${texArmadura(S.armadura)}`, pjSrc = escena && escena.textures.exists(pjKey) ? escena.textures.get(pjKey).getSourceImage() : null;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Pared del glaciar · ${ALTO_GLACIAR} metros · anclajes cada 20 m</span><h2 id="modal-titulo">🧗 Escalar el glaciar</h2></div><button type="button" class="btn" id="es-salir">Bajar</button></div>
+      <div class="escalada">
+        <div class="es-cuadro" id="es-cuadro"><canvas id="es-canvas" width="420" height="520"></canvas></div>
+        <div class="es-lado">
+          <p class="nota">Sube alternando las manos: <kbd>←</kbd> y <kbd>→</kbd> (o <kbd>A</kbd> y <kbd>D</kbd>, o los botones). Si repites la misma mano no avanzas. Cuando el hielo se quiebre, <b>responde bien para sujetarte</b>: si fallas, caes hasta el último anclaje y pierdes un corazón.</p>
+          <div class="es-manos"><button type="button" class="btn" id="es-izq">✋ Izquierda</button><button type="button" class="btn" id="es-der">Derecha 🤚</button></div>
+          <div class="es-info"><span class="pildora" id="es-altura">0 m de ${ALTO_GLACIAR}</span><span class="pildora">❤ <b id="es-vida">${S.vida}</b></span></div>
+          <div id="es-msg"></div>
+        </div>
+      </div>`, 'escalada-modal', () => { fin = true; cancelAnimationFrame(raf); });
+    const ctx = $('es-canvas').getContext('2d'); ctx.imageSmoothingEnabled = false;
+    const grietas = Array.from({ length: 70 }, (_, i) => ({ x: 40 + Math.random() * 340, h: i * 1.2 + Math.random(), l: 10 + Math.random() * 30, a: Math.random() * Math.PI }));
+    const msg = (html) => { const el = $('es-msg'); if (el) el.innerHTML = html; };
+    const mano = (m) => {
+      if (fin || st.fase !== 'sube') return;
+      if (st.mano === m) { msg('<div class="mensaje pista">¡Alterna las manos! Así no avanzas.</div>'); st.golpe = performance.now() + 150; return; }
+      st.mano = m; st.h = Math.min(ALTO_GLACIAR, st.h + 1); sfx(Math.random() < 0.5 ? 'picar' : 'paso');
+      for (const a of ANCLAJES) if (st.h >= a && a > st.anclaje) { st.anclaje = a; msg(`<div class="mensaje bien">⚓ Anclaje a ${a} m: si caes, quedarás aquí.</div>`); sfx('moneda'); }
+      if (st.susto < sustos.length && st.h >= sustos[st.susto]) { st.susto += 1; resbalar(); return; }
+      if (st.h >= ALTO_GLACIAR) llegar();
+    };
+    const resbalar = () => {
+      st.fase = 'pregunta'; sfx('alerta'); if (escena) escena.cameras.main.shake(200, 0.004);
+      const d = Preguntas.nuevo(S.curso, 'u4', difPara(2), S.stats);
+      st.pregunta = { d, fallo: false }; st.t0 = performance.now();
+      const caja = document.createElement('div'); caja.className = 'es-pregunta'; caja.id = 'es-pregunta';
+      caja.innerHTML = `<span class="etq" style="color: var(--coral)">❄️ ¡El hielo se quiebra! Responde para sujetarte · ${esc(d.titulo)}</span>
+        <div class="rey-tiempo"><i id="es-tiempo" style="width:100%"></i></div><p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}`;
+      $('es-cuadro').appendChild(caja);
+      caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
+    };
+    const responder = (i) => {
+      const P = st.pregunta; if (!P || st.fase !== 'pregunta') return;
+      const ok = i === P.d.correcta;
+      if (i >= 0) registrar(P.d.tema, ok);
+      const c = $('es-pregunta'); if (c) c.remove();
+      st.pregunta = null; ui.teclas = teclas;
+      if (ok) { st.fase = 'sube'; sfx('acierto'); ganarXP(6); msg('<div class="mensaje bien">¡Te sujetaste con el piolet! Sigue subiendo.</div>'); return; }
+      // caída hasta el último anclaje
+      st.fase = 'cae'; st.caida = st.anclaje; st.caidas += 1; sfx('dano');
+      if (escena) escena.cameras.main.shake(300, 0.008);
+      S.vida = Math.max(0, S.vida - 1); pintarHUD(); const v = $('es-vida'); if (v) v.textContent = S.vida;
+      msg(`<div class="mensaje mal">${i < 0 ? '¡Se acabó el tiempo!' : `La respuesta era ${mate(P.d.opciones[P.d.correcta])}.`} Resbalaste hasta el anclaje de ${st.anclaje} m y perdiste 1 corazón.</div>`);
+      if (S.vida <= 0) { fin = true; ui.alCerrar = () => morir('la caída del glaciar'); setTimeout(() => ui.cerrar(), 1400); return; }
+      // el susto de este tramo vuelve a ocurrir más arriba
+      st.susto -= 1; sustos[st.susto] = Math.min(st.anclaje + 19, Math.max(st.anclaje + 3, sustos[st.susto]));
+    };
+    const llegar = () => {
+      st.fase = 'fin'; fin = true; sfx('logro'); ganarXP(40 - Math.min(20, st.caidas * 5)); avanzarMision('escalar'); guardar(true);
+      msg('<div class="mensaje bien">¡Llegaste a la cima del glaciar!</div>');
+      setTimeout(() => { ui.alCerrar = () => { cancelAnimationFrame(raf); st.fase = 'cerrado'; alSubir(); }; ui.cerrar(); }, 900);
+    };
+    const teclas = (e) => {
+      if (['ArrowLeft', 'a', 'A'].includes(e.key)) { e.preventDefault(); mano('izq'); }
+      else if (['ArrowRight', 'd', 'D'].includes(e.key)) { e.preventDefault(); mano('der'); }
+    };
+    ui.teclas = teclas;
+    $('es-izq').addEventListener('click', () => mano('izq')); $('es-der').addEventListener('click', () => mano('der'));
+    $('es-salir').addEventListener('click', () => ui.cerrar());
+    const dibujar = (ahora) => {
+      const W = 420, H = 520, M = 34;   // M: píxeles por metro
+      const vista = st.vh;   // altura que se ve en el centro
+      const yDe = (h) => H - 120 - (h - vista) * M;
+      const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#9fd8f2'); g.addColorStop(1, '#5fa8d6');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#d8f1fb'; ctx.fillRect(30, 0, W - 60, H);
+      ctx.fillStyle = '#bfe6f6'; for (let x = 30; x < W - 30; x += 46) ctx.fillRect(x, 0, 3, H);
+      ctx.strokeStyle = '#8cc4e0'; ctx.lineWidth = 2;
+      for (const gr of grietas) { const y = yDe(gr.h); if (y < -40 || y > H + 40) continue; ctx.beginPath(); ctx.moveTo(gr.x, y); ctx.lineTo(gr.x + Math.cos(gr.a) * gr.l, y + Math.sin(gr.a) * gr.l); ctx.stroke(); }
+      // anclajes y cima
+      for (const a of ANCLAJES.slice(1)) {
+        const y = yDe(a); if (y < -30 || y > H + 30) continue;
+        ctx.fillStyle = a <= st.anclaje ? '#5cc8b8' : '#6b7a8a'; ctx.fillRect(W / 2 - 10, y - 6, 20, 12);
+        ctx.fillStyle = '#21324a'; ctx.font = 'bold 13px Fredoka, Nunito, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`⚓ ${a} m`, W / 2 + 16, y + 5);
+      }
+      const yc = yDe(ALTO_GLACIAR);
+      if (yc > -60) { ctx.fillStyle = '#ffffff'; ctx.fillRect(0, yc - 60, W, 60); ctx.fillStyle = '#e04848'; ctx.fillRect(W / 2 + 40, yc - 58, 4, 50); ctx.fillStyle = '#5cc8b8'; ctx.fillRect(W / 2 + 44, yc - 58, 22, 14); }
+      // cuerda desde el último anclaje
+      const yj = yDe(st.h);
+      ctx.strokeStyle = '#c0703a'; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(W / 2, yDe(st.anclaje)); ctx.lineTo(W / 2, yj - 10); ctx.stroke();
+      // escalador (de espaldas)
+      const temb = st.fase === 'pregunta' ? Math.sin(ahora / 40) * 3 : 0;
+      if (pjSrc) { const tam = 96, col = st.fase === 'sube' ? (Math.floor(st.h) % 8) + 1 : 0; ctx.drawImage(pjSrc, col * 64, DIRS.up * 64, 64, 64, W / 2 - tam / 2 + temb, yj - tam * 0.8, tam, tam); }
+      else { ctx.fillStyle = '#ffd27a'; ctx.fillRect(W / 2 - 12 + temb, yj - 40, 24, 40); }
+      ctx.fillStyle = '#21324a'; ctx.font = 'bold 18px Fredoka, Nunito, sans-serif'; ctx.textAlign = 'left'; ctx.fillText(`${Math.floor(st.h)} m`, 12, 26);
+    };
+    const paso = (ahora) => {
+      if (fin && st.fase !== 'fin') return;
+      const dt = Math.min(0.1, (ahora - ultimo) / 1000); ultimo = ahora;
+      if (st.fase === 'cae') { st.h = Math.max(st.caida, st.h - 26 * dt); if (st.h <= st.caida) { st.h = st.caida; st.fase = 'sube'; st.mano = null; } }
+      if (st.fase === 'pregunta') {
+        const resto = st.limite - (ahora - st.t0), b = $('es-tiempo');
+        if (b) b.style.width = `${Math.max(0, (resto / st.limite) * 100)}%`;
+        if (resto <= 0) responder(-1);
+      }
+      st.vh += (st.h - st.vh) * Math.min(1, dt * 6);
+      dibujar(ahora);
+      const al = $('es-altura'); if (al) al.textContent = `${Math.floor(st.h)} m de ${ALTO_GLACIAR}`;
+      if (!fin || st.fase === 'fin') raf = requestAnimationFrame(paso);
+    };
+    raf = requestAnimationFrame(paso);
+  }
+
+  // ---------- Copos de nieve (álbum): se ganan en el hielo movedizo ----------
+  const COPOS = [
+    { id: 'estrella', nombre: 'Copo estrella', rareza: 'Común', peso: 24 }, { id: 'aguja', nombre: 'Copo de agujas', rareza: 'Común', peso: 22 },
+    { id: 'helecho', nombre: 'Copo helecho', rareza: 'Común', peso: 18 }, { id: 'diamante', nombre: 'Copo diamante', rareza: 'Poco común', peso: 12 },
+    { id: 'flor', nombre: 'Copo flor', rareza: 'Poco común', peso: 10 }, { id: 'escarcha', nombre: 'Copo de escarcha', rareza: 'Rara', peso: 7 },
+    { id: 'corona', nombre: 'Copo corona', rareza: 'Rara', peso: 5 }, { id: 'prisma', nombre: 'Copo prisma', rareza: 'Rara', peso: 4 },
+    { id: 'aurora', nombre: 'Copo de aurora', rareza: 'Épica', peso: 2 }, { id: 'eterno', nombre: 'Copo eterno', rareza: 'Legendaria', peso: 1 },
+  ];
+  function sortearCopo(bono = 1) {
+    const tirar = () => { const pesos = COPOS.map((g) => g.peso * (g.peso <= 7 ? bono : 1)); let r = Math.random() * pesos.reduce((a, b) => a + b, 0); for (let i = 0; i < COPOS.length; i++) { if ((r -= pesos[i]) < 0) return COPOS[i]; } return COPOS[0]; };
+    let g = tirar(); if (S.copos && S.copos[g.id] && Math.random() < 0.6) g = tirar(); return g;
+  }
+  function registrarCopo(g) {
+    S.copos = S.copos || {};
+    const nuevo = !S.copos[g.id];
+    S.copos[g.id] = (S.copos[g.id] || 0) + 1;
+    if (!S.coposPremio && COPOS.every((x) => S.copos[x.id])) {
+      S.coposPremio = true; S.inventario.globo_nieve = (S.inventario.globo_nieve || 0) + 1; ganarXP(120);
+      setTimeout(() => avisoGrande('¡Completaste el álbum de copos de nieve!', 'Ganaste un globo de nieve exclusivo para tu pieza', '+120 de experiencia'), 1100);
+    }
+    return nuevo;
+  }
+  function abrirAlbumCopos() {
+    const A = S.copos || {}, tengo = COPOS.filter((g) => A[g.id]).length;
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Colección · ${tengo} de ${COPOS.length} copos</span><h2 id="modal-titulo">❄️ Álbum de copos de nieve</h2></div><button type="button" class="btn" id="ac-cerrar">Cerrar</button></div>
+      <p class="nota">Cada copo de nieve es único: se gana quedando en pie en el <b>hielo movedizo</b> (Glaciar). Los más raros salen más seguido si respondiste preguntas durante la partida. Premio al completar el álbum: un globo de nieve exclusivo y 120 de experiencia.${S.coposPremio ? ' <strong>¡Ya lo completaste!</strong>' : ''}</p>
+      <div class="album gemas">${COPOS.map((g) => `<div class="pez-card ${A[g.id] ? '' : 'falta'}"><img class="px" src="${ICONO('copo_' + g.id)}" alt=""><strong>${A[g.id] ? esc(g.nombre) : '???'}</strong><small class="rareza ${CLASE_RAREZA[g.rareza]}">${esc(g.rareza)}</small><small>${A[g.id] ? `Tienes: ${A[g.id]}` : 'Hielo movedizo'}</small></div>`).join('')}</div>`);
+    $('ac-cerrar').addEventListener('click', () => ui.cerrar());
+  }
+
+  // ---------- Salas multijugador del glaciar (bolas de nieve y hielo movedizo) ----------
+  // Los jugadores del mismo grupo que están en el mismo lugar entran a la sala; cualquiera inicia la partida.
+  // Sin compañeros se juega contra dos rivales de nieve (controlados por la computadora).
+  let sala = null;
+  function emitirSala(datos) { if (escena && escena.canal && sala) escena.canal.emitir('sala', { id: idJuego, juego: sala.juego, ...datos }); }
+  function recibirSala(d) {
+    if (!d || d.id === idJuego || !sala || d.juego !== sala.juego) return;
+    if (d.t === 'aqui' && sala.fase === 'sala') { sala.gente.set(d.id, { nombre: d.nombre, pj: d.pj, visto: Date.now() }); pintarGente(); }
+    else if (d.t === 'salir') { sala.gente.delete(d.id); if (sala.fase === 'sala') pintarGente(); else if (sala.recibir) sala.recibir(d); }
+    else if (d.t === 'inicio' && sala.fase === 'sala' && (d.ids || []).includes(idJuego)) arrancarSala(d.semilla, d.ids, d.nombres, d.pjs);
+    else if (sala.fase === 'juego' && sala.recibir) sala.recibir(d);
+  }
+  function pintarGente() {
+    const el = $('sl-lista'); if (!el || !sala) return;
+    const filas = [[nombreJug(), S.pj, true], ...[...sala.gente.values()].map((x) => [x.nombre, x.pj, false])];
+    el.innerHTML = filas.map(([n, pj, yo]) => `<li><span class="cr-cara" style="background-image:url('assets/pj/${esc(pj)}_nada.png')"></span><b>${esc(n)}</b>${yo ? ' <small>(tú)</small>' : ''}</li>`).join('');
+    $('sl-nota').textContent = sala.gente.size ? `${sala.gente.size + 1} jugadores en la sala` : 'Si no llega nadie, jugarás contra 2 rivales de nieve.';
+  }
+  function abrirSala(cfg) {
+    sala = { ...cfg, fase: 'sala', gente: new Map(), latido: 0, raf: 0, limpiar: [] };
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">${esc(cfg.lugar)} · ${escena && escena.canal ? `Grupo ${S.grupo}` : 'sin grupo: juegas contra rivales de nieve'}</span><h2 id="modal-titulo">${cfg.icono} ${esc(cfg.titulo)}</h2></div><button type="button" class="btn" id="sl-salir">Salir</button></div>
+      <div class="carrera-sala" id="sl-cuerpo">
+        <div><p class="nota">${cfg.reglas}</p><ul class="carrera-lista" id="sl-lista"></ul></div>
+        <div class="carrera-premios"><span class="etq">Premios</span>${cfg.premiosHTML}</div>
+      </div>
+      <div class="acciones"><span class="nota" id="sl-nota"></span><button type="button" class="btn pri" id="sl-iniciar" data-foco>¡Empezar!</button></div>`, `minijuego ${cfg.clase}`, () => {
+      if (!sala) return;
+      emitirSala({ t: 'salir' });
+      clearInterval(sala.latido); cancelAnimationFrame(sala.raf); sala.limpiar.forEach((f) => f());
+      sala = null;
+    });
+    $('sl-salir').addEventListener('click', () => ui.cerrar());
+    $('sl-iniciar').addEventListener('click', () => {
+      const ids = [idJuego, ...[...sala.gente.keys()]].slice(0, 6), nombres = { [idJuego]: nombreJug() }, pjs = { [idJuego]: S.pj };
+      for (const [id, x] of sala.gente) { nombres[id] = x.nombre; pjs[id] = x.pj; }
+      const semilla = Math.floor(Math.random() * 1e9);
+      emitirSala({ t: 'inicio', semilla, ids, nombres, pjs });
+      arrancarSala(semilla, ids, nombres, pjs);
+    });
+    ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); $('sl-iniciar').click(); } };
+    const latir = () => { if (!sala || sala.fase !== 'sala') return; emitirSala({ t: 'aqui', nombre: nombreJug(), pj: S.pj }); for (const [id, x] of sala.gente) if (Date.now() - x.visto > 5000) sala.gente.delete(id); pintarGente(); };
+    sala.latido = setInterval(latir, 1500); latir();
+  }
+  function arrancarSala(semilla, ids, nombres, pjs) {
+    if (!sala || sala.fase !== 'sala') return;
+    clearInterval(sala.latido); sala.fase = 'juego';
+    const textura = (pj) => { const k = `pj_${pj}_nada`; return escena && escena.textures.exists(k) ? escena.textures.get(k).getSourceImage() : null; };
+    const miTex = `pj_${S.pj}_${texArmadura(S.armadura)}`, miImg = escena && escena.textures.exists(miTex) ? escena.textures.get(miTex).getSourceImage() : textura(S.pj);
+    const jugadores = ids.map((id, i) => ({ id, i, nombre: (nombres && nombres[id]) || 'Compañero', yo: id === idJuego, img: id === idJuego ? miImg : textura((pjs && pjs[id]) || 'zorro'), visto: performance.now() }));
+    if (ids.length === 1) ['Rival de nieve', 'Rival de escarcha'].forEach((n, k) => jugadores.push({ id: `bot${k}`, i: k + 1, nombre: n, bot: true, img: textura(['lobo', 'pudu'][k]) }));
+    sala.jugadores = jugadores; sala.yo = jugadores[0];
+    $('sl-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro" id="mj-cuadro"><canvas id="mj-canvas" width="${sala.W}" height="${sala.H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
+      <div class="mj-controles" id="mj-controles"></div></div>`;
+    document.querySelector('#modal .acciones').innerHTML = '<span class="nota" id="sl-nota">¡Prepárate!</span><span class="pildora" id="mj-reloj"></span>';
+    sala.ctx = $('mj-canvas').getContext('2d'); sala.ctx.imageSmoothingEnabled = false;
+    sala.rnd = azar(semilla); sala.semilla = semilla;
+    sala.iniciar(sala);
+    sala.cuenta = 3.2; sala.t = -3.2;
+    let ultimo = performance.now();
+    const bucle = (ahora) => {
+      if (!sala) return;
+      const dt = Math.min(0.1, (ahora - ultimo) / 1000); ultimo = ahora;
+      if (sala.cuenta > 0) {
+        sala.cuenta -= dt; const el = $('mj-cuenta'), n = Math.ceil(sala.cuenta);
+        if (el && n > 0 && el.textContent !== String(n)) { el.textContent = String(n); sfx('tick'); }
+        if (sala.cuenta <= 0 && el) { el.textContent = '¡YA!'; sfx('vamos'); setTimeout(() => el.remove(), 600); }
+      }
+      sala.t += dt;
+      if (sala.fase === 'juego') sala.paso(sala, dt, ahora);
+      sala.dibujar(sala, ahora);
+      const r = $('mj-reloj'); if (r && sala.duracion) r.textContent = `⏱ ${Math.max(0, Math.ceil(sala.duracion - Math.max(0, sala.t)))} s`;
+      sala.raf = requestAnimationFrame(bucle);
+    };
+    sala.raf = requestAnimationFrame(bucle);
+  }
+  // Teclas de movimiento compartidas por los dos juegos
+  function controlMovimiento(S0) {
+    const K = { ArrowUp: 'u', ArrowDown: 'd', ArrowLeft: 'l', ArrowRight: 'r', w: 'u', s: 'd', a: 'l', d: 'r', W: 'u', S: 'd', A: 'l', D: 'r' };
+    S0.mov = { u: false, d: false, l: false, r: false };
+    const sube = (e) => { if (K[e.key]) S0.mov[K[e.key]] = false; };
+    document.addEventListener('keyup', sube); S0.limpiar.push(() => document.removeEventListener('keyup', sube));
+    const cruz = $('mj-controles');
+    cruz.insertAdjacentHTML('afterbegin', `<div class="lab-cruz mj-cruz">${['', 'u', '', 'l', '', 'r', '', 'd', ''].map((k) => (k ? `<button type="button" class="btn" data-mv="${k}">${{ u: '▲', d: '▼', l: '◀', r: '▶' }[k]}</button>` : '<span></span>')).join('')}</div>`);
+    cruz.querySelectorAll('[data-mv]').forEach((b) => {
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); S0.mov[b.dataset.mv] = true; });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { S0.mov[b.dataset.mv] = false; });
+    });
+    return (e) => { if (K[e.key]) { e.preventDefault(); S0.mov[K[e.key]] = true; return true; } return false; };
+  }
+  // Pregunta rápida dentro del minijuego (no detiene a los demás)
+  function preguntaRapida(S0, alAcertar, titulo) {
+    if (S0.pregunta) return;
+    const d = Preguntas.nuevo(S.curso, 'u4', difPara(1), S.stats), fallidas = new Set();
+    S0.pregunta = d; S0.mov = { u: false, d: false, l: false, r: false };
+    const caja = document.createElement('div'); caja.className = 'cr-pregunta mj-pregunta'; caja.id = 'mj-pregunta'; $('mj-cuadro').appendChild(caja);
+    let bloqueo = 0;
+    const pintar = (msg = '') => {
+      caja.innerHTML = `<span class="etq">${titulo} · ${esc(d.titulo)}</span><p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, fallidas, false)}${msg}`;
+      caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => resp(Number(b.dataset.i))));
+    };
+    const resp = (i) => {
+      if (!S0.pregunta || fallidas.has(i) || performance.now() < bloqueo) return;
+      const ok = i === d.correcta; registrar(d.tema, ok);
+      if (ok) { sfx('acierto'); S0.pregunta = null; caja.remove(); alAcertar(); return; }
+      sfx('error'); fallidas.add(i); bloqueo = performance.now() + 1200;
+      if (fallidas.size >= d.opciones.length - 1) { S0.pregunta = null; caja.remove(); return; }
+      pintar(`<div class="mensaje mal">Casi… ${mate(d.pista || '')}</div>`);
+    };
+    S0.resp = resp;
+    pintar();
+  }
+  function finalSala(S0, lista, premio, xp, extra) {
+    if (S0.fase !== 'juego') return;
+    S0.fase = 'fin';
+    Object.entries(premio).forEach(([r, n]) => { if (n) sumar(r, n); });
+    ganarXP(xp); guardar(true);
+    const c = $('mj-pregunta'); if (c) c.remove();
+    const caja = document.createElement('div'); caja.className = 'cr-pregunta cr-final';
+    caja.innerHTML = `${lista}<p>Premio: ${Object.entries(premio).filter(([, n]) => n).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} · ${xp} de experiencia.</p>${extra || ''}
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="mj-fin">¡Listo!</button></div>`;
+    $('mj-cuadro').appendChild(caja);
+    $('mj-fin').addEventListener('click', () => ui.cerrar()); $('mj-fin').focus();
+    const al = caja.querySelector('#mj-album'); if (al) al.addEventListener('click', () => { ui.cerrar(); abrirAlbumCopos(); });
+    ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+  }
+  const dibujarPj = (ctx, img, x, y, dir, mov, ahora, tam = 64, alpha = 1) => {
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = 'rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(x, y + 2, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+    if (img) ctx.drawImage(img, (mov ? 1 + (Math.floor(ahora / 90) % 8) : 0) * 64, DIRS[dir] * 64, 64, 64, x - tam / 2, y - tam * 0.92, tam, tam);
+    else { ctx.fillStyle = '#ffd27a'; ctx.fillRect(x - 10, y - 36, 20, 36); }
+    ctx.globalAlpha = 1;
+  };
+  const etiqueta = (ctx, txt, x, y, col = '#fff') => { ctx.font = 'bold 12px Fredoka, Nunito, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 3; ctx.strokeStyle = '#10203a'; ctx.strokeText(txt, x, y); ctx.fillStyle = col; ctx.fillText(txt, x, y); };
+
+  // ---------- Guerra de bolas de nieve ----------
+  // Muévete, apunta con el mouse (o toca) y lanza. Las bolas se hacen respondiendo ejercicios (E): cada acierto da 5.
+  // Los fuertes de nieve te protegen. Cada jugador decide si lo golpearon (así nadie gana por lag).
+  const PREMIO_BOLAS = [{ hielo: 8, escarcha: 4, zafiro: 2 }, { hielo: 6, escarcha: 3 }, { hielo: 5, escarcha: 2 }, { hielo: 4 }], XP_BOLAS = [60, 40, 30, 20];
+  function abrirBolasNieve() {
+    abrirSala({
+      juego: 'bolas', lugar: 'Campo de batalla nevado', titulo: 'Guerra de bolas de nieve', icono: '☃️', clase: 'bolas', W: 800, H: 400, duracion: 75,
+      reglas: 'Muévete con <kbd>W A S D</kbd> o las flechas, <b>apunta con el mouse y haz clic</b> para lanzar (en celular, toca donde quieres lanzar). Empiezas con 6 bolas: para hacer más, presiona <kbd>E</kbd> y responde un ejercicio (cada acierto da 5 bolas), pero mientras respondes te quedas quieto. Gana quien acierte más bolas en 75 segundos.',
+      premiosHTML: `<ol>${PREMIO_BOLAS.map((p, i) => `<li>${['🥇', '🥈', '🥉', '🏁'][i]} ${Object.entries(p).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} · ${XP_BOLAS[i]} xp</li>`).join('')}</ol><span class="nota">Tu primera victoria: ¡un fuerte de nieve exclusivo para tu base!</span>`,
+      iniciar(G) {
+        const r = G.rnd;
+        G.fuertes = [];
+        for (let k = 0; k < 7; k++) {
+          const w = 60 + r() * 50, h = 22 + r() * 10, x = 120 + r() * (G.W - 240 - w), y = 110 + r() * (G.H - 170 - h);
+          if (G.fuertes.some((f) => x < f.x + f.w + 30 && x + w + 30 > f.x && y < f.y + f.h + 30 && y + h + 30 > f.y)) continue;
+          G.fuertes.push({ x, y, w, h });
+        }
+        const puntos = [[70, 100], [G.W - 70, G.H - 30], [G.W - 70, 100], [70, G.H - 30], [G.W / 2, 100], [G.W / 2, G.H - 30]];
+        G.jugadores.forEach((j, i) => Object.assign(j, { x: puntos[i % 6][0], y: puntos[i % 6][1], dir: 'down', golpes: 0, recibidos: 0, aturdido: 0, mueve: false, prox: 1 + Math.random() * 2, meta: null }));
+        G.bolas = []; G.municion = 6; G.ultTiro = 0; G.ultPos = 0;
+        const mover = controlMovimiento(G);
+        const cruz = $('mj-controles');
+        cruz.insertAdjacentHTML('beforeend', '<div class="mj-acciones"><span class="pildora" id="bn-bolas">❄️ 6 bolas</span><button type="button" class="btn pri" id="bn-hacer">Hacer bolas (E)</button></div>');
+        const hacer = () => { if (G.fase === 'juego' && G.t > 0) preguntaRapida(G, () => { G.municion = Math.min(14, G.municion + 5); }, '☃️ Haz bolas de nieve'); };
+        $('bn-hacer').addEventListener('click', hacer);
+        ui.teclas = (e) => {
+          if (G.pregunta) { if (/^[1-4]$/.test(e.key)) G.resp(Number(e.key) - 1); return; }
+          if (mover(e)) return;
+          if (e.key === 'e' || e.key === 'E') { e.preventDefault(); hacer(); }
+        };
+        const cv = $('mj-canvas');
+        cv.addEventListener('pointerdown', (e) => {
+          if (G.fase !== 'juego' || G.t < 0 || G.pregunta) return;
+          const yo = G.yo, ahora = performance.now();
+          if (yo.aturdido > ahora || ahora - G.ultTiro < 420) return;
+          if (G.municion <= 0) { sfx('error'); const n = $('sl-nota'); if (n) n.textContent = '¡Sin bolas! Presiona E para hacer más.'; return; }
+          const rc = cv.getBoundingClientRect(), mx = ((e.clientX - rc.left) / rc.width) * G.W, my = ((e.clientY - rc.top) / rc.height) * G.H;
+          const dx = mx - yo.x, dy = my - (yo.y - 20), l = Math.hypot(dx, dy) || 1;
+          const b = { x: yo.x, y: yo.y - 20, vx: (dx / l) * 430, vy: (dy / l) * 430, de: idJuego, vida: 0.95 };
+          G.bolas.push(b); G.municion -= 1; G.ultTiro = ahora; sfx('lanzar');
+          yo.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+          emitirSala({ t: 'bola', x: Math.round(b.x), y: Math.round(b.y), vx: Math.round(b.vx), vy: Math.round(b.vy) });
+        });
+        $('sl-nota').textContent = 'Apunta con el mouse y haz clic para lanzar · E para hacer bolas';
+      },
+      recibir(d) {
+        const G = sala, j = G.jugadores.find((x) => x.id === d.id); if (!j) return;
+        j.visto = performance.now();
+        if (d.t === 'pos') { j.tx = d.x; j.ty = d.y; j.dir = d.dir; j.mueve = d.m; }
+        else if (d.t === 'bola') G.bolas.push({ x: d.x, y: d.y, vx: d.vx, vy: d.vy, de: d.id, vida: 0.95 });
+        else if (d.t === 'golpe') { j.recibidos += 1; j.aturdido = performance.now() + 1200; const t = G.jugadores.find((x) => x.id === d.de); if (t) t.golpes += 1; G.bolas = G.bolas.filter((b) => !(b.de === d.de && Math.hypot(b.x - j.x, b.y - (j.y - 20)) < 40)); }
+        else if (d.t === 'salir') j.fuera = true;
+      },
+      paso(G, dt, ahora) {
+        const yo = G.yo, choca = (x, y) => G.fuertes.some((f) => x > f.x - 10 && x < f.x + f.w + 10 && y > f.y - 4 && y < f.y + f.h + 12);
+        if (G.t > 0 && !G.pregunta && yo.aturdido < ahora) {
+          let vx = (G.mov.r ? 1 : 0) - (G.mov.l ? 1 : 0), vy = (G.mov.d ? 1 : 0) - (G.mov.u ? 1 : 0); const l = Math.hypot(vx, vy);
+          yo.mueve = l > 0;
+          if (l) { vx /= l; vy /= l; const nx = Math.max(24, Math.min(G.W - 24, yo.x + vx * 170 * dt)), ny = Math.max(76, Math.min(G.H - 6, yo.y + vy * 170 * dt)); if (!choca(nx, yo.y)) yo.x = nx; if (!choca(yo.x, ny)) yo.y = ny; yo.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down'); }
+        } else yo.mueve = false;
+        if (ahora - G.ultPos > 100) { G.ultPos = ahora; emitirSala({ t: 'pos', x: Math.round(yo.x), y: Math.round(yo.y), dir: yo.dir, m: yo.mueve }); }
+        for (const j of G.jugadores) if (!j.yo && !j.bot && j.tx != null) { j.x += (j.tx - j.x) * Math.min(1, dt * 10); j.y += (j.ty - j.y) * Math.min(1, dt * 10); }
+        // rivales de nieve (sin compañeros)
+        for (const j of G.jugadores) {
+          if (!j.bot) continue;
+          if (j.aturdido < ahora) {
+            if (!j.meta || Math.hypot(j.meta.x - j.x, j.meta.y - j.y) < 10) j.meta = { x: 60 + Math.random() * (G.W - 120), y: 90 + Math.random() * (G.H - 110) };
+            const dx = j.meta.x - j.x, dy = j.meta.y - j.y, l = Math.hypot(dx, dy) || 1;
+            const nx = j.x + (dx / l) * 110 * dt, ny = j.y + (dy / l) * 110 * dt;
+            if (!choca(nx, ny)) { j.x = nx; j.y = ny; j.mueve = true; } else j.meta = null;
+            j.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+            j.prox -= dt;
+            if (j.prox <= 0 && G.t > 0) {
+              j.prox = 1.4 + Math.random() * 1.4;
+              const a = Math.atan2(yo.y - 20 - (j.y - 20), yo.x - j.x) + (Math.random() - 0.5) * 0.5;
+              G.bolas.push({ x: j.x, y: j.y - 20, vx: Math.cos(a) * 400, vy: Math.sin(a) * 400, de: j.id, vida: 0.95 });
+            }
+          } else j.mueve = false;
+        }
+        // bolas: vuelan, chocan con los fuertes y golpean
+        for (const b of G.bolas) {
+          b.x += b.vx * dt; b.y += b.vy * dt; b.vida -= dt;
+          if (G.fuertes.some((f) => b.x > f.x && b.x < f.x + f.w && b.y > f.y - 10 && b.y < f.y + f.h)) { b.vida = 0; b.choque = true; }
+          if (b.vida <= 0) continue;
+          if (b.de !== idJuego && yo.aturdido < ahora && Math.hypot(b.x - yo.x, b.y - (yo.y - 20)) < 20) {
+            b.vida = 0; yo.recibidos += 1; yo.aturdido = ahora + 1200; sfx('golpe'); if (escena) escena.cameras.main.shake(120, 0.003);
+            const t = G.jugadores.find((x) => x.id === b.de); if (t) t.golpes += 1;
+            if (!String(b.de).startsWith('bot')) emitirSala({ t: 'golpe', de: b.de });
+          }
+          if (b.de === idJuego) for (const j of G.jugadores) {
+            if (!j.bot || j.aturdido > ahora || b.vida <= 0) continue;
+            if (Math.hypot(b.x - j.x, b.y - (j.y - 20)) < 20) { b.vida = 0; j.recibidos += 1; j.aturdido = ahora + 1200; yo.golpes += 1; sfx('moneda'); }
+          }
+        }
+        G.bolas = G.bolas.filter((b) => b.vida > 0);
+        const nb = $('bn-bolas'); if (nb) nb.textContent = `❄️ ${G.municion} ${G.municion === 1 ? 'bola' : 'bolas'} · 🎯 ${yo.golpes}`;
+        if (G.t >= G.duracion) {
+          const lista = [...G.jugadores].filter((j) => !j.fuera || j.yo).sort((a, b) => b.golpes - a.golpes || a.recibidos - b.recibidos);
+          const pos = lista.findIndex((j) => j.yo), k = Math.min(3, pos);
+          let extra = '';
+          if (pos === 0 && yo.golpes > 0 && !S.bolasGanada) { S.bolasGanada = true; S.inventario.fuerte_nieve = (S.inventario.fuerte_nieve || 0) + 1; extra = '<p class="nota">🏆 ¡Tu primera victoria! Ganaste el <b>fuerte de nieve</b> para tu base (Decorar).</p>'; }
+          avanzarMision('bolas'); sfx(pos === 0 ? 'logro' : 'mision');
+          finalSala(G, `<h3>${pos === 0 ? '🥇 ¡Ganaste la guerra de bolas de nieve!' : `Quedaste en el lugar ${pos + 1}`}</h3>
+            <ol class="cr-ranking">${lista.map((j, i) => `<li class="${j.yo ? 'yo' : ''}"><span>${['🥇', '🥈', '🥉'][i] || i + 1 + '.'}</span><b>${esc(j.yo ? `${j.nombre} (tú)` : j.nombre)}${j.bot ? ' ☃️' : ''}</b><span>🎯 ${j.golpes} · recibió ${j.recibidos}</span></li>`).join('')}</ol>`, PREMIO_BOLAS[k], XP_BOLAS[k], extra);
+        }
+      },
+      dibujar(G, ahora) {
+        const ctx = G.ctx, W = G.W, H = G.H;
+        ctx.fillStyle = '#eaf6fc'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#d6ecf7'; for (let i = 0; i < 40; i++) { const x = (i * 97) % W, y = (i * 53) % H; ctx.beginPath(); ctx.ellipse(x, y, 30, 8, 0, 0, Math.PI * 2); ctx.fill(); }
+        const dibujables = [...G.fuertes.map((f) => ({ y: f.y + f.h, f })), ...G.jugadores.filter((j) => !j.fuera).map((j) => ({ y: j.y, j }))].sort((a, b) => a.y - b.y);
+        for (const o of dibujables) {
+          if (o.f) { const f = o.f; ctx.fillStyle = '#ffffff'; ctx.fillRect(f.x, f.y, f.w, f.h); ctx.fillStyle = '#c4dcea'; ctx.fillRect(f.x, f.y + f.h - 6, f.w, 6); ctx.fillStyle = '#ffffff'; for (let x = f.x; x < f.x + f.w - 8; x += 16) ctx.fillRect(x, f.y - 8, 10, 8); }
+          else {
+            const j = o.j, at = j.aturdido > ahora;
+            dibujarPj(ctx, j.img, j.x, j.y, j.dir || 'down', j.mueve, ahora, 64, at && Math.floor(ahora / 100) % 2 ? 0.5 : 1);
+            etiqueta(ctx, `${j.yo ? 'Tú' : j.nombre.split(' ')[0]} · ${j.golpes}`, j.x, j.y - 64, j.yo ? '#ffd27a' : j.bot ? '#bfe0ff' : '#c6f6d8');
+            if (at) etiqueta(ctx, '💫', j.x, j.y - 48);
+          }
+        }
+        for (const b of G.bolas) { ctx.fillStyle = '#ffffff'; ctx.strokeStyle = '#7aa8c8'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(b.x, b.y, 7, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); }
+      },
+    });
+  }
+
+  // ---------- Hielo movedizo ----------
+  // El piso de hielo se agrieta y se hunde por partes (el mismo orden para todos). Quien quede en pie gana un copo de nieve
+  // único para su álbum. Respondiendo ejercicios (E) ganas un salvavidas: si caes, vuelves a una placa firme.
+  function abrirHieloMovedizo() {
+    const NX = 11, NY = 7, T = 56;
+    abrirSala({
+      juego: 'movedizo', lugar: 'Lago congelado', titulo: 'Hielo movedizo', icono: '🧊', clase: 'movedizo', W: NX * T, H: NY * T, duracion: 70,
+      reglas: 'Muévete con <kbd>W A S D</kbd> o las flechas. Las placas de hielo se <b>agrietan</b> (tiemblan) y luego se hunden: ¡sal de ellas a tiempo! Presiona <kbd>E</kbd> para responder un ejercicio: cada acierto te da un <b>salvavidas</b> (máximo 2) que te salva de una caída, pero mientras respondes te quedas quieto. Quien quede en pie se lleva un <b>copo de nieve único</b> para su álbum.',
+      premiosHTML: '<ol><li>🏆 Quedar en pie: un copo de nieve para tu álbum + 4 hielo y 3 escarcha · 50 xp</li><li>🌊 Caer al agua: 3 hielo · 20 xp</li></ol><span class="nota">Completa el álbum de copos y gana un globo de nieve exclusivo.</span>',
+      iniciar(G) {
+        const r = G.rnd, placas = []; for (let y = 0; y < NY; y++) for (let x = 0; x < NX; x++) placas.push({ x, y });
+        // calendario de hundimientos: igual para todos (misma semilla)
+        G.estado = new Map(placas.map((p) => [`${p.x},${p.y}`, { t0: Infinity, t1: Infinity }]));
+        const vivas = placas.map((p) => `${p.x},${p.y}`);
+        let t = 3, ronda = 0;
+        while (vivas.length > 5 && t < G.duracion - 4) {
+          const n = Math.min(vivas.length - 5, 2 + Math.floor(ronda / 2));
+          for (let k = 0; k < n; k++) { const i = Math.floor(r() * vivas.length); const id = vivas.splice(i, 1)[0]; const E = G.estado.get(id); E.t0 = t; E.t1 = t + 1.4; }
+          ronda += 1; t += Math.max(1.0, 2.6 - ronda * 0.12);
+        }
+        const inicio = [[1, 1], [NX - 2, NY - 2], [NX - 2, 1], [1, NY - 2], [5, 1], [5, NY - 2]];
+        G.jugadores.forEach((j, i) => Object.assign(j, { x: (inicio[i % 6][0] + 0.5) * T, y: (inicio[i % 6][1] + 0.5) * T + 10, dir: 'down', cayo: null, mueve: false, meta: null, salva: 0 }));
+        G.ultPos = 0;
+        const mover = controlMovimiento(G);
+        $('mj-controles').insertAdjacentHTML('beforeend', '<div class="mj-acciones"><span class="pildora" id="hm-salva">🛟 0 salvavidas</span><button type="button" class="btn pri" id="hm-preg">Ganar salvavidas (E)</button></div>');
+        const preg = () => { if (G.fase === 'juego' && G.t > 0 && !G.yo.cayo) preguntaRapida(G, () => { G.yo.salva = Math.min(2, G.yo.salva + 1); G.preguntas = (G.preguntas || 0) + 1; }, '🛟 Gana un salvavidas'); };
+        $('hm-preg').addEventListener('click', preg);
+        ui.teclas = (e) => {
+          if (G.pregunta) { if (/^[1-4]$/.test(e.key)) G.resp(Number(e.key) - 1); return; }
+          if (mover(e)) return;
+          if (e.key === 'e' || e.key === 'E') { e.preventDefault(); preg(); }
+        };
+        $('sl-nota').textContent = '¡Sal de las placas que tiemblan! · E para ganar salvavidas';
+      },
+      recibir(d) {
+        const G = sala, j = G.jugadores.find((x) => x.id === d.id); if (!j) return;
+        j.visto = performance.now();
+        if (d.t === 'pos') { j.tx = d.x; j.ty = d.y; j.dir = d.dir; j.mueve = d.m; }
+        else if (d.t === 'cae' && !j.cayo) { j.cayo = d.tc || G.t; }
+        else if (d.t === 'salir' && !j.cayo) j.cayo = G.t;
+      },
+      paso(G, dt, ahora) {
+        const yo = G.yo, est = (px, py) => { const k = `${Math.floor(px / T)},${Math.floor(py / T)}`, E = G.estado.get(k); if (!E) return 'agua'; return G.t >= E.t1 ? 'agua' : G.t >= E.t0 ? 'grieta' : 'firme'; };
+        const firmes = () => [...G.estado.entries()].filter(([, E]) => G.t < E.t0).map(([k]) => k.split(',').map(Number));
+        if (!yo.cayo && G.t > 0 && !G.pregunta) {
+          let vx = (G.mov.r ? 1 : 0) - (G.mov.l ? 1 : 0), vy = (G.mov.d ? 1 : 0) - (G.mov.u ? 1 : 0); const l = Math.hypot(vx, vy);
+          yo.mueve = l > 0;
+          if (l) { vx /= l; vy /= l; yo.x = Math.max(8, Math.min(G.W - 8, yo.x + vx * 150 * dt)); yo.y = Math.max(16, Math.min(G.H - 2, yo.y + vy * 150 * dt)); yo.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down'); }
+        } else yo.mueve = false;
+        const caer = (j) => {
+          if (j.salva > 0) {
+            const f = firmes(); const p = f[Math.floor(Math.random() * f.length)];
+            if (p) { j.salva -= 1; j.x = (p[0] + 0.5) * T; j.y = (p[1] + 0.5) * T + 10; if (j.yo) { sfx('portal'); toast('¡El salvavidas te sacó del agua!'); } return; }
+          }
+          j.cayo = G.t; if (j.yo) { sfx('agua'); emitirSala({ t: 'cae', tc: G.t }); const n = $('sl-nota'); if (n) n.textContent = '¡Caíste al agua! Mira cómo termina la partida.'; }
+        };
+        if (!yo.cayo && G.t > 0 && est(yo.x, yo.y - 6) === 'agua') caer(yo);
+        if (ahora - G.ultPos > 100) { G.ultPos = ahora; emitirSala({ t: 'pos', x: Math.round(yo.x), y: Math.round(yo.y), dir: yo.dir, m: yo.mueve }); }
+        for (const j of G.jugadores) {
+          if (j.yo || j.cayo) continue;
+          if (!j.bot) { if (j.tx != null) { j.x += (j.tx - j.x) * Math.min(1, dt * 10); j.y += (j.ty - j.y) * Math.min(1, dt * 10); } if (ahora - j.visto > 8000) j.cayo = G.t; continue; }
+          // rivales de nieve: buscan placas firmes; a veces se equivocan
+          if (G.t > 0) {
+            const aqui = est(j.x, j.y - 6);
+            if (!j.meta || (est(j.meta.x, j.meta.y - 6) !== 'firme' && Math.random() < 0.93) || (aqui !== 'firme' && Math.hypot(j.meta.x - j.x, j.meta.y - j.y) < 6)) {
+              // busca una placa firme cercana (a veces se equivoca y elige una lejana)
+              const f = firmes().map((q) => ({ q, d: Math.hypot((q[0] + 0.5) * T - j.x, (q[1] + 0.5) * T + 10 - j.y) })).sort((x, y) => x.d - y.d);
+              const p = f.length ? (Math.random() < 0.08 ? f[Math.floor(Math.random() * f.length)] : f[Math.min(f.length - 1, Math.floor(Math.random() * 3))]).q : null;
+              if (p) j.meta = { x: (p[0] + 0.5) * T, y: (p[1] + 0.5) * T + 10 };
+            }
+            if (j.meta && (aqui !== 'firme' || Math.random() < 0.02 || j.mueve)) {
+              const dx = j.meta.x - j.x, dy = j.meta.y - j.y, l = Math.hypot(dx, dy) || 1, v = 118 + j.i * 10;
+              if (l > 4) { j.x += (dx / l) * v * dt; j.y += (dy / l) * v * dt; j.mueve = true; j.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'); } else j.mueve = false;
+            }
+            if (est(j.x, j.y - 6) === 'agua') caer(j);
+          }
+        }
+        const sv = $('hm-salva'); if (sv) sv.textContent = `🛟 ${yo.salva} salvavidas`;
+        const enPie = G.jugadores.filter((j) => !j.cayo);
+        const termina = G.t >= G.duracion || (G.t > 0 && (enPie.length === 0 || (G.jugadores.length > 1 && enPie.length <= 1 && G.jugadores.some((j) => j.cayo))));
+        if (!termina) return;
+        const gane = !yo.cayo;
+        const orden = [...G.jugadores].sort((a, b) => (b.cayo == null ? 1e9 : b.cayo) - (a.cayo == null ? 1e9 : a.cayo));
+        let premio = { hielo: 3 }, xp = 20, extra = '';
+        if (gane) {
+          const copo = sortearCopo((G.preguntas || 0) >= 2 ? 2.2 : 1.2), nuevo = registrarCopo(copo);
+          premio = { hielo: 4, escarcha: 3 }; xp = 50;
+          extra = `<div class="lab-premio"><img class="px gema-grande" src="${ICONO('copo_' + copo.id)}" alt=""><div><span class="etq">¡Quedaste en pie! Ganaste un copo de nieve</span><h3>${esc(copo.nombre)} <small class="rareza ${CLASE_RAREZA[copo.rareza]}">${esc(copo.rareza)}</small></h3><p>${nuevo ? '¡Nuevo en tu álbum!' : 'Ya lo tenías: se suma a tu colección.'}</p></div></div><div class="acciones"><button type="button" class="btn sec" id="mj-album">❄️ Ver álbum</button><span></span></div>`;
+          sfx('logro');
+        } else sfx('mision');
+        avanzarMision('movedizo');
+        finalSala(G, `<h3>${gane ? '🧊 ¡Quedaste en pie!' : '🌊 Te caíste al agua'}</h3>
+          <ol class="cr-ranking">${orden.map((j) => `<li class="${j.yo ? 'yo' : ''}"><span>${j.cayo == null ? '🏆' : '🌊'}</span><b>${esc(j.yo ? `${j.nombre} (tú)` : j.nombre)}${j.bot ? ' ☃️' : ''}</b><span>${j.cayo == null ? 'en pie' : `cayó a los ${Math.max(0, Math.floor(j.cayo))} s`}</span></li>`).join('')}</ol>`, premio, xp, extra);
+      },
+      dibujar(G, ahora) {
+        const ctx = G.ctx;
+        ctx.fillStyle = '#1f5f8f'; ctx.fillRect(0, 0, G.W, G.H);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)'; for (let i = 0; i < 12; i++) { const y = ((i * 41 + ahora / 30) % G.H); ctx.fillRect(0, y, G.W, 2); }
+        for (const [k, E] of G.estado) {
+          const [x, y] = k.split(',').map(Number);
+          if (G.t >= E.t1) continue;
+          const grieta = G.t >= E.t0, sx = grieta ? Math.sin(ahora / 30 + x) * 2 : 0;
+          ctx.fillStyle = grieta ? '#b8dcee' : '#e2f3fb'; ctx.fillRect(x * T + 3 + sx, y * T + 3, T - 6, T - 6);
+          ctx.fillStyle = grieta ? '#8fbcd6' : '#c6e4f2'; ctx.fillRect(x * T + 3 + sx, y * T + T - 10, T - 6, 7);
+          ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(x * T + 9 + sx, y * T + 9, 14, 3);
+          if (grieta) { ctx.strokeStyle = '#3b6f92'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(x * T + 12, y * T + 14); ctx.lineTo(x * T + 30, y * T + 32); ctx.lineTo(x * T + 24, y * T + 48); ctx.moveTo(x * T + 30, y * T + 32); ctx.lineTo(x * T + 50, y * T + 26); ctx.stroke(); }
+        }
+        for (const j of [...G.jugadores].sort((a, b) => a.y - b.y)) {
+          if (j.cayo != null) { if (G.t - j.cayo < 1.2) { ctx.strokeStyle = 'rgba(255,255,255,0.8)'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(j.x, j.y - 6, 10 + (G.t - j.cayo) * 30, 0, Math.PI * 2); ctx.stroke(); } continue; }
+          dibujarPj(ctx, j.img, j.x, j.y, j.dir || 'down', j.mueve, ahora, 60);
+          etiqueta(ctx, `${j.yo ? 'Tú' : j.nombre.split(' ')[0]}${j.salva ? ' 🛟'.repeat(j.yo ? j.salva : 0) : ''}`, j.x, j.y - 58, j.yo ? '#ffd27a' : j.bot ? '#bfe0ff' : '#c6f6d8');
+        }
+      },
+    });
+  }
+
+  // ---------- Dragón de la Aurora: jefe de la Cima del Glaciar (solo, 4 fases) ----------
+  const DRAGON = { nombre: 'Dragón de la Aurora', vida: 52, premio: { aurora: 10, hielo_eterno: 10, zafiro: 8, escarcha: 12 }, xp: 320 };
+  function abrirDragon() {
+    const sc = escena;
+    if (S.arma && S.herramienta !== 'espada') equipar('espada');
+    const J = { hp: DRAGON.vida, max: DRAGON.vida, fase: 1, muro: 0, racha: 0, limite: 0, t0: 0 };
+    let d = null, elegida = null, fallidas = new Set(), fin = null, ultimo = '', reloj = 0;
+    const primeraVez = !S.dragonVencido;
+    sc.enCombate = true;
+    if (sc.dragon) { sc.dragon.setTint(0xffffff); sc.dragon.anims.play('jefe_u4b_down', true); sc.cameras.main.shake(500, 0.01); sfx('rugido'); }
+    const nueva = () => {
+      d = Preguntas.nuevo(S.curso, 'u4', J.fase === 1 ? 2 : 3, S.stats); elegida = null; fallidas = new Set();
+      J.limite = [0, 18000, 15000, 10000, 12000][J.fase]; J.t0 = performance.now();
+    };
+    const faseDe = () => (J.hp <= J.max * 0.25 ? 4 : J.hp <= J.max * 0.5 ? 3 : J.hp <= J.max * 0.75 ? 2 : 1);
+    const cerrar = (res) => {
+      clearInterval(reloj); sc.enCombate = false;
+      if (res === 'victoria') {
+        sfx('logro');
+        Object.entries(DRAGON.premio).forEach(([r, n]) => sumar(r, n)); ganarXP(DRAGON.xp);
+        S.dragonVencido = (S.dragonVencido || 0) + 1; S.dragonHasta = Date.now() + 12 * 60000;
+        if (S.dragonVencido === 1) S.inventario.estatua_dragon = (S.inventario.estatua_dragon || 0) + 1;
+        guardar(true); sc.celebrar(sc.dragon.x, sc.dragon.y - 80);
+      } else if (res === 'derrota') { S.dragonHasta = Date.now() + 2 * 60000; guardar(true); }
+      if (sc.actualizarDragon) sc.actualizarDragon();
+      if (res === 'derrota') morir(DRAGON.nombre);
+    };
+    const banners = ['', '',
+      '<div class="mensaje pista rey-fase">🧊 ¡Muro de hielo! Rómpelo con aciertos antes de poder herirlo. Cada error lo hace crecer y quita 2 corazones.</div>',
+      '<div class="mensaje mal rey-fase">🌬️ ¡Aliento helado! Solo 10 segundos por pregunta. Cada error quita 2 corazones y el dragón se cura 2.</div>',
+      '<div class="mensaje mal rey-fase">🌌 ¡Tormenta de aurora! Solo lo hieres con <b>3 aciertos seguidos</b> (el tercero hace triple daño). Cada error quita 3 corazones y lo cura 4.</div>'];
+    const pintar = () => {
+      const pct = Math.max(0, J.hp) / J.max * 100;
+      let cuerpo;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px">¡Venciste al Dragón de la Aurora! Ganas ${Object.entries(DRAGON.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${DRAGON.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Dragón</strong> para tu base (Decorar).' : ''} Volverá a despertar en 12 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      else if (fin === 'derrota') cuerpo = '<div class="mensaje mal" role="status">Te quedaste sin corazones. Vuelves a tu base y pierdes lo que llevabas en la mochila. El dragón descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>';
+      else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El dragón recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
+      else cuerpo = `${banners[J.fase]}${ultimo}
+          <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
+          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${alternativasHTML(d, elegida, fallidas, false)}
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+      ui.abrir(`
+        <div class="combate-cab">
+          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u4b_retrato')}" alt="" width="72" height="72">
+            <div><span class="etq" style="color: var(--coral)">Jefe de la Cima del Glaciar · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${DRAGON.nombre}</h2>
+              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
+              ${J.muro > 0 ? `<span class="rey-escudo">🧊 Muro de hielo: ${J.muro}</span>` : ''}${J.fase === 4 ? `<span class="rey-escudo">🌌 Racha: ${J.racha} de 3</span>` : ''}</div></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
+        </div>${cuerpo}`, 'combate jefe rey dragon');
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+      on('r-ok', atacar);
+      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
+      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
+      ui.teclas = (e) => {
+        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
+        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
+      };
+    };
+    const golpeRecibido = (motivo) => {
+      sfx('dano'); J.racha = 0;
+      if (escudoActivo()) { vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1; ultimo = `<div class="mensaje pista" role="status">${motivo} ¡Tu escudo de cristal bloqueó el golpe!</div>`; return; }
+      const n = [0, 1, 2, 2, 3][J.fase];
+      S.vida = Math.max(0, S.vida - n); sc.dolor(); pintarHUD();
+      if (J.fase === 2) J.muro = Math.min(5, J.muro + 1);
+      if (J.fase === 3) J.hp = Math.min(J.max, J.hp + 2);
+      if (J.fase === 4) J.hp = Math.min(J.max, J.hp + 4);
+      ultimo = `<div class="mensaje mal" role="status">${motivo} ¡El dragón te lanzó escarcha (−${n} ${n === 1 ? 'corazón' : 'corazones'})!${J.fase === 2 ? ' Su muro de hielo creció.' : J.fase === 3 ? ' Y se curó 2.' : J.fase === 4 ? ' Y se curó 4.' : ''}</div>`;
+      if (S.vida <= 0) fin = 'derrota';
+    };
+    const herir = (n) => {
+      J.hp -= n;
+      sc.flotante(sc.dragon.x, sc.dragon.y - 130, `−${n}`, '#bff4ff');
+      sc.tweens.add({ targets: sc.dragon, x: sc.dragon.x + 5, duration: 50, yoyo: true, repeat: 2 });
+    };
+    const atacar = () => {
+      if (fin || elegida === null) return;
+      const ok = elegida === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) {
+        ganarXP(5 + 2 * J.fase); sfx('golpe');
+        if (J.muro > 0) { J.muro -= 1; ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.muro ? `El muro de hielo resiste: le quedan ${J.muro}.` : '¡Rompiste el muro de hielo!'}</div>`; }
+        else if (J.fase === 4) {
+          J.racha += 1;
+          if (J.racha >= 3) { herir(danio() * 3); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Triple golpe de aurora! ${mate(d.explicacion)}</div>`; }
+          else ultimo = `<div class="mensaje bien" role="status">¡Bien! ${3 - J.racha === 1 ? 'Un acierto más seguido' : 'Dos aciertos más seguidos'} y le darás un triple golpe.</div>`;
+        } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
+        if (J.hp <= 0) fin = 'victoria';
+      } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
+      if (!fin) {
+        const f = faseDe();
+        if (f > J.fase) {
+          J.fase = f; sc.cameras.main.shake(600, 0.012); sc.cameras.main.flash(300, 120, 230, 255);
+          sfx('rugido');
+          if (f === 2) { J.muro = 4; for (let i = 0; i < 2; i++) sc.soltarBichoJunto(); }
+          if (f === 3) sc.dragon.setTint(0x9fe8ff);
+          if (f === 4) { sc.dragon.setTint(0xc9a0ff); J.racha = 0; }
+        }
+        nueva();
+      }
+      pintar();
+    };
+    nueva();
+    pintar();
+    reloj = setInterval(() => {
+      if (fin || !J.limite) return;
+      const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
+      if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
+      if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
+    }, 200);
+  }
+
   // ---------- Combate ----------
   function abrirCombate(enemigo, alTerminar) {
     const E = ENEMIGOS[enemigo.clase];
@@ -2856,9 +3532,10 @@
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
-        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
+        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-copos">❄️ Álbum de copos</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
     $('m-album').addEventListener('click', () => { ui.cerrar(); abrirAlbum(); });
     $('m-gemas').addEventListener('click', () => { ui.cerrar(); abrirAlbumGemas(); });
+    $('m-copos').addEventListener('click', () => { ui.cerrar(); abrirAlbumCopos(); });
     $('m-cerrar').addEventListener('click', () => ui.cerrar());
     $('m-salir').addEventListener('click', async () => {
       guardar(true); await subir();
@@ -3472,12 +4149,15 @@
     if (escena.enJefe || (escena.enCombate && ui.abierto && $('modal').classList.contains('rey'))) return 'jefe';
     if (ui.abierto && $('modal').classList.contains('laberinto')) return 'laberinto';
     if (ui.abierto && $('modal').classList.contains('carrera')) return 'carrera';
+    if (ui.abierto && $('modal').classList.contains('minijuego')) return 'nieve';
+    if (ui.abierto && $('modal').classList.contains('escalada-modal')) return 'escalada';
     if (vivo.fase === 'activo') return 'desafio';
     if (z === 'base') return 'base';
     if (z === 'pieza') return 'pieza';
     if (z === 'u1') return escena.rio && escena.jugador.x > (escena.rio.RX + RIO_ANCHO) * TILE ? 'profundo' : 'bosque';
     if (z === 'u3' && escena.prof && escena.jugador.y > escena.prof.yb * TILE) return 'abismo';
     if (z === 'u2' && escena.valle && escena.jugador.y < escena.valle.cy0 * TILE) return 'valle';
+    if (z === 'u4' && escena.cima && escena.jugador.y < escena.cima.cy0 * TILE) return 'cima';
     return { u2: 'desierto', u3: 'mina', u4: 'glaciar' }[z] || 'bosque';
   }
   setInterval(() => { if (window.Sonido) Sonido.musica(pistaActual()); }, 700);
@@ -3550,10 +4230,11 @@
       if (!this.textures.exists('kenney_profundo')) this.load.image('kenney_profundo', 'assets/kenney_profundo.png');
       if (!this.textures.exists('kenney_valle')) this.load.image('kenney_valle', 'assets/kenney_valle.png');
       if (!this.textures.exists('kenney_abismo')) this.load.image('kenney_abismo', 'assets/kenney_abismo.png');
+      if (!this.textures.exists('kenney_cima')) this.load.image('kenney_cima', 'assets/kenney_cima.png');
       if (!this.textures.exists('jefe_u1b_hoja')) this.load.spritesheet('jefe_u1b_hoja', 'assets/enemigos/jefe_u1b.png', { frameWidth: 64, frameHeight: 64 });
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u3b']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u3b', 'jefe_u4b']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -3569,6 +4250,10 @@
       this.lagos = [];
       this.aguas = [];   // rectángulos de agua: los enemigos que caminan no pueden entrar
       this.ocupado = new Set();
+      // la escena se reutiliza al viajar: se limpia todo lo propio de cada mundo
+      for (const k of ['rio', 'valle', 'prof', 'cima', 'pisables', 'luz', 'jefeLuz', 'tormenta', 'granLago', 'santuario', 'estanque', 'rey', 'reyTag', 'sello', 'coloso', 'colosoTag', 'selloColoso', 'dragon', 'dragonTag', 'selloDragon',
+        'puenteSpr', 'montaSpr', 'elevSpr', 'rutaSpr', 'huecoSpr', 'huecoMina', 'tramoPuente', 'tramoValle', 'tramoMina', 'objObra', 'obraTag', 'objEscalar', 'lavas', 'pozaValle', 'estacion', 'estBolas', 'estHielo']) this[k] = null;
+      this.muelles = []; this.yUtil = 0; this.altoUtil = 0; this.anchoUtil = 0; this.ventisca = false;
       if (!MUNDOS[this.zona] && this.zona !== 'pieza') this.zona = 'base';
       if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else this.crearMundo(MUNDOS[this.zona]);
       this.crearJugador();
@@ -3644,7 +4329,7 @@
       for (const o of OBJETOS) {
         const [c, r, w, h] = o.t, partes = o.partes ? [...o.partes] : [];
         if (!o.partes) for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]);
-        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz', f: 'kenney_profundo', v: 'kenney_valle', a: 'kenney_abismo' }[o.h] || 'kenney');
+        this.tex(o.tex, w, h, partes, { i: 'kenney_in', c: 'kenney_cueva', n: 'kenney_nieve', p: 'kenney_prisma', l: 'kenney_luz', f: 'kenney_profundo', v: 'kenney_valle', a: 'kenney_abismo', g: 'kenney_cima' }[o.h] || 'kenney');
       }
       this.tex('tapiz_pared', 1, 1, [[24, 1, 0, 0]], 'kenney_in');
       this.crearTexturasDesierto();
@@ -3661,6 +4346,10 @@
       const PA = {"puerta_sellada": [0, 0, 3, 2], "alfombra_cristal": [3, 0, 3, 2], "jaula": [6, 0, 2, 2], "estatua_coloso": [8, 0, 2, 3], "altar_cristal": [10, 0, 1, 2], "columna_cristal": [11, 0, 1, 2], "lampara_cristal": [12, 0, 1, 2], "cama_cristal": [13, 0, 1, 2], "estante_geodas": [14, 0, 1, 2], "veta_magma": [15, 0, 1, 1], "cristal_n": [0, 3, 1, 1], "cristal_vacio": [1, 3, 1, 1], "estalagmita_magma": [2, 3, 1, 1], "roca_lava": [3, 3, 1, 1], "salamandra": [4, 3, 1, 1], "golem_cristal": [5, 3, 1, 1], "brasero_magma": [6, 3, 1, 1], "geoda": [7, 3, 1, 1], "mesa_magma": [8, 3, 1, 1], "sillon_piedra": [9, 3, 1, 1], "cristal_flotante": [10, 3, 1, 1], "vagoneta": [11, 3, 1, 1], "vagoneta_dorada": [12, 3, 1, 1], "pared_borde": [13, 3, 1, 1], "pared_borde2": [14, 3, 1, 1], "pared_cara": [15, 3, 1, 1], "pared_cara2": [0, 4, 1, 1]};
       for (const [k, [c, r, w, h]] of Object.entries(PA)) { const partes = []; for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]); this.tex(`a_${k}`, w, h, partes, 'kenney_abismo'); }
       for (const n of [1, 2]) this.tex(`veta_magma${n}`, 1, 1, [[PA.veta_magma[0], PA.veta_magma[1], 0, 0]], 'kenney_abismo');
+      // Cima del Glaciar (hoja propia): prefijo g_
+      const PG = {"trono_dragon": [0, 0, 3, 2], "alfombra_polar": [3, 0, 3, 2], "estatua_dragon": [6, 0, 2, 3], "iglu_eterno": [8, 0, 2, 1], "fuerte_nieve": [10, 0, 2, 1], "pilar_eterno": [12, 0, 1, 2], "arbol_aurora": [13, 0, 1, 2], "estatua_hielo": [14, 0, 1, 2], "cama_hielo": [15, 0, 1, 2], "lampara_aurora": [0, 3, 1, 2], "bandera_cumbre": [1, 3, 1, 2], "flor_aurora": [2, 3, 1, 1], "flor_vacia": [3, 3, 1, 1], "halcon": [4, 3, 1, 1], "golem_hielo": [5, 3, 1, 1], "bloque_eterno": [6, 3, 1, 1], "anclaje": [7, 3, 1, 1], "farol_aurora": [8, 3, 1, 1], "trono_hielo": [9, 3, 1, 1], "pinguino_rey": [10, 3, 1, 1], "foca": [11, 3, 1, 1], "trineo_aurora": [12, 3, 1, 1], "cristal_aurora": [13, 3, 1, 1], "globo_nieve": [14, 3, 1, 1], "pared_borde": [15, 3, 1, 1], "pared_borde2": [0, 5, 1, 1], "pared_cara": [1, 5, 1, 1], "pared_cara2": [2, 5, 1, 1], "pared_pie": [3, 5, 1, 1]};
+      for (const [k, [c, r, w, h]] of Object.entries(PG)) { const partes = []; for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) partes.push([c + dx, r + dy, dx, dy]); this.tex(`g_${k}`, w, h, partes, 'kenney_cima'); }
+      for (const n of [1, 2]) this.tex(`pilar_eterno${n}`, 1, 2, [[PG.pilar_eterno[0], PG.pilar_eterno[1], 0, 0], [PG.pilar_eterno[0], PG.pilar_eterno[1] + 1, 0, 1]], 'kenney_cima');
       // Arbusto vivo: el mismo arbusto con ojos y boca
       if (!this.textures.exists('arbusto_vivo')) {
         const src = this.textures.get('kenney').getSourceImage();
@@ -3736,7 +4425,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u3b'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u3b', 'jefe_u4b'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -4110,7 +4799,7 @@
       this.montaSpr = [];
       this.actualizarMontacargas();
     }
-    actualizarObra(celebrar = false) { if (this.rio) this.actualizarPuente(celebrar); else if (this.valle) this.actualizarMontacargas(celebrar); else if (this.prof) this.actualizarElevador(celebrar); }
+    actualizarObra(celebrar = false) { if (this.rio) this.actualizarPuente(celebrar); else if (this.valle) this.actualizarMontacargas(celebrar); else if (this.prof) this.actualizarElevador(celebrar); else if (this.cima) this.actualizarRuta(celebrar); }
     // Avance del montacargas: andamios, poleas y cuerdas aparecen a medida que se aporta; al terminar se abre el paso
     actualizarMontacargas(celebrar = false) {
       if (!this.valle || !this.montaSpr) return;
@@ -4145,6 +4834,7 @@
     alcanzable(x, y) {
       if (this.valle && !valleListo() && y < this.valle.oy * TILE) return false;
       if (this.prof && !minaListo() && y > this.prof.yb * TILE) return false;
+      if (this.cima && y < this.cima.oy * TILE) return false;   // a la cima solo se llega escalando
       if (this.rio && !puenteListo() && x > this.rio.RX * TILE) return false;
       return true;
     }
@@ -4473,6 +5163,168 @@
       o.estado = 'vacio'; o.s.setTint(0x666688); if (o.luz) o.luz.setAlpha(0.08);
       if (o.timer) o.timer.remove(false);
       o.timer = this.time.delayedCall(180000, () => { o.estado = 'listo'; o.s.clearTint(); if (o.luz) o.luz.setAlpha(0.4); });
+    }
+    // ---------- pared del glaciar, ruta de escalada cooperativa y Cima del Glaciar (Unidad 4) ----------
+    planearCima(data, oy, sendero) {
+      const gx = CENTRO_X, cy0 = oy - 3;
+      this.cima = { oy, gx, cy0 };
+      for (let y = 0; y < oy; y++) for (let x = 0; x < this.ancho; x++) this.marcar(x, y);
+      const y0 = cy0 * TILE + 4, y1 = oy * TILE - 6;
+      this.obstaculos.add(this.add.zone(this.ancho * TILE / 2, (y0 + y1) / 2, this.ancho * TILE, y1 - y0));
+      this.aguas.push({ x0: 0, y0, x1: this.ancho * TILE, y1 });
+      for (let y = 4; y < cy0 - 1; y++) data[y][gx] = sendero;
+    }
+    decorarGlaciar() {
+      const { gx, cy0, oy } = this.cima;
+      for (let x = 0; x < this.ancho; x++) {
+        this.add.image(x * TILE + 16, cy0 * TILE + 16, this.rnd() < 0.5 ? 'g_pared_borde' : 'g_pared_borde2').setScale(2).setDepth(cy0 * TILE + 8);
+        this.add.image(x * TILE + 16, (cy0 + 1) * TILE + 16, this.rnd() < 0.5 ? 'g_pared_cara' : 'g_pared_cara2').setScale(2).setDepth(oy * TILE - 4);
+        this.add.image(x * TILE + 16, (cy0 + 2) * TILE + 16, x % 3 ? 'g_pared_cara' : 'g_pared_pie').setScale(2).setDepth(oy * TILE - 3);
+      }
+      this.add.rectangle(0, oy * TILE, this.ancho * TILE, 10, 0x2a5a80, 0.18).setOrigin(0).setDepth(-8);
+      // obra de la ruta de escalada junto a la pared
+      const ox = gx + 3;
+      const le = this.sprite('letrero', ox, oy); this.solido(le.x, le.y - 8, 18, 10);
+      const b = this.sprite('nv_bloque_hielo', ox + 1, oy); this.solido(b.x, b.y - 8, 18, 10); this.sprite('barril', gx - 2, oy);
+      for (let y = oy; y <= oy + 1; y++) for (let x = gx - 2; x <= ox + 1; x++) if (x !== gx) this.marcar(x, y);
+      this.obraTag = this.add.text(le.x, le.y - 50, 'Ruta de escalada en construcción', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffffff', stroke: '#16324a', strokeThickness: 3, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.objObra = { tipo: 'obra', x: (gx + 1) * TILE + 16, y: oy * TILE + 16, activo: true };
+      this.objetos.push(this.objObra);
+      this.objEscalar = { tipo: 'escalar', x: gx * TILE + 16, y: oy * TILE + 10, activo: false };
+      this.objetos.push(this.objEscalar);
+      this.objetos.push({ tipo: 'rapel', x: gx * TILE + 16, y: (cy0 - 1) * TILE + 16, activo: true });
+      const pr = this.sprite('g_anclaje', gx + 1, cy0 - 1); pr.setDepth(cy0 * TILE);
+      this.add.text(pr.x, pr.y - 30, 'Bajar en rapel (E)', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffffff', stroke: '#16324a', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.rutaSpr = [];
+      this.actualizarRuta();
+    }
+    // Avance de la ruta: anclajes y cuerdas aparecen a medida que se aporta; al terminar se puede escalar
+    actualizarRuta(celebrar = false) {
+      if (!this.cima || !this.rutaSpr) return;
+      const { gx, cy0, oy } = this.cima, listo = cimaListo(), pct = pctObra('cima');
+      this.rutaSpr.forEach((sp) => sp.destroy()); this.rutaSpr = [];
+      const pon = (key, x, y, prof) => this.rutaSpr.push(this.add.image(x * TILE + 16, y * TILE + 16, key).setScale(2).setDepth(prof === undefined ? oy * TILE : prof));
+      const etapas = [[5, 'g_anclaje', gx, cy0 + 2], [20, 'v_cuerda', gx, cy0 + 2], [35, 'g_anclaje', gx, cy0 + 1], [50, 'v_cuerda', gx, cy0 + 1], [65, 'g_anclaje', gx, cy0], [80, 'v_cuerda', gx, cy0], [95, 'g_anclaje', gx, cy0 - 1]];
+      for (const [p, k, x, y] of etapas) if (listo || pct >= p) pon(k, x, y);
+      if (listo) for (const y of [cy0, cy0 + 1, cy0 + 2]) pon('v_cuerda', gx + 1, y);
+      if (this.objEscalar) this.objEscalar.activo = listo;
+      if (listo && celebrar) {
+        this.cameras.main.shake(500, 0.006); this.celebrar(gx * TILE + 32, oy * TILE);
+        sfx('logro');
+        avisoGrande('¡La ruta de escalada está lista!', 'Con piolet y crampones ya pueden subir a la Cima del Glaciar', 'Gracias a los aportes de todo el nivel');
+      }
+      if (this.obraTag) this.obraTag.setText(listo ? 'Ruta de escalada a la Cima\n(E al pie de la pared para escalar)' : `Ruta de escalada en construcción\n${pct} % · E para aportar`);
+      if (this.objObra) this.objObra.listo = listo;
+    }
+    // Estaciones de los minijuegos del glaciar en la zona central
+    crearEstacionesHielo() {
+      const B0 = this.estBolas, H0 = this.estHielo;
+      const t = (x, y, txt) => this.add.text(x, y, txt, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffffff', stroke: '#16324a', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      // campo de batalla: fuertes de nieve y un muñeco
+      for (const [dx, dy] of [[-2, 0], [1, -1]]) { const f = this.sprite('g_fuerte_nieve', B0.x + dx, B0.y + dy, 0.25); this.solido(f.x + 16, f.y - 8, 56, 12); }
+      const m = this.sprite('d_muneco_nieve', B0.x, B0.y + 1); this.solido(m.x, m.y - 8, 18, 12);
+      t(m.x, m.y - 56, 'Guerra de bolas de nieve');
+      this.objetos.push({ tipo: 'bolas', x: m.x, y: m.y + 4, activo: true });
+      // lago congelado del hielo movedizo
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -2; dx <= 2; dx++) this.add.image((H0.x + dx) * TILE + 16, (H0.y + dy) * TILE + 16, 'nv_hielo_suelo').setScale(2).setDepth(-6).setTint(dx === 0 && dy === 0 ? 0x9fd8ff : 0xffffff);
+      const le = this.sprite('letrero', H0.x - 3, H0.y); this.solido(le.x, le.y - 8, 18, 10);
+      t(H0.x * TILE + 16, (H0.y - 2) * TILE, 'Hielo movedizo');
+      this.objetos.push({ tipo: 'movedizo', x: H0.x * TILE + 16, y: (H0.y + 1) * TILE, activo: true });
+    }
+    crearCima() {
+      const { oy, gx, cy0 } = this.cima, X0 = 3, X1 = this.ancho - 4, Y0 = 3, Y1 = cy0 - 2;
+      for (const k of [...this.ocupado]) { const y = Number(k.split(',')[1]); if (y < cy0) this.ocupado.delete(k); }
+      for (let y = 4; y < cy0; y++) { this.marcar(gx, y); this.marcar(gx, y + 1); }
+      for (let x = gx - 2; x <= gx + 2; x++) this.marcar(x, cy0 - 1);
+      // cielo de aurora sobre la cima
+      const H = cy0 * TILE;
+      this.add.rectangle(0, 0, this.ancho * TILE, H, 0x10304a, 0.22).setOrigin(0).setDepth(-9);
+      for (const [col, y, a] of [[0x48e0b0, 0.1, 0.16], [0xb080ff, 0.35, 0.12], [0x60c8ff, 0.6, 0.1]]) {
+        const r = this.add.rectangle(0, H * y, this.ancho * TILE, H * 0.28, col, a).setOrigin(0).setDepth(9400).setBlendMode(Phaser.BlendModes.ADD);
+        this.tweens.add({ targets: r, alpha: a * 0.4, duration: 2600 + y * 3000, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      }
+      this.add.particles(0, 0, 'p_brillo', { x: { min: X0 * TILE, max: X1 * TILE }, y: { min: 2 * TILE, max: Y1 * TILE }, lifespan: 3000, frequency: 200, speedY: { min: -10, max: 4 }, scale: { start: 0.7, end: 0 }, tint: [0x7af0c0, 0xc9a0ff, 0x9fd8ff], alpha: { start: 0.9, end: 0 } }).setDepth(9401);
+      const lugarC = (alto = 1, ancho = 1, y0 = Y0) => {
+        for (let i = 0; i < 300; i++) {
+          const x = X0 + Math.floor(this.rnd() * (X1 - X0 - ancho)), y = y0 + alto - 1 + Math.floor(this.rnd() * Math.max(1, Y1 - y0 - alto + 1));
+          let ok = true;
+          for (let dy = 0; dy < alto && ok; dy++) for (let dx = 0; dx < ancho && ok; dx++) if (!this.libre(x + dx, y - dy)) ok = false;
+          if (ok) return [x, y];
+        }
+        return null;
+      };
+      const reservar = (x, y, w = 1, h = 1) => { for (let dy = -h; dy <= 1; dy++) for (let dx = -1; dx <= w; dx++) this.marcar(x + dx, y + dy); };
+      const luz = (x, y, col, esc = 0.8, a = 0.3) => this.add.image(x, y, 'luz').setScale(esc).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setAlpha(a).setDepth(9402);
+      // trono del Dragón de la Aurora (arriba, al centro)
+      const TX = gx, TY = 6;
+      for (let y = TY - 4; y <= TY + 2; y++) for (let x = TX - 5; x <= TX + 5; x++) this.marcar(x, y);
+      const tr = this.sprite('g_trono_dragon', TX, TY); this.solido(tr.x, tr.y - 16, 90, 30);
+      for (const dx of [-4, 4]) { const p = this.sprite('g_pilar_eterno', TX + dx, TY); this.solido(p.x, p.y - 10, 18, 12); luz(p.x, p.y - 30, 0x8fd8ff, 0.9, 0.35); }
+      const cx = TX * TILE + 16, cy = (TY + 2) * TILE + 10;
+      this.dragon = this.add.sprite(cx, cy, 'jefe_u4b_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.4).setDepth(cy).setTint(0x8a8a9a);
+      this.solido(cx, cy - 16, 52, 26);
+      luz(cx, cy - 60, 0x7af0c0, 2, 0.35);
+      this.dragonTag = this.add.text(cx, cy - 145, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#c6f6ff', stroke: '#10203a', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.selloDragon = this.add.particles(cx, cy - 30, 'p_nieve', { x: { min: -60, max: 60 }, y: { min: -40, max: 30 }, lifespan: 1400, frequency: 80, speedY: { min: -20, max: -6 }, scale: { start: 1.2, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(9999);
+      this.tweens.add({ targets: this.dragon, scaleY: 2.46, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      this.objetos.push({ tipo: 'dragon', x: cx, y: cy + 10, activo: true });
+      for (let y = TY + 3; y < cy0; y++) this.marcar(gx, y);
+      this.actualizarDragon();
+      // pilares de hielo eterno (pico de escarcha) y flores de aurora (frasco)
+      for (let i = 0; i < 16; i++) {
+        const p = lugarC(2); if (!p) break;
+        const sp = this.sprite('pilar_eterno2', p[0], p[1]); const z = this.solido(sp.x, sp.y - 10, 20, 14);
+        reservar(p[0], p[1], 1, 2); luz(sp.x, sp.y - 30, 0x8fd8ff, 0.5, 0.25);
+        this.objetos.push({ tipo: 'roca', base: 'pilar_eterno', rec: 'hielo_eterno', req: 'pico5', picoBueno: 'pico_eterno', extra: 'zafiro', evento: 'hielo_eterno', nombre: 'pilar de hielo eterno', s: sp, z, x: sp.x, y: sp.y - 8, nivel: 2, nivelMax: 2, activo: true });
+      }
+      for (let i = 0; i < 16; i++) {
+        const p = lugarC(1); if (!p) break;
+        const sp = this.sprite('g_flor_aurora', p[0], p[1]); const z = this.solido(sp.x, sp.y - 6, 16, 10);
+        reservar(p[0], p[1]); luz(sp.x, sp.y - 14, 0x7af0c0, 0.4, 0.3);
+        this.objetos.push({ tipo: 'arbol', key: 'g_flor_aurora', nombre: 'flor de aurora', rec: 'aurora', req: 'frasco_aurora', texTocon: 'g_flor_vacia', texBrote: 'g_flor_vacia', s: sp, z, x: sp.x, y: sp.y - 6, estado: 'arbol', activo: true, bicho: false });
+      }
+      // cofres
+      for (let i = 0; i < 6; i++) {
+        const p = lugarC(1); if (!p) break;
+        const sp = this.sprite('cofre', p[0], p[1]); const z = this.solido(sp.x, sp.y - 10, 26, 14);
+        reservar(p[0], p[1]);
+        const conVida = i % 2 === 0;
+        let corazon = null;
+        if (conVida) { corazon = this.add.image(sp.x, sp.y - 44, 'corazon').setScale(2).setDepth(sp.y + 1); this.tweens.add({ targets: corazon, y: sp.y - 50, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' }); }
+        this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
+      }
+      // enemigos: halcones de escarcha (vuelan) y gólems de hielo eterno (dormidos como bloques)
+      for (let i = 0; i < 8; i++) {
+        const p = lugarC(1, 1, 9); if (!p) break;
+        const sp = this.add.image(p[0] * TILE + 16, p[1] * TILE + 16, 'g_halcon').setScale(2).setDepth(9000);
+        this.tweens.add({ targets: sp, y: sp.y - 8, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.enemigos.push(this.nuevoEnemigo('halcon', sp, { despierto: true, k: `h${i}` }));
+      }
+      for (let i = 0; i < 7; i++) {
+        const p = lugarC(1); if (!p) break;
+        const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'g_bloque_eterno').setOrigin(0.5, 1).setScale(2); sp.setDepth(sp.y);
+        this.marcar(p[0], p[1]);
+        this.enemigos.push(this.nuevoEnemigo('golem_hielo', sp, { despierto: false, k: `e${i}` }));
+      }
+      // adornos de la cima
+      for (let i = 0; i < 44; i++) {
+        const p = lugarC(2); if (!p) break;
+        const k = ['nv_pino', 'g_estatua_hielo', 'g_pinguino_rey', 'g_foca', 'g_cristal_aurora', 'g_arbol_aurora', 'nv_montonnieve', 'g_bandera_cumbre'][Math.floor(this.rnd() * 8)];
+        const sp = this.sprite(k, p[0], p[1]);
+        if (k === 'nv_montonnieve' || k === 'g_cristal_aurora') { sp.setDepth(-5); if (k === 'g_cristal_aurora') luz(sp.x, sp.y - 10, 0xb090ff, 0.4, 0.25); continue; }
+        this.solido(sp.x, sp.y - 8, 18, 10); this.marcar(p[0], p[1]); if (['nv_pino', 'g_estatua_hielo', 'g_arbol_aurora', 'g_bandera_cumbre'].includes(k)) this.marcar(p[0], p[1] - 1);
+        if (k === 'g_arbol_aurora') luz(sp.x, sp.y - 30, 0x7af0c0, 0.6, 0.25);
+      }
+      this.objetos.forEach((o, i) => { o.idx = i; });
+    }
+    actualizarDragon() {
+      if (!this.dragon) return;
+      const descansa = (S.dragonHasta || 0) > Date.now(), abierto = tiene('cetro_aurora');
+      const despierto = abierto && !descansa;
+      this.dragon.setTint(despierto ? 0xffffff : 0x8a8a9a);
+      if (despierto) this.dragon.anims.play('jefe_u4b_down', true); else { this.dragon.anims.stop(); this.dragon.setFrame(DIRS.down * 9); }
+      this.selloDragon.emitting = !abierto;
+      this.dragonTag.setText(`Dragón de la Aurora\n(${!abierto ? 'dormido: necesitas el cetro de la aurora' : descansa ? `descansa: vuelve en ${Math.ceil(((S.dragonHasta || 0) - Date.now()) / 60000)} min` : '¡despierto! E para desafiarlo'})`);
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
@@ -5132,7 +5984,8 @@
     }
     // ---------- mundo helado (Unidad 4) ----------
     crearHielo(M) {
-      this.ancho = MAPA_W; this.alto = MAPA_H;
+      const oy = M.cima ? VALLE_OY : 0;
+      this.ancho = MAPA_W; this.alto = MAPA_H + oy; this.yUtil = oy;
       this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
       const fn = (c, r) => r * 16 + c;   // índice en la hoja de nieve (16 columnas)
       const BASE = fn(M.suelo[0][0], M.suelo[0][1]), SENDERO = fn(3, 0);
@@ -5150,18 +6003,25 @@
           }
         }
       }
-      const P = { x: 6, y: PORTAL_Y };
+      const P = { x: 6, y: PORTAL_Y + oy };
       for (let x = 4; x < this.ancho - 3; x++) data[P.y + 2][x] = SENDERO;
-      for (let y = 3; y < this.alto - 3; y++) data[y][CENTRO_X] = SENDERO;
+      for (let y = Math.max(3, oy); y < this.alto - 3; y++) data[y][CENTRO_X] = SENDERO;
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === SENDERO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      if (M.cima) this.planearCima(data, oy, SENDERO);
+      // estaciones de los minijuegos (zona central)
+      this.estBolas = { x: CENTRO_X - 8, y: P.y - 3 }; this.estHielo = { x: CENTRO_X + 8, y: P.y - 3 };
+      for (const E of [this.estBolas, this.estHielo]) for (let y = E.y - 3; y <= E.y + 2; y++) for (let x = E.x - 4; x <= E.x + 3; x++) this.marcar(x, y);
       this.prepararLugaresJefe(P);
+      if (M.cima) for (let y = 0; y < oy; y++) for (let x = 0; x < this.ancho; x++) { const k = this.terreno[y][x]; if (k !== SENDERO) data[y][x] = this.rnd() < 0.2 ? fn(1, 0) : fn(0, 0); }
       this.suelo(data, 'kenney_nieve');
       // nieve que cae siempre (suave) y ventiscas de vez en cuando
       const cam = this.cameras.main;
       this.add.particles(0, 0, 'p_nieve', { x: { min: -50, max: cam.width + 50 }, y: -10, lifespan: 6000, frequency: 90, speedY: { min: 30, max: 70 }, speedX: { min: -15, max: 15 }, scale: { start: 0.9, end: 0.5 }, alpha: { start: 0.9, end: 0.2 } }).setScrollFactor(0).setDepth(99990);
       this.bordesHielo();
+      if (M.cima) this.decorarGlaciar();
+      this.crearEstacionesHielo();
       this.portal(P.x, P.y);
       this.crearGuarida();
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
@@ -5276,6 +6136,7 @@
         this.marcar(p[0], p[1]);
         this.enemigos.push(this.nuevoEnemigo('muneco', sp, { despierto: false, k: `n${i}` }));
       }
+      if (M.cima) this.crearCima();
     }
     bordesHielo() {
       const claves = ['nv_pino', 'nv_pino', 'nv_roble', 'nv_hielo3', 'nv_bloque_hielo'];
@@ -5622,7 +6483,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' ? 80 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -5644,6 +6505,7 @@
           if (o.rec === 'hongo') return o.estado === 'arbol' ? 'Recolectar hongos' : 'Hongos pequeños: están creciendo';
           if (o.rec === 'baya') return o.estado === 'arbol' ? 'Recolectar bayas' : 'Arbusto sin bayas: volverán a crecer';
           if (o.rec === 'resina') return o.estado !== 'arbol' ? 'Tocón ancestral: el árbol volverá a crecer' : tiene('hacha2') ? 'Sacar resina del árbol gigante' : 'Árbol gigante: necesitas el hacha de hierro';
+          if (o.rec === 'aurora') return o.estado !== 'arbol' ? 'Flor apagada: volverá a brillar' : tiene('frasco_aurora') ? 'Recolectar polvo de aurora' : 'Flor de aurora: necesitas un frasco de aurora';
           if (o.rec === 'cristal_eco') return o.estado !== 'arbol' ? 'Cristales pequeños: están volviendo a crecer' : tiene('cincel') ? 'Desprender cristales resonantes' : 'Cristales resonantes: necesitas un cincel de cristal';
           if (o.rec === 'miel') return o.estado !== 'arbol' ? 'Colmena vacía: las abejas están haciendo más miel' : tiene('ahumador') ? 'Recolectar miel' : 'Colmena: necesitas un ahumador';
           return o.estado === 'arbol' ? `Talar ${o.nombre}` : o.estado === 'tocon' ? 'Tocón: volverá a crecer' : 'Brote: está creciendo';
@@ -5657,9 +6519,14 @@
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
-        case 'obra': return o.listo ? null : this.valle ? 'Ver y aportar al montacargas' : this.prof ? 'Ver y aportar al elevador' : 'Ver y aportar al puente';
+        case 'obra': return o.listo ? null : this.valle ? 'Ver y aportar al montacargas' : this.prof ? 'Ver y aportar al elevador' : this.cima ? 'Ver y aportar a la ruta de escalada' : 'Ver y aportar al puente';
         case 'santuario': return !tiene('amuleto') ? 'Santuario sellado: necesitas el amuleto ancestral' : (S.reyHasta || 0) > Date.now() ? 'El Rey Jabalí descansa' : '¡Desafiar al Rey Jabalí Ancestral!';
         case 'carrera': return 'Entrar a la estación de carreras de vagonetas';
+        case 'bolas': return 'Jugar a la guerra de bolas de nieve';
+        case 'movedizo': return 'Jugar al hielo movedizo';
+        case 'escalar': return tiene('piolet') && tiene('crampones') ? 'Escalar la pared del glaciar' : 'Pared del glaciar: necesitas piolet y crampones';
+        case 'rapel': return 'Bajar en rapel al glaciar';
+        case 'dragon': return !tiene('cetro_aurora') ? 'Dragón dormido: necesitas el cetro de la aurora' : (S.dragonHasta || 0) > Date.now() ? 'El Dragón de la Aurora descansa' : '¡Desafiar al Dragón de la Aurora!';
         case 'altar': return o.estado === 'vacio' ? 'Altar apagado: vuelve más tarde' : 'Resolver el rompecabezas de cristales';
         case 'coloso': return !tiene('corazon_cristal') ? 'Coloso sellado: necesitas el corazón de cristal' : (S.colosoHasta || 0) > Date.now() ? 'El Coloso de Magma descansa' : '¡Desafiar al Coloso de Magma!';
         case 'esfinge': return tiene('antorcha_esfinge') ? 'Entrar al laberinto de la Gran Esfinge' : 'Gran Esfinge: necesitas la antorcha de la esfinge';
@@ -5702,6 +6569,28 @@
         } });
       }
       if (o.tipo === 'carrera') return abrirCarrera();
+      if (o.tipo === 'bolas') return abrirBolasNieve();
+      if (o.tipo === 'movedizo') return abrirHieloMovedizo();
+      if (o.tipo === 'escalar') {
+        if (!tiene('piolet') || !tiene('crampones')) return toast('Para escalar el glaciar necesitas el piolet de escarcha y los crampones de hielo. Fabrícalos en la fogata de tu base.', 'alerta');
+        this.dir = 'up';
+        return abrirEscalada(() => { const { gx, cy0 } = this.cima; this.jugador.setPosition(gx * TILE + 16, (cy0 - 2) * TILE + 10); this.dir = 'up'; this.celebrar(this.jugador.x, this.jugador.y - 60); toast('¡Llegaste a la Cima del Glaciar!'); });
+      }
+      if (o.tipo === 'rapel') {
+        const { gx, oy } = this.cima; this.jugador.setPosition(gx * TILE + 16, (oy + 1) * TILE + 16); this.dir = 'down'; sfx('viento');
+        return toast('Bajaste en rapel por la ruta de escalada.');
+      }
+      if (o.tipo === 'dragon') {
+        if (!tiene('cetro_aurora')) return toast('El Dragón de la Aurora duerme. Fabrica el cetro de la aurora (polvo de aurora y hielo eterno) en la fogata de tu base.', 'alerta');
+        if ((S.dragonHasta || 0) > Date.now()) return toast(`El Dragón de la Aurora descansa. Vuelve en ${Math.ceil((S.dragonHasta - Date.now()) / 60000)} min.`);
+        return abrirDragon();
+      }
+      if (o.tipo === 'arbol' && o.rec === 'aurora') {
+        if (o.estado !== 'arbol') return toast('Esta flor todavía no vuelve a brillar.');
+        if (!tiene('frasco_aurora')) return toast('El polvo de aurora se escapa en el aire: necesitas un frasco de aurora. Fabrícalo en tu base.', 'alerta');
+        const dif = difPara(2), cant = 2 + (dif > 2 ? 1 : 0);
+        return abrirDesafio({ accion: 'Recolectar polvo de aurora', dif, premio: `Premio: ${cant} polvo de aurora`, onOk: () => { this.golpe(o, 'aurora', cant); avanzarMision('aurora'); } });
+      }
       if (o.tipo === 'altar') {
         if (o.estado === 'vacio') return toast('Este altar está apagado. Vuelve en unos minutos o busca otro.');
         this.mirarA(o);
@@ -5756,7 +6645,7 @@
         if (!tiene('pico')) return toast('Necesitas un pico. Fabrícalo en la fogata de tu base.');
         if (o.req && !tiene(o.req)) return toast(o.rec === 'magma' ? 'La roca de magma quema: necesitas unos guantes térmicos. Fabrícalos en tu base.' : `Para picar esta veta necesitas ${NOMBRE_MEJORA[o.req].toLowerCase()}. Fabrícalo en tu base.`, 'alerta');
         equipar('pico');
-        const comun = ['arenisca', 'carbon', 'hielo'].includes(o.rec), raro = ['oro', 'amatista', 'zafiro', 'obsidiana'].includes(o.rec);
+        const comun = ['arenisca', 'carbon', 'hielo'].includes(o.rec), raro = ['oro', 'amatista', 'zafiro', 'obsidiana', 'hielo_eterno'].includes(o.rec);
         const cant = (raro ? 1 : 2) + (tiene(o.picoBueno || 'pico3') ? (comun ? 2 : 1) : 0);
         return abrirDesafio({ accion: `Picar ${o.nombre}`, dif: comun ? difPara(2) : 3, premio: `Premio: ${cant} ${nombreRec(o.rec)}${o.extra ? ` + posible ${nombreRec(o.extra)}` : ''}`, onOk: () => this.golpe(o, o.rec, cant) });
       }
@@ -5794,7 +6683,7 @@
       setTimeout(() => sfx('moneda'), 180);
       const j = this.jugador;
       this.tweens.add({ targets: j, y: j.y - 3, duration: 80, yoyo: true, repeat: 1 });
-      const px = { resina: 'p_cobre', miel: 'p_brillo', madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua', obsidiana: 'p_morado', fosil: 'p_arena', magma: 'p_rojo', cristal_eco: 'p_agua' }[recurso] || 'p_brillo';
+      const px = { resina: 'p_cobre', miel: 'p_brillo', madera: 'p_madera', piedra: 'p_piedra', agua: 'p_agua', cristal: 'p_brillo', fibra: 'p_hoja', arenisca: 'p_arena', cobre: 'p_cobre', oro: 'p_brillo', carbon: 'p_carbon', plata: 'p_piedra', amatista: 'p_morado', hongo: 'p_rojo', baya: 'p_rojo', hielo: 'p_nieve', escarcha: 'p_nieve', zafiro: 'p_agua', obsidiana: 'p_morado', fosil: 'p_arena', magma: 'p_rojo', cristal_eco: 'p_agua', hielo_eterno: 'p_nieve', aurora: 'p_hoja' }[recurso] || 'p_brillo';
       this.add.particles(o.x, o.y - 14, px, { speed: { min: 60, max: 150 }, angle: { min: 200, max: 340 }, gravityY: 320, lifespan: 600, scale: { start: 1.4, end: 0.4 }, emitting: false }).setDepth(o.y + 50).explode(16);
       if (o.s) this.tweens.add({ targets: o.s, x: o.s.x + 3, duration: 50, yoyo: true, repeat: 3 });
       sumar(recurso, cant);
@@ -5875,6 +6764,7 @@
       c.on('prisma_prog', (d) => recibirPrismaProg(d));
       c.on('obra', () => cargarObra());
       c.on('carrera', (d) => recibirCarrera(d));
+      c.on('sala', (d) => recibirSala(d));
       c.on('prisma_fin', (d) => recibirPrismaFin(d));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
@@ -6145,6 +7035,7 @@
         const a = Math.random() * Math.PI * 2, r = rmin + Math.random() * (rmax - rmin);
         const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);
         if (this.alcanzable(j.x, j.y) && !this.alcanzable(x, y)) continue;
+        if (this.cima && (y < this.cima.oy * TILE) !== (j.y < this.cima.oy * TILE)) continue;
         if (!this.physics.overlapRect(x - 14, y - 18, 28, 26, false, true).length) return { x, y };
       }
       return { x: Phaser.Math.Clamp(j.x + 60, m, W - m), y: Phaser.Math.Clamp(j.y, m + 16, H - m) };

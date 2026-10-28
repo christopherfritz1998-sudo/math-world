@@ -597,7 +597,8 @@ create or replace function public.mw_obra_meta(p_id text) returns jsonb
 language sql immutable as $$
   select case p_id when 'puente_bosque' then '{"madera": 600, "piedra": 350, "agua": 150, "cristal": 40}'::jsonb
                    when 'montacargas_valle' then '{"fibra": 500, "arenisca": 400, "cobre": 200, "oro": 60}'::jsonb
-                   when 'elevador_mina' then '{"carbon": 500, "plata": 300, "hongo": 150, "amatista": 50}'::jsonb else null end
+                   when 'elevador_mina' then '{"carbon": 500, "plata": 300, "hongo": 150, "amatista": 50}'::jsonb
+                   when 'ruta_glaciar' then '{"hielo": 500, "escarcha": 260, "baya": 150, "zafiro": 50}'::jsonb else null end
 $$;
 
 create or replace function public.mw_obra_estado(p_nivel text, p_id text, p_yo uuid)
@@ -663,7 +664,8 @@ begin
   if mw_sesion_docente(p_token) is null then return null; end if;
   return json_build_object('7', mw_obra_estado('7', 'puente_bosque', null), '8', mw_obra_estado('8', 'puente_bosque', null),
     'valle', json_build_object('7', mw_obra_estado('7', 'montacargas_valle', null), '8', mw_obra_estado('8', 'montacargas_valle', null)),
-    'mina', json_build_object('7', mw_obra_estado('7', 'elevador_mina', null), '8', mw_obra_estado('8', 'elevador_mina', null)));
+    'mina', json_build_object('7', mw_obra_estado('7', 'elevador_mina', null), '8', mw_obra_estado('8', 'elevador_mina', null)),
+    'cima', json_build_object('7', mw_obra_estado('7', 'ruta_glaciar', null), '8', mw_obra_estado('8', 'ruta_glaciar', null)));
 end $$;
 
 revoke all on function public.mw_obra_meta(text), public.mw_obra_estado(text, text, uuid) from public, anon, authenticated;

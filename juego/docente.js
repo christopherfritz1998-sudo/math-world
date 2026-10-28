@@ -7,7 +7,7 @@
   const ZONAS_BASE = { base: 'En su base', pieza: 'En su pieza', u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' };
   // "u1-g3" -> "Unidad 1 · Grupo 3"
   const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
-  const MEJORAS = { pico: 'Pico', balde: 'Balde', cana: 'Caña de pescar', ahumador: 'Ahumador', hacha3: 'Hacha ancestral', amuleto: 'Amuleto ancestral', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal', cantimplora: 'Cantimplora', pico3: 'Pico de cobre', espada3: 'Espada de oro', armadura3: 'Armadura de oro', casco: 'Casco de minero', pico4: 'Pico de plata', espada4: 'Espada de amatista', armadura4: 'Armadura de plata', abrigo: 'Abrigo de piel', pico5: 'Pico de escarcha', espada5: 'Espada de hielo', armadura5: 'Armadura de escarcha', espada6: 'Espada prismática', armadura6: 'Armadura prismática', pala: 'Pala de arqueólogo', pala2: 'Pala de obsidiana', antorcha_esfinge: 'Antorcha de la esfinge', guantes: 'Guantes térmicos', cincel: 'Cincel de cristal', pico_magma: 'Pico de magma', corazon_cristal: 'Corazón de cristal' };
+  const MEJORAS = { pico: 'Pico', balde: 'Balde', cana: 'Caña de pescar', ahumador: 'Ahumador', hacha3: 'Hacha ancestral', amuleto: 'Amuleto ancestral', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal', cantimplora: 'Cantimplora', pico3: 'Pico de cobre', espada3: 'Espada de oro', armadura3: 'Armadura de oro', casco: 'Casco de minero', pico4: 'Pico de plata', espada4: 'Espada de amatista', armadura4: 'Armadura de plata', abrigo: 'Abrigo de piel', pico5: 'Pico de escarcha', espada5: 'Espada de hielo', armadura5: 'Armadura de escarcha', espada6: 'Espada prismática', armadura6: 'Armadura prismática', pala: 'Pala de arqueólogo', pala2: 'Pala de obsidiana', antorcha_esfinge: 'Antorcha de la esfinge', guantes: 'Guantes térmicos', cincel: 'Cincel de cristal', pico_magma: 'Pico de magma', corazon_cristal: 'Corazón de cristal', piolet: 'Piolet de escarcha', crampones: 'Crampones de hielo', frasco_aurora: 'Frasco de aurora', pico_eterno: 'Pico de hielo eterno', cetro_aurora: 'Cetro de la aurora' };
   let token = null, datos = [], curso = '7A', abiertos = null, mundos = null;
   try { token = sessionStorage.getItem('mw_docente'); } catch (e) { /* */ }
   if (!token || !Nube.activo) { location.replace('./'); return; }
@@ -111,7 +111,7 @@
         const pct = t.i ? Math.round((t.a / t.i) * 100) : 0;
         return `<div class="tema"><span>${esc(t.titulo)}</span><span><span class="barra"><i style="width:${pct}%"></i></span>${t.a} de ${t.i} (${pct} %)</span></div>`;
       }).join('')}</div>`).join('');
-    const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'resina', 'miel', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'obsidiana', 'fosil', 'magma', 'cristal_eco', 'prisma', 'luciernaga'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
+    const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'resina', 'miel', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'obsidiana', 'fosil', 'magma', 'cristal_eco', 'hielo_eterno', 'aurora', 'prisma', 'luciernaga'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
     $('det').innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
         <div><h3 id="det-nombre">${esc(e.nombre)}</h3><span class="muted">RUT ${esc(e.rut)} · ${esc(CURSOS.find((c) => c.id === e.curso).nombre)}</span></div>
@@ -318,7 +318,7 @@
       const r = await Nube.docenteObras(token);
       if (!r) return;
       const lista = [];
-      for (const n of ['7', '8']) { lista.push([n, r[n], 'Puente al Bosque profundo (Unidad 1)']); lista.push([n, (r.valle || {})[n], 'Montacargas al Valle de la Esfinge (Unidad 2)']); lista.push([n, (r.mina || {})[n], 'Elevador a las Profundidades (Unidad 3)']); }
+      for (const n of ['7', '8']) { lista.push([n, r[n], 'Puente al Bosque profundo (Unidad 1)']); lista.push([n, (r.valle || {})[n], 'Montacargas al Valle de la Esfinge (Unidad 2)']); lista.push([n, (r.mina || {})[n], 'Elevador a las Profundidades (Unidad 3)']); lista.push([n, (r.cima || {})[n], 'Ruta de escalada a la Cima del Glaciar (Unidad 4)']); }
       $('obras').innerHTML = lista.map(([n, o0, titulo]) => {
         const o = o0 || {}, meta = o.meta || {}, ap = o.aportes || {};
         const tot = Object.values(meta).reduce((a, b) => a + b, 0), hecho = Object.entries(meta).reduce((a, [k, v]) => a + Math.min(v, ap[k] || 0), 0);
