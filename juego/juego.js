@@ -1137,7 +1137,7 @@
     abrir(html, clase = '', alCerrar = null) {
       if (juegoCerrado && clase !== 'bloqueo') return;
       const m = $('modal');
-      m.className = 'modal ' + clase;
+      m.className = 'modal ' + clase + (/(^|\s)(excava-modal|laberinto|carrera|cristales-modal|escalada-modal|minijuego)(\s|$)/.test(clase) ? ' pantalla' : '');
       m.innerHTML = html;
       $('capa').classList.remove('oculto');
       this.abierto = true; this.alCerrar = alCerrar; this.teclas = null;
@@ -1153,6 +1153,18 @@
       revisarPendientes();
     },
   };
+  // Ajusta un elemento (lienzo o tablero) al espacio de su contenedor manteniendo la proporción
+  function encajar(el, aspecto) {
+    const zona = el && el.parentElement; if (!zona || !window.ResizeObserver) return;
+    const ajustar = () => {
+      if (!el.isConnected) { ro.disconnect(); return; }
+      const cs = getComputedStyle(zona), w = zona.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight), h = zona.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+      if (w <= 0 || h <= 0) return;
+      let ww = w, hh = w / aspecto; if (hh > h) { hh = h; ww = h * aspecto; }
+      el.style.width = `${Math.floor(ww)}px`; el.style.height = `${Math.floor(hh)}px`;
+    };
+    const ro = new ResizeObserver(ajustar); ro.observe(zona); ajustar();
+  }
   const unaVez = (f) => { let hecho = false; return (...a) => { if (!hecho) { hecho = true; f(...a); } }; };
   function registrar(tema, acierto) {
     const st = S.stats[tema] || (S.stats[tema] = { a: 0, i: 0 });
@@ -1597,14 +1609,14 @@
           </div>
           <p class="nota">Haz clic en la arena para cavar. Las piezas enterradas se recogen solas cuando quedan completamente descubiertas. <b>Pista:</b> donde algo brilla, hay algo enterrado. Teclas <kbd>1</kbd> brocha y <kbd>2</kbd> pala.</p>
           <ul class="ex-hallado" id="ex-hallado"><li class="vacio">Aún no encuentras nada.</li></ul>
+          <div id="ex-fin"></div>
         </div>
-        <div class="ex-cuadro" id="ex-cuadro" style="aspect-ratio:${W}/${H}">
+        <div class="zona-lienzo"><div class="ex-cuadro" id="ex-cuadro" style="aspect-ratio:${W}/${H}">
           ${piezas.map((p, k) => `<img class="ex-pieza px" id="ex-p${k}" src="${img(p)}" alt="" style="left:${(p.x / W) * 100}%;top:${(p.y / H) * 100}%;width:${(p.w / W) * 100}%;height:${(p.h / H) * 100}%">`).join('')}
           <div class="ex-celdas" style="grid-template-columns:repeat(${W},1fr)">${capas.map((c, i) => `<button type="button" class="ex-c c${c}" data-c="${i}" aria-label="Arena"></button>`).join('')}</div>
-        </div>
-      </div>
-      <div id="ex-fin"></div>`, 'excava-modal', () => { if (!fin) terminar('salir', true); });
-    const cuadro = $('ex-cuadro');
+        </div></div>
+      </div>`, 'excava-modal', () => { if (!fin) terminar('salir', true); });
+    const cuadro = $('ex-cuadro'); encajar(cuadro, W / H);
     const pintarCelda = (i) => {
       const b = cuadro.querySelector(`[data-c="${i}"]`); if (!b) return;
       const k = ocup[i];
@@ -1732,7 +1744,7 @@
       <div class="modal-cab"><div><span class="etq">Gran Esfinge · laberinto nuevo cada vez</span><h2 id="modal-titulo">🏺 Laberinto de la Esfinge</h2></div>
         <div class="pildoras"><span class="pildora" id="lb-tiempo">⏳ 2:30</span><span class="pildora" id="lb-puertas">🚪 0 de ${puertas.size}</span><span class="pildora" id="lb-tes">💰 0</span><button type="button" class="btn" id="lb-salir">Salir</button></div></div>
       <div class="lab">
-        <div class="lab-cuadro" id="lb-cuadro"></div>
+        <div class="lab-cuadro zona-lienzo" id="lb-cuadro"></div>
         <div class="lab-lado">
           <p class="nota">Muévete con las <kbd>flechas</kbd> o <kbd>W A S D</kbd> (o los botones). Llega a la <b>cámara del tesoro</b> (arriba) antes de que se apague la antorcha. Las <b>puertas de la esfinge</b> se abren respondiendo bien; cada error quita 15 segundos. En los callejones hay tesoros.</p>
           <div class="lab-cruz" aria-label="Controles">
@@ -1742,7 +1754,7 @@
           </div>
         </div>
       </div>`, 'laberinto', () => { st.fase = 'fin'; cancelAnimationFrame(raf); document.removeEventListener('keyup', soltar); });
-    $('lb-cuadro').appendChild(cv);
+    $('lb-cuadro').appendChild(cv); encajar(cv, GW / GH);
     const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
     let raf = 0, t0 = performance.now();
     const TECLAS = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
@@ -1970,7 +1982,7 @@
     C.yo = { d: 0, v: 0, y: 0, vy: 0, agachado: false, golpe: 0, turbo: 0, cruce: 0, pregunta: null, bloqueo: 0, gemas: 0, tiempo: undefined, t: 0, ultPos: 0, aciertos: 0 };
     C.cuenta = 3.4; C.t0 = performance.now();
     const m = $('modal');
-    m.querySelector('.carrera-sala').outerHTML = `<div class="carrera-juego"><div class="cr-barra" id="cr-barra"></div><div class="cr-cuadro" id="cr-cuadro"><canvas id="cr-canvas" width="800" height="300"></canvas><div class="cr-cuenta" id="cr-cuenta">3</div></div>
+    m.querySelector('.carrera-sala').outerHTML = `<div class="carrera-juego"><div class="cr-barra" id="cr-barra"></div><div class="cr-cuadro zona-lienzo" id="cr-cuadro"><canvas id="cr-canvas" width="800" height="300"></canvas><div class="cr-cuenta" id="cr-cuenta">3</div></div>
       <div class="cr-controles"><button type="button" class="btn" id="cr-agacha">▼ Agacharse</button><button type="button" class="btn pri" id="cr-salta">▲ Saltar</button></div></div>`;
     m.querySelector('.acciones').innerHTML = '<span class="nota" id="cr-nota">¡Prepárate!</span><span></span>';
     const yo = C.yo;
@@ -1987,7 +1999,7 @@
     const ag = $('cr-agacha');
     ag.addEventListener('pointerdown', (e) => { e.preventDefault(); yo.agachado = true; });
     for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) ag.addEventListener(ev, () => { yo.agachado = false; });
-    C.ctx = $('cr-canvas').getContext('2d'); C.ctx.imageSmoothingEnabled = false;
+    C.ctx = $('cr-canvas').getContext('2d'); C.ctx.imageSmoothingEnabled = false; encajar($('cr-canvas'), 800 / 300);
     const k = `pj_${S.pj}_${texArmadura(S.armadura)}`;
     C.pj = escena && escena.textures.exists(k) ? escena.textures.get(k).getSourceImage() : null;
     C.img = {}; for (const r of ['carbon', 'plata', 'piedra']) { C.img[r] = new Image(); C.img[r].src = ICONO(r); }
@@ -2242,7 +2254,7 @@
         cel.push(`<button type="button" class="cz-c ${c ? c.t : ''} ${c && c.t === 'cristal' && encendidos.has(`${x},${y}`) ? 'luz' : ''}" data-x="${x}" data-y="${y}" ${c && c.t === 'espejo' && !resuelto ? '' : 'tabindex="-1"'} aria-label="${c ? c.t : 'vacío'}">${c && c.t === 'espejo' ? `<i class="cz-espejo ${c.m === '/' ? 'a' : 'b'}"></i>` : c && c.t === 'cristal' ? `<img class="px" src="${ICONO('cristal_eco')}" alt="">` : c && c.t === 'roca' ? `<img class="px" src="${ICONO('piedra')}" alt="">` : ''}</button>`);
       }
       const pts = puntos.map(([x, y]) => `${(x + 0.5) * 10},${(y + 0.5) * 10}`).join(' ');
-      $('cz-tablero').innerHTML = `<div class="cz-emisor" style="top:${((R.fila + 0.5) / R.N) * 100}%"></div><div class="cz-grid" style="grid-template-columns:repeat(${R.N},1fr)">${cel.join('')}</div>
+      $('cz-tablero').innerHTML = `<div class="cz-emisor" style="top:${((R.fila + 0.5) / R.N) * 100}%"></div><div class="cz-grid" style="grid-template-columns:repeat(${R.N},1fr);grid-template-rows:repeat(${R.N},1fr)">${cel.join('')}</div>
         <svg class="cz-rayo" viewBox="0 0 ${R.N * 10} ${R.N * 10}" preserveAspectRatio="none"><polyline points="${pts}" /></svg>`;
       $('cz-info').textContent = `Cristales encendidos: ${encendidos.size} de ${R.K} · Giros: ${giros}`;
       document.querySelectorAll('.cz-c.espejo').forEach((b) => b.addEventListener('click', () => {
@@ -2264,10 +2276,11 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Altar de cristal · Profundidades · nivel ${nivel + 1}</span><h2 id="modal-titulo">💎 Rompecabezas de cristales</h2></div><button type="button" class="btn" id="cz-salir">Salir</button></div>
       <div class="cristales">
-        <div class="cz-tablero" id="cz-tablero"></div>
+        <div class="zona-lienzo cz-zona"><div class="cz-tablero" id="cz-tablero"></div></div>
         <div class="cz-lado"><p class="nota">Del emisor (a la izquierda) sale un rayo de luz. Haz clic en los <b>espejos</b> para girarlos y lograr que el rayo pase por <b>todos los cristales</b>. Las rocas lo bloquean. Cada vez que completes uno, los siguientes serán más difíciles.</p>
-          <p class="pildora" id="cz-info"></p></div>
-      </div><div id="cz-fin"></div>`, 'cristales-modal');
+          <p class="pildora" id="cz-info"></p><div id="cz-fin"></div></div>
+      </div>`, 'cristales-modal');
+    encajar($('cz-tablero'), 1);
     $('cz-salir').addEventListener('click', () => ui.cerrar());
     pintar();
   }
@@ -2395,7 +2408,7 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Pared del glaciar · ${ALTO_GLACIAR} metros · anclajes cada 20 m</span><h2 id="modal-titulo">🧗 Escalar el glaciar</h2></div><button type="button" class="btn" id="es-salir">Bajar</button></div>
       <div class="escalada">
-        <div class="es-cuadro" id="es-cuadro"><canvas id="es-canvas" width="420" height="520"></canvas></div>
+        <div class="es-cuadro zona-lienzo" id="es-cuadro"><canvas id="es-canvas" width="420" height="520"></canvas></div>
         <div class="es-lado">
           <p class="nota">Sube alternando las manos: <kbd>←</kbd> y <kbd>→</kbd> (o <kbd>A</kbd> y <kbd>D</kbd>, o los botones). Si repites la misma mano no avanzas. Cuando el hielo se quiebre, <b>responde bien para sujetarte</b>: si fallas, caes hasta el último anclaje y pierdes un corazón.</p>
           <div class="es-manos"><button type="button" class="btn" id="es-izq">✋ Izquierda</button><button type="button" class="btn" id="es-der">Derecha 🤚</button></div>
@@ -2403,7 +2416,7 @@
           <div id="es-msg"></div>
         </div>
       </div>`, 'escalada-modal', () => { fin = true; cancelAnimationFrame(raf); });
-    const ctx = $('es-canvas').getContext('2d'); ctx.imageSmoothingEnabled = false;
+    const ctx = $('es-canvas').getContext('2d'); ctx.imageSmoothingEnabled = false; encajar($('es-canvas'), 420 / 520);
     const grietas = Array.from({ length: 70 }, (_, i) => ({ x: 40 + Math.random() * 340, h: i * 1.2 + Math.random(), l: 10 + Math.random() * 30, a: Math.random() * Math.PI }));
     const msg = (html) => { const el = $('es-msg'); if (el) el.innerHTML = html; };
     const mano = (m) => {
@@ -2580,10 +2593,10 @@
     const jugadores = ids.map((id, i) => ({ id, i, nombre: (nombres && nombres[id]) || 'Compañero', yo: id === idJuego, img: id === idJuego ? miImg : textura((pjs && pjs[id]) || 'zorro'), visto: performance.now() }));
     if (ids.length === 1) ['Rival de nieve', 'Rival de escarcha'].forEach((n, k) => jugadores.push({ id: `bot${k}`, i: k + 1, nombre: n, bot: true, img: textura(['lobo', 'pudu'][k]) }));
     sala.jugadores = jugadores; sala.yo = jugadores[0];
-    $('sl-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro" id="mj-cuadro"><canvas id="mj-canvas" width="${sala.W}" height="${sala.H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
+    $('sl-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro zona-lienzo" id="mj-cuadro"><canvas id="mj-canvas" width="${sala.W}" height="${sala.H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
       <div class="mj-controles" id="mj-controles"></div></div>`;
     document.querySelector('#modal .acciones').innerHTML = '<span class="nota" id="sl-nota">¡Prepárate!</span><span class="pildora" id="mj-reloj"></span>';
-    sala.ctx = $('mj-canvas').getContext('2d'); sala.ctx.imageSmoothingEnabled = false;
+    sala.ctx = $('mj-canvas').getContext('2d'); sala.ctx.imageSmoothingEnabled = false; encajar($('mj-canvas'), sala.W / sala.H);
     sala.rnd = azar(semilla); sala.semilla = semilla;
     sala.iniciar(sala);
     sala.cuenta = 3.2; sala.t = -3.2;

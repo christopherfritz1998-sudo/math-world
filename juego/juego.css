@@ -555,3 +555,35 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .mj-acciones { display: flex; gap: 10px; align-items: center; }
 .mj-pregunta { top: auto; bottom: 8px; transform: translateX(-50%); }
 @media (max-width: 760px) { .escalada { grid-template-columns: 1fr; } }
+
+/* ---------- Minijuegos a pantalla completa: el juego se ajusta al espacio y las indicaciones quedan siempre a la vista ---------- */
+.modal.pantalla { width: 100%; max-width: none; height: 100%; max-height: none; overflow: hidden; padding: 12px 18px; gap: 10px; }
+.modal.pantalla > .modal-cab, .modal.pantalla > .acciones { flex: none; }
+.modal.pantalla .excava, .modal.pantalla .lab, .modal.pantalla .escalada, .modal.pantalla .cristales,
+.modal.pantalla .carrera-juego, .modal.pantalla .minijuego-juego, .modal.pantalla .carrera-sala { flex: 1; min-height: 0; }
+.modal.pantalla .excava { grid-template-columns: 290px minmax(0, 1fr); align-items: stretch; }
+.modal.pantalla .lab { grid-template-columns: minmax(0, 1fr) 240px; align-items: stretch; }
+.modal.pantalla .escalada { grid-template-columns: minmax(0, 1fr) 320px; align-items: stretch; }
+.modal.pantalla .cristales { grid-template-columns: minmax(0, 1fr) 300px; align-items: stretch; }
+.modal.pantalla .ex-lado, .modal.pantalla .lab-lado, .modal.pantalla .es-lado, .modal.pantalla .cz-lado, .modal.pantalla .carrera-sala > div { overflow-y: auto; min-height: 0; }
+.modal.pantalla .carrera-juego, .modal.pantalla .minijuego-juego { display: flex; flex-direction: column; gap: 8px; }
+.modal.pantalla .cr-cuadro, .modal.pantalla .mj-cuadro { flex: 1; }
+.zona-lienzo { position: relative; min-width: 0; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.modal.pantalla .zona-lienzo canvas { flex: none; }
+.modal.pantalla .lab-cuadro, .modal.pantalla .cr-cuadro, .modal.pantalla .mj-cuadro, .modal.pantalla .es-cuadro { background: #0b0806; }
+.modal.pantalla .es-cuadro { background: #5fa8d6; }
+.modal.pantalla .mj-cuadro { background: #cfe8f5; }
+.modal.pantalla .ex-cuadro { flex: none; }
+.modal.pantalla .cz-zona { padding-left: 28px; }
+.modal.pantalla .cz-tablero { max-width: none; margin-left: 0; flex: none; }
+.modal.pantalla .cr-controles, .modal.pantalla .mj-controles, .modal.pantalla .cr-barra { flex: none; }
+@media (max-width: 760px) {
+  .modal.pantalla { overflow-y: auto; }
+  .modal.pantalla .excava, .modal.pantalla .lab, .modal.pantalla .escalada, .modal.pantalla .cristales { grid-template-columns: 1fr; }
+  .modal.pantalla .zona-lienzo { min-height: 52vh; }
+}
+.modal.pantalla .mj-cruz { grid-template-columns: repeat(3, 36px); grid-auto-rows: 28px; gap: 3px; }
+.modal.pantalla .mj-cruz .btn { padding: 0; font-size: 13px; min-height: 0; }
+.cz-c { min-height: 0; min-width: 0; overflow: hidden; }
+
+.capa:has(.modal.pantalla) { padding: 8px; }
