@@ -3,39 +3,146 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Math World · Matemática 7° y 8° básico</title>
-  <meta name="description" content="Guías, presentaciones, controles y juegos de matemáticas para 7° y 8° básico, organizados por unidad.">
+  <title>Math World · El juego de matemática de 7° y 8° básico</title>
+  <meta name="description" content="Math World: un mundo de aventuras para aprender matemática de 7° y 8° básico. Construye tu base, juega con tu grupo y vence a los jefes resolviendo ejercicios.">
+  <meta name="theme-color" content="#0f1d17">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="hero" id="hero">
-    <nav class="nav">
-      <a class="logo" href="#/">Math<span>World</span></a>
-      <div class="nav-links">
-        <a class="nav-link" href="#/7basico">7° básico</a>
-        <a class="nav-link" href="#/8basico">8° básico</a>
-        <a class="nav-link nav-juego" href="juego/">Juego</a>
-      </div>
-    </nav>
-    <div class="hero-body">
-      <p class="kicker">Matemática · 7° y 8° básico</p>
-      <h1>Aprender matemáticas,<br>una unidad a la vez.</h1>
-      <p class="lead">Guías, presentaciones, controles y juegos organizados por unidad, que se van habilitando a medida que avanzamos en clases.</p>
-      <a class="btn" href="juego/">Entrar al juego Math World →</a>
+  <nav class="nav" id="nav">
+    <a class="logo" href="#/" aria-label="Math World, inicio"><span class="logo-ico">∑</span>Math<span>World</span></a>
+    <button type="button" class="nav-burger" id="nav-burger" aria-label="Abrir menú" aria-expanded="false"><i></i><i></i><i></i></button>
+    <div class="nav-links" id="nav-links">
+      <a class="nav-link" href="#mundos">Mundos</a>
+      <a class="nav-link" href="#como">Cómo se juega</a>
+      <a class="nav-link" href="#novedades">Novedades</a>
+      <a class="nav-link" href="#accesos">Accesos</a>
+      <a class="nav-link" href="#ayuda">Ayuda</a>
+      <a class="nav-link nav-prof" href="juego/#docente">Soy profesor</a>
+      <a class="btn btn-chico btn-brillo" href="juego/">▶ Jugar</a>
     </div>
-    <div class="shapes" aria-hidden="true">
-      <span>π</span><span>∑</span><span>√</span><span>÷</span><span>∞</span>
-    </div>
-  </header>
+  </nav>
 
-  <main id="app" class="wrap" aria-live="polite"></main>
+  <div id="landing">
+    <!-- ================= PORTADA ================= -->
+    <header class="hero" id="hero">
+      <div class="hero-fondo" id="hero-fondo" aria-hidden="true"></div>
+      <div class="hero-velo" aria-hidden="true"></div>
+      <div class="simbolos" id="simbolos" aria-hidden="true"></div>
+      <div class="hero-body">
+        <p class="kicker"><span class="punto-vivo"></span> Matemática · 7° y 8° básico</p>
+        <h1 class="titulo-juego" aria-label="Math World">
+          <span class="letras" id="letras">Math World</span>
+        </h1>
+        <p class="lead">Resuelve ejercicios, construye tu base, juega con tu grupo y vence a los jefes de cuatro mundos llenos de aventuras.</p>
+        <div class="cta">
+          <a class="btn btn-grande btn-brillo" href="juego/"><span class="btn-ico">▶</span> Jugar ahora</a>
+          <a class="btn btn-grande btn-sec" href="juego/#docente"><span class="btn-ico">🎓</span> Soy profesor</a>
+        </div>
+        <div class="contadores" aria-label="El juego en números">
+          <div><b data-contar="4">0</b><span>mundos</span></div>
+          <div><b data-contar="12">0</b><span>personajes</span></div>
+          <div><b data-contar="10">0</b><span>mascotas</span></div>
+          <div><b data-contar="80" data-mas>0</b><span>logros</span></div>
+        </div>
+      </div>
+      <div class="desfile" id="desfile" aria-hidden="true"></div>
+      <a class="bajar" href="#mundos" aria-label="Ver más">⌄</a>
+    </header>
+
+    <!-- ================= MUNDOS ================= -->
+    <section class="seccion" id="mundos">
+      <div class="cab-sec aparece">
+        <span class="etq">Cuatro unidades, cuatro mundos</span>
+        <h2>Explora los mundos de Math World</h2>
+        <p>Cada unidad del año es un mundo con sus propios recursos, minijuegos, obras para construir en grupo y un jefe final. Toca un mundo para conocerlo.</p>
+      </div>
+      <div class="mundos" id="lista-mundos"></div>
+    </section>
+
+    <!-- ================= CÓMO SE JUEGA ================= -->
+    <section class="seccion seccion-oscura" id="como">
+      <div class="cab-sec aparece">
+        <span class="etq">Empieza en un minuto</span>
+        <h2>¿Cómo se juega?</h2>
+      </div>
+      <div class="pasos">
+        <div class="paso aparece"><span class="paso-num">1</span><span class="paso-ico flota">🔑</span><h3>Entra con tu RUT</h3><p>Crea tu clave y elige tu personaje. Tu avance queda guardado y puedes seguir desde cualquier computador o celular.</p></div>
+        <div class="paso aparece"><span class="paso-num">2</span><span class="paso-ico flota d1">🤝</span><h3>Únete a tu grupo</h3><p>Escribe el código que te da tu profesor. Con tu equipo construyen puentes, elevadores y rutas para llegar más lejos.</p></div>
+        <div class="paso aparece"><span class="paso-num">3</span><span class="paso-ico flota d2">⚔️</span><h3>Aprende jugando</h3><p>Cada árbol, roca, combate y minijuego es un ejercicio. Mientras más aciertas, más recursos, niveles y premios ganas.</p></div>
+      </div>
+    </section>
+
+    <!-- ================= GALERÍA ================= -->
+    <section class="seccion" id="galeria">
+      <div class="cab-sec aparece">
+        <span class="etq">Así se ve por dentro</span>
+        <h2>Minijuegos, jefes y aventuras</h2>
+      </div>
+      <div class="carrusel aparece" id="carrusel" tabindex="0" aria-roledescription="carrusel" aria-label="Imágenes del juego">
+        <div class="pista" id="pista"></div>
+        <button type="button" class="car-btn izq" id="car-izq" aria-label="Anterior">‹</button>
+        <button type="button" class="car-btn der" id="car-der" aria-label="Siguiente">›</button>
+        <div class="car-puntos" id="car-puntos"></div>
+      </div>
+    </section>
+
+    <!-- ================= PERSONAJES ================= -->
+    <section class="seccion seccion-oscura" id="personajes">
+      <div class="cab-sec aparece">
+        <span class="etq">Elige quién eres</span>
+        <h2>Personajes y mascotas</h2>
+        <p>Pasa el mouse o toca un personaje para verlo caminar. Los cuatro caballeros alados solo se desbloquean con el logro <b>«El rey del juego»</b>.</p>
+      </div>
+      <div class="elenco" id="elenco"></div>
+      <div class="corral aparece" id="corral"></div>
+    </section>
+
+    <!-- ================= NOVEDADES ================= -->
+    <section class="seccion" id="novedades">
+      <div class="cab-sec aparece">
+        <span class="etq">Lo último</span>
+        <h2>Novedades del juego</h2>
+      </div>
+      <div class="novedades" id="lista-novedades"></div>
+    </section>
+
+    <!-- ================= ACCESOS ================= -->
+    <section class="seccion seccion-oscura" id="accesos">
+      <div class="cab-sec aparece">
+        <span class="etq">Todo en un lugar</span>
+        <h2>Accesos</h2>
+        <p>Material de clases, herramientas y más. Las secciones marcadas como «Pronto» se irán habilitando durante el año.</p>
+      </div>
+      <div class="accesos" id="lista-accesos"></div>
+    </section>
+
+    <!-- ================= AYUDA ================= -->
+    <section class="seccion" id="ayuda">
+      <div class="cab-sec aparece">
+        <span class="etq">¿Tienes dudas?</span>
+        <h2>Preguntas frecuentes</h2>
+      </div>
+      <div class="faq" id="faq"></div>
+    </section>
+  </div>
+
+  <!-- ================= MATERIAL (curso / unidad) ================= -->
+  <main id="app" class="wrap material" aria-live="polite" hidden></main>
 
   <footer class="footer">
-    <p>© <span id="year"></span> Math World · mathworld.cl</p>
+    <div class="pie">
+      <a class="logo" href="#/"><span class="logo-ico">∑</span>Math<span>World</span></a>
+      <p>Un juego para aprender matemática de 7° y 8° básico, hecho para la sala de clases.</p>
+      <p class="pie-links"><a href="juego/">Jugar</a> · <a href="#/material">Material</a> · <a href="juego/#docente">Portal docente</a> · <a href="#ayuda">Ayuda</a></p>
+      <p class="nota-pie">🔒 Math World no publica datos de los estudiantes: cada uno entra con su RUT y una clave propia. Arte de personajes: Liberated Pixel Cup (LPC) y Kenney, con licencias abiertas.</p>
+      <p class="nota-pie">© <span id="year"></span> Math World · mathworld.cl</p>
+    </div>
   </footer>
 
+  <div class="toast-web" id="toast-web" role="status" aria-live="polite"></div>
   <script src="app.js"></script>
 </body>
 </html>

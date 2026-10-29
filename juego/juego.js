@@ -900,6 +900,8 @@
       $('form-estudiante').classList.toggle('oculto', b.dataset.pestana !== 'estudiante');
       $('form-docente').classList.toggle('oculto', b.dataset.pestana !== 'docente');
     }));
+    // mathworld.cl → «Soy profesor» abre directo la pestaña docente
+    if (location.hash === '#docente') { const b = document.querySelector('[data-pestana="docente"]'); if (b) b.click(); }
 
     if (!Nube.activo) {
       // Sin base de datos configurada: modo local con apodo
