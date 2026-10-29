@@ -115,6 +115,41 @@
     .tema .barra { width: 120px; }
     .msg { padding: 10px 12px; border-radius: 10px; background: #fdf3e1; color: #6a4500; font-weight: 700; }
     .err { padding: 16px; border-radius: 12px; background: #fde8e4; color: var(--coral); font-weight: 800; }
+    .aviso-buzon { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 14px 18px; border-radius: 14px; background: #fff3d6; border: 2px solid #f2b544; font-weight: 800; animation: av-entra .5s ease-out; }
+    .aviso-buzon .ico { font-size: 26px; margin-right: 6px; }
+    @keyframes av-entra { from { transform: translateY(-10px); opacity: 0; } }
+    .btn .badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #e0452c; color: #fff; font-size: 12px; }
+    .com-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .com-form input { flex: 1 1 320px; height: 44px; padding: 0 12px; border: 1px solid #c9c0ae; border-radius: 10px; font: inherit; font-size: 15px; }
+    .com-form select { height: 44px; padding: 0 10px; border: 1px solid #c9c0ae; border-radius: 10px; font: inherit; font-weight: 700; background: #fff; }
+    .rapidas { display: flex; gap: 6px; flex-wrap: wrap; }
+    .rapidas button { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px dashed #b9b3a5; background: #faf8f2; font-weight: 700; font-size: 13px; cursor: pointer; }
+    .rapidas button:hover { border-color: var(--teal); background: #e3f1ee; }
+    .com-curso { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #faf8f2; }
+    .com-curso .fila-d { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .com-curso strong { font-family: "Fredoka", sans-serif; font-size: 20px; font-weight: 600; }
+    .com-curso .anuncio { padding: 8px 10px; border-radius: 10px; background: #fff3d6; font-size: 14px; display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+    .analisis { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+    .analisis h2 { margin-bottom: 4px; }
+    .analisis table { min-width: 0; font-size: 14px; }
+    .analisis td, .analisis th { padding: 8px; }
+    .analisis td:nth-child(2) { white-space: nowrap; }
+    .dificil { color: var(--coral); font-weight: 800; }
+    .apoyo { display: flex; flex-direction: column; gap: 8px; }
+    .apoyo button { display: flex; justify-content: space-between; gap: 10px; text-align: left; padding: 10px 12px; border-radius: 12px; border: 2px solid #f0c9bf; background: #fdf3ef; cursor: pointer; font-size: 14px; }
+    .apoyo button:hover { border-color: var(--coral); }
+    .apoyo small { color: var(--muted); display: block; }
+    @media (max-width: 900px) { .analisis { grid-template-columns: 1fr; } }
+    .buzon-tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .buzon-lista { display: flex; flex-direction: column; gap: 8px; max-height: 60vh; overflow: auto; }
+    .rep { padding: 12px 14px; border-radius: 12px; border: 2px solid var(--line); background: #fff; display: flex; flex-direction: column; gap: 4px; }
+    .rep.nuevo { border-color: #f2b544; background: #fffaf0; }
+    .rep .cab-r { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); font-weight: 700; }
+    .rep p { margin: 0; font-size: 15px; white-space: pre-wrap; word-break: break-word; }
+    .rep .pie-r { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .etq-r { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #efeadf; font-weight: 800; font-size: 12px; color: var(--text); }
+    .etq-r.nuevo { background: #f2b544; }
+    dialog.ancho { width: min(900px, calc(100% - 24px)); }
   </style>
 </head>
 <body>
@@ -124,6 +159,7 @@
       <div class="acc">
         <span class="act" id="actualizado"></span>
         <button type="button" class="btn claro" id="btn-actualizar">Actualizar</button>
+        <button type="button" class="btn claro" id="btn-buzon">🔔 Buzón<span class="badge" id="buzon-n" hidden></span></button>
         <button type="button" class="btn amarillo" id="btn-jugar">Jugar con mi personaje</button>
         <button type="button" class="btn claro" id="btn-salir">Cerrar sesión</button>
       </div>
@@ -131,12 +167,25 @@
   </header>
   <main class="wrap">
     <div id="error" class="err" hidden></div>
+    <div id="aviso-buzon" class="aviso-buzon" hidden role="alert"></div>
     <section class="panel acceso" aria-labelledby="acceso-titulo">
       <div class="acceso-cab">
         <div><h2 id="acceso-titulo">Acceso al juego</h2><span class="muted">Cuando cierras un curso, nadie de ese curso puede entrar y quienes están jugando salen en unos segundos. Su avance queda guardado.</span></div>
         <div class="acceso-todos"><button type="button" class="btn pri" id="abrir-todos">Abrir todos</button><button type="button" class="btn peligro" id="cerrar-todos">Cerrar todos</button></div>
       </div>
       <div class="acceso-cursos" id="acceso-cursos"></div>
+    </section>
+    <section class="panel acceso" aria-labelledby="com-titulo">
+      <div class="acceso-cab"><div><h2 id="com-titulo">Comunicación con la clase</h2><span class="muted">Envía un mensaje que aparecerá en la pantalla de quienes estén jugando y decide si pueden usar el chat. El chat del juego solo permite emoticones y frases predefinidas: nadie puede escribir texto libre a sus compañeros.</span></div></div>
+      <div class="des-cursos" id="com-cursos"></div>
+      <div class="com-form">
+        <input type="text" id="anuncio-texto" maxlength="200" placeholder="Ej: ¡Quedan 5 minutos! Guarden sus recursos en el cofre." aria-label="Mensaje para los estudiantes">
+        <select id="anuncio-min" aria-label="Duración del mensaje"><option value="5">Visible 5 min</option><option value="10" selected>Visible 10 min</option><option value="20">Visible 20 min</option><option value="45">Visible 45 min</option></select>
+        <button type="button" class="btn pri" id="anuncio-enviar">Enviar mensaje</button>
+      </div>
+      <div class="rapidas" id="anuncio-rapidas"></div>
+      <div id="com-msg"></div>
+      <div class="acceso-cursos" id="com-estado"></div>
     </section>
     <section class="panel acceso" aria-labelledby="mundos-titulo">
       <div class="acceso-cab">
@@ -158,11 +207,19 @@
     </section>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="tarjetas" id="tarjetas"></div>
+    <section class="panel analisis" aria-label="Análisis del curso">
+      <div><h2 id="temas-titulo">Resumen por tema</h2><span class="muted">Acierto de todo el curso en cada tema, de más difícil a más fácil. «Con dificultad» cuenta a quienes tienen menos de 50 % en ese tema.</span>
+        <div class="tabla"><table><thead><tr><th>Tema</th><th>Acierto del curso</th><th>Practicaron</th><th>Con dificultad</th></tr></thead><tbody id="temas-curso"></tbody></table></div></div>
+      <div><h2>Necesitan apoyo</h2><span class="muted">Estudiantes con acierto bajo 60 % (con al menos 10 respuestas) o con un tema bajo 40 %. Haz clic para ver el detalle.</span>
+        <div class="apoyo" id="apoyo" style="margin-top:10px"></div></div>
+    </section>
     <section class="panel">
       <h2 id="titulo-lista">Estudiantes</h2>
       <div class="filtros">
         <input type="search" id="buscar" placeholder="Buscar por nombre o RUT" aria-label="Buscar estudiante">
         <label><input type="checkbox" id="solo-online"> Solo conectados</label>
+        <span style="flex:1"></span>
+        <button type="button" class="btn pri" id="btn-excel">⬇ Descargar Excel</button>
       </div>
       <div class="tabla"><table>
         <thead><tr><th>Estudiante</th><th>Estado</th><th>Dónde está</th><th>Nivel</th><th>Acierto</th><th>Tema más débil</th><th>Vencidos</th><th>Derrotas</th></tr></thead>
@@ -171,6 +228,14 @@
     </section>
   </main>
   <dialog id="detalle" aria-labelledby="det-nombre"><div class="det" id="det"></div></dialog>
+  <dialog id="buzon" class="ancho" aria-labelledby="buzon-titulo"><div class="det">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div><h3 id="buzon-titulo">Buzón de estudiantes</h3><span class="muted">Problemas reportados desde el juego (botón ⚠️) e ideas enviadas en Novedades (botón 💡).</span></div>
+      <button type="button" class="btn" id="buzon-cerrar">Cerrar</button>
+    </div>
+    <div class="buzon-tabs" id="buzon-tabs"></div>
+    <div class="buzon-lista" id="buzon-lista"></div>
+  </div></dialog>
   <dialog id="jugar" aria-labelledby="jugar-titulo"><div class="det">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
       <div><h3 id="jugar-titulo">Entrar al juego como docente</h3><span class="muted">Tienes tu propia base, recursos ilimitados y fabricas sin resolver desafíos. Tu avance se guarda en el sistema.</span></div>
@@ -193,6 +258,7 @@
   <script src="preguntas_ext.js"></script>
   <script src="preguntas_mas.js"></script>
   <script src="desafios.js"></script>
+  <script src="xlsx.js"></script>
   <script src="docente.js"></script>
 </body>
 </html>

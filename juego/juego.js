@@ -529,7 +529,15 @@
     try {
       const r = await Nube.latido(sesion.token, zonaRed());
       if (r && r.abierto === false) cerrarPorDocente();
-      else if (r && Array.isArray(r.mundos)) {
+      if (r && r.abierto) {
+        const antes = sesion.chat !== false;
+        sesion.chat = r.chat !== false;
+        if (antes && !sesion.chat) { alternarChat(false); toast('Tu profesor desactivó el chat por ahora.'); }
+        else if (!antes && sesion.chat) toast('💬 Tu profesor activó el chat: saluda a tu grupo con la tecla T.');
+        pintarChatBtn();
+        if (r.anuncio) trasCarga(() => mostrarAnuncio(r.anuncio));
+      }
+      if (r && r.abierto && Array.isArray(r.mundos)) {
         const nuevos = r.mundos.filter((u) => !(sesion.mundos || []).includes(u) && MUNDOS[u]);
         sesion.mundos = r.mundos;
         if (nuevos.length) toast(`¡Tu profesor abrió un mundo nuevo: ${nuevos.map((u) => nombreZona(u)).join(', ')}! Viaja por el portal de tu base.`);
@@ -1019,11 +1027,16 @@
     S.vida = Math.min(S.vida || vidaMax(), vidaMax());
     guardar(true);
     pintarHUD();
+    abrirCarga();
     iniciarPhaser('base');
-    if (guardado.length) setTimeout(() => toast(`Volviste a tu base. Lo que llevabas quedó en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`), 3600);
-    if (window.Sonido && !Sonido.cfg.on) setTimeout(() => toast('🔊 El juego tiene música y efectos: actívalos con el botón de sonido (arriba). En clases, usa audífonos.'), 7000);
-    setTimeout(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`), 700);
+    pintarNovedad(); pintarChatBtn();
+    $('btn-reportar').classList.toggle('oculto', esDocente());
+    setTimeout(() => latir(), 1500);
+    if (guardado.length) trasCarga(() => toast(`Volviste a tu base. Lo que llevabas quedó en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`));
+    if (window.Sonido && !Sonido.cfg.on) trasCarga(() => toast('🔊 El juego tiene música y efectos: actívalos con el botón de sonido (arriba). En clases, usa audífonos.'));
+    trasCarga(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es tu base. Camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`));
   }
+  function pintarChatBtn() { const b = $('btn-chat'); if (b) b.classList.toggle('apagado', !chatPermitido()); }
 
   // ===================================================================
   // HUD
@@ -1132,12 +1145,14 @@
           ${armas.length ? armas.map(([id, a]) => fila(id, a, S.arma === id, 'arma')).join('') : '<p class="nota">Aún no tienes armas. Fabrica una espada en la fogata de tu base.</p>'}
           <h3>Armadura</h3>
           ${armaduras.length ? armaduras.map(([id, a]) => fila(id, a, S.armadura === id, 'armadura')).join('') : '<p class="nota">Aún no tienes armadura. Fabrícala en la fogata de tu base.</p>'}
+          ${mascotasHTML()}
         </div>
       </div>`);
     $('eq-cerrar').addEventListener('click', () => ui.cerrar());
     document.querySelectorAll('[data-poner]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.poner); abrirEquipo(); }));
     document.querySelectorAll('[data-quitar]').forEach((b) => b.addEventListener('click', () => { quitarEquipo(b.dataset.quitar); abrirEquipo(); }));
     document.querySelectorAll('[data-mano]').forEach((b) => b.addEventListener('click', () => { equipar(b.dataset.mano); abrirEquipo(); }));
+    document.querySelectorAll('[data-mascota]').forEach((b) => b.addEventListener('click', () => { ponerMascota(b.dataset.mascota); abrirEquipo(); }));
   }
 
   // ===================================================================
@@ -3139,6 +3154,12 @@
     L('desafio10', 'equipo', '🎯', 'Siempre listo', 'Participa en 10 desafíos en vivo.', 10, () => CN('desafio'), 'Espíritu de Desafío'),
     L('duelo', 'equipo', '🥇', 'Rey del duelo', 'Gana un duelo por el cofre de suministros.', 1, () => CN('duelo'), 'Corona del Duelo'),
     L('meta_curso', 'equipo', '🙌', 'Todos para uno', 'Logra con tu curso la meta de un desafío en vivo.', 1, () => CN('meta_curso'), 'Fuerza de Equipo'),
+    L('charla', 'equipo', '💬', 'Buena onda', 'Envía 20 mensajes en el chat del grupo.', 20, () => CN('chat'), 'Buena Onda'),
+    L('idea', 'equipo', '💡', 'Mente creativa', 'Envía una idea para el juego en Novedades.', 1, () => CN('idea'), 'Mente Creativa'),
+    L('mascota1', 'coleccion', '🐾', 'Amigo fiel', 'Desbloquea tu primera mascota venciendo a un jefe final.', 1, () => MASCOTAS.filter((m) => m.v() > 0).length, 'Amigo de los Animales'),
+    L('mascota4', 'coleccion', '🦉', 'Cuidador', 'Desbloquea 4 mascotas distintas.', 4, () => MASCOTAS.filter((m) => m.v() > 0).length, 'Cuidador de Bestias'),
+    L('mascota7', 'coleccion', '🐲', 'Arca de leyendas', 'Desbloquea las 7 mascotas.', 7, () => MASCOTAS.filter((m) => m.v() > 0).length, 'Señor de las Bestias'),
+    L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
   ];
   const LOGRO = Object.fromEntries(LOGROS.map((l) => [l.id, l]));
   const tituloDe = (id) => (LOGRO[id] ? LOGRO[id].titulo : '');
@@ -3226,6 +3247,250 @@
     document.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => abrirLogros(b.dataset.cat)));
     document.querySelectorAll('[data-titulo]').forEach((b) => b.addEventListener('click', () => { equiparTitulo(b.dataset.titulo); sfx('clic'); toast(`Ahora tu título es «${tituloActual()}».`); abrirLogros(actual); }));
     document.querySelectorAll('[data-quitar-titulo]').forEach((b) => b.addEventListener('click', () => { equiparTitulo(null); abrirLogros(actual); }));
+  }
+
+  // ===================================================================
+  // Mascotas: cada jefe final regala un animal distinto; se equipan desde el nivel 30
+  // ===================================================================
+  const NIVEL_MASCOTA = 30;
+  const MASCOTAS = [
+    { id: 'buho', nombre: 'Búho del bosque', jefe: 'Troll Guardián del Bosque', donde: 'Bosque', v: () => (S.jefes || {}).u1 || 0 },
+    { id: 'fenec', nombre: 'Fénec de las dunas', jefe: 'Rey Lagarto de las Dunas', donde: 'Desierto', v: () => (S.jefes || {}).u2 || 0 },
+    { id: 'topo', nombre: 'Topo minero', jefe: 'Minotauro de las Profundidades', donde: 'Mina', v: () => (S.jefes || {}).u3 || 0 },
+    { id: 'pinguino', nombre: 'Pingüino bebé', jefe: 'Yeti, Rey de la Escarcha', donde: 'Glaciar', v: () => (S.jefes || {}).u4 || 0 },
+    { id: 'jabato', nombre: 'Jabato de raíces', jefe: 'Rey Jabalí Ancestral', donde: 'Bosque profundo', v: () => S.reyVencido || 0 },
+    { id: 'ajolote', nombre: 'Ajolote de lava', jefe: 'Coloso de Magma', donde: 'Profundidades de la mina', v: () => S.colosoVencido || 0 },
+    { id: 'dragon', nombre: 'Dragoncito de aurora', jefe: 'Dragón de la Aurora', donde: 'Cima del glaciar', v: () => S.dragonVencido || 0 },
+  ];
+  const MASCOTA = Object.fromEntries(MASCOTAS.map((m, i) => [m.id, { ...m, fila: i }]));
+  const mascotaLibre = (id) => Boolean(MASCOTA[id]) && (esDocente() || (MASCOTA[id].v() || 0) > 0);
+  const mascotasLibres = () => MASCOTAS.filter((m) => mascotaLibre(m.id));
+  const puedeMascota = () => esDocente() || (S.nivel || 1) >= NIVEL_MASCOTA;
+  const mascotaActual = () => (S && S.mascota && mascotaLibre(S.mascota) && puedeMascota() ? S.mascota : '');
+  function ponerMascota(id) {
+    S.mascota = id && mascotaLibre(id) && puedeMascota() ? id : '';
+    guardar(true);
+    if (escena && escena.jugador) escena.pintarMascota();
+    if (S.mascota) { sfx('logro'); contar('mascota'); }
+  }
+  // Avisa cuando se desbloquea una mascota (la primera revisión es silenciosa)
+  function revisarMascotas() {
+    if (!S || esDocente()) return;
+    const primera = !S.mascotasVistas;
+    S.mascotasVistas = S.mascotasVistas || {};
+    const nuevas = MASCOTAS.filter((m) => !S.mascotasVistas[m.id] && (m.v() || 0) > 0);
+    if (!nuevas.length) return;
+    nuevas.forEach((m) => { S.mascotasVistas[m.id] = Date.now(); });
+    guardar(true);
+    if (primera) return;
+    nuevas.forEach((m, i) => setTimeout(() => toast(puedeMascota()
+      ? `🐾 ¡Desbloqueaste una mascota: ${m.nombre}! Equípala en Equipo (tecla Q).`
+      : `🐾 ¡Desbloqueaste una mascota: ${m.nombre}! Podrás llevarla contigo desde el nivel ${NIVEL_MASCOTA}.`), 4500 + i * 4000));
+  }
+  setInterval(() => { if (S) revisarMascotas(); }, 4000);
+  function mascotasHTML() {
+    const libres = mascotasLibres().length;
+    const nota = puedeMascota() ? '' : `<p class="nota">🔒 Las mascotas se pueden equipar desde el <b>nivel ${NIVEL_MASCOTA}</b> (vas en el nivel ${S.nivel || 1}). Igual puedes ir desbloqueándolas venciendo jefes.</p>`;
+    return `<h3>Mascota <small class="nota-mini">${libres}/${MASCOTAS.length}</small></h3>${nota}
+      <div class="mascotas">${MASCOTAS.map((m) => {
+        const ok = mascotaLibre(m.id), puesta = mascotaActual() === m.id;
+        return `<button type="button" class="mascota ${ok ? '' : 'bloq'}" data-mascota="${m.id}" aria-pressed="${puesta}" ${ok && puedeMascota() ? '' : 'disabled'}
+          title="${esc(ok ? m.nombre : `Vence al ${m.jefe} (${m.donde})`)}"><img class="px" src="assets/mascotas/${m.id}.png" alt=""><span>${ok ? esc(m.nombre) : '???'}</span><small>${ok ? (puesta ? 'Contigo' : 'Equipar') : esc(`Vence: ${m.jefe}`)}</small></button>`;
+      }).join('')}</div>
+      ${mascotaActual() ? '<button type="button" class="btn" data-mascota="">Guardar mascota</button>' : ''}`;
+  }
+
+  // ===================================================================
+  // Pantalla de bienvenida (carga) al entrar al juego
+  // ===================================================================
+  const CONSEJOS = [
+    'Responde bien las preguntas para recolectar más rápido: ¡cada acierto suma!',
+    'Si te equivocas, lee la pista: te explica el paso que falta.',
+    'Tu mochila se vacía al volver por el portal, pero todo queda guardado en tu cofre.',
+    'Las obras cooperativas (puente, montacargas, elevador, ruta del glaciar) se construyen entre todo el curso.',
+    'Equipa una espada para quitarle más vida a los enemigos en cada acierto.',
+    'Las armaduras te dan más corazones: fabrícalas en la fogata de tu base.',
+    'Los jefes finales se vencen en grupo: busca compañeros en el mismo grupo del portal.',
+    'Abre Logros (tecla L) y equipa un título para que aparezca sobre tu nombre.',
+    'Desde el nivel 30 hay premios exclusivos cada 5 niveles.',
+    'Las mascotas se ganan venciendo jefes finales y se equipan desde el nivel 30.',
+    'Usa el chat 💬 (tecla T) para saludar y coordinarte con tu grupo.',
+    '¿Encontraste un error? Avísale a tu profesor con el botón ⚠️.',
+    '¿Tienes una idea para el juego? Escríbela en Novedades 💡.',
+    'Decora tu base con los muebles que fabriques: tecla G.',
+    'Las misiones (tecla N) te dan monedas y experiencia extra.',
+    'Las potencias de igual base se multiplican sumando los exponentes.',
+    'Para sumar fracciones, primero busca un denominador común.',
+    'Un número negativo multiplicado por otro negativo da positivo.',
+    'Revisa tu respuesta antes de confirmar: la calma también es una estrategia.',
+    'En el glaciar, responder bien en los anclajes evita que te caigas.',
+    'Los minijuegos dan coleccionables únicos para tus álbumes.',
+    'Si tu profesor activa un desafío en vivo, ¡todo el curso suma para la meta!',
+  ];
+  let carga = null;
+  function abrirCarga() {
+    const el = document.createElement('div');
+    el.id = 'pantalla-carga'; el.className = 'pantalla-carga';
+    el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite');
+    const nombre = esDocente() ? 'Profe' : String(S.nombre || '').split(' ')[0];
+    el.innerHTML = `<div class="pc-fondo"></div><div class="pc-caja">
+      <h1>Math World</h1>
+      <p class="pc-hola">${S.creado > Date.now() - 60000 ? '¡Bienvenido' : '¡Hola de nuevo'}, ${esc(nombre)}!</p>
+      <div class="pc-barra" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-label="Cargando el juego"><i></i></div>
+      <p class="pc-estado">Preparando tu base…</p>
+      <div class="pc-consejo"><b>💡 Consejo</b><span></span></div></div>`;
+    document.body.appendChild(el);
+    const orden = CONSEJOS.map((c) => [Math.random(), c]).sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+    let ic = 0;
+    const consejo = () => { const s = el.querySelector('.pc-consejo span'); s.classList.remove('entra'); void s.offsetWidth; s.textContent = orden[ic++ % orden.length]; s.classList.add('entra'); };
+    consejo();
+    const MIN = 4500, t0 = Date.now();
+    const estados = ['Preparando tu base…', 'Cargando mundos…', 'Afilando herramientas…', 'Despertando a los jefes…', 'Ordenando tu cofre…', '¡Casi listo!'];
+    carga = { real: 0, listo: false, fin: null };
+    const tc = setInterval(consejo, 3200);
+    const tick = setInterval(() => {
+      const t = Date.now() - t0;
+      const listo = Boolean(escena && escena.jugador);
+      const tiempo = Math.min(1, t / MIN);
+      const p = listo ? Math.min(tiempo, 1) : Math.min(0.92, Math.min(tiempo, 0.35 + carga.real * 0.6));
+      const pct = Math.round(p * 100);
+      el.querySelector('.pc-barra i').style.width = `${pct}%`;
+      el.querySelector('.pc-barra').setAttribute('aria-valuenow', pct);
+      el.querySelector('.pc-estado').textContent = pct >= 100 ? '¡Listo!' : `${estados[Math.min(estados.length - 1, Math.floor(p * estados.length))]} ${pct}%`;
+      if (listo && t >= MIN) {
+        clearInterval(tick); clearInterval(tc);
+        setTimeout(() => {
+          el.classList.add('sale'); carga = null;
+          setTimeout(() => el.remove(), 600);
+          tareasTrasCarga.splice(0).forEach((f, i) => setTimeout(f, i * 2900));
+        }, 400);
+      }
+    }, 100);
+  }
+  const tareasTrasCarga = [];
+  const trasCarga = (f) => { if (carga) tareasTrasCarga.push(f); else f(); };
+
+  // ===================================================================
+  // Chat seguro: solo emoticones y frases predefinidas
+  // ===================================================================
+  const EMOTES = ['😀', '😂', '😮', '😢', '😎', '👍', '👏', '❤️', '🎉', '🤔'];
+  const FRASES = ['¡Hola!', '¡Vamos juntos!', '¡Sígueme!', '¡Ayuda aquí!', '¡Gracias!', '¡Buen trabajo!', '¡Espérame!', '¡Vamos por el jefe!', 'Necesito recursos', 'Voy a la base', '¡Lo logramos!', '¡Tú puedes!'];
+  const textoChat = (k, i) => (k === 'e' ? EMOTES[i] : k === 'f' ? FRASES[i] : null) || null;
+  let ultimoChat = 0;
+  const chatPermitido = () => esDocente() || sesion.chat !== false;
+  function alternarChat(forzar) {
+    const p = $('panel-chat');
+    const abrir = forzar !== undefined ? forzar : p.classList.contains('oculto');
+    if (abrir && !chatPermitido()) { toast('Tu profesor desactivó el chat por ahora.', 'alerta'); return; }
+    p.classList.toggle('oculto', !abrir);
+    $('btn-chat').setAttribute('aria-expanded', String(abrir));
+    if (abrir) {
+      p.innerHTML = `<div class="pch-cab"><b>Chat del grupo</b><small>${escena && escena.canal ? 'Lo ven los jugadores cerca de ti' : 'Juegas solo: nadie más lo verá'}</small></div>
+        <div class="pch-emotes">${EMOTES.map((e, i) => `<button type="button" data-chat="e" data-i="${i}" aria-label="Enviar ${e}">${e}</button>`).join('')}</div>
+        <div class="pch-frases">${FRASES.map((f, i) => `<button type="button" data-chat="f" data-i="${i}">${esc(f)}</button>`).join('')}</div>`;
+    }
+  }
+  function enviarChat(k, i) {
+    if (!textoChat(k, i) || !escena || !escena.jugador) return;
+    if (!chatPermitido()) { toast('Tu profesor desactivó el chat por ahora.', 'alerta'); alternarChat(false); return; }
+    if (Date.now() - ultimoChat < 1500) { toast('Espera un momento antes de enviar otro mensaje.', 'alerta'); return; }
+    ultimoChat = Date.now();
+    escena.burbuja(escena.jugador, k, i, true);
+    if (escena.canal) escena.canal.emitir('chat', { id: idJuego, k, i });
+    contar('chat');
+    alternarChat(false);
+  }
+
+  // ===================================================================
+  // Reportar un problema y Novedades (ideas para el profesor)
+  // ===================================================================
+  const NOVEDADES = [
+    ['🐾', 'Mascotas', 'Vence jefes finales para ganar 7 mascotas distintas. Se equipan desde el nivel 30 y te siguen por todo el mapa.'],
+    ['💬', 'Chat seguro', 'Saluda y coordínate con tu grupo usando emoticones y frases (tecla T).'],
+    ['🏆', 'Logros y títulos', 'Más de 70 logros. Cada uno desbloquea un título para mostrar sobre tu nombre.'],
+    ['🎁', 'Premios de nivel', 'Desde el nivel 30, cada 5 niveles recibes un objeto exclusivo.'],
+    ['🏔️', 'Cima del Glaciar', 'Escala el glaciar, juega guerra de bolas de nieve y hielo movedizo, y enfrenta al Dragón de la Aurora.'],
+    ['⛏️', 'Profundidades de la mina', 'Carrera de carritos, rompecabezas de cristales y el Coloso de Magma.'],
+    ['🏜️', 'Valle de la Esfinge', 'Excavaciones, laberintos aleatorios y el álbum de gemas.'],
+  ];
+  const CATS_PROBLEMA = ['El juego se trabó', 'Una pregunta está mal', 'Perdí recursos u objetos', 'No puedo entrar a una zona', 'Problema con mi grupo', 'Otro'];
+  function abrirReporte() {
+    let cat = '';
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Ayuda</span><h2 id="modal-titulo">⚠️ Reportar un problema</h2></div><button type="button" class="btn" id="rp-cerrar">Cerrar</button></div>
+      <p class="nota">Tu profesor recibirá este aviso en su portal. Cuenta qué pasó y dónde estabas.</p>
+      <div class="rp-cats" role="radiogroup" aria-label="Tipo de problema">${CATS_PROBLEMA.map((c) => `<button type="button" class="pildora-btn" data-cat="${esc(c)}" role="radio" aria-checked="false">${esc(c)}</button>`).join('')}</div>
+      <textarea id="rp-texto" class="rp-texto" maxlength="500" rows="4" placeholder="Ej: al responder la pregunta del puente, el juego se quedó pegado."></textarea>
+      <div class="rp-pie"><small id="rp-cuenta">0/500</small><small>Zona: ${esc(escena ? nombreZona(escena.zona) : 'Tu base')}</small></div>
+      <div class="mensaje oculto" id="rp-msg" role="status"></div>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="rp-enviar">Enviar al profesor</button></div>`, 'reporte-modal');
+    $('rp-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => {
+      cat = b.dataset.cat; document.querySelectorAll('[data-cat]').forEach((x) => x.setAttribute('aria-checked', String(x === b)));
+    }));
+    const tx = $('rp-texto');
+    tx.addEventListener('input', () => { $('rp-cuenta').textContent = `${tx.value.length}/500`; });
+    tx.addEventListener('keydown', (e) => e.stopPropagation());
+    $('rp-enviar').addEventListener('click', () => mandarReporte('problema', cat || 'Otro', tx.value, 'rp-msg', 'rp-enviar'));
+  }
+  function abrirNovedades() {
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Math World</span><h2 id="modal-titulo">💡 Novedades</h2></div><button type="button" class="btn" id="nv-cerrar">Cerrar</button></div>
+      <div class="novedades">
+        <div class="nv-lista">${NOVEDADES.map(([i, t, d]) => `<div class="nv-item"><span>${i}</span><div><b>${esc(t)}</b><p>${esc(d)}</p></div></div>`).join('')}</div>
+        <div class="nv-idea"><h3>¿Tienes una idea?</h3><p class="nota">Cuéntale a tu profesor qué te gustaría ver en el juego: un minijuego, un objeto, un mundo…</p>
+          <textarea id="nv-texto" class="rp-texto" maxlength="500" rows="5" placeholder="Me gustaría que…"></textarea>
+          <div class="rp-pie"><small id="nv-cuenta">0/500</small></div>
+          <div class="mensaje oculto" id="nv-msg" role="status"></div>
+          <button type="button" class="btn pri" id="nv-enviar">Enviar idea</button></div>
+      </div>`, 'novedades-modal');
+    $('nv-cerrar').addEventListener('click', () => ui.cerrar());
+    const tx = $('nv-texto');
+    tx.addEventListener('input', () => { $('nv-cuenta').textContent = `${tx.value.length}/500`; });
+    tx.addEventListener('keydown', (e) => e.stopPropagation());
+    $('nv-enviar').addEventListener('click', () => mandarReporte('idea', 'Idea', tx.value, 'nv-msg', 'nv-enviar'));
+    S.novedadesVistas = NOVEDADES.length; guardar(true); pintarNovedad();
+  }
+  function pintarNovedad() { const b = $('btn-novedades'); if (b) b.classList.toggle('nuevo', S && !esDocente() && (S.novedadesVistas || 0) < NOVEDADES.length); }
+  async function mandarReporte(tipo, cat, texto, idMsg, idBtn) {
+    const msg = $(idMsg), btn = $(idBtn);
+    const ver = (t, ok) => { msg.textContent = t; msg.className = `mensaje ${ok ? 'bien' : 'mal'}`; };
+    const t = String(texto || '').trim();
+    if (t.length < 3) return ver('Escribe un poco más para que tu profesor entienda.', false);
+    if (esDocente()) return ver('Estás en modo docente: los reportes y las ideas los envían los estudiantes.', false);
+    if (sesion.modo !== 'nube') return ver('Para enviar necesitas entrar con tu RUT y clave.', false);
+    btn.disabled = true;
+    try {
+      const r = await Nube.reporteEnviar(sesion.token, tipo, cat, t, escena ? nombreZona(escena.zona) : 'Tu base');
+      if (r && r.ok) {
+        ver(tipo === 'idea' ? '¡Gracias! Tu idea le llegó a tu profesor.' : '¡Listo! Tu profesor recibió el aviso.', true);
+        contar(tipo === 'idea' ? 'idea' : 'reporte');
+        setTimeout(() => { if (ui.abierto && $(idMsg)) ui.cerrar(); }, 1800);
+        return;
+      }
+      ver(r && r.error === 'limite' ? 'Ya enviaste varios mensajes en la última hora. Intenta más tarde.' : 'No se pudo enviar. Intenta de nuevo.', false);
+    } catch (e) { ver('Sin conexión. Intenta de nuevo en un momento.', false); }
+    btn.disabled = false;
+  }
+
+  // ===================================================================
+  // Mensaje del profesor (anuncio) que llega con el latido
+  // ===================================================================
+  function mostrarAnuncio(a) {
+    if (!a || !a.texto) return;
+    let visto = null; try { visto = sessionStorage.getItem('mw_anuncio'); } catch (e) { /* */ }
+    if (String(a.n) === visto) return;
+    try { sessionStorage.setItem('mw_anuncio', String(a.n)); } catch (e) { /* */ }
+    let el = $('anuncio-docente');
+    if (!el) {
+      el = document.createElement('div'); el.id = 'anuncio-docente'; el.className = 'anuncio-docente'; el.setAttribute('role', 'alert');
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `<span class="ad-ico">📢</span><div><small>Mensaje de tu profesor</small><p></p></div><button type="button" aria-label="Cerrar mensaje">✕</button>`;
+    el.querySelector('p').textContent = a.texto;
+    el.querySelector('button').addEventListener('click', () => el.classList.add('oculto'));
+    el.classList.remove('oculto');
+    sfx('logro');
+    clearTimeout(mostrarAnuncio.t);
+    mostrarAnuncio.t = setTimeout(() => el.classList.add('oculto'), Math.max(15000, Math.min(120000, (Number(a.hasta) || 0) - Date.now())));
   }
 
   // ---------- Combate ----------
@@ -3785,7 +4050,13 @@
     else if (k === '3') equipar('espada');
     else if (k === 'q') abrirEquipo();
     else if (k === 'l') abrirLogros();
+    else if (k === 't') alternarChat();
   });
+  $('btn-chat').addEventListener('click', (e) => { e.stopPropagation(); alternarChat(); });
+  $('panel-chat').addEventListener('click', (e) => { const b = e.target.closest('[data-chat]'); if (b) enviarChat(b.dataset.chat, Number(b.dataset.i)); });
+  document.addEventListener('click', (e) => { const p = $('panel-chat'); if (p && !p.classList.contains('oculto') && !e.target.closest('#panel-chat, #btn-chat')) alternarChat(false); });
+  $('btn-reportar').addEventListener('click', () => { if (!ui.abierto) abrirReporte(); });
+  $('btn-novedades').addEventListener('click', () => { if (!ui.abierto) abrirNovedades(); });
   $('btn-logros').addEventListener('click', () => abrirLogros());
   $('btn-equipo').addEventListener('click', abrirEquipo);
   $('btn-base').addEventListener('click', () => abrirFabricar());
@@ -4435,6 +4706,8 @@
     init(data) { this.zona = (data && data.zona) || 'base'; this.desde = data && data.desde; this.carpa = data && data.carpa; }
 
     preload() {
+      this.load.on('progress', (p) => { if (carga) carga.real = p; });
+      if (!this.textures.exists('mascotas')) this.load.spritesheet('mascotas', 'assets/mascotas.png', { frameWidth: 32, frameHeight: 32 });
       if (!this.textures.exists('kenney')) this.load.image('kenney', 'assets/kenney_roguelike.png');
       if (!this.textures.exists('kenney_in')) this.load.image('kenney_in', 'assets/kenney_indoor.png');
       if (!this.textures.exists('kenney_cueva')) this.load.image('kenney_cueva', 'assets/kenney_cueva.png');
@@ -6482,6 +6755,54 @@
       this.capasJ = this.crearCapas();
       this.vestirJugador();
       this.tagYo = null; this.pintarTituloYo();
+      this.mascotaS = null; this.burbujas = [];
+      MASCOTAS.forEach((m, i) => { if (!this.anims.exists(`masc_${m.id}`)) this.anims.create({ key: `masc_${m.id}`, frames: this.anims.generateFrameNumbers('mascotas', { start: i * 2, end: i * 2 + 1 }), frameRate: 4, repeat: -1 }); });
+      this.pintarMascota();
+    }
+    // Mascota que sigue al jugador (también se crea para los compañeros)
+    crearMascotaSpr(id, x, y) {
+      const s = this.add.sprite(x, y, 'mascotas', MASCOTA[id].fila * 2).setOrigin(0.5, 0.95);
+      s.play(`masc_${id}`); s.mid = id;
+      return s;
+    }
+    pintarMascota() {
+      const id = mascotaActual(), j = this.jugador;
+      if (this.mascotaS && this.mascotaS.mid !== id) { this.mascotaS.destroy(); this.mascotaS = null; }
+      if (id && !this.mascotaS && j) this.mascotaS = this.crearMascotaSpr(id, j.x - 26, j.y + 4);
+      if (this.ultimoMov) this.ultimoMov.t = 0;
+    }
+    seguirMascota(s, x, y, dir, seg) {
+      if (!s) return;
+      const off = { left: [26, 2], right: [-26, 2], up: [18, 18], down: [-22, -4] }[dir] || [-24, 2];
+      const tx = x + off[0], ty = y + off[1];
+      const dx = tx - s.x, dy = ty - s.y, d = Math.hypot(dx, dy);
+      if (d > 300) s.setPosition(tx, ty);
+      else if (d > 3) { const k = Math.min(1, seg * (d > 60 ? 8 : 5)); s.x += dx * k; s.y += dy * k; if (Math.abs(dx) > 2) s.setFlipX(dx < 0); }
+      s.setDepth(s.y - 1);
+    }
+    // Globo de chat (emoticón o frase predefinida) sobre un personaje
+    burbuja(spr, k, i, yo) {
+      const txt = textoChat(k, i); if (!txt || !spr) return;
+      const vieja = this.burbujas.find((b) => b.spr === spr);
+      if (vieja) { vieja.t.destroy(); this.burbujas = this.burbujas.filter((b) => b !== vieja); }
+      const t = this.add.text(spr.x, spr.y - 96, txt, {
+        fontFamily: 'Nunito, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif', fontSize: k === 'e' ? '26px' : '13px', fontStyle: 'bold',
+        color: '#1d2a22', backgroundColor: '#ffffff', padding: { x: 7, y: 4 },
+      }).setOrigin(0.5, 1).setResolution(3).setDepth(99995);
+      const b = { spr, t, hasta: this.time.now + 4000 };
+      this.burbujas.push(b);
+      this.tweens.add({ targets: t, scale: { from: 0.4, to: 1 }, duration: 180, ease: 'Back.Out' });
+      if (!yo) sfx('clic');
+    }
+    moverBurbujas() {
+      if (!this.burbujas || !this.burbujas.length) return;
+      const ahora = this.time.now;
+      this.burbujas = this.burbujas.filter((b) => {
+        if (ahora > b.hasta || !b.spr.active) { b.t.destroy(); return false; }
+        const alto = b.spr === this.jugador ? (this.tagYoT && this.tagYoT.visible ? 92 : 74) : 92;
+        b.t.setPosition(b.spr.x, b.spr.y - alto); b.t.setAlpha(Math.min(1, (b.hasta - ahora) / 400));
+        return true;
+      });
     }
     // Capas que acompañan a un personaje: la parte trasera de la espada y lo que lleva en la mano
     crearCapas() {
@@ -6545,6 +6866,8 @@
       j.setDepth(j.y);
       this.seguir(j, this.capasJ);
       if (this.tagYo) { this.tagYo.setPosition(j.x, j.y - 62); this.tagYoT.setPosition(j.x, j.y - 78); }
+      this.seguirMascota(this.mascotaS, j.x, j.y, this.dir, dt / 1000);
+      this.moverBurbujas();
       if (this.luz) this.luz.setPosition(j.x, j.y - 24);
       if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
       if (vivo.fase === 'activo') actualizarDesafio(this, dt);
@@ -6947,7 +7270,7 @@
     }
     // ---------- modo cooperativo ----------
     iniciarCoop() {
-      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '' };
+      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual() };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
       this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
@@ -6961,6 +7284,7 @@
       };
       c.alCambiarPresencia = (p) => this.sincronizarPresencia(p);
       c.on('mov', (d) => this.recibirMov(d));
+      c.on('chat', (d) => { const o = this.otros.get(d && d.id); if (o && o.visto && chatPermitido() && textoChat(d.k, Number(d.i))) this.burbuja(o.spr, d.k, Number(d.i), false); });
       c.on('nodo', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i) { this.cambios.set(d.i, { n: d.n, t: Date.now() }); this.aplicarNodo(o, d.n, 0); } });
       c.on('hola', (d) => {
         this.ultimoMov.t = 0;
@@ -7024,11 +7348,12 @@
       const tagT = this.add.text(spr.x, spr.y - 76, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99991).setAlpha(0);
       this.otros.set(id, { spr, tag, tagT, ti: '', capas, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', a: null, w: null, m: false, visto: false });
       this.ponerTituloOtro(this.otros.get(id), meta.ti);
+      this.ponerMascotaOtro(this.otros.get(id), meta.pe);
       this.vestir(spr, capas, pj, null, 'hacha', null);
     }
     quitarOtro(id) {
       const o = this.otros.get(id); if (!o) return;
-      o.spr.destroy(); o.tag.destroy(); if (o.tagT) o.tagT.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); this.otros.delete(id);
+      o.spr.destroy(); o.tag.destroy(); if (o.tagT) o.tagT.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); if (o.masc) o.masc.destroy(); this.otros.delete(id);
     }
     recibirMov(d) {
       const o = this.otros.get(d.id); if (!o) return;
@@ -7037,6 +7362,7 @@
       if (h !== o.h || a !== o.a || w !== o.w) { o.h = h; o.a = a; o.w = w; this.vestir(o.spr, o.capas, o.pj, a, h, w); }
       o.obj = { x: Number(d.x) || 0, y: Number(d.y) || 0 }; o.dir = DIRS[d.d] !== undefined ? d.d : 'down'; o.m = Boolean(d.m);
       if (d.ti !== undefined && d.ti !== o.ti) this.ponerTituloOtro(o, d.ti);
+      if (d.pe !== undefined && d.pe !== o.pe) this.ponerMascotaOtro(o, d.pe);
       if (!o.visto || Phaser.Math.Distance.Between(o.spr.x, o.spr.y, o.obj.x, o.obj.y) > 400) { o.spr.setPosition(o.obj.x, o.obj.y); o.visto = true; o.spr.setAlpha(1); o.tag.setAlpha(1); if (o.tagT) o.tagT.setAlpha(1); }
     }
     moverOtros(seg) {
@@ -7053,6 +7379,7 @@
         this.seguir(o.spr, o.capas);
         o.tag.setPosition(o.spr.x, o.spr.y - 62);
         if (o.tagT) o.tagT.setPosition(o.spr.x, o.spr.y - 78);
+        if (o.masc) { this.seguirMascota(o.masc, o.spr.x, o.spr.y, o.dir, seg); o.masc.setAlpha(o.spr.alpha); }
       }
     }
     enviarMovimiento(moviendo) {
@@ -7065,7 +7392,13 @@
       if (u.t && !moviendo && !u.m && dist < 2) return;
       if (u.t && moviendo && dist < 4) return;
       u.t = ahora; u.x = j.x; u.y = j.y; u.m = moviendo;
-      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '' });
+      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '', pe: mascotaActual() });
+    }
+    ponerMascotaOtro(o, id) {
+      if (!o) return;
+      o.pe = MASCOTA[id] ? id : '';
+      if (o.masc && o.masc.mid !== o.pe) { o.masc.destroy(); o.masc = null; }
+      if (o.pe && !o.masc) o.masc = this.crearMascotaSpr(o.pe, o.spr.x - 24, o.spr.y).setAlpha(o.spr.alpha);
     }
     // Título equipado de un compañero (solo se aceptan títulos que existen)
     ponerTituloOtro(o, id) {

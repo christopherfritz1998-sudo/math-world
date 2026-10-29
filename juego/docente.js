@@ -94,6 +94,7 @@
       tr.addEventListener('click', () => detalle(tr.dataset.id));
       tr.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') detalle(tr.dataset.id); });
     });
+    pintarAnalisis();
   }
 
   function detalle(id) {
@@ -133,7 +134,7 @@
       <div class="muted">Logros: ${Object.keys(p.logros || {}).length}${p.tituloTxt ? ` · Título equipado: «${esc(p.tituloTxt)}»` : ''}</div>
       <div class="muted">Misión diaria: ${p.diaria ? `${p.diaria.cobrada ? 'cumplida y cobrada' : p.diaria.p >= p.diaria.n ? 'cumplida (sin cobrar)' : `${p.diaria.p} de ${p.diaria.n}`} (${esc(p.diaria.fecha)})` : 'sin registro'}</div>
       <div class="muted">Jefes desbloqueados: ${['u1', 'u2', 'u3', 'u4'].map((u) => { const m = (p.misiones || {})[u]; return m ? `${ZONAS[u]}: ${m.ok ? 'listo' : `${m.lista.filter((x) => x.p >= x.n).length} de ${m.lista.length} misiones`}` : null; }).filter(Boolean).join(' · ') || 'aún no recibe misiones'}</div>
-      <div class="muted">Jefes vencidos: ${Object.values(p.jefes || {}).reduce((a, b) => a + b, 0)}</div>
+      <div class="muted">Jefes vencidos: ${Object.values(p.jefes || {}).reduce((a, b) => a + b, 0)}${p.reyVencido || p.colosoVencido || p.dragonVencido ? ` · Ancestrales: ${(p.reyVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0)}` : ''}${p.mascota ? ` · Mascota: ${esc(p.mascota)}` : ''}</div>
       <h4>Clave</h4>
       ${e.tiene_clave ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">Si el estudiante olvidó su clave, restablécela: la próxima vez que entre creará una nueva.</span>
         <button type="button" class="btn peligro" id="det-reset">Restablecer clave</button></div>` : '<span class="muted">Aún no crea su clave.</span>'}
@@ -333,6 +334,168 @@
   }
   cargarObras();
   setInterval(cargarObras, 30000);
+
+  // ---------- Análisis del curso: resumen por tema y estudiantes que necesitan apoyo ----------
+  function temasDe(lista, nivel) {
+    const t = {};
+    for (const e of lista) for (const [k, s] of Object.entries((e.progreso || {}).stats || {})) {
+      if (!s || !s.i) continue;
+      const x = t[k] || (t[k] = { k, a: 0, i: 0, est: 0, dif: 0 });
+      x.a += s.a; x.i += s.i;
+      if (s.i >= 3) { x.est += 1; if (s.a / s.i < 0.5) x.dif += 1; }
+    }
+    return Object.values(t).map((x) => ({ ...x, ...nombreTema(nivel, x.k), pct: Math.round((x.a / x.i) * 100) })).sort((a, b) => a.pct - b.pct);
+  }
+  function apoyoDe(lista, nivel) {
+    return lista.map((e) => {
+      const r = resumen(e);
+      const debil = Object.entries((e.progreso || {}).stats || {}).filter(([, s]) => s.i >= 5 && s.a / s.i < 0.4).map(([k, s]) => ({ t: nombreTema(nivel, k).titulo, pct: Math.round((s.a / s.i) * 100) })).sort((a, b) => a.pct - b.pct);
+      return { e, r, debil };
+    }).filter(({ r, debil }) => (r.intentos >= 10 && r.acierto < 60) || debil.length).sort((a, b) => (a.r.acierto ?? 100) - (b.r.acierto ?? 100));
+  }
+  function pintarAnalisis() {
+    const c = CURSOS.find((x) => x.id === curso), lista = datos.filter((e) => e.curso === curso);
+    $('temas-titulo').textContent = `Resumen por tema · ${c.nombre}`;
+    const temas = temasDe(lista, c.nivel);
+    $('temas-curso').innerHTML = temas.length ? temas.map((t) => `<tr><td>${esc(t.titulo)}<br><small class="muted">${esc(ZONAS[t.unidad] || '')}</small></td>
+      <td><span class="barra"><i style="width:${t.pct}%"></i></span>${t.pct} %<br><small class="muted">${t.a} de ${t.i} respuestas</small></td>
+      <td>${t.est}</td><td class="${t.dif ? 'dificil' : ''}">${t.dif}</td></tr>`).join('') : '<tr><td colspan="4" class="vacio">Todavía no hay respuestas en este curso.</td></tr>';
+    const ap = apoyoDe(lista, c.nivel);
+    $('apoyo').innerHTML = ap.length ? ap.slice(0, 15).map(({ e, r, debil }) => `<button type="button" data-apoyo="${e.id}"><span><b>${esc(e.nombre)}</b><small>${debil.length ? `Bajo en: ${debil.slice(0, 2).map((d) => `${esc(d.t)} (${d.pct} %)`).join(', ')}` : `${r.intentos} respuestas`}</small></span><span class="dificil">${r.acierto ?? '–'} %</span></button>`).join('')
+      + (ap.length > 15 ? `<span class="muted">y ${ap.length - 15} más (están en el Excel).</span>` : '')
+      : '<span class="muted">Nadie bajo los umbrales por ahora. 🎉</span>';
+    $('apoyo').querySelectorAll('[data-apoyo]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.apoyo)));
+  }
+
+  // ---------- Exportar a Excel ----------
+  const fecha = (d) => (d ? new Date(d).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '');
+  function exportarExcel() {
+    if (!window.Planilla) return;
+    const hojas = [];
+    const resumenT = [['Curso', 'Unidad', 'Tema', 'Acierto del curso %', 'Respuestas', 'Correctas', 'Estudiantes que practicaron', 'Con dificultad (<50 %)']];
+    for (const c of CURSOS) {
+      const lista = datos.filter((e) => e.curso === c.id).sort((a, b) => a.nombre.localeCompare(b.nombre));
+      const filas = [['Estudiante', 'RUT', 'Curso', 'Entró al juego', 'Última conexión', 'Nivel', 'Acierto %', 'Respuestas', 'Tema más débil', 'Acierto tema débil %', 'Enemigos vencidos', 'Derrotas', 'Jefes vencidos', 'Logros', 'Título equipado', 'Necesita apoyo']];
+      const apoyo = new Set(apoyoDe(lista, c.nivel).map((x) => x.e.id));
+      for (const e of lista) {
+        const p = e.progreso || {}, r = resumen(e);
+        filas.push([e.nombre, e.rut, c.nombre, e.tiene_clave ? 'Sí' : 'No', e.conectado ? 'En línea' : fecha(e.ultimo), r.nivel || '', r.acierto ?? '', r.intentos,
+          r.peor ? nombreTema(c.nivel, r.peor.k).titulo : '', r.peor ? Math.round(r.peor.pct * 100) : '', r.vencidos, r.muertes,
+          Object.values(p.jefes || {}).reduce((a, b) => a + b, 0) + (p.reyVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0),
+          Object.keys(p.logros || {}).length, p.tituloTxt || '', apoyo.has(e.id) ? 'Sí' : '']);
+      }
+      hojas.push({ nombre: `Estudiantes ${c.nombre}`, filas, anchos: [34, 13, 7, 9, 18, 7, 10, 11, 34, 12, 11, 9, 9, 8, 22, 10] });
+      const temas = temasDe(lista, c.nivel);
+      temas.forEach((t) => resumenT.push([c.nombre, ZONAS[t.unidad] || '', t.titulo, t.pct, t.i, t.a, t.est, t.dif]));
+      if (temas.length) {
+        const orden = [...temas].sort((a, b) => (a.unidad + a.titulo).localeCompare(b.unidad + b.titulo));
+        const m = [['Estudiante', ...orden.map((t) => `${(ZONAS[t.unidad] || '').replace('Unidad ', 'U')} · ${t.titulo}`)]];
+        for (const e of lista) { const st = (e.progreso || {}).stats || {}; m.push([e.nombre, ...orden.map((t) => (st[t.k] && st[t.k].i ? Math.round((st[t.k].a / st[t.k].i) * 100) : ''))]); }
+        hojas.push({ nombre: `Temas ${c.nombre} (%)`, filas: m, anchos: [34, ...orden.map(() => 16)] });
+      }
+    }
+    hojas.splice(0, 0, { nombre: 'Resumen por tema', filas: resumenT, anchos: [8, 11, 44, 12, 11, 10, 14, 14] });
+    if (reportes.length) hojas.push({ nombre: 'Buzón', filas: [['Fecha', 'Curso', 'Estudiante', 'Tipo', 'Categoría', 'Mensaje', 'Zona', 'Leído'], ...reportes.map((r) => [fecha(r.creado), (CURSOS.find((c) => c.id === r.curso) || {}).nombre || r.curso, r.nombre, r.tipo === 'idea' ? 'Idea' : 'Problema', r.categoria || '', r.texto, r.zona || '', r.leido ? 'Sí' : 'No'])], anchos: [17, 7, 30, 10, 24, 70, 18, 7] });
+    const hoy = new Date();
+    Planilla.descargar(`MathWorld_${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}.xlsx`, hojas);
+  }
+  $('btn-excel').addEventListener('click', exportarExcel);
+
+  // ---------- Comunicación: mensajes a la clase y chat ----------
+  let config = null; const comSel = new Set();
+  const RAPIDAS = ['¡Quedan 5 minutos! Guarden sus recursos en el cofre.', 'Vamos a cerrar el juego: terminen lo que están haciendo.', '¡Excelente trabajo, curso! 🎉', 'Miren la pizarra, por favor.', 'Prepárense: lanzaré un desafío en vivo.', 'Trabajen en equipo para vencer al jefe.'];
+  async function cargarConfig() { try { const r = await Nube.docenteConfig(token); if (r) { config = r; pintarCom(); } } catch (e) { /* se reintenta */ } }
+  function pintarCom() {
+    if (!comSel.size) comSel.add(curso);
+    $('com-cursos').innerHTML = '<span class="lbl">Para:</span>' + CURSOS.map((c) => `<button type="button" class="chk" data-cc="${c.id}" aria-pressed="${comSel.has(c.id)}">${c.nombre}</button>`).join('')
+      + '<button type="button" class="btn mini" id="com-todos">Todos</button>';
+    $('com-cursos').querySelectorAll('[data-cc]').forEach((b) => b.addEventListener('click', () => {
+      if (comSel.has(b.dataset.cc)) { if (comSel.size > 1) comSel.delete(b.dataset.cc); } else comSel.add(b.dataset.cc);
+      pintarCom();
+    }));
+    $('com-todos').addEventListener('click', () => { CURSOS.forEach((c) => comSel.add(c.id)); pintarCom(); });
+    if (!config) { $('com-estado').innerHTML = '<span class="muted">Cargando…</span>'; return; }
+    $('com-estado').innerHTML = CURSOS.map((c) => {
+      const k = config[c.id] || {}, chat = k.chat !== false, a = k.anuncio;
+      return `<div class="com-curso"><div class="fila-d"><strong>${c.nombre}</strong>
+        <label class="est" style="gap:10px">Chat <button type="button" class="interruptor" role="switch" aria-checked="${chat}" aria-label="Chat de ${c.nombre}: ${chat ? 'activado' : 'desactivado'}" data-chat="${c.id}"></button></label></div>
+        ${a ? `<div class="anuncio"><span>📢 ${esc(a.texto)}<br><small class="muted">Visible hasta las ${new Date(Number(a.hasta)).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}</small></span><button type="button" class="btn mini peligro" data-borrar="${c.id}">Quitar</button></div>` : '<span class="muted" style="font-size:13px">Sin mensaje activo</span>'}</div>`;
+    }).join('');
+    $('com-estado').querySelectorAll('[data-chat]').forEach((b) => b.addEventListener('click', async () => {
+      b.disabled = true;
+      try { const r = await Nube.docenteChat(token, [b.dataset.chat], (config[b.dataset.chat] || {}).chat === false); if (r) config = r; } catch (e) { comMsg('No se pudo cambiar el chat. Inténtalo otra vez.', true); }
+      pintarCom();
+    }));
+    $('com-estado').querySelectorAll('[data-borrar]').forEach((b) => b.addEventListener('click', async () => {
+      try { const r = await Nube.docenteAnuncio(token, [b.dataset.borrar], '', 1); if (r) config = r; } catch (e) { comMsg('No se pudo quitar el mensaje.', true); }
+      pintarCom();
+    }));
+  }
+  function comMsg(t, err) { $('com-msg').innerHTML = t ? `<div class="${err ? 'err' : 'msg'}">${esc(t)}</div>` : ''; clearTimeout(comMsg.t); comMsg.t = setTimeout(() => { $('com-msg').innerHTML = ''; }, 5000); }
+  $('anuncio-rapidas').innerHTML = RAPIDAS.map((t, i) => `<button type="button" data-rap="${i}">${esc(t)}</button>`).join('');
+  $('anuncio-rapidas').querySelectorAll('[data-rap]').forEach((b) => b.addEventListener('click', () => { $('anuncio-texto').value = RAPIDAS[b.dataset.rap]; $('anuncio-texto').focus(); }));
+  $('anuncio-enviar').addEventListener('click', async () => {
+    const t = $('anuncio-texto').value.trim();
+    if (!t) { comMsg('Escribe el mensaje primero.', true); return; }
+    const btn = $('anuncio-enviar'); btn.disabled = true;
+    try {
+      const r = await Nube.docenteAnuncio(token, [...comSel], t, Number($('anuncio-min').value));
+      if (r) { config = r; $('anuncio-texto').value = ''; comMsg(`Mensaje enviado a ${[...comSel].map((id) => CURSOS.find((c) => c.id === id).nombre).join(', ')}. Les aparecerá en pantalla en unos segundos.`); }
+    } catch (e) { comMsg('No se pudo enviar. Inténtalo otra vez.', true); }
+    btn.disabled = false; pintarCom();
+  });
+  $('anuncio-texto').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('anuncio-enviar').click(); });
+
+  // ---------- Buzón: problemas reportados e ideas ----------
+  let reportes = [], buzonTab = 'problema', buzonCurso = '', avisoMostrado = false;
+  async function cargarReportes() {
+    try { const r = await Nube.docenteReportes(token); if (Array.isArray(r)) { reportes = r; pintarAvisoBuzon(); if ($('buzon').open) pintarBuzon(); } } catch (e) { /* se reintenta */ }
+  }
+  function pintarAvisoBuzon() {
+    const prob = reportes.filter((r) => r.tipo === 'problema' && !r.leido).length, ideas = reportes.filter((r) => r.tipo === 'idea' && !r.leido).length;
+    const n = prob + ideas;
+    $('buzon-n').hidden = !n; $('buzon-n').textContent = n;
+    document.title = `${n ? `(${n}) ` : ''}Portal docente · Math World`;
+    const av = $('aviso-buzon');
+    if (!n) { av.hidden = true; return; }
+    const partes = [];
+    if (prob) partes.push(`<b>${prob}</b> ${prob === 1 ? 'problema reportado' : 'problemas reportados'}`);
+    if (ideas) partes.push(`<b>${ideas}</b> ${ideas === 1 ? 'idea nueva' : 'ideas nuevas'}`);
+    av.innerHTML = `<span><span class="ico">🔔</span>Tienes ${partes.join(' y ')} de tus estudiantes sin leer.</span><span style="display:flex;gap:8px"><button type="button" class="btn pri" id="av-ver">Abrir buzón</button><button type="button" class="btn" id="av-ocultar">Más tarde</button></span>`;
+    if (!avisoMostrado || !av.dataset.oculto) av.hidden = false;
+    avisoMostrado = true;
+    $('av-ver').addEventListener('click', () => abrirBuzon(prob ? 'problema' : 'idea'));
+    $('av-ocultar').addEventListener('click', () => { av.hidden = true; av.dataset.oculto = '1'; });
+  }
+  function abrirBuzon(tab) { if (tab) buzonTab = tab; pintarBuzon(); if (!$('buzon').open) $('buzon').showModal(); }
+  function pintarBuzon() {
+    const n = (t) => reportes.filter((r) => r.tipo === t && !r.leido).length;
+    $('buzon-tabs').innerHTML = [['problema', '⚠️ Problemas'], ['idea', '💡 Ideas']].map(([t, nom]) => `<button type="button" class="tab" data-bt="${t}" aria-selected="${buzonTab === t}">${nom}${n(t) ? ` <span class="etq-r nuevo">${n(t)} sin leer</span>` : ''}</button>`).join('')
+      + `<select id="buzon-curso" aria-label="Filtrar por curso" style="height:44px;border-radius:10px;border:1px solid #c9c0ae;font:inherit;font-weight:700;padding:0 8px"><option value="">Todos los cursos</option>${CURSOS.map((c) => `<option value="${c.id}" ${buzonCurso === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select>`
+      + '<span style="flex:1"></span><button type="button" class="btn mini" id="buzon-todos">Marcar todo como leído</button>';
+    const lista = reportes.filter((r) => r.tipo === buzonTab && (!buzonCurso || r.curso === buzonCurso));
+    $('buzon-lista').innerHTML = lista.length ? lista.map((r) => `<div class="rep ${r.leido ? '' : 'nuevo'}">
+        <div class="cab-r"><span><b style="color:var(--text)">${esc(r.nombre)}</b> · ${esc((CURSOS.find((c) => c.id === r.curso) || {}).nombre || r.curso)}${r.zona ? ` · ${esc(r.zona)}` : ''}</span><span>${esc(fecha(r.creado))}</span></div>
+        ${r.tipo === 'problema' && r.categoria ? `<span><span class="etq-r">${esc(r.categoria)}</span></span>` : ''}
+        <p>${esc(r.texto)}</p>
+        <div class="pie-r">${r.leido ? '<span class="muted" style="font-size:13px">Leído</span>' : '<span class="etq-r nuevo">Nuevo</span>'}<button type="button" class="btn mini" data-leer="${r.id}" data-v="${!r.leido}">${r.leido ? 'Marcar como no leído' : 'Marcar como leído'}</button></div>
+      </div>`).join('') : `<div class="vacio">${buzonTab === 'idea' ? 'Aún no llegan ideas.' : 'No hay problemas reportados. 👍'}</div>`;
+    $('buzon-tabs').querySelectorAll('[data-bt]').forEach((b) => b.addEventListener('click', () => { buzonTab = b.dataset.bt; pintarBuzon(); }));
+    $('buzon-curso').addEventListener('change', (e) => { buzonCurso = e.target.value; pintarBuzon(); });
+    $('buzon-todos').addEventListener('click', () => marcarLeido(lista.filter((r) => !r.leido).map((r) => r.id), true));
+    $('buzon-lista').querySelectorAll('[data-leer]').forEach((b) => b.addEventListener('click', () => marcarLeido([Number(b.dataset.leer)], b.dataset.v === 'true')));
+  }
+  async function marcarLeido(ids, leido) {
+    if (!ids.length) return;
+    reportes.forEach((r) => { if (ids.includes(r.id)) r.leido = leido; });
+    pintarBuzon(); pintarAvisoBuzon();
+    try { await Nube.docenteReporteLeido(token, ids, leido); } catch (e) { cargarReportes(); }
+  }
+  $('btn-buzon').addEventListener('click', () => abrirBuzon());
+  $('buzon-cerrar').addEventListener('click', () => $('buzon').close());
+  cargarConfig(); cargarReportes();
+  setInterval(cargarConfig, 30000);
+  setInterval(cargarReportes, 30000);
 
   $('abrir-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), true));
   $('cerrar-todos').addEventListener('click', () => cambiarAcceso(CURSOS.map((c) => c.id), false));

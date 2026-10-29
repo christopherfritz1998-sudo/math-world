@@ -671,3 +671,108 @@ end $$;
 revoke all on function public.mw_obra_meta(text), public.mw_obra_estado(text, text, uuid) from public, anon, authenticated;
 revoke all on function public.mw_obra(uuid, text, text), public.mw_obra_aportar(uuid, text, jsonb), public.mw_docente_obras(uuid) from public, authenticated;
 grant execute on function public.mw_obra(uuid, text, text), public.mw_obra_aportar(uuid, text, jsonb), public.mw_docente_obras(uuid) to anon;
+-- ===================================================================
+-- Convivencia y comunicación con el docente
+-- ===================================================================
+-- Configuración por curso: mensaje del docente (anuncio) y chat de emoticones
+alter table public.cursos add column if not exists anuncio jsonb;
+alter table public.cursos add column if not exists chat boolean not null default true;
+
+create or replace function public.mw_latido(p_token uuid, p_zona text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; cu cursos%rowtype;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select curso into c from estudiantes where id = id_e;
+  if not mw_curso_abierto(c) then
+    update estudiantes set ultimo_ping = now() - interval '1 hour' where id = id_e;
+    return json_build_object('ok', true, 'abierto', false);
+  end if;
+  update estudiantes set zona = left(p_zona, 20), ultimo_ping = now() where id = id_e;
+  select * into cu from cursos where curso = c;
+  return json_build_object('ok', true, 'abierto', true, 'mundos', mw_curso_mundos(c), 'chat', coalesce(cu.chat, true),
+    'anuncio', case when cu.anuncio is not null and (cu.anuncio->>'hasta')::bigint > mw_ms() then cu.anuncio else null end);
+end $$;
+
+-- Docente: configuración de todos los cursos (chat y anuncio vigente)
+create or replace function public.mw_docente_config(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return (select json_object_agg(curso, json_build_object('chat', chat, 'anuncio', case when anuncio is not null and (anuncio->>'hasta')::bigint > mw_ms() then anuncio else null end)) from cursos);
+end $$;
+
+-- Docente: mensaje para los estudiantes que están jugando (vacío = quitarlo). Dura los minutos indicados.
+create or replace function public.mw_docente_anuncio(p_token uuid, p_cursos text[], p_texto text, p_min int)
+returns json language plpgsql security definer set search_path = public as $$
+declare t text := left(btrim(coalesce(p_texto, '')), 200);
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  update cursos set anuncio = case when t = '' then null
+    else jsonb_build_object('n', mw_ms(), 'texto', t, 'hasta', mw_ms() + greatest(1, least(coalesce(p_min, 10), 120)) * 60000) end
+  where curso = any (p_cursos);
+  return mw_docente_config(p_token);
+end $$;
+
+-- Docente: activar o desactivar el chat de emoticones y frases
+create or replace function public.mw_docente_chat(p_token uuid, p_cursos text[], p_on boolean)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  update cursos set chat = coalesce(p_on, true) where curso = any (p_cursos);
+  return mw_docente_config(p_token);
+end $$;
+
+-- Reportes de problemas e ideas de los estudiantes (solo los ve el docente)
+create table if not exists public.reportes (
+  id bigserial primary key,
+  estudiante_id uuid not null references public.estudiantes(id) on delete cascade,
+  curso text not null,
+  tipo text not null check (tipo in ('problema', 'idea')),
+  categoria text,
+  texto text not null,
+  zona text,
+  creado timestamptz not null default now(),
+  leido boolean not null default false
+);
+create index if not exists reportes_creado on public.reportes (creado desc);
+alter table public.reportes enable row level security;
+revoke all on public.reportes from anon, authenticated;
+
+create or replace function public.mw_reporte_enviar(p_token uuid, p_tipo text, p_categoria text, p_texto text, p_zona text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; t text := left(btrim(coalesce(p_texto, '')), 500); n int;
+begin
+  if id_e is null or p_tipo not in ('problema', 'idea') then return json_build_object('ok', false); end if;
+  if char_length(t) < 3 then return json_build_object('ok', false, 'error', 'corto'); end if;
+  select count(*) into n from reportes where estudiante_id = id_e and creado > now() - interval '1 hour';
+  if n >= 6 then return json_build_object('ok', false, 'error', 'limite'); end if;
+  select curso into c from estudiantes where id = id_e;
+  insert into reportes (estudiante_id, curso, tipo, categoria, texto, zona) values (id_e, c, p_tipo, left(coalesce(p_categoria, ''), 40), t, left(coalesce(p_zona, ''), 40));
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.mw_docente_reportes(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return coalesce((select json_agg(x) from (
+    select r.id, r.tipo, r.categoria, r.texto, r.zona, r.curso, r.leido, mw_ms_de(r.creado) as creado, e.nombre
+    from reportes r join estudiantes e on e.id = r.estudiante_id order by r.creado desc limit 300) x), '[]'::json);
+end $$;
+
+create or replace function public.mw_docente_reporte_leido(p_token uuid, p_ids bigint[], p_leido boolean)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  update reportes set leido = coalesce(p_leido, true) where id = any (p_ids);
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.mw_ms_de(t timestamptz) returns bigint language sql immutable as $$ select (extract(epoch from t) * 1000)::bigint $$;
+
+revoke all on function public.mw_docente_config(uuid), public.mw_docente_anuncio(uuid, text[], text, int), public.mw_docente_chat(uuid, text[], boolean),
+  public.mw_reporte_enviar(uuid, text, text, text, text), public.mw_docente_reportes(uuid), public.mw_docente_reporte_leido(uuid, bigint[], boolean) from public, authenticated;
+grant execute on function public.mw_docente_config(uuid), public.mw_docente_anuncio(uuid, text[], text, int), public.mw_docente_chat(uuid, text[], boolean),
+  public.mw_reporte_enviar(uuid, text, text, text, text), public.mw_docente_reportes(uuid), public.mw_docente_reporte_leido(uuid, bigint[], boolean) to anon;
+revoke all on function public.mw_ms_de(timestamptz) from public, anon, authenticated;
