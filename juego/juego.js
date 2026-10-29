@@ -3759,11 +3759,11 @@
       R.visto = performance.now();
       if (d.t === 'pos') { R.tx = d.x; R.dir = d.dir; R.bloq = d.b; R.mueve = d.m; if (d.at && d.at !== R.atkN) { R.atkN = d.at; R.atk = performance.now(); } }
       else if (d.t === 'golpe') recibirGolpe(d.dmg);
-      else if (d.t === 'hp') { R.hp = d.hp; R.golpeado = performance.now(); if (d.bloq) R.chispa = performance.now(); }
+      else if (d.t === 'hp') { const dd = Math.max(0, Math.round(R.hp - d.hp)); R.hp = d.hp; R.golpeado = performance.now(); if (d.bloq) R.chispa = performance.now(); if (dd) { impactoPvp(R, dd, d.bloq); flotPvp(R.x, PVP_SUELO - 118, d.bloq ? `🛡️ -${dd}` : `-${dd}`, d.bloq ? '#9fd8ff' : '#ffd27a'); } }
       else if (d.t === 'fin') ganarDuelo(d.mochila || {});
     }
   }
-  function datosYo() { return { nombre: nombreJug(), pj: S.pj, tex: texArmadura(S.armadura), vm: vidaPvp(), dmg: golpePvp(), mochila: mochilaTotal() }; }
+  function datosYo() { return { nombre: nombreJug(), pj: S.pj, tex: texArmadura(S.armadura), vm: vidaPvp(), dmg: golpePvp(), mochila: mochilaTotal(), w: S.arma || '' }; }
   function abrirArena() {
     pvp = { fase: 'sala', gente: new Map(), reto: null, retoDe: null, aviso: '', limpiar: [] };
     ui.abrir(`<div class="modal-cab"><div><span class="etq">Arena · ${escena && escena.canal ? `Grupo ${S.grupo}` : 'sin compañeros: puedes practicar'}</span><h2 id="modal-titulo">⚔️ Arena PvP</h2></div><button type="button" class="btn" id="pv-salir">Salir</button></div>
@@ -3824,10 +3824,10 @@
     const bot = !rival, izq = bot || idJuego < rival.id;
     const yoD = datosYo();
     pvp.fase = 'duelo'; pvp.retoDe = null;
-    pvp.yo = { x: izq ? 220 : 580, dir: izq ? 'right' : 'left', hp: yoD.vm, max: yoD.vm, dmg: yoD.dmg, bloq: false, atk: 0, atkN: 0, img: imgPj(S.pj, yoD.tex), nombre: yoD.nombre, golpeado: 0 };
+    pvp.yo = { x: izq ? 220 : 580, dir: izq ? 'right' : 'left', hp: yoD.vm, max: yoD.vm, dmg: yoD.dmg, bloq: false, atk: 0, atkN: 0, img: imgPj(S.pj, yoD.tex), nombre: yoD.nombre, golpeado: 0, arma: yoD.w };
     pvp.rival = bot
-      ? { bot: true, id: 'muneco', x: 580, tx: 580, dir: 'left', hp: 30, max: 30, dmg: 3, bloq: false, atk: 0, img: imgPj('lobo', 'cuero'), nombre: 'Muñeco de práctica', ia: 1, visto: performance.now() }
-      : { id: rival.id, x: izq ? 580 : 220, tx: izq ? 580 : 220, dir: izq ? 'left' : 'right', hp: rival.vm, max: rival.vm, dmg: rival.dmg, bloq: false, atk: 0, img: imgPj(rival.pj, rival.tex || 'nada'), nombre: rival.nombre, visto: performance.now() };
+      ? { bot: true, id: 'muneco', x: 580, tx: 580, dir: 'left', hp: 30, max: 30, dmg: 3, bloq: false, atk: 0, img: imgPj('lobo', 'cuero'), nombre: 'Muñeco de práctica', ia: 1, visto: performance.now(), arma: 'espada' }
+      : { id: rival.id, x: izq ? 580 : 220, tx: izq ? 580 : 220, dir: izq ? 'left' : 'right', hp: rival.vm, max: rival.vm, dmg: rival.dmg, bloq: false, atk: 0, img: imgPj(rival.pj, rival.tex || 'nada'), nombre: rival.nombre, visto: performance.now(), arma: ARMAS[rival.w] ? rival.w : '' };
     pvp.mov = { l: false, r: false }; pvp.t = -3; pvp.cuenta = 3.2; pvp.ultPos = 0;
     $('pv-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro zona-lienzo" id="mj-cuadro"><canvas id="pv-canvas" width="${PVP_W}" height="${PVP_H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
       <div class="mj-controles pv-controles"><div class="pv-mover"><button type="button" class="btn" data-pv="l">◀</button><button type="button" class="btn" data-pv="r">▶</button></div>
@@ -3878,7 +3878,7 @@
     const Y = pvp.yo; if (!Y || pvp.terminado) return;
     const bloqueado = Y.bloq;
     const d = Math.max(1, bloqueado ? Math.ceil(dmg * 0.2) : Math.round(dmg));
-    Y.hp = Math.max(0, Y.hp - d); Y.golpeado = performance.now(); if (bloqueado) Y.chispa = performance.now();
+    Y.hp = Math.max(0, Y.hp - d); Y.golpeado = performance.now(); if (bloqueado) Y.chispa = performance.now(); impactoPvp(Y, d, bloqueado);
     Y.x = Math.max(40, Math.min(PVP_W - 40, Y.x + (Y.x < pvp.rival.x ? -1 : 1) * (bloqueado ? 10 : 34)));
     sfx(bloqueado ? 'clic' : 'golpe'); if (!bloqueado && escena) escena.cameras.main.shake(100, 0.003);
     flotPvp(Y.x, PVP_SUELO - 110, bloqueado ? `🛡️ -${d}` : `-${d}`, bloqueado ? '#9fd8ff' : '#ff7a6a');
@@ -3918,7 +3918,7 @@
   }
   function golpeAlMuneco(dmg) {
     const R = pvp.rival, bloq = R.bloq, d = Math.max(1, bloq ? Math.ceil(dmg * 0.2) : dmg);
-    R.hp = Math.max(0, R.hp - d); R.golpeado = performance.now(); if (bloq) R.chispa = performance.now();
+    R.hp = Math.max(0, R.hp - d); R.golpeado = performance.now(); if (bloq) R.chispa = performance.now(); impactoPvp(R, d, bloq);
     R.x = Math.max(40, Math.min(PVP_W - 40, R.x + (R.x < pvp.yo.x ? -1 : 1) * (bloq ? 10 : 30)));
     sfx(bloq ? 'clic' : 'golpe'); flotPvp(R.x, PVP_SUELO - 110, bloq ? `🛡️ -${d}` : `-${d}`, bloq ? '#9fd8ff' : '#ffd27a');
     if (R.hp <= 0) terminarPractica(true);
@@ -3980,6 +3980,78 @@
     $('pv-fin').addEventListener('click', () => ui.cerrar()); $('pv-fin').focus();
     ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
   }
+  // ---------- espada en la arena: se empuña la equipada y se mueve al atacar ----------
+  const HOJAS = {
+    espada: ['#9aa198', '#d6d9d2', '#5d6560'], espada2: ['#5fd6ee', '#d8fbff', '#2a8fb0'], espada3: ['#f2b544', '#fff1b8', '#a8700e'],
+    espada4: ['#a875e8', '#e6d2ff', '#5e2fa0'], espada5: ['#9fd8ff', '#ffffff', '#4b8fc8'], espada6: ['prisma', '#ffffff', '#7a4ad0'],
+  };
+  const ATQ_MS = 360;   // duración del movimiento (el golpe se resuelve a los 170 ms)
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  // ángulo de la hoja (grados desde vertical, positivo = hacia adelante)
+  function anguloEspada(P, ahora) {
+    if (P.bloq) return 8;
+    const ta = ahora - (P.atk || 0);
+    if (!P.atk || ta >= ATQ_MS) return 38 + Math.sin(ahora / 260) * 3;          // en guardia
+    if (ta < 90) return 38 + (-58 - 38) * ease(ta / 90);                        // levanta la espada
+    if (ta < 200) return -58 + (148 + 58) * ease((ta - 90) / 110);              // golpe hacia abajo
+    return 148 + (38 - 148) * ease((ta - 200) / (ATQ_MS - 200));               // vuelve a guardia
+  }
+  function dibujarEspada(c, P, ahora, parte) {
+    const f = P.dir === 'right' ? 1 : -1, ta = ahora - (P.atk || 0);
+    const hx = P.x + f * 13, hy = PVP_SUELO - 32;                            // la mano
+    const col = HOJAS[P.arma], dmg = P.dmg || 2;
+    const largo = col ? 46 + Math.min(18, dmg * 1.2) : 34, ancho = col ? 7 : 6;
+    const ang = anguloEspada(P, ahora) * Math.PI / 180;
+    // estela del golpe: más larga y brillante mientras más daño hace
+    if (parte === 'estela') {
+      if (!(P.atk && ta >= 90 && ta < 290)) return;
+      const a0 = -58 * Math.PI / 180, a1 = ang, alfa = Math.max(0, 1 - Math.max(0, ta - 200) / 90);
+      c.save(); c.translate(hx, hy); c.scale(f, 1);
+      const gr = c.createRadialGradient(0, 0, largo * 0.4, 0, 0, largo + 10);
+      const tono = col && col[0] !== 'prisma' ? col[1] : '#fff6c8';
+      gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.7, tono); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      c.globalAlpha = 0.25 + Math.min(0.55, dmg / 22) * alfa; c.fillStyle = gr;
+      c.beginPath(); c.moveTo(0, 0); c.arc(0, 0, largo + 10, a0 - Math.PI / 2, a1 - Math.PI / 2); c.closePath(); c.fill();
+      c.restore();
+      return;
+    }
+    c.save(); c.translate(hx, hy); c.scale(f, 1); c.rotate(ang);
+    if (col) {
+      // hoja
+      let fill = col[0];
+      if (fill === 'prisma') { fill = c.createLinearGradient(0, -largo, 0, 0); ['#ff6b9e', '#ffd36b', '#7bf0a8', '#6bc8ff', '#b78bff'].forEach((k, i) => fill.addColorStop(i / 4, k)); }
+      c.fillStyle = col[2]; c.beginPath(); c.moveTo(-ancho / 2 - 1, -8); c.lineTo(-ancho / 2 - 1, -largo + 6); c.lineTo(0, -largo - 4); c.lineTo(ancho / 2 + 1, -largo + 6); c.lineTo(ancho / 2 + 1, -8); c.fill();
+      c.fillStyle = fill; c.beginPath(); c.moveTo(-ancho / 2, -9); c.lineTo(-ancho / 2, -largo + 6); c.lineTo(0, -largo - 2); c.lineTo(ancho / 2, -largo + 6); c.lineTo(ancho / 2, -9); c.fill();
+      c.fillStyle = col[1]; c.fillRect(-1, -largo + 6, 2, largo - 16);
+      // guarda y empuñadura
+      c.fillStyle = '#c8962e'; c.fillRect(-11, -11, 22, 5);
+      c.fillStyle = '#5a3a1a'; c.fillRect(-2.5, -6, 5, 12);
+      c.fillStyle = '#c8962e'; c.beginPath(); c.arc(0, 8, 3.5, 0, Math.PI * 2); c.fill();
+      if (dmg >= 12) { c.globalAlpha = 0.35 + 0.25 * Math.sin(ahora / 120); c.fillStyle = col[1]; c.fillRect(-ancho, -largo, ancho * 2, largo - 10); c.globalAlpha = 1; }
+    } else {
+      // sin espada: lucha con un garrote de madera
+      c.fillStyle = '#6b4a24'; c.fillRect(-3, -largo + 8, 6, largo); c.fillStyle = '#8a6234'; c.beginPath(); c.ellipse(0, -largo + 6, 6, 9, 0, 0, Math.PI * 2); c.fill();
+    }
+    c.restore();
+  }
+  // impacto en quien recibe el golpe: chispas y destello proporcionales al daño
+  function impactoPvp(P, dmg, bloq) {
+    (pvp.impactos = pvp.impactos || []).push({ x: P.x - (P.dir === 'right' ? -1 : 1) * 4, y: PVP_SUELO - 58, t: performance.now(), n: Math.min(22, 6 + dmg * 1.5), r: 20 + Math.min(40, dmg * 3), bloq });
+  }
+  function dibujarImpactos(c, ahora) {
+    pvp.impactos = (pvp.impactos || []).filter((m) => ahora - m.t < 420);
+    for (const m of pvp.impactos) {
+      const k = (ahora - m.t) / 420;
+      c.save(); c.globalAlpha = 1 - k;
+      c.strokeStyle = m.bloq ? '#bfe8ff' : '#ffe27a'; c.lineWidth = 3;
+      for (let i = 0; i < m.n; i++) {
+        const a = (i / m.n) * Math.PI * 2 + m.t, r0 = m.r * 0.3 * (1 + k), r1 = m.r * (0.6 + k);
+        c.beginPath(); c.moveTo(m.x + Math.cos(a) * r0, m.y + Math.sin(a) * r0); c.lineTo(m.x + Math.cos(a) * r1, m.y + Math.sin(a) * r1); c.stroke();
+      }
+      if (!m.bloq) { c.fillStyle = 'rgba(255,90,60,0.35)'; c.beginPath(); c.arc(m.x, m.y, m.r * 0.5 * (1 - k * 0.5), 0, Math.PI * 2); c.fill(); }
+      c.restore();
+    }
+  }
   function dibujarPvp(ahora) {
     const c = pvp.ctx; if (!c) return;
     // fondo: arena de piedra con público
@@ -3995,16 +4067,13 @@
       const golpe = ahora - (P.golpeado || 0) < 160;
       c.save();
       if (golpe) c.filter = 'brightness(2.2)';
+      const atras = anguloEspada(P, ahora) < 0;   // con la espada levantada hacia atrás, queda detrás del cuerpo
+      dibujarEspada(c, P, ahora, 'estela');
+      if (atras) dibujarEspada(c, P, ahora, 'hoja');
       dibujarPj(c, P.img, P.x, PVP_SUELO, P.dir, P.mueve, ahora, 112, 1);
       c.restore();
       const f = P.dir === 'right' ? 1 : -1;
-      // ataque: arco de la espada
-      const ta = ahora - (P.atk || 0);
-      if (P.atk && ta < 300) {
-        c.strokeStyle = `rgba(255,240,180,${1 - ta / 300})`; c.lineWidth = 6; c.beginPath();
-        const a0 = f > 0 ? -1.3 : Math.PI + 1.3, a1 = f > 0 ? 0.9 : Math.PI - 0.9;
-        c.arc(P.x + f * 18, PVP_SUELO - 52, 46, Math.min(a0, a1) + (f > 0 ? 0 : 0), Math.max(a0, a1)); c.stroke();
-      }
+      if (!atras) dibujarEspada(c, P, ahora, 'hoja');
       // bloqueo: escudo
       if (P.bloq) {
         c.fillStyle = 'rgba(120,200,255,0.35)'; c.strokeStyle = '#bfe8ff'; c.lineWidth = 3;
@@ -4012,6 +4081,7 @@
       }
       if (ahora - (P.chispa || 0) < 200) { c.fillStyle = '#ffffff'; for (let k = 0; k < 6; k++) c.fillRect(P.x + f * 32 + Math.cos(k) * 14, PVP_SUELO - 60 + Math.sin(k * 2) * 18, 4, 4); }
     }
+    dibujarImpactos(c, ahora);
     // barras de vida
     const barra = (P, x, alinear) => {
       const w = 300, pct = Math.max(0, P.hp / P.max);
@@ -4025,7 +4095,7 @@
     barra(izq, 24, 'l'); barra(der, PVP_W - 324, 'r');
     c.font = 'bold 22px Fredoka, Nunito, sans-serif'; c.textAlign = 'center'; c.fillStyle = '#ffd27a'; c.fillText('VS', PVP_W / 2, 36);
     pvp.flot = (pvp.flot || []).filter((t) => ahora - t.t < 900);
-    for (const t of pvp.flot) { const k = (ahora - t.t) / 900; c.globalAlpha = 1 - k; c.font = 'bold 20px Fredoka, Nunito, sans-serif'; c.lineWidth = 4; c.strokeStyle = '#1a1010'; c.strokeText(t.txt, t.x, t.y - k * 30); c.fillStyle = t.col; c.fillText(t.txt, t.x, t.y - k * 30); c.globalAlpha = 1; }
+    for (const t of pvp.flot) { const k = (ahora - t.t) / 900; c.globalAlpha = 1 - k; c.font = `bold ${t.txt.includes('🛡') ? 20 : 26}px Fredoka, Nunito, sans-serif`; c.lineWidth = 4; c.strokeStyle = '#1a1010'; c.strokeText(t.txt, t.x, t.y - k * 30); c.fillStyle = t.col; c.fillText(t.txt, t.x, t.y - k * 30); c.globalAlpha = 1; }
   }
 
   // ===================================================================
