@@ -13,6 +13,9 @@
     { id: 'puma', nombre: 'Puma' }, { id: 'copihue', nombre: 'Copihue' },
     { id: 'condor', nombre: 'Cóndor' }, { id: 'huemul', nombre: 'Huemul' },
     { id: 'pudu', nombre: 'Pudú' }, { id: 'lobo', nombre: 'Lobo' },
+    // Caballeros alados: se desbloquean con el logro «El rey del juego»
+    { id: 'paladin', nombre: 'Paladín Solar', rey: true }, { id: 'valquiria', nombre: 'Valquiria del Viento', rey: true },
+    { id: 'draconico', nombre: 'Caballero Dragón', rey: true }, { id: 'arcangel', nombre: 'Arcángel Coronada', rey: true },
   ];
   // Cada mundo tiene sus propios recursos (los mundos sin recursos propios usan los de la Unidad 1)
   const RECURSOS = [
@@ -95,7 +98,7 @@
   const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 }, espada5: { nombre: 'Espada de hielo', danio: 6 }, espada6: { nombre: 'Espada prismática', danio: 10 } };
   const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' }, armadura4: { nombre: 'Armadura de plata', vida: 8, tex: 'plata' }, armadura5: { nombre: 'Armadura de escarcha', vida: 10, tex: 'hielo' }, armadura6: { nombre: 'Armadura prismática', vida: 12, tex: 'prisma' } };
   const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata', 'hielo', 'prisma'];
-  const cuerpoDe = (pj) => (pj === 'luna' || pj === 'copihue' ? 'thin' : 'male');
+  const cuerpoDe = (pj) => (['luna', 'copihue', 'valquiria', 'arcangel'].includes(pj) ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
   // Banco de decorativos y muebles (se pueden fabricar varias veces).
@@ -879,7 +882,7 @@
 
   function prepararIngreso() {
     const cont = $('personajes');
-    cont.innerHTML = PERSONAJES.map((p) => `
+    cont.innerHTML = PERSONAJES.filter((p) => !p.rey).map((p) => `
       <button type="button" class="opcion" data-pj="${p.id}" aria-pressed="false" aria-label="Personaje ${p.nombre}">
         <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span>
         <span style="font-size: 12px">${p.nombre}</span>
@@ -1163,6 +1166,8 @@
           <h3>Armadura</h3>
           ${armaduras.length ? armaduras.map(([id, a]) => fila(id, a, S.armadura === id, 'armadura')).join('') : '<p class="nota">Aún no tienes armadura. Fabrícala en la fogata de tu base.</p>'}
           ${mascotasHTML()}
+          ${auraHTML()}
+          ${personajesHTML()}
         </div>
       </div>`);
     $('eq-cerrar').addEventListener('click', () => ui.cerrar());
@@ -1170,6 +1175,8 @@
     document.querySelectorAll('[data-quitar]').forEach((b) => b.addEventListener('click', () => { quitarEquipo(b.dataset.quitar); abrirEquipo(); }));
     document.querySelectorAll('[data-mano]').forEach((b) => b.addEventListener('click', () => { equipar(b.dataset.mano); abrirEquipo(); }));
     document.querySelectorAll('[data-mascota]').forEach((b) => b.addEventListener('click', () => { ponerMascota(b.dataset.mascota); abrirEquipo(); }));
+    document.querySelectorAll('[data-aura]').forEach((b) => b.addEventListener('click', () => { ponerAura(b.dataset.aura === '1'); abrirEquipo(); }));
+    document.querySelectorAll('[data-pjeq]').forEach((b) => b.addEventListener('click', () => { ponerPj(b.dataset.pjeq); abrirEquipo(); }));
   }
 
   // ===================================================================
@@ -3087,7 +3094,7 @@
   const aciertosTotales = () => Object.values(S.stats || {}).reduce((a, s) => a + (s.a || 0), 0);
   const albumListo = (lista, A) => lista.filter((x) => A && A[x.id]).length;
   const ENE_MUNDO = { bosque: ['arbusto', 'niebla', 'bicho', 'arana', 'raiz'], desierto: ['escorpion', 'remolino', 'esqueleto', 'escarabajo', 'momia'], mina: ['murcielago', 'golem', 'minero', 'salamandra', 'golem_cristal'], hielo: ['lobo_nieve', 'espiritu', 'muneco', 'halcon', 'golem_hielo'] };
-  const CATS_LOGRO = { explorar: '🧭 Exploración', recolectar: '🪓 Recolección', combate: '⚔️ Combate', aprender: '🧠 Aprendizaje', nivel: '⭐ Niveles', fabricar: '🔨 Fabricación', coleccion: '📖 Colecciones', minijuegos: '🎮 Minijuegos', equipo: '🤝 Trabajo en equipo' };
+  const CATS_LOGRO = { explorar: '🧭 Exploración', recolectar: '🪓 Recolección', combate: '⚔️ Combate', aprender: '🧠 Aprendizaje', nivel: '⭐ Niveles', fabricar: '🔨 Fabricación', coleccion: '📖 Colecciones', minijuegos: '🎮 Minijuegos', equipo: '🤝 Trabajo en equipo', rey: '👑 El rey del juego' };
   const L = (id, cat, icono, nombre, desc, meta, v, titulo) => ({ id, cat, icono, nombre, desc, meta, v, titulo });
   const LOGROS = [
     // Exploración
@@ -3173,12 +3180,16 @@
     L('meta_curso', 'equipo', '🙌', 'Todos para uno', 'Logra con tu curso la meta de un desafío en vivo.', 1, () => CN('meta_curso'), 'Fuerza de Equipo'),
     L('charla', 'equipo', '💬', 'Buena onda', 'Envía 20 mensajes en el chat del grupo.', 20, () => CN('chat'), 'Buena Onda'),
     L('idea', 'equipo', '💡', 'Mente creativa', 'Envía una idea para el juego en Novedades.', 1, () => CN('idea'), 'Mente Creativa'),
-    L('mascota1', 'coleccion', '🐾', 'Amigo fiel', 'Desbloquea tu primera mascota venciendo a un jefe final.', 1, () => MASCOTAS.filter((m) => m.v() > 0).length, 'Amigo de los Animales'),
-    L('mascota4', 'coleccion', '🦉', 'Cuidador', 'Desbloquea 4 mascotas distintas.', 4, () => MASCOTAS.filter((m) => m.v() > 0).length, 'Cuidador de Bestias'),
-    L('mascota7', 'coleccion', '🐲', 'Arca de leyendas', 'Desbloquea las 7 mascotas.', 7, () => MASCOTAS.filter((m) => m.v() > 0).length, 'Señor de las Bestias'),
+    L('mascota1', 'coleccion', '🐾', 'Amigo fiel', 'Desbloquea tu primera mascota venciendo a un jefe final.', 1, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Amigo de los Animales'),
+    L('mascota4', 'coleccion', '🦉', 'Cuidador', 'Desbloquea 4 mascotas distintas.', 4, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Cuidador de Bestias'),
+    L('mascota7', 'coleccion', '🐲', 'Arca de leyendas', 'Desbloquea las 7 mascotas de los jefes finales.', 7, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Señor de las Bestias'),
     L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
   ];
+  // El logro final: se desbloquea al completar todos los demás
+  LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Desbloquea los 4 caballeros alados.', LOGROS.length,
+    () => LOGROS.filter((l) => l.id !== 'rey_juego' && S.logros && S.logros[l.id]).length, 'El rey del juego'));
   const LOGRO = Object.fromEntries(LOGROS.map((l) => [l.id, l]));
+  const esRey = () => esDocente() || Boolean(S && S.logros && S.logros.rey_juego);
   const tituloDe = (id) => (LOGRO[id] ? LOGRO[id].titulo : '');
   const tituloActual = () => (S && S.titulo && S.logros && S.logros[S.titulo] ? tituloDe(S.titulo) : '');
   // Cuenta una acción del jugador (se llama desde muchos lugares del juego)
@@ -3206,6 +3217,7 @@
     if (primera) { setTimeout(() => toast(`¡Tu avance ya desbloqueó ${nuevos.length} ${nuevos.length === 1 ? 'logro' : 'logros'}! Míralos y equipa un título en Logros (tecla L).`), 2500); pintarHUD(); return; }
     nuevos.forEach((l) => avisosLogro.push(l));
     mostrarAvisoLogro();
+    if (nuevos.some((l) => l.id === 'rey_juego')) setTimeout(() => esperarYAbrir(abrirRey), 4600 * nuevos.length);
   }
   const avisosLogro = [];
   let avisoLogroActivo = false;
@@ -3278,6 +3290,10 @@
     { id: 'jabato', nombre: 'Jabato de raíces', jefe: 'Rey Jabalí Ancestral', donde: 'Bosque profundo', v: () => S.reyVencido || 0 },
     { id: 'ajolote', nombre: 'Ajolote de lava', jefe: 'Coloso de Magma', donde: 'Profundidades de la mina', v: () => S.colosoVencido || 0 },
     { id: 'dragon', nombre: 'Dragoncito de aurora', jefe: 'Dragón de la Aurora', donde: 'Cima del glaciar', v: () => S.dragonVencido || 0 },
+    // Mascotas exclusivas por nivel
+    { id: 'grifo', nombre: 'Grifo dorado', nivel: 50, v: () => ((S.nivel || 1) >= 50 ? 1 : 0) },
+    { id: 'fenix', nombre: 'Fénix de fuego', nivel: 70, v: () => ((S.nivel || 1) >= 70 ? 1 : 0) },
+    { id: 'unicornio', nombre: 'Unicornio de cristal', nivel: 90, v: () => ((S.nivel || 1) >= 90 ? 1 : 0) },
   ];
   const MASCOTA = Object.fromEntries(MASCOTAS.map((m, i) => [m.id, { ...m, fila: i }]));
   const mascotaLibre = (id) => Boolean(MASCOTA[id]) && (esDocente() || (MASCOTA[id].v() || 0) > 0);
@@ -3312,7 +3328,7 @@
       <div class="mascotas">${MASCOTAS.map((m) => {
         const ok = mascotaLibre(m.id), puesta = mascotaActual() === m.id;
         return `<button type="button" class="mascota ${ok ? '' : 'bloq'}" data-mascota="${m.id}" aria-pressed="${puesta}" ${ok && puedeMascota() ? '' : 'disabled'}
-          title="${esc(ok ? m.nombre : `Vence al ${m.jefe} (${m.donde})`)}"><img class="px" src="assets/mascotas/${m.id}.png" alt=""><span>${ok ? esc(m.nombre) : '???'}</span><small>${ok ? (puesta ? 'Contigo' : 'Equipar') : esc(`Vence: ${m.jefe}`)}</small></button>`;
+          title="${esc(ok ? m.nombre : m.jefe ? `Vence al ${m.jefe} (${m.donde})` : `Exclusiva del nivel ${m.nivel}`)}"><img class="px" src="assets/mascotas/${m.id}.png" alt=""><span>${ok ? esc(m.nombre) : '???'}</span><small>${ok ? (puesta ? 'Contigo' : 'Equipar') : esc(m.jefe ? `Vence: ${m.jefe}` : `⭐ Exclusiva del nivel ${m.nivel}`)}</small></button>`;
       }).join('')}</div>
       ${mascotaActual() ? '<button type="button" class="btn" data-mascota="">Guardar mascota</button>' : ''}`;
   }
@@ -3508,6 +3524,71 @@
     sfx('logro');
     clearTimeout(mostrarAnuncio.t);
     mostrarAnuncio.t = setTimeout(() => el.classList.add('oculto'), Math.max(15000, Math.min(120000, (Number(a.hasta) || 0) - Date.now())));
+  }
+
+  // ===================================================================
+  // Premio del nivel 100 (Aura del Centenario) y El rey del juego (caballeros alados)
+  // ===================================================================
+  const NIVEL_AURA = 100;
+  const tieneAura = () => esDocente() || (S && (S.nivel || 1) >= NIVEL_AURA);
+  const auraActiva = () => tieneAura() && S.aura !== false;
+  function esperarYAbrir(fn) {
+    const t = setInterval(() => { if (S && !ui.abierto && !carga && escena && escena.jugador && !escena.enCombate) { clearInterval(t); fn(); } }, 1000);
+  }
+  function ponerAura(on) {
+    S.aura = Boolean(on); guardar(true);
+    if (escena && escena.jugador) escena.pintarAura();
+  }
+  // Al llegar al nivel 100 se celebra una vez y el aura queda encendida
+  setInterval(() => {
+    if (!S || esDocente() || (S.nivel || 1) < NIVEL_AURA || S.aura100) return;
+    S.aura100 = Date.now(); S.aura = true; guardar(true);
+    if (escena && escena.jugador) escena.pintarAura();
+    esperarYAbrir(abrirCentenario);
+  }, 5000);
+  function abrirCentenario() {
+    sfx('logro');
+    ui.abrir(`<div class="rey-modal centenario"><div class="rey-brillo"></div>
+      <span class="etq">Premio exclusivo del nivel 100</span><h2 id="modal-titulo">💯 ¡Nivel 100!</h2>
+      <div class="aura-demo">${figuraHTML(S.pj, S.armadura, S.herramienta, S.arma, 150)}</div>
+      <p class="enunciado">Ganaste el <b>Aura del Centenario</b>: un resplandor dorado con chispas que te rodea en todos los mundos. Tus compañeros también la verán. Solo la consiguen quienes llegan al nivel 100.</p>
+      <p class="nota">Puedes apagarla o encenderla cuando quieras en Equipo (tecla Q).</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="cn-ok" data-foco>¡Increíble!</button></div></div>`, 'rey');
+    $('cn-ok').addEventListener('click', () => ui.cerrar());
+    if (escena) escena.celebrar();
+  }
+  function abrirRey() {
+    sfx('victoria');
+    const kn = PERSONAJES.filter((p) => p.rey);
+    ui.abrir(`<div class="rey-modal"><div class="rey-brillo"></div>
+      <span class="etq">Logro final</span><h2 id="modal-titulo">👑 ¡Eres El rey del juego!</h2>
+      <p class="enunciado">Completaste todos los logros de Math World. Desbloqueaste el título «El rey del juego» y los <b>4 caballeros alados</b>, los personajes más fuertes del juego.</p>
+      <div class="rey-pjs">${kn.map((p) => `<button type="button" class="rey-pj" data-rpj="${p.id}"><span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><b>${esc(p.nombre)}</b><small>Elegir</small></button>`).join('')}</div>
+      <div class="acciones"><span class="nota">También puedes cambiar de personaje después en Equipo (tecla Q).</span><button type="button" class="btn" id="ry-ok">Más tarde</button></div></div>`, 'rey');
+    $('ry-ok').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-rpj]').forEach((b) => b.addEventListener('click', () => { ponerPj(b.dataset.rpj); S.titulo = 'rey_juego'; S.tituloTxt = tituloDe('rey_juego'); guardar(true); pintarHUD(); if (escena) escena.pintarTituloYo(); ui.cerrar(); toast(`¡Ahora eres ${PERSONAJES.find((p) => p.id === b.dataset.rpj).nombre}!`); }));
+    if (escena) escena.celebrar();
+  }
+  const pjLibre = (id) => { const p = PERSONAJES.find((x) => x.id === id); return Boolean(p) && (!p.rey || esRey()); };
+  function ponerPj(id) {
+    if (!pjLibre(id)) return;
+    S.pj = id; guardar(true); pintarHUD();
+    if (escena && escena.jugador) { escena.vestirJugador(); }
+  }
+  function personajesHTML() {
+    return `<h3>Personaje</h3>
+      <div class="pjs-eq">${PERSONAJES.map((p) => {
+        const ok = pjLibre(p.id);
+        return `<button type="button" class="pj-eq ${p.rey ? 'rey' : ''} ${ok ? '' : 'bloq'}" data-pjeq="${p.id}" aria-pressed="${S.pj === p.id}" ${ok ? '' : 'disabled'} title="${esc(ok ? p.nombre : 'Se desbloquea con el logro «El rey del juego»')}">
+          <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><small>${ok ? esc(p.nombre) : '🔒 ' + esc(p.nombre)}</small></button>`;
+      }).join('')}</div>
+      ${esRey() ? '' : '<p class="nota">👑 Los caballeros alados se desbloquean al conseguir el logro «El rey del juego» (completar todos los demás logros).</p>'}`;
+  }
+  function auraHTML() {
+    if (!tieneAura()) return `<h3>Premio del nivel 100</h3><p class="nota">🔒 Al llegar al nivel ${NIVEL_AURA} ganarás el <b>Aura del Centenario</b>, un premio que muy pocos consiguen. Vas en el nivel ${S.nivel || 1}.</p>`;
+    return `<h3>Premio del nivel 100</h3><div class="mejora ${auraActiva() ? 'puesta' : ''}"><span class="ico" style="font-size:30px;display:grid;place-items:center">✨</span>
+      <div class="info"><strong>Aura del Centenario</strong><span>Resplandor dorado que te rodea en todos los mundos</span></div>
+      <button type="button" class="btn ${auraActiva() ? '' : 'pri'}" data-aura="${auraActiva() ? '0' : '1'}">${auraActiva() ? 'Apagar' : 'Encender'}</button></div>`;
   }
 
   // ---------- Combate ----------
@@ -6813,7 +6894,34 @@
       this.mascotaS = null; this.burbujas = [];
       MASCOTAS.forEach((m, i) => { if (!this.anims.exists(`masc_${m.id}`)) this.anims.create({ key: `masc_${m.id}`, frames: this.anims.generateFrameNumbers('mascotas', { start: i * 2, end: i * 2 + 1 }), frameRate: 4, repeat: -1 }); });
       this.pintarMascota();
+      this.auraS = null; this.pintarAura();
     }
+    // Aura del Centenario (premio del nivel 100): resplandor dorado + chispas
+    crearAura(spr) {
+      if (!this.textures.exists('aura_glow')) {
+        const g = this.make.graphics({ x: 0, y: 0 }, false);
+        for (let r = 30; r > 0; r -= 2) { g.fillStyle(0xffd24a, 0.05 + (1 - r / 30) * 0.09); g.fillEllipse(32, 20, r * 2, r * 1.25); }
+        g.generateTexture('aura_glow', 64, 40); g.destroy();
+        const c = this.make.graphics({ x: 0, y: 0 }, false);
+        c.fillStyle(0xffffff, 1); c.fillRect(2, 0, 2, 6); c.fillRect(0, 2, 6, 2); c.generateTexture('aura_chispa', 6, 6); c.destroy();
+      }
+      const glow = this.add.image(spr.x, spr.y, 'aura_glow').setOrigin(0.5, 0.5).setBlendMode(Phaser.BlendModes.ADD);
+      this.tweens.add({ targets: glow, alpha: { from: 0.65, to: 1 }, scale: { from: 0.95, to: 1.12 }, duration: 900, yoyo: true, repeat: -1 });
+      const em = this.add.particles(0, 0, 'aura_chispa', {
+        follow: spr, followOffset: { x: 0, y: -24 }, lifespan: 1100, frequency: 140, quantity: 1,
+        speedY: { min: -38, max: -18 }, speedX: { min: -14, max: 14 }, scale: { start: 1, end: 0 }, alpha: { start: 1, end: 0 },
+        tint: [0xffe27a, 0xfff6c8, 0xffc24a], blendMode: 'ADD', emitZone: { type: 'random', source: new Phaser.Geom.Ellipse(0, 0, 40, 46) },
+      });
+      return { glow, em, spr };
+    }
+    quitarAura(a) { if (a) { a.glow.destroy(); a.em.destroy(); } }
+    pintarAura() {
+      const on = auraActiva() && this.jugador;
+      if (!on && this.auraS) { this.quitarAura(this.auraS); this.auraS = null; }
+      if (on && !this.auraS) this.auraS = this.crearAura(this.jugador);
+      if (this.ultimoMov) this.ultimoMov.t = 0;
+    }
+    moverAura(a) { if (!a) return; const v = a.spr.alpha > 0.1 && a.spr.visible; a.glow.setPosition(a.spr.x, a.spr.y - 4).setDepth(a.spr.depth - 0.5).setVisible(v); a.em.setDepth(a.spr.depth + 0.5).setVisible(v); }
     // Mascota que sigue al jugador (también se crea para los compañeros)
     crearMascotaSpr(id, x, y) {
       const s = this.add.sprite(x, y, 'mascotas', MASCOTA[id].fila * 2).setOrigin(0.5, 0.95);
@@ -6922,6 +7030,7 @@
       this.seguir(j, this.capasJ);
       if (this.tagYo) { this.tagYo.setPosition(j.x, j.y - 62); this.tagYoT.setPosition(j.x, j.y - 78); }
       this.seguirMascota(this.mascotaS, j.x, j.y, this.dir, dt / 1000);
+      this.moverAura(this.auraS);
       this.moverBurbujas();
       if (this.luz) this.luz.setPosition(j.x, j.y - 24);
       if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
@@ -7408,7 +7517,7 @@
     }
     quitarOtro(id) {
       const o = this.otros.get(id); if (!o) return;
-      o.spr.destroy(); o.tag.destroy(); if (o.tagT) o.tagT.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); if (o.masc) o.masc.destroy(); this.otros.delete(id);
+      o.spr.destroy(); o.tag.destroy(); if (o.tagT) o.tagT.destroy(); o.capas.atras.destroy(); o.capas.mano.destroy(); if (o.masc) o.masc.destroy(); this.quitarAura(o.aura); this.otros.delete(id);
     }
     recibirMov(d) {
       const o = this.otros.get(d.id); if (!o) return;
@@ -7418,6 +7527,8 @@
       o.obj = { x: Number(d.x) || 0, y: Number(d.y) || 0 }; o.dir = DIRS[d.d] !== undefined ? d.d : 'down'; o.m = Boolean(d.m);
       if (d.ti !== undefined && d.ti !== o.ti) this.ponerTituloOtro(o, d.ti);
       if (d.pe !== undefined && d.pe !== o.pe) this.ponerMascotaOtro(o, d.pe);
+      if (d.pj && d.pj !== o.pj && PERSONAJES.some((x) => x.id === d.pj)) { o.pj = d.pj; this.vestir(o.spr, o.capas, o.pj, o.a, o.h, o.w); }
+      if (Boolean(d.au) !== Boolean(o.aura)) { if (d.au) o.aura = this.crearAura(o.spr); else { this.quitarAura(o.aura); o.aura = null; } }
       if (!o.visto || Phaser.Math.Distance.Between(o.spr.x, o.spr.y, o.obj.x, o.obj.y) > 400) { o.spr.setPosition(o.obj.x, o.obj.y); o.visto = true; o.spr.setAlpha(1); o.tag.setAlpha(1); if (o.tagT) o.tagT.setAlpha(1); }
     }
     moverOtros(seg) {
@@ -7435,6 +7546,7 @@
         o.tag.setPosition(o.spr.x, o.spr.y - 62);
         if (o.tagT) o.tagT.setPosition(o.spr.x, o.spr.y - 78);
         if (o.masc) { this.seguirMascota(o.masc, o.spr.x, o.spr.y, o.dir, seg); o.masc.setAlpha(o.spr.alpha); }
+        if (o.aura) this.moverAura(o.aura);
       }
     }
     enviarMovimiento(moviendo) {
@@ -7447,7 +7559,7 @@
       if (u.t && !moviendo && !u.m && dist < 2) return;
       if (u.t && moviendo && dist < 4) return;
       u.t = ahora; u.x = j.x; u.y = j.y; u.m = moviendo;
-      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '', pe: mascotaActual() });
+      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '', pe: mascotaActual(), pj: S.pj, au: auraActiva() ? 1 : 0 });
     }
     ponerMascotaOtro(o, id) {
       if (!o) return;

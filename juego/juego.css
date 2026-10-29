@@ -692,3 +692,29 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .pc-consejo span.entra { animation: pc-consejo .5s ease-out; }
 @keyframes pc-consejo { from { opacity: 0; transform: translateY(6px); } }
 .codigo-grupo { font-family: "Fredoka", "Nunito", sans-serif; font-size: 28px; text-align: center; letter-spacing: .08em; text-transform: uppercase; margin: 8px 0; }
+
+/* ---------- Personajes en el equipo y El rey del juego ---------- */
+.pjs-eq { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; margin-bottom: 8px; }
+.pj-eq { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--text); font: inherit; cursor: pointer; }
+.pj-eq .retrato { width: 64px; height: 64px; background-size: 576px 256px; background-position: 0 -128px; }
+.pj-eq small { font-size: 11px; font-weight: 800; text-align: center; line-height: 1.1; }
+.pj-eq[aria-pressed="true"] { border-color: var(--amber); background: #3a2f12; }
+.pj-eq.rey { border-color: #b98a2a; background: linear-gradient(180deg, #2c2410, #1a1f18); }
+.pj-eq.bloq .retrato { filter: brightness(0) opacity(.5); }
+.pj-eq:disabled { cursor: default; }
+.modal.rey { border-color: #ffd24a; box-shadow: 0 0 0 4px rgba(255, 210, 74, .25), 0 20px 60px rgba(0,0,0,.6); }
+.rey-modal { position: relative; display: flex; flex-direction: column; gap: 12px; text-align: center; overflow: hidden; }
+.rey-modal h2 { font-family: "Fredoka", "Nunito", sans-serif; font-size: 34px; margin: 0; color: #ffd27a; text-shadow: 0 3px 0 #6a3d0c; }
+.rey-modal .acciones { text-align: left; }
+.rey-brillo { position: absolute; inset: -40%; background: conic-gradient(from 0deg, transparent, rgba(255, 210, 74, .14), transparent 30%, rgba(255, 210, 74, .12), transparent 60%); animation: rey-gira 9s linear infinite; pointer-events: none; }
+@keyframes rey-gira { to { transform: rotate(360deg); } }
+.rey-pjs { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.rey-pj { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; border-radius: 14px; border: 2px solid #b98a2a; background: linear-gradient(180deg, #3a2f12, #1a1f18); color: var(--text); font: inherit; cursor: pointer; }
+.rey-pj:hover { border-color: #ffd24a; transform: translateY(-2px); }
+.rey-pj .retrato { width: 96px; height: 96px; background-size: 864px 384px; background-position: 0 -192px; }
+.rey-pj small { color: #ffd27a; font-weight: 800; }
+.aura-demo { position: relative; display: grid; place-items: center; padding: 10px; }
+.aura-demo::before { content: ""; position: absolute; width: 180px; height: 120px; bottom: 6px; border-radius: 50%; background: radial-gradient(ellipse, rgba(255, 214, 90, .75), rgba(255, 214, 90, 0) 70%); animation: aura-late 1.8s ease-in-out infinite; }
+@keyframes aura-late { 50% { transform: scale(1.12); opacity: .7; } }
+@media (max-width: 760px) { .rey-pjs { grid-template-columns: repeat(2, 1fr); } }
+.aura-demo .figura { position: relative; }
