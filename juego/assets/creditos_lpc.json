@@ -1306,5 +1306,51 @@
   "enlaces": [
    "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites"
   ]
+ },
+ {
+  "archivo": "backpack/backpack/male/walk/gray.png",
+  "autores": [
+   "Benjamin K. Smith (BenCreating)",
+   "macmanmatty"
+  ],
+  "licencias": [
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-backpacks"
+  ]
+ },
+ {
+  "archivo": "facial/masks/plain/adult/walk/black.png",
+  "autores": [
+   "Nila122"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 2.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-masks",
+   "https://opengameart.org/content/lpc-expanded-hats-facial-helmets"
+  ]
+ },
+ {
+  "archivo": "hat/cloth/hood/adult/walk.png",
+  "autores": [
+   "Johannes Sjölund (wulax)",
+   "JaidynReiman"
+  ],
+  "licencias": [
+   "OGA-BY 3.0",
+   "CC-BY-SA 3.0",
+   "GPL 3.0"
+  ],
+  "enlaces": [
+   "https://opengameart.org/content/lpc-medieval-fantasy-character-sprites",
+   "https://opengameart.org/content/lpc-expanded-hats-facial-helmets"
+  ]
  }
 ]

@@ -43,5 +43,14 @@
     { id: 'escudo', nombre: 'Escudo de cristal', icono: '🛡️', seg: 120, color: '#2a9d8f',
       resumen: 'Durante 2 minutos los errores en combate no quitan corazones (y huir tampoco).',
       objetivo: 'Los errores no te quitan corazones' },
+    { id: 'ladron', nombre: 'El ladrón', icono: '🦹', seg: 120, color: '#5b2c6f',
+      resumen: 'Se avisa a todos que en 30 segundos un ladrón llegará a su base. Hay que volver y atraparlo respondiendo 5 preguntas (máximo 3 errores). Si pierden o no están, roba muchos recursos del cofre o incluso un adorno o mueble.',
+      objetivo: 'Vuelve a tu base y atrapa al ladrón' },
+    { id: 'tesoro', nombre: 'Tesoro escondido', icono: '🗝️', seg: 100, color: '#a0522d',
+      resumen: 'Se entierra un tesoro cerca de cada jugador. Se guían por el calor (🧊 frío … 🔥 muy caliente) y, al encontrarlo, cavan respondiendo 3 preguntas. ¡Gran botín!',
+      objetivo: 'Encuentra el tesoro y cava respondiendo 3 preguntas' },
+    { id: 'racha', nombre: 'Racha imparable', icono: '🔥', seg: 90, color: '#c0392b', preguntas: true,
+      resumen: 'Preguntas durante 90 segundos: cada acierto seguido sube el multiplicador hasta x5 y un error lo vuelve a x1. Premia la concentración y la constancia.',
+      objetivo: 'Encadena aciertos para subir el multiplicador' },
   ];
 })(window);

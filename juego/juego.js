@@ -3183,6 +3183,13 @@
     L('mascota1', 'coleccion', '🐾', 'Amigo fiel', 'Desbloquea tu primera mascota venciendo a un jefe final.', 1, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Amigo de los Animales'),
     L('mascota4', 'coleccion', '🦉', 'Cuidador', 'Desbloquea 4 mascotas distintas.', 4, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Cuidador de Bestias'),
     L('mascota7', 'coleccion', '🐲', 'Arca de leyendas', 'Desbloquea las 7 mascotas de los jefes finales.', 7, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Señor de las Bestias'),
+    L('comercio1', 'equipo', '🤝', 'Comerciante', 'Haz un intercambio con un compañero en el cofre de comercio.', 1, () => CN('comercio'), 'Comerciante'),
+    L('comercio10', 'equipo', '💼', 'Gran mercader', 'Haz 10 intercambios con tus compañeros.', 10, () => CN('comercio'), 'Gran Mercader'),
+    L('pvp1', 'combate', '⚔️', 'Gladiador', 'Gana un duelo en la arena PvP.', 1, () => CN('pvp_victoria'), 'Gladiador'),
+    L('pvp5', 'combate', '🏟️', 'Campeón de la arena', 'Gana 5 duelos en la arena PvP.', 5, () => CN('pvp_victoria'), 'Campeón de la Arena'),
+    L('ladron', 'combate', '🦹', 'Guardián del cofre', 'Atrapa al ladrón del desafío de tu profesor.', 1, () => CN('ladron'), 'Guardián del Cofre'),
+    L('tesoro', 'explorar', '🗝️', 'Cazatesoros', 'Encuentra el tesoro escondido del desafío de tu profesor.', 1, () => CN('tesoro'), 'Cazatesoros'),
+    L('racha5', 'aprender', '🔥', 'Imparable', 'Llega al multiplicador x5 en la racha imparable.', 1, () => CN('racha5'), 'Imparable'),
     L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
   ];
   // El logro final: se desbloquea al completar todos los demás
@@ -3589,6 +3596,543 @@
     return `<h3>Premio del nivel 100</h3><div class="mejora ${auraActiva() ? 'puesta' : ''}"><span class="ico" style="font-size:30px;display:grid;place-items:center">✨</span>
       <div class="info"><strong>Aura del Centenario</strong><span>Resplandor dorado que te rodea en todos los mundos</span></div>
       <button type="button" class="btn ${auraActiva() ? '' : 'pri'}" data-aura="${auraActiva() ? '0' : '1'}">${auraActiva() ? 'Apagar' : 'Encender'}</button></div>`;
+  }
+
+  // ===================================================================
+  // Comercio entre compañeros del curso (cofre de comercio de la base)
+  // Lo que se ofrece queda apartado (sale del cofre) hasta que alguien acepta o se cancela la oferta.
+  // ===================================================================
+  const recLista = (o) => Object.entries(o || {}).filter(([r]) => REC[r]).map(([r, n]) => `<span class="cm-rec"><img class="px" src="${ICONO(r)}" alt="">${n} ${esc(nombreRec(r))}</span>`).join('');
+  const tengoCofre = (o) => esDocente() || Object.entries(o || {}).every(([r, n]) => (S.cofre[r] || 0) >= n);
+  const quitarCofre = (o) => { Object.entries(o).forEach(([r, n]) => { S.cofre[r] = Math.max(0, (S.cofre[r] || 0) - n); }); pintarHUD(); };
+  const comercioOk = () => sesion.modo === 'nube' && !esDocente();
+  let comTab = 'mercado', comDatos = null, comVerOmitidas = false;
+  async function cobrarComercio(silencio) {
+    if (!comercioOk() || !S) return;
+    try {
+      const r = await Nube.comercioCobrar(sesion.token);
+      if (!r || !r.ok || !(r.cobros || []).length) return;
+      for (const c of r.cobros) {
+        sumarCofre(c.pide); contar('comercio');
+        toast(`🤝 ${c.nombre || 'Un compañero'} aceptó tu oferta: recibiste ${Object.entries(c.pide).map(([x, n]) => `${n} ${nombreRec(x)}`).join(', ')} en tu cofre.`);
+      }
+      guardar(true);
+    } catch (e) { /* se reintenta */ }
+  }
+  setInterval(() => { if (S && !carga) cobrarComercio(); }, 45000);
+  async function abrirComercio(tab) {
+    if (tab) comTab = tab;
+    if (!comercioOk()) {
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">Tu base</span><h2 id="modal-titulo">🤝 Cofre de comercio</h2></div><button type="button" class="btn" id="cm-cerrar">Cerrar</button></div>
+        <p class="nota">${esDocente() ? 'En modo docente no se comercia: aquí tus estudiantes ofrecen y aceptan intercambios de recursos con sus compañeros de curso.' : 'Para comerciar con tus compañeros necesitas entrar con tu RUT y tu clave.'}</p>`);
+      $('cm-cerrar').addEventListener('click', () => ui.cerrar());
+      return;
+    }
+    await cobrarComercio(true);
+    try { comDatos = await Nube.comercioListar(sesion.token); } catch (e) { comDatos = null; }
+    pintarComercio();
+  }
+  function pintarComercio(msg = '') {
+    const d = comDatos && comDatos.ok ? comDatos : { otras: [], mias: [] };
+    const omit = new Set(S.comOmitidas || []);
+    const otras = d.otras.filter((o) => comVerOmitidas || !omit.has(o.id));
+    const nOmit = d.otras.filter((o) => omit.has(o.id)).length;
+    const abiertas = d.mias.filter((o) => o.estado === 'abierta').length;
+    const tabs = [['mercado', `🛒 Mercado del curso (${d.otras.length - nOmit})`], ['mias', `📦 Mis ofertas (${abiertas}/3)`], ['nueva', '➕ Nueva oferta']];
+    let cuerpo = '';
+    if (!comDatos) cuerpo = '<p class="mensaje mal">No se pudo conectar con el mercado. Revisa tu conexión e inténtalo otra vez.</p>';
+    else if (comTab === 'mercado') {
+      cuerpo = otras.length ? `<div class="cm-lista">${otras.map((o) => {
+        const puedo = tengoCofre(o.pide);
+        return `<div class="cm-oferta ${omit.has(o.id) ? 'omitida' : ''}"><div class="cm-quien"><b>${esc(o.nombre)}</b><small>${esc(hace_(o.creado))}</small></div>
+          <div class="cm-trato"><div><span class="etq">Te da</span>${recLista(o.da)}</div><span class="cm-flecha">⇄</span><div><span class="etq">Te pide</span>${recLista(o.pide)}</div></div>
+          <div class="cm-botones">${puedo ? '' : '<small class="cm-falta">No tienes lo que pide en tu cofre</small>'}
+            <button type="button" class="btn" data-omitir="${o.id}">${omit.has(o.id) ? 'Mostrar' : 'Omitir'}</button>
+            <button type="button" class="btn pri" data-aceptar="${o.id}" ${puedo ? '' : 'disabled'}>Aceptar</button></div></div>`;
+      }).join('')}</div>` : `<p class="nota cm-vacio">No hay ofertas de tus compañeros por ahora. ¡Publica la tuya en «Nueva oferta»!</p>`;
+      if (nOmit) cuerpo += `<button type="button" class="btn sec chico" id="cm-omitidas">${comVerOmitidas ? 'Ocultar omitidas' : `Ver omitidas (${nOmit})`}</button>`;
+    } else if (comTab === 'mias') {
+      cuerpo = d.mias.length ? `<div class="cm-lista">${d.mias.map((o) => `<div class="cm-oferta"><div class="cm-quien"><b>${o.estado === 'abierta' ? '⏳ Esperando' : o.estado === 'aceptada' ? `✅ Aceptada por ${esc(o.aceptante || 'un compañero')}` : '✖ Cancelada'}</b><small>${esc(hace_(o.creado))}</small></div>
+          <div class="cm-trato"><div><span class="etq">Ofreces</span>${recLista(o.da)}</div><span class="cm-flecha">⇄</span><div><span class="etq">Pides</span>${recLista(o.pide)}</div></div>
+          <div class="cm-botones">${o.estado === 'abierta' ? `<button type="button" class="btn" data-cancelar="${o.id}">Cancelar y recuperar</button>` : ''}</div></div>`).join('')}</div>`
+        : '<p class="nota cm-vacio">Aún no publicas ofertas.</p>';
+    } else cuerpo = nuevaOfertaHTML();
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Tu base · se comercia con tu curso</span><h2 id="modal-titulo">🤝 Cofre de comercio</h2></div><button type="button" class="btn" id="cm-cerrar">Cerrar</button></div>
+      <div class="cm-tabs">${tabs.map(([k, t]) => `<button type="button" class="pildora-btn" data-cmtab="${k}" aria-checked="${comTab === k}">${t}</button>`).join('')}</div>
+      ${msg ? `<div class="mensaje ${msg.startsWith('!') ? 'mal' : 'bien'}" role="status">${esc(msg.replace(/^!/, ''))}</div>` : ''}
+      <div class="cm-cuerpo">${cuerpo}</div>`, 'ancho comercio');
+    $('cm-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-cmtab]').forEach((b) => b.addEventListener('click', () => { comTab = b.dataset.cmtab; pintarComercio(); }));
+    const om = $('cm-omitidas'); if (om) om.addEventListener('click', () => { comVerOmitidas = !comVerOmitidas; pintarComercio(); });
+    document.querySelectorAll('[data-omitir]').forEach((b) => b.addEventListener('click', () => {
+      const id = Number(b.dataset.omitir), l = new Set(S.comOmitidas || []);
+      if (l.has(id)) l.delete(id); else l.add(id);
+      S.comOmitidas = [...l].slice(-80); guardar(); pintarComercio();
+    }));
+    document.querySelectorAll('[data-aceptar]').forEach((b) => b.addEventListener('click', () => aceptarOferta(Number(b.dataset.aceptar), b)));
+    document.querySelectorAll('[data-cancelar]').forEach((b) => b.addEventListener('click', () => cancelarOferta(Number(b.dataset.cancelar), b)));
+    if (comTab === 'nueva') prepararNuevaOferta();
+  }
+  const hace_ = (ms) => { const s = (Date.now() - Number(ms)) / 1000; return s < 3600 ? `Hace ${Math.max(1, Math.round(s / 60))} min` : s < 86400 ? `Hace ${Math.round(s / 3600)} h` : `Hace ${Math.round(s / 86400)} días`; };
+  async function aceptarOferta(id, btn) {
+    const o = (comDatos.otras || []).find((x) => x.id === id); if (!o) return;
+    if (!tengoCofre(o.pide)) return pintarComercio('!No tienes en tu cofre lo que pide esta oferta.');
+    btn.disabled = true;
+    let r = null;
+    try { r = await Nube.comercioAceptar(sesion.token, id); } catch (e) { r = null; }
+    if (!r || !r.ok) { try { comDatos = await Nube.comercioListar(sesion.token); } catch (e) { /* */ } return pintarComercio(r && r.error === 'no_disponible' ? '!Esa oferta ya no está disponible: otro compañero la aceptó o fue cancelada.' : '!No se pudo aceptar. Inténtalo otra vez.'); }
+    quitarCofre(r.pide); sumarCofre(r.da); contar('comercio'); guardar(true); sfx('moneda');
+    try { comDatos = await Nube.comercioListar(sesion.token); } catch (e) { /* */ }
+    pintarComercio(`¡Intercambio hecho con ${r.nombre || 'tu compañero'}! Recibiste ${Object.entries(r.da).map(([x, n]) => `${n} ${nombreRec(x)}`).join(', ')}.`);
+    if (escena) escena.celebrar();
+  }
+  async function cancelarOferta(id, btn) {
+    btn.disabled = true;
+    let r = null;
+    try { r = await Nube.comercioCancelar(sesion.token, id); } catch (e) { r = null; }
+    if (r && r.ok) { sumarCofre(r.da); guardar(true); }
+    try { comDatos = await Nube.comercioListar(sesion.token); } catch (e) { /* */ }
+    pintarComercio(r && r.ok ? 'Oferta cancelada: los recursos volvieron a tu cofre.' : '!No se pudo cancelar (quizás alguien ya la aceptó).');
+    if (!(r && r.ok)) cobrarComercio();
+  }
+  // ---------- crear una oferta ----------
+  let borrador = { da: [['', 1]], pide: [['', 1]] };
+  function nuevaOfertaHTML() {
+    const mios = recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0), todos = recursosVisibles();
+    const fila = (lado, [r, n], i, lista) => `<div class="cm-fila"><select data-cmr="${lado}" data-i="${i}" aria-label="Recurso"><option value="">Elige un recurso…</option>${lista.map((x) => `<option value="${x.id}" ${x.id === r ? 'selected' : ''}>${esc(x.nombre)}${lado === 'da' ? ` (tienes ${S.cofre[x.id] || 0})` : ''}</option>`).join('')}</select>
+      <input type="number" min="1" max="200" value="${n}" data-cmn="${lado}" data-i="${i}" aria-label="Cantidad">${i ? `<button type="button" class="btn chico" data-cmx="${lado}" data-i="${i}" aria-label="Quitar">✕</button>` : ''}</div>`;
+    return `<div class="cm-nueva">
+      <div><h3>Ofreces <small class="nota-mini">(sale de tu cofre)</small></h3>${borrador.da.map((f, i) => fila('da', f, i, mios)).join('')}${borrador.da.length < 3 ? '<button type="button" class="btn sec chico" data-cmmas="da">+ Otro recurso</button>' : ''}</div>
+      <span class="cm-flecha grande">⇄</span>
+      <div><h3>Pides a cambio</h3>${borrador.pide.map((f, i) => fila('pide', f, i, todos)).join('')}${borrador.pide.length < 3 ? '<button type="button" class="btn sec chico" data-cmmas="pide">+ Otro recurso</button>' : ''}</div>
+      </div>
+      <p class="nota">Tus compañeros de curso verán tu oferta en su cofre de comercio. Lo que ofreces queda apartado: si la cancelas, vuelve a tu cofre. Puedes tener hasta 3 ofertas a la vez.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="cm-publicar">Publicar oferta</button></div>`;
+  }
+  function prepararNuevaOferta() {
+    const leer = () => document.querySelectorAll('[data-cmr]').forEach((s) => { borrador[s.dataset.cmr][Number(s.dataset.i)][0] = s.value; });
+    const leerN = () => document.querySelectorAll('[data-cmn]').forEach((s) => { borrador[s.dataset.cmn][Number(s.dataset.i)][1] = Math.max(1, Math.min(200, Math.floor(Number(s.value) || 1))); });
+    document.querySelectorAll('[data-cmr]').forEach((s) => s.addEventListener('change', () => { leer(); leerN(); }));
+    document.querySelectorAll('[data-cmn]').forEach((s) => { s.addEventListener('change', leerN); s.addEventListener('keydown', (e) => e.stopPropagation()); });
+    document.querySelectorAll('[data-cmmas]').forEach((b) => b.addEventListener('click', () => { leer(); leerN(); borrador[b.dataset.cmmas].push(['', 1]); pintarComercio(); }));
+    document.querySelectorAll('[data-cmx]').forEach((b) => b.addEventListener('click', () => { leer(); leerN(); borrador[b.dataset.cmx].splice(Number(b.dataset.i), 1); pintarComercio(); }));
+    $('cm-publicar').addEventListener('click', async () => {
+      leer(); leerN();
+      const junta = (l) => { const o = {}; l.forEach(([r, n]) => { if (r) o[r] = (o[r] || 0) + n; }); return o; };
+      const da = junta(borrador.da), pide = junta(borrador.pide);
+      if (!Object.keys(da).length || !Object.keys(pide).length) return pintarComercio('!Elige al menos un recurso que ofreces y uno que pides.');
+      if (Object.keys(da).some((r) => pide[r])) return pintarComercio('!No puedes ofrecer y pedir el mismo recurso.');
+      if (!tengoCofre(da)) return pintarComercio('!No tienes en tu cofre todo lo que quieres ofrecer.');
+      if (Object.values(pide).some((n) => n > 200) || Object.values(da).some((n) => n > 200)) return pintarComercio('!El máximo es 200 de cada recurso.');
+      $('cm-publicar').disabled = true;
+      quitarCofre(da); guardar(true);   // queda apartado
+      let r = null;
+      try { r = await Nube.comercioCrear(sesion.token, da, pide); } catch (e) { r = null; }
+      if (!r || !r.ok) { sumarCofre(da); guardar(true); return pintarComercio(r && r.error === 'limite' ? '!Ya tienes 3 ofertas abiertas. Cancela una o espera a que las acepten.' : '!No se pudo publicar la oferta. Inténtalo otra vez.'); }
+      borrador = { da: [['', 1]], pide: [['', 1]] };
+      contar('oferta');
+      try { comDatos = await Nube.comercioListar(sesion.token); } catch (e) { /* */ }
+      comTab = 'mias'; pintarComercio('¡Oferta publicada! Tus compañeros ya la pueden ver en su cofre de comercio.');
+    });
+  }
+
+  // ===================================================================
+  // Arena PvP: duelo 1 contra 1 entre compañeros del grupo (solo izquierda/derecha, atacar y bloquear)
+  // Quien pierde vuelve a su base y el ganador se queda con todo lo que el otro llevaba en la mochila.
+  // ===================================================================
+  let pvp = null;
+  const PVP_W = 800, PVP_H = 360, PVP_SUELO = 300, PVP_ALCANCE = 82, PVP_SEG = 90;
+  const vidaPvp = () => 4 * vidaMax();
+  const golpePvp = () => 2 + 2 * danio();
+  const mochilaTotal = () => Object.values(S.mochila || {}).reduce((a, b) => a + (b || 0), 0);
+  function emitirPvp(d) { if (escena && escena.canal && pvp) escena.canal.emitir('pvp', { id: idJuego, ...d }); }
+  function recibirPvp(d) {
+    if (!d || d.id === idJuego || !pvp) return;
+    if (d.t === 'aqui') { if (pvp.fase === 'sala') { pvp.gente.set(d.id, { ...d, visto: Date.now() }); pintarSalaPvp(); } return; }
+    if (d.t === 'salir') { pvp.gente.delete(d.id); if (pvp.fase === 'sala') pintarSalaPvp(); else if (pvp.rival && pvp.rival.id === d.id) rivalSeFue(); return; }
+    if (d.a !== idJuego) return;
+    if (d.t === 'reto' && pvp.fase === 'sala') { pvp.retoDe = d; pintarSalaPvp(); sfx('alerta'); }
+    else if (d.t === 'rechazo' && pvp.fase === 'sala' && pvp.reto === d.id) { pvp.reto = null; pvp.aviso = `${d.nombre || 'Tu compañero'} rechazó el duelo.`; pintarSalaPvp(); }
+    else if (d.t === 'acepto' && pvp.fase === 'sala' && pvp.reto === d.id) arrancarDuelo(d);
+    else if (pvp.fase === 'duelo' && pvp.rival && d.id === pvp.rival.id) {
+      const R = pvp.rival;
+      R.visto = performance.now();
+      if (d.t === 'pos') { R.tx = d.x; R.dir = d.dir; R.bloq = d.b; R.mueve = d.m; if (d.at && d.at !== R.atkN) { R.atkN = d.at; R.atk = performance.now(); } }
+      else if (d.t === 'golpe') recibirGolpe(d.dmg);
+      else if (d.t === 'hp') { R.hp = d.hp; R.golpeado = performance.now(); if (d.bloq) R.chispa = performance.now(); }
+      else if (d.t === 'fin') ganarDuelo(d.mochila || {});
+    }
+  }
+  function datosYo() { return { nombre: nombreJug(), pj: S.pj, tex: texArmadura(S.armadura), vm: vidaPvp(), dmg: golpePvp(), mochila: mochilaTotal() }; }
+  function abrirArena() {
+    pvp = { fase: 'sala', gente: new Map(), reto: null, retoDe: null, aviso: '', limpiar: [] };
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Arena · ${escena && escena.canal ? `Grupo ${S.grupo}` : 'sin compañeros: puedes practicar'}</span><h2 id="modal-titulo">⚔️ Arena PvP</h2></div><button type="button" class="btn" id="pv-salir">Salir</button></div>
+      <div class="carrera-sala" id="pv-cuerpo">
+        <div><p class="nota">Reta a un compañero de tu grupo a un duelo 1 contra 1. Solo te mueves a la <b>izquierda y derecha</b> (<kbd>A</kbd> <kbd>D</kbd> o flechas), <b>atacas</b> con <kbd>J</kbd> o <kbd>Espacio</kbd> y <b>bloqueas</b> manteniendo <kbd>K</kbd>. Tu <b>armadura</b> define tu vida y tu <b>espada</b> el daño de cada golpe.</p>
+          <p class="mensaje mal pv-riesgo">⚠️ Quien pierde vuelve a su base y el ganador se queda con <b>todo lo que llevaba en la mochila</b>.</p>
+          <ul class="carrera-lista pv-lista" id="pv-lista"></ul><div id="pv-reto"></div></div>
+        <div class="carrera-premios"><span class="etq">Tu luchador</span><div id="pv-yo"></div><button type="button" class="btn sec" id="pv-practica">Practicar contra el muñeco</button><span class="nota">La práctica no tiene premio ni castigo.</span></div>
+      </div>
+      <div class="acciones"><span class="nota" id="pv-nota"></span><span></span></div>`, 'minijuego pvp', () => {
+      if (!pvp) return;
+      if (pvp.fase === 'duelo' && pvp.rival && !pvp.rival.bot && !pvp.terminado) perderDuelo('Abandonaste el duelo.');
+      emitirPvp({ t: 'salir' });
+      clearInterval(pvp.latido); cancelAnimationFrame(pvp.raf); pvp.limpiar.forEach((f) => f());
+      const volver = pvp.alSalir; pvp = null;
+      if (volver) volver();
+    });
+    $('pv-salir').addEventListener('click', () => ui.cerrar());
+    $('pv-practica').addEventListener('click', () => arrancarDuelo(null));
+    const latir = () => { if (!pvp || pvp.fase !== 'sala') return; emitirPvp({ t: 'aqui', ...datosYo() }); for (const [id, x] of pvp.gente) if (Date.now() - x.visto > 5000) pvp.gente.delete(id); pintarSalaPvp(); };
+    pvp.latido = setInterval(latir, 1500); latir();
+  }
+  function pintarSalaPvp() {
+    if (!pvp || pvp.fase !== 'sala' || !$('pv-lista')) return;
+    const y = datosYo();
+    $('pv-yo').innerHTML = `<div class="pv-ficha"><span class="cr-cara" style="background-image:url('assets/pj/${esc(S.pj)}_${esc(y.tex)}.png')"></span><div><b>${esc(y.nombre)}</b><small>❤️ Vida ${y.vm} · ⚔️ Golpe ${y.dmg}</small><small>🎒 Mochila: ${y.mochila} recursos en juego</small></div></div>`;
+    const gente = [...pvp.gente.entries()];
+    const html = gente.length ? gente.map(([id, g]) => `<li><span class="cr-cara" style="background-image:url('assets/pj/${esc(g.pj)}_${esc(g.tex || 'nada')}.png')"></span><b>${esc(g.nombre)}</b><small>❤️ ${g.vm} · ⚔️ ${g.dmg} · 🎒 ${g.mochila}</small>
+        <button type="button" class="btn pri chico" data-retar="${esc(id)}" ${pvp.reto ? 'disabled' : ''}>${pvp.reto === id ? 'Esperando…' : 'Retar'}</button></li>`).join('')
+      : '<li class="vacio">Aún no hay compañeros en la arena. Pídeles que entren (está cerca del portal de cada mundo).</li>';
+    if (html === pvp.htmlLista) return pintarRetoPvp();
+    pvp.htmlLista = html; $('pv-lista').innerHTML = html;
+    $('pv-lista').querySelectorAll('[data-retar]').forEach((b) => b.addEventListener('click', () => {
+      pvp.reto = b.dataset.retar; pvp.aviso = '';
+      emitirPvp({ t: 'reto', a: pvp.reto, ...datosYo() }); pintarSalaPvp();
+      setTimeout(() => { if (pvp && pvp.fase === 'sala' && pvp.reto === b.dataset.retar) { pvp.reto = null; pvp.aviso = 'Tu compañero no respondió el reto.'; pintarSalaPvp(); } }, 15000);
+    }));
+    pintarRetoPvp();
+  }
+  function pintarRetoPvp() {
+    const R = pvp.retoDe;
+    const html = R ? `<div class="pv-desafio"><b>⚔️ ${esc(R.nombre)} te reta a un duelo</b><small>Vida ${R.vm} · Golpe ${R.dmg} · lleva ${R.mochila} recursos en la mochila</small>
+        <div><button type="button" class="btn" id="pv-no">Rechazar</button><button type="button" class="btn pri" id="pv-si">¡Aceptar!</button></div></div>` : '';
+    const ng = pvp.gente.size;
+    $('pv-nota').textContent = pvp.aviso || (ng ? `${ng} ${ng === 1 ? 'compañero' : 'compañeros'} en la arena` : '');
+    if (html === pvp.htmlReto) return;
+    pvp.htmlReto = html; $('pv-reto').innerHTML = html;
+    if (R) {
+      $('pv-no').addEventListener('click', () => { emitirPvp({ t: 'rechazo', a: R.id, nombre: nombreJug() }); pvp.retoDe = null; pintarSalaPvp(); });
+      $('pv-si').addEventListener('click', () => { emitirPvp({ t: 'acepto', a: R.id, ...datosYo() }); arrancarDuelo(R); });
+    }
+  }
+  function imgPj(pj, tex) { const k = `pj_${pj}_${tex}`; return escena && escena.textures.exists(k) ? escena.textures.get(k).getSourceImage() : null; }
+  // rival: datos del compañero (null = muñeco de práctica)
+  function arrancarDuelo(rival) {
+    if (!pvp || pvp.fase !== 'sala') return;
+    clearInterval(pvp.latido);
+    const bot = !rival, izq = bot || idJuego < rival.id;
+    const yoD = datosYo();
+    pvp.fase = 'duelo'; pvp.retoDe = null;
+    pvp.yo = { x: izq ? 220 : 580, dir: izq ? 'right' : 'left', hp: yoD.vm, max: yoD.vm, dmg: yoD.dmg, bloq: false, atk: 0, atkN: 0, img: imgPj(S.pj, yoD.tex), nombre: yoD.nombre, golpeado: 0 };
+    pvp.rival = bot
+      ? { bot: true, id: 'muneco', x: 580, tx: 580, dir: 'left', hp: 30, max: 30, dmg: 3, bloq: false, atk: 0, img: imgPj('lobo', 'cuero'), nombre: 'Muñeco de práctica', ia: 1, visto: performance.now() }
+      : { id: rival.id, x: izq ? 580 : 220, tx: izq ? 580 : 220, dir: izq ? 'left' : 'right', hp: rival.vm, max: rival.vm, dmg: rival.dmg, bloq: false, atk: 0, img: imgPj(rival.pj, rival.tex || 'nada'), nombre: rival.nombre, visto: performance.now() };
+    pvp.mov = { l: false, r: false }; pvp.t = -3; pvp.cuenta = 3.2; pvp.ultPos = 0;
+    $('pv-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro zona-lienzo" id="mj-cuadro"><canvas id="pv-canvas" width="${PVP_W}" height="${PVP_H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
+      <div class="mj-controles pv-controles"><div class="pv-mover"><button type="button" class="btn" data-pv="l">◀</button><button type="button" class="btn" data-pv="r">▶</button></div>
+        <div class="pv-acciones"><button type="button" class="btn pv-bloq" id="pv-bloq">🛡️ Bloquear <kbd>K</kbd></button><button type="button" class="btn pri pv-atk" id="pv-atk">⚔️ Atacar <kbd>J</kbd></button></div></div></div>`;
+    document.querySelector('#modal .acciones').innerHTML = `<span class="nota" id="pv-nota">${bot ? 'Práctica: sin premio ni castigo' : '¡A luchar! El que pierde vuelve a su base sin su mochila'}</span><span class="pildora" id="pv-reloj"></span>`;
+    const cv = $('pv-canvas'); pvp.ctx = cv.getContext('2d'); pvp.ctx.imageSmoothingEnabled = false; encajar(cv, PVP_W / PVP_H);
+    const K = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r' };
+    const suelta = (e) => { if (K[e.key]) pvp.mov[K[e.key]] = false; if (e.key === 'k' || e.key === 'K' || e.key === 'Shift') pvp.yo.bloq = false; };
+    document.addEventListener('keyup', suelta); pvp.limpiar.push(() => document.removeEventListener('keyup', suelta));
+    ui.teclas = (e) => {
+      if (!pvp || pvp.fase !== 'duelo') return;
+      if (K[e.key]) { e.preventDefault(); pvp.mov[K[e.key]] = true; }
+      else if (e.key === 'j' || e.key === 'J' || e.key === ' ') { e.preventDefault(); atacarPvp(); }
+      else if (e.key === 'k' || e.key === 'K' || e.key === 'Shift') { e.preventDefault(); pvp.yo.bloq = true; }
+    };
+    document.querySelectorAll('[data-pv]').forEach((b) => {
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); pvp.mov[b.dataset.pv] = true; });
+      for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => { if (pvp) pvp.mov[b.dataset.pv] = false; });
+    });
+    const bb = $('pv-bloq');
+    bb.addEventListener('pointerdown', (e) => { e.preventDefault(); pvp.yo.bloq = true; });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) bb.addEventListener(ev, () => { if (pvp) pvp.yo.bloq = false; });
+    $('pv-atk').addEventListener('click', () => atacarPvp());
+    sfx('vamos');
+    let ultimo = performance.now();
+    const bucle = (ahora) => {
+      if (!pvp) return;
+      const dt = Math.min(0.1, (ahora - ultimo) / 1000); ultimo = ahora;
+      if (pvp.cuenta > 0) {
+        pvp.cuenta -= dt; const el = $('mj-cuenta'), n = Math.ceil(pvp.cuenta);
+        if (el && n > 0 && el.textContent !== String(n)) { el.textContent = String(n); sfx('tick'); }
+        if (pvp.cuenta <= 0 && el) { el.textContent = '¡YA!'; sfx('vamos'); setTimeout(() => el.remove(), 600); }
+      }
+      pvp.t += dt;
+      if (pvp.fase === 'duelo' && !pvp.terminado) pasoPvp(dt, ahora);
+      dibujarPvp(ahora);
+      const r = $('pv-reloj'); if (r) r.textContent = `⏱ ${Math.max(0, Math.ceil(PVP_SEG - Math.max(0, pvp.t)))} s`;
+      pvp.raf = requestAnimationFrame(bucle);
+    };
+    pvp.raf = requestAnimationFrame(bucle);
+  }
+  function atacarPvp() {
+    const Y = pvp && pvp.yo, ahora = performance.now();
+    if (!Y || pvp.terminado || pvp.t < 0 || Y.bloq || ahora - Y.atk < 650) return;
+    Y.atk = ahora; Y.atkN += 1; Y.pegado = false; sfx('lanzar');
+  }
+  function recibirGolpe(dmg) {
+    const Y = pvp.yo; if (!Y || pvp.terminado) return;
+    const bloqueado = Y.bloq;
+    const d = Math.max(1, bloqueado ? Math.ceil(dmg * 0.2) : Math.round(dmg));
+    Y.hp = Math.max(0, Y.hp - d); Y.golpeado = performance.now(); if (bloqueado) Y.chispa = performance.now();
+    Y.x = Math.max(40, Math.min(PVP_W - 40, Y.x + (Y.x < pvp.rival.x ? -1 : 1) * (bloqueado ? 10 : 34)));
+    sfx(bloqueado ? 'clic' : 'golpe'); if (!bloqueado && escena) escena.cameras.main.shake(100, 0.003);
+    flotPvp(Y.x, PVP_SUELO - 110, bloqueado ? `🛡️ -${d}` : `-${d}`, bloqueado ? '#9fd8ff' : '#ff7a6a');
+    if (!pvp.rival.bot) emitirPvp({ t: 'hp', a: pvp.rival.id, hp: Y.hp, bloq: bloqueado });
+    if (Y.hp <= 0) { if (pvp.rival.bot) terminarPractica(false); else perderDuelo(); }
+  }
+  const flotPvp = (x, y, txt, col) => { (pvp.flot = pvp.flot || []).push({ x, y, txt, col, t: performance.now() }); };
+  function pasoPvp(dt, ahora) {
+    const Y = pvp.yo, R = pvp.rival;
+    if (pvp.t > 0) {
+      const v = (pvp.mov.r ? 1 : 0) - (pvp.mov.l ? 1 : 0);
+      Y.mueve = Boolean(v) && !Y.bloq && ahora - Y.atk > 250;
+      if (Y.mueve) Y.x = Math.max(40, Math.min(PVP_W - 40, Y.x + v * 190 * dt));
+      // no se atraviesan
+      const minD = 46; if (Math.abs(Y.x - R.x) < minD) Y.x = R.x + (Y.x < R.x ? -minD : minD);
+      Y.dir = Y.x < R.x ? 'right' : 'left';
+      // el golpe se resuelve en la mitad de la animación
+      if (Y.atk && !Y.pegado && ahora - Y.atk > 170) {
+        Y.pegado = true;
+        if (Math.abs(Y.x - R.x) < PVP_ALCANCE) {
+          if (R.bot) golpeAlMuneco(Y.dmg);
+          else emitirPvp({ t: 'golpe', a: R.id, dmg: Y.dmg });
+        }
+      }
+    }
+    if (R.bot) iaMuneco(dt, ahora);
+    else {
+      R.x += (R.tx - R.x) * Math.min(1, dt * 12);
+      if (ahora - R.visto > 7000) rivalSeFue();
+    }
+    // posición al rival: solo cuando cambia (máx. ~7 por segundo) y un recordatorio cada 1 s
+    if (!R.bot && ahora - pvp.ultPos > 140) {
+      const firma = `${Math.round(Y.x / 3)}|${Y.dir}|${Y.bloq}|${Y.mueve}|${Y.atkN}`;
+      if (firma !== pvp.firma || ahora - pvp.ultPos > 1000) { pvp.firma = firma; pvp.ultPos = ahora; emitirPvp({ t: 'pos', a: R.id, x: Math.round(Y.x), dir: Y.dir, b: Y.bloq, m: Y.mueve, at: Y.atkN }); }
+    }
+    if (pvp.t >= PVP_SEG) finPorTiempo();
+  }
+  function golpeAlMuneco(dmg) {
+    const R = pvp.rival, bloq = R.bloq, d = Math.max(1, bloq ? Math.ceil(dmg * 0.2) : dmg);
+    R.hp = Math.max(0, R.hp - d); R.golpeado = performance.now(); if (bloq) R.chispa = performance.now();
+    R.x = Math.max(40, Math.min(PVP_W - 40, R.x + (R.x < pvp.yo.x ? -1 : 1) * (bloq ? 10 : 30)));
+    sfx(bloq ? 'clic' : 'golpe'); flotPvp(R.x, PVP_SUELO - 110, bloq ? `🛡️ -${d}` : `-${d}`, bloq ? '#9fd8ff' : '#ffd27a');
+    if (R.hp <= 0) terminarPractica(true);
+  }
+  function iaMuneco(dt, ahora) {
+    const R = pvp.rival, Y = pvp.yo;
+    if (pvp.t <= 0) return;
+    R.dir = R.x < Y.x ? 'right' : 'left';
+    const d = Math.abs(R.x - Y.x);
+    R.bloq = Y.atk && ahora - Y.atk < 300 && Math.random() < 0.02 * 60 * dt * 6 ? true : R.bloq && Math.random() > 0.05;
+    if (d > PVP_ALCANCE - 12 && !R.bloq) { R.x += (Y.x > R.x ? 1 : -1) * 120 * dt; R.mueve = true; } else R.mueve = false;
+    if (d < PVP_ALCANCE && !R.bloq && ahora - R.atk > 1300 && Math.random() < dt * 2) { R.atk = ahora; R.pegado = false; }
+    if (R.atk && !R.pegado && ahora - R.atk > 220) { R.pegado = true; if (Math.abs(R.x - Y.x) < PVP_ALCANCE) recibirGolpe(R.dmg); }
+  }
+  function finPorTiempo() {
+    if (pvp.terminado) return;
+    const Y = pvp.yo, R = pvp.rival, a = Y.hp / Y.max, b = R.hp / R.max;
+    if (R.bot) return terminarPractica(a > b);
+    if (Math.abs(a - b) < 0.001) { pvp.terminado = true; mostrarFinPvp('🤝 ¡Empate!', 'Se acabó el tiempo con la misma vida: nadie pierde nada.'); return; }
+    if (a < b) perderDuelo('Se acabó el tiempo y tu rival tenía más vida.');
+    else { pvp.esperandoFin = performance.now(); setTimeout(() => { if (pvp && !pvp.terminado) { pvp.terminado = true; mostrarFinPvp('⏱ Tiempo', 'Se acabó el tiempo. Tu rival no respondió: el duelo queda sin botín.'); } }, 6000); }
+  }
+  function perderDuelo(motivo) {
+    if (!pvp || pvp.terminado) return;
+    pvp.terminado = true;
+    const mochila = {}; Object.entries(S.mochila).forEach(([r, n]) => { if (n > 0) mochila[r] = n; });
+    emitirPvp({ t: 'fin', a: pvp.rival.id, mochila });
+    RECURSOS.forEach((r) => { S.mochila[r.id] = 0; });
+    contar('pvp_derrota'); guardar(true); pintarHUD();
+    const n = Object.values(mochila).reduce((a, b) => a + b, 0);
+    pvp.alSalir = () => viajar('base');
+    mostrarFinPvp('💥 Perdiste el duelo', `${motivo ? motivo + ' ' : ''}${pvp.rival.nombre} ganó${n ? ` y se llevó tu mochila: ${Object.entries(mochila).map(([r, k]) => `${k} ${nombreRec(r)}`).join(', ')}` : ' (tu mochila estaba vacía)'}. Vuelves a tu base.`);
+  }
+  function ganarDuelo(mochila) {
+    if (!pvp || pvp.terminado) return;
+    pvp.terminado = true;
+    let n = 0;
+    Object.entries(mochila).forEach(([r, k]) => { const c = Math.max(0, Math.min(999, Math.floor(Number(k) || 0))); if (REC[r] && c) { S.mochila[r] = (S.mochila[r] || 0) + c; n += c; } });
+    ganarXP(40); contar('pvp_victoria'); guardar(true); pintarHUD(); sfx('victoria');
+    if (escena) escena.celebrar();
+    mostrarFinPvp('🏆 ¡Ganaste el duelo!', `${pvp.rival.nombre} vuelve a su base.${n ? ` Te quedas con su mochila: ${Object.entries(mochila).filter(([r]) => REC[r]).map(([r, k]) => `${k} ${nombreRec(r)}`).join(', ')}.` : ' Su mochila estaba vacía.'} +40 de experiencia.`);
+  }
+  function rivalSeFue() {
+    if (!pvp || pvp.terminado || pvp.fase !== 'duelo') return;
+    pvp.terminado = true;
+    mostrarFinPvp('🏳️ Tu rival se fue', 'Tu rival abandonó el duelo o perdió la conexión. Nadie pierde nada.');
+  }
+  function terminarPractica(gane) {
+    if (pvp.terminado) return;
+    pvp.terminado = true;
+    if (gane) ganarXP(10);
+    mostrarFinPvp(gane ? '🏆 ¡Venciste al muñeco!' : '🥴 El muñeco ganó esta vez', gane ? 'Buena práctica: +10 de experiencia. Ahora reta a un compañero.' : 'Practica bloquear con K justo antes de que te golpee.');
+  }
+  function mostrarFinPvp(titulo, texto) {
+    if (!$('mj-cuadro')) { toast(`${titulo}: ${texto}`); return; }
+    const caja = document.createElement('div'); caja.className = 'cr-pregunta cr-final';
+    caja.innerHTML = `<h3>${esc(titulo)}</h3><p>${esc(texto)}</p><div class="acciones"><span></span><button type="button" class="btn pri" id="pv-fin">¡Listo!</button></div>`;
+    $('mj-cuadro').appendChild(caja);
+    $('pv-fin').addEventListener('click', () => ui.cerrar()); $('pv-fin').focus();
+    ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+  }
+  function dibujarPvp(ahora) {
+    const c = pvp.ctx; if (!c) return;
+    // fondo: arena de piedra con público
+    const g = c.createLinearGradient(0, 0, 0, PVP_H); g.addColorStop(0, '#2b2340'); g.addColorStop(0.55, '#4a3b2a'); g.addColorStop(1, '#c9a56b');
+    c.fillStyle = g; c.fillRect(0, 0, PVP_W, PVP_H);
+    c.fillStyle = '#3a2f22'; c.fillRect(0, 120, PVP_W, 60);
+    for (let i = 0; i < 34; i++) { const x = 12 + i * 24, y = 130 + (i % 2) * 10, b = Math.sin(ahora / 300 + i) * 2; c.fillStyle = ['#7a5a8a', '#5a7a9a', '#9a6a4a', '#6a8a5a'][i % 4]; c.beginPath(); c.arc(x, y + b, 8, 0, Math.PI * 2); c.fill(); c.fillRect(x - 8, y + 6 + b, 16, 18); }
+    c.fillStyle = '#8a6b3c'; c.fillRect(0, 178, PVP_W, 10);
+    for (let x = 0; x < PVP_W; x += 100) { c.fillStyle = x % 200 ? '#c0392b' : '#f2b544'; c.beginPath(); c.moveTo(x + 20, 188); c.lineTo(x + 50, 188); c.lineTo(x + 35, 214); c.fill(); }
+    c.fillStyle = '#d9b77a'; c.fillRect(0, PVP_SUELO, PVP_W, PVP_H - PVP_SUELO);
+    c.fillStyle = 'rgba(0,0,0,0.08)'; for (let x = 0; x < PVP_W; x += 40) c.fillRect(x, PVP_SUELO + 10 + (x % 80 ? 8 : 0), 20, 4);
+    for (const P of [pvp.yo, pvp.rival]) {
+      const golpe = ahora - (P.golpeado || 0) < 160;
+      c.save();
+      if (golpe) c.filter = 'brightness(2.2)';
+      dibujarPj(c, P.img, P.x, PVP_SUELO, P.dir, P.mueve, ahora, 112, 1);
+      c.restore();
+      const f = P.dir === 'right' ? 1 : -1;
+      // ataque: arco de la espada
+      const ta = ahora - (P.atk || 0);
+      if (P.atk && ta < 300) {
+        c.strokeStyle = `rgba(255,240,180,${1 - ta / 300})`; c.lineWidth = 6; c.beginPath();
+        const a0 = f > 0 ? -1.3 : Math.PI + 1.3, a1 = f > 0 ? 0.9 : Math.PI - 0.9;
+        c.arc(P.x + f * 18, PVP_SUELO - 52, 46, Math.min(a0, a1) + (f > 0 ? 0 : 0), Math.max(a0, a1)); c.stroke();
+      }
+      // bloqueo: escudo
+      if (P.bloq) {
+        c.fillStyle = 'rgba(120,200,255,0.35)'; c.strokeStyle = '#bfe8ff'; c.lineWidth = 3;
+        c.beginPath(); c.ellipse(P.x + f * 30, PVP_SUELO - 50, 14, 34, 0, 0, Math.PI * 2); c.fill(); c.stroke();
+      }
+      if (ahora - (P.chispa || 0) < 200) { c.fillStyle = '#ffffff'; for (let k = 0; k < 6; k++) c.fillRect(P.x + f * 32 + Math.cos(k) * 14, PVP_SUELO - 60 + Math.sin(k * 2) * 18, 4, 4); }
+    }
+    // barras de vida
+    const barra = (P, x, alinear) => {
+      const w = 300, pct = Math.max(0, P.hp / P.max);
+      c.fillStyle = 'rgba(0,0,0,0.55)'; c.fillRect(x, 18, w, 22);
+      c.fillStyle = pct > 0.5 ? '#5fd17a' : pct > 0.25 ? '#f2b544' : '#e0452c'; c.fillRect(alinear === 'r' ? x + w * (1 - pct) : x, 18, w * pct, 22);
+      c.strokeStyle = '#fff'; c.lineWidth = 2; c.strokeRect(x, 18, w, 22);
+      c.font = 'bold 15px Fredoka, Nunito, sans-serif'; c.textAlign = alinear === 'r' ? 'right' : 'left'; c.fillStyle = '#fff';
+      c.fillText(`${P.nombre} · ${Math.ceil(P.hp)}/${P.max}`, alinear === 'r' ? x + w : x, 60);
+    };
+    const izq = pvp.yo.x <= pvp.rival.x ? pvp.yo : pvp.rival, der = izq === pvp.yo ? pvp.rival : pvp.yo;
+    barra(izq, 24, 'l'); barra(der, PVP_W - 324, 'r');
+    c.font = 'bold 22px Fredoka, Nunito, sans-serif'; c.textAlign = 'center'; c.fillStyle = '#ffd27a'; c.fillText('VS', PVP_W / 2, 36);
+    pvp.flot = (pvp.flot || []).filter((t) => ahora - t.t < 900);
+    for (const t of pvp.flot) { const k = (ahora - t.t) / 900; c.globalAlpha = 1 - k; c.font = 'bold 20px Fredoka, Nunito, sans-serif'; c.lineWidth = 4; c.strokeStyle = '#1a1010'; c.strokeText(t.txt, t.x, t.y - k * 30); c.fillStyle = t.col; c.fillText(t.txt, t.x, t.y - k * 30); c.globalAlpha = 1; }
+  }
+
+  // ===================================================================
+  // Desafío «El ladrón»: llega a la base de cada jugador 30 s después de empezar
+  // ===================================================================
+  const LADRON_AVISO = 30000, LADRON_ESPERA = 45000;
+  function robar(motivo) {
+    const quitado = {};
+    for (const r of RECURSOS) {
+      const n = S.cofre[r.id] || 0;
+      if (n >= 3) { const k = Math.min(80, Math.floor(n * 0.3)); if (k) { quitado[r.id] = k; S.cofre[r.id] = n - k; } }
+    }
+    // a veces también se lleva un adorno o mueble (nunca exclusivos, trofeos ni la carpa)
+    let mueble = null;
+    const robable = (id) => OBJ[id] && !OBJ[id].excl && !OBJ[id].trofeo && !OBJ[id].premio && !OBJ[id].album && !OBJ[id].carpa;
+    if (Math.random() < 0.5 || !Object.keys(quitado).length) {
+      const inv = Object.entries(S.inventario || {}).filter(([id, n]) => n > 0 && robable(id));
+      const col = (S.colocados || []).map((c, i) => [c, i]).filter(([c]) => robable(c.id));
+      if (inv.length && (Math.random() < 0.5 || !col.length)) { const [id] = inv[Math.floor(Math.random() * inv.length)]; S.inventario[id] -= 1; mueble = OBJ[id].nombre; }
+      else if (col.length) { const [c, i] = col[Math.floor(Math.random() * col.length)]; S.colocados.splice(i, 1); mueble = OBJ[c.id].nombre; S.robadoColocado = true; }
+    }
+    contar('robado'); guardar(true); pintarHUD();
+    const lista = Object.entries(quitado).map(([r, n]) => `${n} ${nombreRec(r)}`);
+    if (mueble) lista.push(mueble.toLowerCase());
+    return `${motivo} El ladrón se llevó ${lista.length ? lista.join(', ') : 'nada (¡tu cofre estaba vacío!)'}.`;
+  }
+  function avisoRobo(txt) {
+    esperarYAbrir(() => {
+      ui.abrir(`<div class="ladron-fin"><span class="ld-cara grande"></span><div><span class="etq">Desafío de tu profesor</span><h2 id="modal-titulo">🦹 ¡Te robaron!</h2><p class="enunciado">${esc(txt)}</p>
+        <p class="nota">La próxima vez vuelve rápido a tu base cuando aparezca el aviso y vence al ladrón respondiendo 5 preguntas.</p>
+        <div class="acciones"><span></span><button type="button" class="btn pri" id="ld-ok" data-foco>Entendido</button></div></div></div>`, 'ladron');
+      $('ld-ok').addEventListener('click', () => { ui.cerrar(); if (S.robadoColocado && escena && escena.zona === 'base') { S.robadoColocado = false; escena.scene.restart({ zona: 'base', desde: 'base' }); } });
+    });
+  }
+  function abrirLadron(st) {
+    if (st.luchando || st.fase !== 'base') return;
+    st.luchando = true;
+    let bien = 0, mal = 0, d = Preguntas.nuevo(S.curso, unidadDesafio(), difPara(2), S.stats), fb = '';
+    const pintar = () => {
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">🦹 ¡Atrapa al ladrón!</h2></div></div>
+        <div class="ladron-lucha"><div class="ld-lado"><span class="ld-cara"></span>
+          <div class="ld-barra ld-candados"><span class="etq">Para atraparlo</span><div>${Array.from({ length: 5 }, (_, i) => `<i class="${i < bien ? 'ok' : ''}">🔒</i>`).join('')}</div></div>
+          <div class="ld-barra"><span class="etq">Errores (máximo 3)</span><div>${Array.from({ length: 3 }, (_, i) => `<i class="${i < mal ? 'mal' : ''}">${i < mal ? '💔' : '❤️'}</i>`).join('')}</div></div></div>
+          <div class="ld-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div></div>`, 'ladron bloqueo');
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => resp(Number(b.dataset.i))));
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) resp(Number(e.key) - 1); };
+    };
+    const resp = (i) => {
+      if (i >= d.opciones.length) return;
+      const ok = i === d.correcta; registrar(d.tema, ok);
+      if (ok) { bien += 1; sfx('acierto'); fb = '<div class="mensaje bien">¡Bien! El ladrón retrocede.</div>'; }
+      else { mal += 1; sfx('error'); fb = `<div class="mensaje mal">¡Ups! La respuesta era ${mate(d.opciones[d.correcta])}.</div>`; }
+      if (bien >= 5) {
+        st.fase = 'vencido'; st.logrado = true; contar('ladron');
+        const txt = darPremio(paquete(8, 4, true), 100);
+        ui.cerrar(); if (escena) { escena.celebrar(); escena.limpiarDesafio(); }
+        sfx('victoria'); toast(`🦹 ¡Atrapaste al ladrón! Recuperaste su botín: ${txt} y 100 de experiencia.`);
+        return;
+      }
+      if (mal >= 3) {
+        st.fase = 'robado'; st.logrado = true;
+        ui.cerrar(); if (escena) escena.limpiarDesafio();
+        avisoRobo(robar('El ladrón escapó.'));
+        return;
+      }
+      d = Preguntas.nuevo(S.curso, unidadDesafio(), difPara(2), S.stats);
+      pintar();
+    };
+    pintar();
+  }
+
+  // ===================================================================
+  // Desafío «Tesoro escondido» y «Racha imparable»
+  // ===================================================================
+  function cavarTesoro(st, n = 0) {
+    if (st.logrado) return;
+    abrirDesafio({ accion: `Cavar el tesoro (${n + 1} de 3)`, dif: difPara(2), premio: n < 2 ? '¡Sigue cavando!' : 'El tesoro escondido', onOk: () => {
+      if (n < 2) { setTimeout(() => cavarTesoro(st, n + 1), 350); return; }
+      contar('tesoro');
+      lograr('Encontraste el tesoro escondido', paquete(8, 4, true), 90);
+    } });
+  }
+  const calorTesoro = (dd) => (dd > 520 ? ['🧊', 'Congelado'] : dd > 330 ? ['❄️', 'Frío'] : dd > 170 ? ['🌤️', 'Tibio'] : dd > 70 ? ['🔥', '¡Caliente!'] : ['🔥🔥', '¡Muy caliente! Presiona E para cavar']);
+  function abrirRacha() {
+    vivo.modal = true;
+    const st = vivo.st;
+    let d = Preguntas.nuevo(S.curso, unidadDesafio(), difPara(1), S.stats), fb = '';
+    const pintar = () => {
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">🔥 Racha imparable</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
+        <div class="des-cols"><div class="des-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
+          <aside class="des-tabla racha-tabla"><span class="etq">Multiplicador</span><div class="racha-mult m${st.mult}">x${st.mult}</div>
+            <div class="racha-llamas">${Array.from({ length: 5 }, (_, i) => `<i class="${i < st.mult ? 'on' : ''}">🔥</i>`).join('')}</div>
+            <span class="nota">Puntos: <b>${st.puntos}</b> · Mejor racha: x${st.mejor}</span><span class="nota">Cada acierto seguido sube el multiplicador (hasta x5). Un error lo vuelve a x1.</span></aside></div>
+        <div class="acciones"><span></span><button type="button" class="btn" id="dv-salir">Salir del desafío</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => resp(Number(b.dataset.i))));
+      $('dv-salir').addEventListener('click', () => ui.cerrar());
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) resp(Number(e.key) - 1); };
+    };
+    const resp = (i) => {
+      if (vivo.fase !== 'activo' || i >= d.opciones.length) return;
+      const ok = i === d.correcta; registrar(d.tema, ok);
+      if (ok) { st.puntos += st.mult; fb = `<div class="mensaje bien" role="status">¡Correcto! +${st.mult} ${st.mult === 1 ? 'punto' : 'puntos'}</div>`; st.mult = Math.min(5, st.mult + 1); st.mejor = Math.max(st.mejor, st.mult); sfx(st.mult >= 5 ? 'logro' : 'acierto'); if (st.mult >= 5) contar('racha5'); }
+      else { st.mult = 1; fb = `<div class="mensaje mal" role="status">Se cortó la racha: la respuesta era ${mate(d.opciones[d.correcta])}.</div>`; sfx('error'); }
+      d = Preguntas.nuevo(S.curso, unidadDesafio(), difPara(1), S.stats);
+      pintar();
+    };
+    pintar();
   }
 
   // ---------- Combate ----------
@@ -4412,6 +4956,61 @@
       },
       fin: (st) => (st.gane ? '¡Te llevaste el prisma estelar! Está guardado en tu cofre.' : st.tomado ? `${st.tomado} se llevó el prisma estelar de tu grupo.` : 'El prisma estelar desapareció.'),
     },
+    ladron: {
+      estado: () => ({ llega: ahoraSrv() + LADRON_AVISO, fase: 'aviso' }),
+      progreso(st) {
+        const casa = escena && escena.zona === 'base';
+        if (st.fase === 'aviso') return `🦹 El ladrón llega a tu base en ${Math.max(0, Math.ceil((st.llega - ahoraSrv()) / 1000))} s · ${casa ? 'Estás en tu base: ¡prepárate!' : '¡Vuelve por el portal a tu base!'}`;
+        if (st.fase === 'base') return casa ? '🦹 ¡El ladrón está en tu base! Atrápalo antes de que llegue a tu cofre' : '🦹 ¡El ladrón está en tu base! ¡Vuelve ya!';
+        return st.fase === 'vencido' ? '¡Atrapaste al ladrón!' : 'El ladrón te robó';
+      },
+      montar(sc, st) { if (sc.zona === 'base' && st.fase === 'base') sc.soltarLadron(st); },
+      tick(sc, dt, st) {
+        if (st.fase === 'aviso' && ahoraSrv() >= st.llega) {
+          st.fase = 'base'; st.desde = ahoraSrv();
+          sfx('alerta');
+          avisoGrande('¡Llegó el ladrón!', sc.zona === 'base' ? '¡Está en tu base!' : '¡Está en tu base y tú no estás!', 'Atrápalo respondiendo 5 preguntas (máximo 3 errores)');
+          if (sc.zona === 'base') sc.soltarLadron(st);
+        }
+        if (st.fase !== 'base') return;
+        const L = sc.des.ladron;
+        if (L) {
+          const j = sc.jugador, dx = L.meta.x - L.s.x, dy = L.meta.y - L.s.y, dd = Math.hypot(dx, dy);
+          if (dd > 4 && !ui.abierto) { const v = 10 * dt / 1000; L.s.x += (dx / dd) * v; L.s.y += (dy / dd) * v; L.s.anims.play(`ladron_${Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down')}`, true); }
+          L.s.setDepth(L.s.y); L.tag.setPosition(L.s.x, L.s.y - 66); L.o.x = L.s.x; L.o.y = L.s.y - 8;
+          if (!ui.abierto && Phaser.Math.Distance.Between(j.x, j.y, L.s.x, L.s.y) < 46) abrirLadron(st);
+          else if (dd <= 6 && !st.luchando) { st.fase = 'robado'; st.logrado = true; sc.limpiarDesafio(); avisoRobo(robar('El ladrón llegó a tu cofre antes que tú.')); }
+        } else if (ahoraSrv() - st.desde > LADRON_ESPERA && !st.luchando) {
+          st.fase = 'robado'; st.logrado = true; avisoRobo(robar('No estabas en tu base cuando llegó el ladrón.'));
+        }
+      },
+      fin(st) {
+        if (st.fase === 'vencido' || st.fase === 'robado') return st.fase === 'vencido' ? 'Atrapaste al ladrón.' : 'El ladrón se fue con su botín.';
+        st.fase = 'robado'; const t = robar('El ladrón alcanzó a entrar a tu base.'); avisoRobo(t); return 'Terminó el desafío del ladrón.';
+      },
+    },
+    tesoro: {
+      estado: () => ({}),
+      progreso: (st) => (st.logrado ? '¡Encontraste el tesoro!' : `🗝️ Busca el tesoro: ${(st.calor || ['❔', 'muévete para sentir el calor'])[0]} ${(st.calor || ['', 'Muévete para sentir el calor'])[1]}`),
+      montar(sc, st) { if (!st.logrado) sc.enterrarTesoro(); },
+      tick(sc, dt, st) {
+        const T = sc.des.tesoro; if (!T) return;
+        const dd = Phaser.Math.Distance.Between(sc.jugador.x, sc.jugador.y, T.x, T.y);
+        st.calor = calorTesoro(dd);
+        T.marca.setAlpha(dd < 110 ? 1 - dd / 140 : 0);
+      },
+      fin: (st) => (st.logrado ? 'Encontraste el tesoro escondido.' : 'El tesoro quedó enterrado… ¡a la próxima!'),
+    },
+    racha: {
+      estado: () => ({ puntos: 0, mult: 1, mejor: 1 }),
+      progreso: (st) => `🔥 x${st.mult} · ${st.puntos} puntos`,
+      fin(st) {
+        if (vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo')) ui.cerrar();
+        if (!st.puntos) return 'Terminó la racha imparable. Esta vez no sumaste puntos.';
+        const xp = Math.min(200, 6 * st.puntos), txt = darPremio(paquete(Math.min(14, 2 + Math.ceil(st.puntos / 3)), 3), xp);
+        return `¡Racha imparable terminada! Hiciste ${st.puntos} puntos (mejor racha x${st.mejor}): ganas ${txt} y ${xp} de experiencia.`;
+      },
+    },
     arena: { estado: () => ({ mios: 0 }), progreso: () => `Tus aciertos: ${vivo.d.aciertos || 0}` },
     curso: { estado: () => ({ mios: 0 }), progreso: () => `Curso: ${vivo.d.total || 0} de ${vivo.d.meta} correctas` },
   };
@@ -4452,6 +5051,10 @@
       const z = vivo.d.mundo;
       avisoGrande('¡Apareció un recurso exclusivo!', `Prisma estelar en ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Dura 2 minutos · Responde bien 5 preguntas para llevártelo', 'prisma');
       if (escena && escena.jugador) escena.cameras.main.flash(500, 200, 160, 255);
+    } else if (vivo.def.id === 'ladron') {
+      avisoGrande('¡Viene un ladrón!', 'Llegará a tu base en 30 segundos', 'Vuelve a tu base y atrápalo respondiendo 5 preguntas (máximo 3 errores)', 'ladron');
+    } else if (vivo.def.id === 'tesoro') {
+      avisoGrande('¡Hay un tesoro escondido!', 'Está enterrado cerca de ti', 'Guíate por el calor: 🧊 frío … 🔥 muy caliente · presiona E para cavar');
     } else toast(`¡Comienza el desafío: ${vivo.def.nombre}!`);
     if (escena && escena.jugador) montarDesafio(escena);
     if (vivo.def.preguntas) vivo.pendienteModal = true;
@@ -4530,6 +5133,7 @@
   function abrirModalPreguntas() {
     vivo.pendienteModal = false;
     if (vivo.def.id === 'relampago') { abrirRelampago(); return; }
+    if (vivo.def.id === 'racha') { abrirRacha(); return; }
     vivo.modal = true;
     const D = vivo.def;
     let d = Preguntas.nuevo(S.curso, unidadDesafio(), D.id === 'arena' ? 2 : 1, S.stats), fb = '', espera = false;
@@ -4857,7 +5461,7 @@
       if (!this.textures.exists('jefe_u1b_hoja')) this.load.spritesheet('jefe_u1b_hoja', 'assets/enemigos/jefe_u1b.png', { frameWidth: 64, frameHeight: 64 });
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u3b', 'jefe_u4b']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u3b', 'jefe_u4b', 'ladron']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -4875,7 +5479,7 @@
       this.ocupado = new Set();
       // la escena se reutiliza al viajar: se limpia todo lo propio de cada mundo
       for (const k of ['rio', 'valle', 'prof', 'cima', 'pisables', 'luz', 'jefeLuz', 'tormenta', 'granLago', 'santuario', 'estanque', 'rey', 'reyTag', 'sello', 'coloso', 'colosoTag', 'selloColoso', 'dragon', 'dragonTag', 'selloDragon',
-        'puenteSpr', 'montaSpr', 'elevSpr', 'rutaSpr', 'huecoSpr', 'huecoMina', 'tramoPuente', 'tramoValle', 'tramoMina', 'objObra', 'obraTag', 'objEscalar', 'lavas', 'pozaValle', 'estacion', 'estBolas', 'estHielo']) this[k] = null;
+        'puenteSpr', 'montaSpr', 'elevSpr', 'rutaSpr', 'huecoSpr', 'huecoMina', 'tramoPuente', 'tramoValle', 'tramoMina', 'objObra', 'obraTag', 'objEscalar', 'lavas', 'pozaValle', 'estacion', 'estBolas', 'estHielo', 'arenaP']) this[k] = null;
       this.muelles = []; this.yUtil = 0; this.altoUtil = 0; this.anchoUtil = 0; this.ventisca = false;
       if (!MUNDOS[this.zona] && this.zona !== 'pieza') this.zona = 'base';
       if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else this.crearMundo(MUNDOS[this.zona]);
@@ -5048,7 +5652,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u3b', 'jefe_u4b'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u3b', 'jefe_u4b', 'ladron'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -5982,6 +6586,10 @@
       const cofre = this.sprite('cofre', 15, 7);
       this.solido(cofre.x, cofre.y - 10, 26, 14);
       this.objetos.push({ tipo: 'cofre_base', x: cofre.x, y: cofre.y - 8, activo: true });
+      const com = this.sprite('cofre', 10, 7).setTint(0x9fd8ff);
+      this.solido(com.x, com.y - 10, 26, 14);
+      this.add.text(com.x, com.y - 42, '🤝 Comercio', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#d8f2ff', stroke: '#12304a', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.objetos.push({ tipo: 'comercio', x: com.x, y: com.y - 8, activo: true });
       for (let y = 5; y <= 9; y++) for (let x = 10; x <= 16; x++) this.marcar(x, y);
       this.portal(21, 11);
       for (let x = 2; x < this.ancho - 2; x++) this.marcar(x, 11);
@@ -6149,6 +6757,7 @@
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      this.planearArena(P);
       if (M.profundo) this.planearProfundo(data, P);
       this.prepararLugaresJefe(P);
       if (M.granLago) this.prepararGranLago(data);
@@ -6168,6 +6777,7 @@
       if (M.profundo) this.decorarRio();
       this.bordes();
       this.portal(P.x, P.y);
+      this.crearArena();
       this.crearGuarida();
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
 
@@ -6286,6 +6896,7 @@
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === CAMINO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      this.planearArena(P);
       if (M.valle) this.planearValle(data, oy);
       this.prepararLugaresJefe(P);
       // oasis (decorativos: el agua del desierto no se puede recolectar)
@@ -6304,6 +6915,7 @@
       this.bordesDesierto();
       if (M.valle) this.decorarAcantilado();
       this.portal(P.x, P.y);
+      this.crearArena();
       this.crearGuarida();
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
 
@@ -6454,6 +7066,7 @@
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === RIEL) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      this.planearArena(P);
       if (M.abismo) this.planearProfundidades(data, fc);
       this.estacion = { x: CENTRO_X + 5, y: P.y - 1 };
       for (let y = this.estacion.y - 3; y <= this.estacion.y + 1; y++) for (let x = this.estacion.x - 3; x <= this.estacion.x + 3; x++) this.marcar(x, y);
@@ -6482,6 +7095,7 @@
       if (M.abismo) this.decorarFosa();
       this.crearEstacion();
       this.portal(P.x, P.y);
+      this.crearArena();
       this.crearGuarida();
       this.add.image(P.x * TILE + 16, P.y * TILE + 16, 'luz').setScale(1.4).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.18).setDepth(9501);
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
@@ -6632,6 +7246,7 @@
       this.terreno = data;
       for (let y = 0; y < this.alto; y++) for (let x = 0; x < this.ancho; x++) if (data[y][x] === SENDERO) { this.marcar(x, y); this.marcar(x, y + 1); }
       for (let y = P.y - 3; y <= P.y + 4; y++) for (let x = P.x - 3; x <= P.x + 5; x++) this.marcar(x, y);
+      this.planearArena(P);
       if (M.cima) this.planearCima(data, oy, SENDERO);
       // estaciones de los minijuegos (zona central)
       this.estBolas = { x: CENTRO_X - 8, y: P.y - 3 }; this.estHielo = { x: CENTRO_X + 8, y: P.y - 3 };
@@ -6646,6 +7261,7 @@
       if (M.cima) this.decorarGlaciar();
       this.crearEstacionesHielo();
       this.portal(P.x, P.y);
+      this.crearArena();
       this.crearGuarida();
       this.inicio = { x: (P.x + 1) * TILE + 16, y: (P.y + 2) * TILE + 20 };
       this.ventisca = false;
@@ -7186,7 +7802,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'ladron', 'tesoro', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -7219,6 +7835,10 @@
         case 'cofre': return o.vida ? 'Abrir cofre (tiene vida)' : 'Abrir cofre';
         case 'fogata': return 'Fabricar y descansar';
         case 'cofre_base': return 'Ver tu cofre';
+        case 'comercio': return 'Cofre de comercio: intercambiar con tu curso';
+        case 'arena': return 'Entrar a la arena PvP (duelo 1 contra 1)';
+        case 'ladron': return '¡Atrapar al ladrón!';
+        case 'tesoro': return 'Cavar el tesoro (responde 3 preguntas)';
         case 'portal': return 'Usar el portal';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
@@ -7251,6 +7871,10 @@
       if (!o) return;
       if (o.tipo === 'fogata') { if (S.vida < vidaMax()) { S.vida = vidaMax(); pintarHUD(); toast('Descansaste junto al fuego: recuperaste tu vida.'); } return abrirFabricar(); }
       if (o.tipo === 'cofre_base') return abrirCofre();
+      if (o.tipo === 'comercio') return abrirComercio();
+      if (o.tipo === 'arena') return abrirArena();
+      if (o.tipo === 'ladron') return desActivo('ladron') && abrirLadron(vivo.st);
+      if (o.tipo === 'tesoro') return desActivo('tesoro') && cavarTesoro(vivo.st);
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
@@ -7469,6 +8093,7 @@
       c.on('obra', () => cargarObra());
       c.on('carrera', (d) => recibirCarrera(d));
       c.on('sala', (d) => recibirSala(d));
+      c.on('pvp', (d) => recibirPvp(d));
       c.on('prisma_fin', (d) => recibirPrismaFin(d));
       // enemigos compartidos: cualquiera del grupo puede ser perseguido, y si alguien vence a uno desaparece para todos
       c.on('bicho', (d) => { const o = this.objetos[d.i]; if (o && o.idx === d.i && o.tipo === 'arbol' && o.estado === 'arbol') this.soltarBicho(o); });
@@ -7881,6 +8506,49 @@
         this.des.items.push(it); this.des.objs.push(brillo);
       } });
     }
+    // El ladrón entra por el portal de la base y camina despacio hacia el cofre
+    soltarLadron(st) {
+      if (this.des.ladron || this.zona !== 'base') return;
+      const s = this.add.sprite(21 * TILE + 16, 12 * TILE + 20, 'ladron_hoja', DIRS.left * 9).setOrigin(0.5, 0.9);
+      const tag = this.add.text(s.x, s.y - 66, '🦹 Ladrón', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffd0ff', stroke: '#2a0a3a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(99990);
+      const o = { tipo: 'ladron', x: s.x, y: s.y - 8, activo: true, desafio: true };
+      this.objetos.push(o);
+      this.des.ladron = { s, tag, o, meta: { x: 15 * TILE + 16, y: 8 * TILE + 26 } };
+      this.add.particles(s.x, s.y - 20, 'p_morado', { speed: { min: 40, max: 140 }, lifespan: 600, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24);
+      this.cameras.main.shake(200, 0.004);
+    }
+    // Tesoro enterrado lejos del jugador: solo se ve la marca cuando estás muy cerca
+    enterrarTesoro() {
+      if (this.des.tesoro || !this.jugador) return;
+      const p = this.puntoLibre(this.zona === 'base' || this.zona === 'pieza' ? 140 : 300, this.zona === 'base' || this.zona === 'pieza' ? 300 : 640);
+      const marca = this.add.text(p.x, p.y - 6, '✖', { fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#7a1a1a', stroke: '#f2d49a', strokeThickness: 3 }).setOrigin(0.5).setDepth(-3).setAlpha(0);
+      const o = { tipo: 'tesoro', x: p.x, y: p.y, activo: true, desafio: true };
+      this.objetos.push(o);
+      this.des.tesoro = { x: p.x, y: p.y, marca, o };
+      this.des.objs.push(marca);
+    }
+    // Arena PvP (cerca del portal de cada mundo)
+    planearArena(P) {
+      this.arenaP = { x: P.x + 9, y: P.y + 6 };
+      for (let y = this.arenaP.y - 3; y <= this.arenaP.y + 2; y++) for (let x = this.arenaP.x - 5; x <= this.arenaP.x + 5; x++) this.marcar(x, y);
+    }
+    crearArena() {
+      const A = this.arenaP; if (!A) return;
+      const cx = A.x * TILE + 16, cy = A.y * TILE + 8;
+      const g = this.add.graphics().setDepth(-5);
+      g.fillStyle(0x6b4f2c, 0.95); g.fillEllipse(cx, cy, 300, 150);
+      g.fillStyle(0xd9b77a, 1); g.fillEllipse(cx, cy, 284, 136);
+      g.lineStyle(2, 0xb08a52, 0.9); g.strokeEllipse(cx, cy, 200, 92); g.strokeEllipse(cx, cy, 60, 28);
+      g.lineStyle(3, 0x8a1f1f, 0.8); g.lineBetween(cx - 60, cy, cx - 30, cy); g.lineBetween(cx + 30, cy, cx + 60, cy);
+      for (const [dx, dy] of [[-150, 0], [150, 0], [-106, -54], [106, -54], [-106, 54], [106, 54]]) {
+        const px = cx + dx, py = cy + dy;
+        const p = this.add.graphics().setDepth(py);
+        p.fillStyle(0x5a3a1a, 1); p.fillRect(px - 3, py - 34, 6, 34);
+        p.fillStyle(dx < 0 ? 0xc0392b : 0x2c6fbb, 1); p.fillTriangle(px + 3, py - 34, px + 22, py - 28, px + 3, py - 22);
+      }
+      this.add.text(cx, cy - 92, '⚔️ Arena PvP', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffd27a', stroke: '#3a1a0a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.objetos.push({ tipo: 'arena', x: cx, y: cy, activo: true });
+    }
     crearEclipse() {
       if (!this.textures.exists('eclipse')) {
         const t = this.textures.createCanvas('eclipse', 512, 512), c = t.context;
@@ -7961,6 +8629,9 @@
       this.des.objs = []; this.des.items = [];
       this.des.flecha = null;
       if (this.des.prisma) { this.objetos = this.objetos.filter((o) => o !== this.des.prisma.o); this.des.prisma = null; }
+      this.objetos = this.objetos.filter((o) => !o.desafio);
+      if (this.des.ladron) { const L = this.des.ladron; this.add.particles(L.s.x, L.s.y - 20, 'p_morado', { speed: { min: 40, max: 140 }, lifespan: 600, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24); L.s.destroy(); L.tag.destroy(); this.des.ladron = null; }
+      this.des.tesoro = null;
       if (oscuro && oscuro.active) this.tweens.add({ targets: oscuro, alpha: 0, duration: 1000, onComplete: () => oscuro.destroy() });
     }
     flotante(x, y, txt, color = '#ffffff') {

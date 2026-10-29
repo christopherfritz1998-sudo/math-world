@@ -1030,3 +1030,102 @@ revoke all on function public.mw_grupo_estado(uuid), public.mw_grupo_unirse(uuid
   public.mw_docente_grupos(uuid), public.mw_docente_mover(uuid, uuid, int), public.mw_docente_codigos(uuid, text) from public, authenticated;
 grant execute on function public.mw_grupo_estado(uuid), public.mw_grupo_unirse(uuid, text), public.mw_obra(uuid, text, text, int), public.mw_obra_aportar(uuid, text, jsonb),
   public.mw_docente_grupos(uuid), public.mw_docente_mover(uuid, uuid, int), public.mw_docente_codigos(uuid, text) to anon;
+-- ===================================================================
+-- Comercio entre estudiantes del mismo curso (cofre de comercio de la base)
+-- Los recursos ofrecidos quedan apartados en el juego del que ofrece hasta que alguien acepta o se cancela.
+-- ===================================================================
+create table if not exists public.comercio (
+  id bigserial primary key,
+  curso text not null,
+  estudiante_id uuid not null references public.estudiantes(id) on delete cascade,
+  da jsonb not null,
+  pide jsonb not null,
+  estado text not null default 'abierta' check (estado in ('abierta', 'aceptada', 'cancelada')),
+  aceptante uuid references public.estudiantes(id) on delete set null,
+  cobrada boolean not null default false,
+  creado timestamptz not null default now(),
+  cerrado timestamptz
+);
+create index if not exists comercio_curso on public.comercio (curso, estado, creado desc);
+alter table public.comercio enable row level security;
+revoke all on public.comercio from anon, authenticated;
+
+-- Recursos válidos: 1 a 3 tipos, nombres simples y cantidades de 1 a 200
+create or replace function public.mw_recursos_ok(r jsonb) returns boolean language sql immutable as $$
+  select jsonb_typeof(r) = 'object'
+     and (select count(*) from jsonb_object_keys(r)) between 1 and 3
+     and not exists (select 1 from jsonb_each(r) e where e.key !~ '^[a-z_]{2,20}$'
+                     or case when (e.value)::text ~ '^[0-9]{1,4}$' then (e.value)::text::int not between 1 and 200 else true end) $$;
+
+create or replace function public.mw_comercio_fila(c comercio, yo uuid) returns jsonb language sql stable set search_path = public as $$
+  select jsonb_build_object('id', c.id, 'da', c.da, 'pide', c.pide, 'estado', c.estado, 'mia', c.estudiante_id = yo,
+    'nombre', (select mw_nombre_corto(nombre) from estudiantes where id = c.estudiante_id),
+    'aceptante', (select mw_nombre_corto(nombre) from estudiantes where id = c.aceptante),
+    'creado', mw_ms_de(c.creado)) $$;
+
+-- Mercado del curso: ofertas abiertas de los demás y las mías (abiertas o aceptadas recientes)
+create or replace function public.mw_comercio_listar(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select curso into c from estudiantes where id = id_e;
+  return json_build_object('ok', true,
+    'otras', coalesce((select json_agg(mw_comercio_fila(x, id_e) order by x.creado desc) from (select * from comercio where curso = c and estado = 'abierta' and estudiante_id <> id_e order by creado desc limit 60) x), '[]'::json),
+    'mias', coalesce((select json_agg(mw_comercio_fila(x, id_e) order by x.creado desc) from (select * from comercio where estudiante_id = id_e and (estado = 'abierta' or creado > now() - interval '7 days') order by creado desc limit 20) x), '[]'::json));
+end $$;
+
+create or replace function public.mw_comercio_crear(p_token uuid, p_da jsonb, p_pide jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; n int; nuevo bigint;
+begin
+  if id_e is null then return json_build_object('ok', false, 'error', 'sesion'); end if;
+  if not mw_recursos_ok(p_da) or not mw_recursos_ok(p_pide) then return json_build_object('ok', false, 'error', 'recursos'); end if;
+  select count(*) into n from comercio where estudiante_id = id_e and estado = 'abierta';
+  if n >= 3 then return json_build_object('ok', false, 'error', 'limite'); end if;
+  select curso into c from estudiantes where id = id_e;
+  insert into comercio (curso, estudiante_id, da, pide) values (c, id_e, p_da, p_pide) returning id into nuevo;
+  return json_build_object('ok', true, 'id', nuevo);
+end $$;
+
+-- Aceptar: solo una persona puede quedarse con la oferta
+create or replace function public.mw_comercio_aceptar(p_token uuid, p_id bigint)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; o comercio%rowtype;
+begin
+  if id_e is null then return json_build_object('ok', false, 'error', 'sesion'); end if;
+  select curso into c from estudiantes where id = id_e;
+  update comercio set estado = 'aceptada', aceptante = id_e, cerrado = now()
+    where id = p_id and estado = 'abierta' and curso = c and estudiante_id <> id_e returning * into o;
+  if o.id is null then return json_build_object('ok', false, 'error', 'no_disponible'); end if;
+  return json_build_object('ok', true, 'da', o.da, 'pide', o.pide, 'nombre', (select mw_nombre_corto(nombre) from estudiantes where id = o.estudiante_id));
+end $$;
+
+create or replace function public.mw_comercio_cancelar(p_token uuid, p_id bigint)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); o comercio%rowtype;
+begin
+  if id_e is null then return json_build_object('ok', false, 'error', 'sesion'); end if;
+  update comercio set estado = 'cancelada', cerrado = now(), cobrada = true
+    where id = p_id and estudiante_id = id_e and estado = 'abierta' returning * into o;
+  if o.id is null then return json_build_object('ok', false, 'error', 'no_disponible'); end if;
+  return json_build_object('ok', true, 'da', o.da);
+end $$;
+
+-- El que ofreció recibe lo que pidió cuando alguien aceptó (una sola vez)
+create or replace function public.mw_comercio_cobrar(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); r json;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  with x as (update comercio set cobrada = true where estudiante_id = id_e and estado = 'aceptada' and not cobrada returning *)
+  select coalesce(json_agg(json_build_object('id', x.id, 'pide', x.pide, 'da', x.da,
+      'nombre', (select mw_nombre_corto(nombre) from estudiantes where id = x.aceptante))), '[]'::json) into r from x;
+  return json_build_object('ok', true, 'cobros', r);
+end $$;
+
+revoke all on function public.mw_recursos_ok(jsonb), public.mw_comercio_fila(comercio, uuid) from public, anon, authenticated;
+revoke all on function public.mw_comercio_listar(uuid), public.mw_comercio_crear(uuid, jsonb, jsonb), public.mw_comercio_aceptar(uuid, bigint),
+  public.mw_comercio_cancelar(uuid, bigint), public.mw_comercio_cobrar(uuid) from public, authenticated;
+grant execute on function public.mw_comercio_listar(uuid), public.mw_comercio_crear(uuid, jsonb, jsonb), public.mw_comercio_aceptar(uuid, bigint),
+  public.mw_comercio_cancelar(uuid, bigint), public.mw_comercio_cobrar(uuid) to anon;
