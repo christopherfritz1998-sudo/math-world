@@ -882,3 +882,70 @@ body.movil .modal.pantalla h2 { font-size: 18px; }
 body.movil .pv-mover .btn { width: 56px; height: 48px; }
 body.movil .pv-acciones .btn { min-width: 118px; height: 48px; font-size: 15px; }
 body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }
+
+/* =====================================================================
+   Ingreso animado (misma temática que mathworld.cl)
+   ===================================================================== */
+#ingreso { background: #0f1d17; isolation: isolate; }
+#ingreso::before { display: none; }
+.ing-fondo { position: fixed; inset: -30px; z-index: -3; background: url("assets/fondo_carga.jpg") center / cover no-repeat; transform: scale(1.12); transition: transform .6s ease-out; animation: ing-respira 22s ease-in-out infinite alternate; }
+@keyframes ing-respira { to { filter: saturate(1.25) hue-rotate(-6deg); } }
+.ing-velo { position: fixed; inset: 0; z-index: -2; background: radial-gradient(ellipse at 30% 45%, rgba(15,29,23,.35), rgba(15,29,23,.85) 75%); }
+.ing-simbolos { position: fixed; inset: 0; z-index: -1; pointer-events: none; transition: transform .6s ease-out; }
+.ing-simbolos span { position: absolute; left: var(--x); bottom: -40px; font-family: "Fredoka", sans-serif; font-weight: 700; font-size: calc(var(--t) * 1.6); color: rgba(255, 210, 122, .3); text-shadow: 0 0 16px rgba(255, 210, 122, .25); animation: ing-sube var(--d) linear infinite; }
+@keyframes ing-sube { 0% { transform: translateY(0) rotate(0); opacity: 0; } 10% { opacity: 1; } 90% { opacity: .9; } 100% { transform: translateY(-110vh) rotate(var(--r)); opacity: 0; } }
+.ing-desfile { position: fixed; left: 0; right: 0; bottom: 6px; height: 100px; z-index: -1; pointer-events: none; }
+.ing-caminante { position: absolute; left: 0; bottom: 0; display: flex; align-items: flex-end; animation: ing-cruza var(--d) linear infinite; animation-delay: var(--retraso); }
+@keyframes ing-cruza { from { transform: translateX(-160px); } to { transform: translateX(calc(100vw + 40px)); } }
+.ing-sprite { display: block; width: 84px; height: 84px; background-repeat: no-repeat; background-size: 756px 336px; image-rendering: pixelated; animation: ing-camina .85s steps(8) infinite; }
+@keyframes ing-camina { from { background-position: -84px -252px; } to { background-position: -756px -252px; } }
+.ing-masc { display: block; width: 42px; height: 42px; margin-right: -18px; background: url("assets/mascotas.png") 0 calc(var(--fila) * -42px) / 84px 420px no-repeat; image-rendering: pixelated; animation: ing-masc .5s steps(2) infinite; }
+@keyframes ing-masc { to { background-position: -84px calc(var(--fila) * -42px); } }
+/* título y textos */
+.ing-titulo { color: var(--amber2, #ffd27a); text-shadow: 0 6px 0 #6a3d0c, 0 12px 30px rgba(0,0,0,.55); }
+.ing-letras span { display: inline-block; animation: ing-letra 3.6s ease-in-out infinite; animation-delay: calc(var(--i) * .12s); }
+@keyframes ing-letra { 0%, 70%, 100% { transform: translateY(0); } 80% { transform: translateY(-12px) rotate(-4deg); color: #fff3c4; } 90% { transform: translateY(2px); } }
+.ingreso-intro p { text-shadow: 0 2px 10px rgba(0,0,0,.6); }
+.ingreso-intro .chip { background: rgba(15,29,23,.75); backdrop-filter: blur(4px); }
+.ing-pasos { display: flex; flex-wrap: wrap; gap: 8px; }
+.ing-pasos span { padding: 6px 12px; border-radius: 999px; background: rgba(15,29,23,.72); border: 1px solid var(--line); font-weight: 800; font-size: 14px; animation: ing-flota 3s ease-in-out infinite; }
+.ing-pasos span:nth-child(2) { animation-delay: -1s; } .ing-pasos span:nth-child(3) { animation-delay: -2s; }
+@keyframes ing-flota { 50% { transform: translateY(-5px); } }
+/* tarjeta del formulario: vidrio con borde que brilla */
+.form { position: relative; background: rgba(24, 44, 35, .9); backdrop-filter: blur(8px); box-shadow: 0 20px 50px rgba(0,0,0,.45); animation: ing-entra .7s cubic-bezier(.2,.8,.2,1) both; }
+.form::before { content: ""; position: absolute; inset: -2px; border-radius: 22px; padding: 2px; background: conic-gradient(from var(--ing-ang, 0deg), rgba(242,181,68,.9), transparent 25%, rgba(92,200,184,.8) 50%, transparent 75%, rgba(242,181,68,.9)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: ing-gira 6s linear infinite; pointer-events: none; }
+@property --ing-ang { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes ing-gira { to { --ing-ang: 360deg; } }
+@keyframes ing-entra { from { opacity: 0; transform: translateY(30px) scale(.97); } }
+.ingreso-intro { animation: ing-entra .7s .1s cubic-bezier(.2,.8,.2,1) both; }
+.form form > * { animation: ing-entra .5s cubic-bezier(.2,.8,.2,1) both; }
+.form form > *:nth-child(2) { animation-delay: .05s; } .form form > *:nth-child(3) { animation-delay: .1s; } .form form > *:nth-child(4) { animation-delay: .15s; } .form form > *:nth-child(5) { animation-delay: .2s; }
+/* pestañas */
+.pestanas button { position: relative; overflow: hidden; transition: color .2s, background .25s, transform .15s; }
+.pestanas button:hover { color: var(--text); }
+.pestanas button[aria-selected="true"] { background: linear-gradient(180deg, #2a4a3c, var(--panel-2)); }
+/* opciones (curso y personajes) */
+.opcion { position: relative; overflow: hidden; transition: transform .15s, border-color .2s, background .2s, box-shadow .2s; }
+.opcion:hover { transform: translateY(-4px); border-color: var(--teal); box-shadow: 0 8px 18px rgba(0,0,0,.35); }
+.opcion:active { transform: translateY(1px) scale(.98); }
+.opcion[aria-pressed="true"] { box-shadow: 0 0 0 3px rgba(92,200,184,.35), 0 8px 18px rgba(0,0,0,.35); animation: ing-elegido .35s ease; }
+@keyframes ing-elegido { 40% { transform: scale(1.06); } }
+.personajes .opcion:hover .retrato, .personajes .opcion[aria-pressed="true"] .retrato { animation: ing-retrato .85s steps(8) infinite; }
+@keyframes ing-retrato { from { background-position: -72px -144px; } to { background-position: -648px -144px; } }
+/* campos */
+.form input[type="text"], .form input[type="password"] { height: 50px; padding: 0 14px; border-radius: 12px; border: 2px solid var(--line); background: rgba(15,29,23,.85); color: var(--text); font-size: 17px; font-family: inherit; transition: border-color .2s, box-shadow .2s, transform .15s; }
+.form input:focus { outline: none; border-color: var(--teal); box-shadow: 0 0 0 4px rgba(92,200,184,.22); transform: translateY(-1px); }
+.campo label { transition: color .2s; }
+.campo:focus-within label { color: var(--teal); }
+/* botón principal */
+.btn-principal { position: relative; overflow: hidden; background: linear-gradient(180deg, #ffd27a, var(--amber)); box-shadow: 0 6px 0 #a4701c, 0 12px 24px rgba(0,0,0,.35); transition: transform .15s, box-shadow .15s, filter .2s; }
+.btn-principal:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 9px 0 #a4701c, 0 16px 28px rgba(0,0,0,.4); filter: brightness(1.05); }
+.btn-principal:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 #a4701c; }
+.btn-brillo::before { content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.6), transparent); transform: skewX(-20deg); animation: ing-brillo 3.2s ease-in-out infinite; pointer-events: none; }
+@keyframes ing-brillo { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+.ing-onda { position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: rgba(255,255,255,.5); pointer-events: none; animation: ing-onda .65s ease-out forwards; }
+@keyframes ing-onda { to { transform: scale(36); opacity: 0; } }
+.error:not(.oculto) { animation: ing-sacude .4s; }
+@keyframes ing-sacude { 25%, 75% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
+@media (max-width: 760px) { .ing-desfile { transform: scale(.8); transform-origin: bottom left; width: 125%; } .ing-pasos { display: none; } }
+@media (prefers-reduced-motion: reduce) { #ingreso *, #ingreso *::before { animation: none !important; transition: none !important; } }

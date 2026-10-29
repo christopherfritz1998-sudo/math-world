@@ -14,11 +14,16 @@
 
   <!-- ===== Ingreso ===== -->
   <section id="ingreso">
+    <div class="ing-fondo" id="ing-fondo" aria-hidden="true"></div>
+    <div class="ing-velo" aria-hidden="true"></div>
+    <div class="ing-simbolos" id="ing-simbolos" aria-hidden="true"></div>
+    <div class="ing-desfile" id="ing-desfile" aria-hidden="true"></div>
     <div class="ingreso-wrap">
       <div class="ingreso-intro">
         <span class="chip">MATH WORLD · MATEMÁTICA 7° Y 8° BÁSICO</span>
-        <h1>Math<br>World</h1>
+        <h1 class="ing-titulo" aria-label="Math World"><span class="ing-letras">Math</span><br><span class="ing-letras">World</span></h1>
         <p>Construye tu base, viaja por el portal a los mundos de cada unidad, recolecta recursos y vence a los enemigos resolviendo ejercicios.</p>
+        <div class="ing-pasos" aria-hidden="true"><span>🔑 Entra con tu RUT</span><span>🤝 Únete a tu grupo</span><span>⚔️ Aprende jugando</span></div>
         <p style="font-size: 15px"><a href="../">← Volver a mathworld.cl</a> · <a href="creditos.html">Créditos del arte</a></p>
       </div>
 
@@ -66,7 +71,7 @@
           </fieldset>
 
           <p class="error oculto" id="error-ingreso" role="alert"></p>
-          <button type="submit" class="btn-principal" id="btn-entrar">Continuar</button>
+          <button type="submit" class="btn-principal btn-brillo" id="btn-entrar">Continuar</button>
           <p class="nota solo-nube">Tu avance se guarda en el sistema: puedes seguir desde cualquier computador o celular. ¿Olvidaste tu clave? Pídele a tu profesor que la restablezca.</p>
           <p class="nota solo-local oculto">El inicio de sesión con RUT aún no está activado: por ahora tu avance se guarda solo en este navegador.</p>
         </form>
@@ -83,7 +88,7 @@
             <input id="codigo-docente" type="password" inputmode="numeric" autocomplete="current-password">
           </div>
           <p class="error oculto" id="error-docente" role="alert"></p>
-          <button type="submit" class="btn-principal">Entrar al portal</button>
+          <button type="submit" class="btn-principal btn-brillo">Entrar al portal</button>
         </form>
       </div>
     </div>

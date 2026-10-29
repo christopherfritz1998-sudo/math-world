@@ -880,6 +880,31 @@
   // ===================================================================
   const ingreso = { nivel: '7', pj: 'zorro', rut: null, estado: null };
 
+  // Fondo animado del ingreso: símbolos que suben, desfile de personajes y movimiento con el mouse
+  function decorarIngreso() {
+    if (decorarIngreso.hecho || !$('ing-simbolos')) return;
+    decorarIngreso.hecho = true;
+    const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('.ing-letras').forEach((el, k) => { el.innerHTML = [...el.textContent].map((c, i) => `<span style="--i:${i + k * 4}">${c}</span>`).join(''); });
+    const S = ['π', '∑', '√', '÷', '∞', '%', '×', '±', '½', 'x²', '≠', 'Δ', '+', '='];
+    $('ing-simbolos').innerHTML = Array.from({ length: 18 }, (_, i) => `<span style="--x:${(i * 53) % 100}%;--d:${9 + (i % 6) * 2}s;--r:${(i % 2 ? -1 : 1) * (12 + i * 8)}deg;--t:${0.9 + (i % 4) * 0.35}rem;animation-delay:-${i * 1.4}s">${S[i % S.length]}</span>`).join('');
+    const fila = [['zorro', 0], ['paladin', 7], ['luna', 3], ['valquiria', 8], ['condor', 4], ['draconico', 6], ['copihue', 1], ['arcangel', 9]];
+    $('ing-desfile').innerHTML = fila.map(([p, m], i) => `<div class="ing-caminante" style="--d:${30 + (i % 3) * 5}s;--retraso:-${i * 4.2}s"><span class="ing-masc" style="--fila:${m}"></span><span class="ing-sprite" style="background-image:url('assets/pj/${p}_nada.png')"></span></div>`).join('');
+    if (!quieto) window.addEventListener('pointermove', (e) => {
+      if ($('ingreso').classList.contains('oculto')) return;
+      const x = e.clientX / window.innerWidth - 0.5, y = e.clientY / window.innerHeight - 0.5;
+      $('ing-fondo').style.transform = `scale(1.12) translate(${-x * 18}px, ${-y * 12}px)`;
+      $('ing-simbolos').style.transform = `translate(${x * 24}px, ${y * 16}px)`;
+    });
+    // onda al presionar botones del ingreso
+    $('ingreso').addEventListener('pointerdown', (e) => {
+      const b = e.target.closest('.btn-principal, .opcion, .pestanas button'); if (!b) return;
+      const r = b.getBoundingClientRect(), o = document.createElement('span');
+      o.className = 'ing-onda'; o.style.left = `${e.clientX - r.left}px`; o.style.top = `${e.clientY - r.top}px`;
+      b.appendChild(o); setTimeout(() => o.remove(), 650);
+    });
+  }
+  decorarIngreso();
   function prepararIngreso() {
     const cont = $('personajes');
     cont.innerHTML = PERSONAJES.filter((p) => !p.rey).map((p) => `
@@ -901,7 +926,8 @@
       $('form-docente').classList.toggle('oculto', b.dataset.pestana !== 'docente');
     }));
     // mathworld.cl → «Soy profesor» abre directo la pestaña docente
-    if (location.hash === '#docente') { const b = document.querySelector('[data-pestana="docente"]'); if (b) b.click(); }
+    const abrirDocenteHash = () => { if (location.hash === '#docente') { const b = document.querySelector('[data-pestana="docente"]'); if (b) b.click(); } };
+    abrirDocenteHash(); window.addEventListener('hashchange', abrirDocenteHash);
 
     if (!Nube.activo) {
       // Sin base de datos configurada: modo local con apodo
