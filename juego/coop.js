@@ -8,7 +8,7 @@
   const ESPERAS = [1000, 2000, 5000, 10000];
 
   class Canal {
-    constructor(nombre, clave, meta) {
+    constructor(nombre, clave, meta, espera = 0) {
       this.topic = `realtime:${nombre}`;
       this.clave = clave;
       this.meta = meta;
@@ -18,7 +18,8 @@
       this.alEstado = null;         // 'conectando' | 'ok' | 'error'
       this.ref = 0; this.joinRef = null;
       this.intentos = 0; this.cerrado = false;
-      this.conectar();
+      // una espera breve y al azar evita que todo el curso se conecte en el mismo instante
+      if (espera > 0) { this.est = 'conectando'; this.esperaT = setTimeout(() => this.conectar(), espera); } else this.conectar();
     }
     on(evento, fn) { (this.handlers[evento] = this.handlers[evento] || []).push(fn); return this; }
     estado(e) { this.est = e; if (this.alEstado) this.alEstado(e); }

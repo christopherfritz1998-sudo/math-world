@@ -776,3 +776,257 @@ revoke all on function public.mw_docente_config(uuid), public.mw_docente_anuncio
 grant execute on function public.mw_docente_config(uuid), public.mw_docente_anuncio(uuid, text[], text, int), public.mw_docente_chat(uuid, text[], boolean),
   public.mw_reporte_enviar(uuid, text, text, text, text), public.mw_docente_reportes(uuid), public.mw_docente_reporte_leido(uuid, bigint[], boolean) to anon;
 revoke all on function public.mw_ms_de(timestamptz) from public, anon, authenticated;
+-- ===================================================================
+-- Grupos fijos con código (por curso) y obras cooperativas por curso y grupo
+-- ===================================================================
+alter table public.estudiantes add column if not exists grupo smallint check (grupo between 1 and 8);
+alter table public.estudiantes add column if not exists grupo_fallos int not null default 0;
+alter table public.estudiantes add column if not exists grupo_bloqueo timestamptz;
+
+create table if not exists public.grupo_codigos (
+  curso text not null,
+  grupo smallint not null check (grupo between 1 and 8),
+  codigo text not null unique,
+  primary key (curso, grupo)
+);
+alter table public.grupo_codigos enable row level security;
+revoke all on public.grupo_codigos from anon, authenticated;
+
+-- Código legible: PALABRA-NN, único en todo el colegio
+drop function if exists public.mw_codigo_nuevo();
+create or replace function public.mw_codigo_nuevo(p_curso text) returns text language plpgsql as $$
+declare p text[] := array['ZORRO','PUMA','CONDOR','HUEMUL','PUDU','LOBO','COPIHUE','LLAMA','ALPACA','VICUNA','CHINCOL','TIUQUE','GUANACO','PICAFLOR','DELFIN','BALLENA','CHUCAO','CISNE','HALCON','TORTUGA','PULPO','JAIBA','ARAUCARIA','QUILLAY'];
+  w text; c text;
+begin
+  loop
+    w := p[1 + floor(random() * array_length(p, 1))::int];
+    c := w || '-' || (10 + floor(random() * 90))::int::text;
+    -- palabra distinta a las de los otros grupos del mismo curso, y código único en todo el colegio
+    exit when not exists (select 1 from grupo_codigos where codigo = c)
+          and not exists (select 1 from grupo_codigos where curso = p_curso and split_part(codigo, '-', 1) = w);
+  end loop;
+  return c;
+end $$;
+create or replace function public.mw_codigos_crear(p_curso text, p_renovar boolean) returns void language plpgsql as $$
+declare g int;
+begin
+  for g in 1..8 loop
+    if p_renovar then update grupo_codigos set codigo = mw_codigo_nuevo(p_curso) where curso = p_curso and grupo = g; end if;
+    if not exists (select 1 from grupo_codigos where curso = p_curso and grupo = g) then
+      insert into grupo_codigos (curso, grupo, codigo) values (p_curso, g, mw_codigo_nuevo(p_curso));
+    end if;
+  end loop;
+end $$;
+select mw_codigos_crear(curso, false) from cursos;
+create or replace function public.mw_norm_codigo(t text) returns text language sql immutable as $$
+  select regexp_replace(upper(translate(coalesce(t, ''), 'áéíóúñÁÉÍÓÚÑ', 'aeiounAEIOUN')), '[^A-Z0-9]', '', 'g') $$;
+
+-- Estudiante: su grupo actual (null = debe escribir el código)
+create or replace function public.mw_grupo_estado(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token);
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  return (select json_build_object('ok', true, 'grupo', grupo, 'curso', curso) from estudiantes where id = id_e);
+end $$;
+
+-- Estudiante: entra a un grupo con el código que le dio su profesor (una sola vez; después solo el docente lo cambia)
+create or replace function public.mw_grupo_unirse(p_token uuid, p_codigo text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); e estudiantes%rowtype; gc grupo_codigos%rowtype; n int;
+begin
+  if id_e is null then return json_build_object('ok', false, 'error', 'sesion'); end if;
+  select * into e from estudiantes where id = id_e for update;
+  if e.grupo is not null then return json_build_object('ok', true, 'grupo', e.grupo); end if;
+  if e.grupo_bloqueo is not null and e.grupo_bloqueo > now() then return json_build_object('ok', false, 'error', 'bloqueado'); end if;
+  select * into gc from grupo_codigos where mw_norm_codigo(codigo) = mw_norm_codigo(p_codigo);
+  if gc.curso is null or gc.curso <> e.curso then
+    update estudiantes set grupo_bloqueo = case when grupo_fallos + 1 >= 8 then now() + interval '10 minutes' else null end,
+      grupo_fallos = case when grupo_fallos + 1 >= 8 then 0 else grupo_fallos + 1 end
+    where id = id_e;
+    return json_build_object('ok', false, 'error', case when gc.curso is not null then 'otro_curso' else 'codigo' end);
+  end if;
+  select count(*) into n from estudiantes where curso = e.curso and grupo = gc.grupo;
+  if n >= 6 then return json_build_object('ok', false, 'error', 'lleno'); end if;
+  update estudiantes set grupo = gc.grupo, grupo_fallos = 0, grupo_bloqueo = null where id = id_e;
+  return json_build_object('ok', true, 'grupo', gc.grupo);
+end $$;
+
+-- El latido también informa el grupo (por si el docente lo cambió)
+create or replace function public.mw_latido(p_token uuid, p_zona text)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; g smallint; cu cursos%rowtype;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  select curso, grupo into c, g from estudiantes where id = id_e;
+  if not mw_curso_abierto(c) then
+    update estudiantes set ultimo_ping = now() - interval '1 hour' where id = id_e;
+    return json_build_object('ok', true, 'abierto', false);
+  end if;
+  update estudiantes set zona = left(p_zona, 20), ultimo_ping = now() where id = id_e;
+  select * into cu from cursos where curso = c;
+  return json_build_object('ok', true, 'abierto', true, 'mundos', mw_curso_mundos(c), 'chat', coalesce(cu.chat, true), 'grupo', g,
+    'anuncio', case when cu.anuncio is not null and (cu.anuncio->>'hasta')::bigint > mw_ms() then cu.anuncio else null end);
+end $$;
+
+-- Conectados por curso, mundo y grupo (para el docente que visita grupos)
+create or replace function public.mw_grupos(p_token uuid, p_nivel text)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_estudiante(p_token) is null and mw_sesion_docente(p_token) is null then return null; end if;
+  return (select coalesce(json_object_agg(k, n), '{}'::json) from (
+    select curso || ':' || zona as k, count(*) as n from estudiantes
+     where left(curso, 1) = p_nivel and ultimo_ping > now() - interval '75 seconds' and zona like 'u_-g%'
+     group by curso, zona) t);
+end $$;
+
+-- ---------- Obras por curso y grupo (las tablas estaban vacías: se rehacen) ----------
+drop function if exists public.mw_docente_obras(uuid);
+drop function if exists public.mw_obra(uuid, text, text);
+drop function if exists public.mw_obra_aportar(uuid, text, jsonb);
+drop function if exists public.mw_obra_estado(text, text, uuid);
+drop table if exists public.obra_aportes;
+drop table if exists public.obras;
+create table public.obras (
+  curso text not null,
+  grupo smallint not null,
+  id text not null,
+  aportes jsonb not null default '{}'::jsonb,
+  completado timestamptz,
+  primary key (curso, grupo, id)
+);
+create table public.obra_aportes (
+  curso text not null,
+  grupo smallint not null,
+  obra text not null,
+  estudiante_id uuid not null references public.estudiantes(id) on delete cascade,
+  total int not null default 0,
+  primary key (curso, grupo, obra, estudiante_id)
+);
+alter table public.obras enable row level security;
+alter table public.obra_aportes enable row level security;
+revoke all on public.obras, public.obra_aportes from anon, authenticated;
+
+-- Metas para un grupo (~6 estudiantes): algo más bajas que las de todo un nivel, pero siguen tomando tiempo
+create or replace function public.mw_obra_meta(p_id text) returns jsonb language sql immutable as $$
+  select case p_id when 'puente_bosque' then '{"madera": 360, "piedra": 210, "agua": 90, "cristal": 24}'::jsonb
+                   when 'montacargas_valle' then '{"fibra": 300, "arenisca": 240, "cobre": 120, "oro": 36}'::jsonb
+                   when 'elevador_mina' then '{"carbon": 300, "plata": 180, "hongo": 90, "amatista": 30}'::jsonb
+                   when 'ruta_glaciar' then '{"hielo": 300, "escarcha": 160, "baya": 90, "zafiro": 30}'::jsonb else null end $$;
+
+create or replace function public.mw_obra_estado(p_curso text, p_grupo smallint, p_id text, p_yo uuid)
+returns json language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'id', p_id, 'curso', p_curso, 'grupo', p_grupo, 'meta', mw_obra_meta(p_id),
+    'aportes', coalesce((select aportes from obras where curso = p_curso and grupo = p_grupo and id = p_id), '{}'::jsonb),
+    'completado', (select completado from obras where curso = p_curso and grupo = p_grupo and id = p_id) is not null,
+    'mio', coalesce((select total from obra_aportes where curso = p_curso and grupo = p_grupo and obra = p_id and estudiante_id = p_yo), 0),
+    'top', coalesce((select json_agg(x) from (select mw_nombre_corto(e.nombre) as nombre, a.total from obra_aportes a join estudiantes e on e.id = a.estudiante_id
+                     where a.curso = p_curso and a.grupo = p_grupo and a.obra = p_id order by a.total desc limit 5) x), '[]'::json),
+    'aportantes', (select count(*) from obra_aportes where curso = p_curso and grupo = p_grupo and obra = p_id)
+  ) $$;
+
+-- Ver una obra: el estudiante ve la de su grupo; el docente, la del curso y grupo que visita
+create or replace function public.mw_obra(p_token uuid, p_id text, p_curso text, p_grupo int)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; g smallint;
+begin
+  if mw_obra_meta(p_id) is null then return json_build_object('ok', false); end if;
+  if id_e is not null then
+    select curso, grupo into c, g from estudiantes where id = id_e;
+    if g is null then return json_build_object('ok', false, 'error', 'sin_grupo'); end if;
+  elsif mw_sesion_docente(p_token) is not null then
+    c := p_curso; g := p_grupo;
+    if c is null or g is null then return json_build_object('ok', false, 'error', 'sin_grupo'); end if;
+  else return json_build_object('ok', false); end if;
+  return (mw_obra_estado(c, g, p_id, id_e)::jsonb || '{"ok": true}'::jsonb)::json;
+end $$;
+
+create or replace function public.mw_obra_aportar(p_token uuid, p_id text, p_recursos jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; g smallint; meta jsonb := mw_obra_meta(p_id); act jsonb; acep jsonb := '{}'::jsonb;
+  k text; quiere int; falta int; dado int; suma int := 0; listo boolean;
+begin
+  if id_e is null or meta is null then return json_build_object('ok', false); end if;
+  select curso, grupo into c, g from estudiantes where id = id_e;
+  if g is null then return json_build_object('ok', false, 'error', 'sin_grupo'); end if;
+  insert into obras (curso, grupo, id) values (c, g, p_id) on conflict do nothing;
+  select aportes into act from obras where curso = c and grupo = g and id = p_id for update;
+  if (select completado from obras where curso = c and grupo = g and id = p_id) is not null then
+    return (mw_obra_estado(c, g, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', '{}'::jsonb))::json;
+  end if;
+  for k in select jsonb_object_keys(meta) loop
+    quiere := greatest(0, least(coalesce((p_recursos->>k)::int, 0), 500));
+    falta := greatest(0, (meta->>k)::int - coalesce((act->>k)::int, 0));
+    dado := least(quiere, falta);
+    if dado > 0 then
+      act := act || jsonb_build_object(k, coalesce((act->>k)::int, 0) + dado);
+      acep := acep || jsonb_build_object(k, dado); suma := suma + dado;
+    end if;
+  end loop;
+  listo := not exists (select 1 from jsonb_object_keys(meta) k2 where coalesce((act->>k2)::int, 0) < (meta->>k2)::int);
+  update obras set aportes = act, completado = case when listo then now() else null end where curso = c and grupo = g and id = p_id;
+  if suma > 0 then
+    insert into obra_aportes (curso, grupo, obra, estudiante_id, total) values (c, g, p_id, id_e, suma)
+      on conflict (curso, grupo, obra, estudiante_id) do update set total = obra_aportes.total + excluded.total;
+  end if;
+  return (mw_obra_estado(c, g, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', acep))::json;
+end $$;
+
+-- ---------- Docente: grupos, códigos y obras de un curso ----------
+create or replace function public.mw_docente_grupos(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return (select json_object_agg(k.curso, json_build_object(
+    'codigos', (select json_object_agg(grupo, codigo) from grupo_codigos where curso = k.curso),
+    'miembros', (select coalesce(json_object_agg(id, grupo), '{}'::json) from estudiantes where curso = k.curso and grupo is not null),
+    'obras', (select coalesce(json_object_agg(g, (select json_object_agg(o, mw_obra_estado(k.curso, g::smallint, o, null))
+                from unnest(array['puente_bosque', 'montacargas_valle', 'elevador_mina', 'ruta_glaciar']) o)), '{}'::json)
+              from generate_series(1, 8) g)
+  )) from cursos k);
+end $$;
+
+create or replace function public.mw_docente_mover(p_token uuid, p_estudiante uuid, p_grupo int)
+returns json language plpgsql security definer set search_path = public as $$
+declare c text; n int;
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  select curso into c from estudiantes where id = p_estudiante;
+  if c is null then return json_build_object('ok', false, 'error', 'estudiante'); end if;
+  if p_grupo is not null then
+    if p_grupo < 1 or p_grupo > 8 then return json_build_object('ok', false, 'error', 'grupo'); end if;
+    select count(*) into n from estudiantes where curso = c and grupo = p_grupo and id <> p_estudiante;
+    if n >= 6 then return json_build_object('ok', false, 'error', 'lleno'); end if;
+  end if;
+  update estudiantes set grupo = p_grupo, grupo_fallos = 0, grupo_bloqueo = null where id = p_estudiante;
+  return json_build_object('ok', true);
+end $$;
+
+create or replace function public.mw_docente_codigos(p_token uuid, p_curso text)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  perform mw_codigos_crear(p_curso, true);
+  return mw_docente_grupos(p_token);
+end $$;
+
+-- El resumen del docente incluye el grupo de cada estudiante
+create or replace function public.mw_docente_resumen(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+begin
+  if mw_sesion_docente(p_token) is null then return null; end if;
+  return (select coalesce(json_agg(json_build_object(
+      'id', id, 'curso', curso, 'rut', rut, 'nombre', nombre,
+      'tiene_clave', clave_hash is not null,
+      'conectado', ultimo_ping > now() - interval '75 seconds',
+      'ultimo', ultimo_ping, 'zona', zona, 'progreso', progreso, 'grupo', grupo
+    ) order by curso, nombre), '[]'::json) from estudiantes);
+end $$;
+
+revoke all on function public.mw_codigo_nuevo(text), public.mw_codigos_crear(text, boolean), public.mw_norm_codigo(text),
+  public.mw_obra_meta(text), public.mw_obra_estado(text, smallint, text, uuid) from public, anon, authenticated;
+revoke all on function public.mw_grupo_estado(uuid), public.mw_grupo_unirse(uuid, text), public.mw_obra(uuid, text, text, int), public.mw_obra_aportar(uuid, text, jsonb),
+  public.mw_docente_grupos(uuid), public.mw_docente_mover(uuid, uuid, int), public.mw_docente_codigos(uuid, text) from public, authenticated;
+grant execute on function public.mw_grupo_estado(uuid), public.mw_grupo_unirse(uuid, text), public.mw_obra(uuid, text, text, int), public.mw_obra_aportar(uuid, text, jsonb),
+  public.mw_docente_grupos(uuid), public.mw_docente_mover(uuid, uuid, int), public.mw_docente_codigos(uuid, text) to anon;

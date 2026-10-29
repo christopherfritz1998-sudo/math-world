@@ -81,6 +81,7 @@
       const peor = r.peor ? nombreTema(nivel, r.peor.k).titulo : '–';
       return `<tr class="fila" data-id="${e.id}" tabindex="0">
         <td><strong>${esc(e.nombre)}</strong>${e.tiene_clave ? '' : '<br><small class="muted">Aún no entra</small>'}</td>
+        <td>${e.grupo ? `G${e.grupo}` : '<span class="muted">–</span>'}</td>
         <td><span class="est"><span class="punto ${e.conectado ? '' : 'off'}"></span>${e.conectado ? 'En línea' : esc(hace(e.ultimo))}</span></td>
         <td>${e.conectado ? esc(ZONAS[e.zona] || '–') : '<span class="muted">–</span>'}</td>
         <td>${r.nivel || '–'}</td>
@@ -89,12 +90,13 @@
         <td>${r.vencidos}</td>
         <td>${r.muertes}</td>
       </tr>`;
-    }).join('') : '<tr><td colspan="8" class="vacio">No hay estudiantes que coincidan.</td></tr>';
+    }).join('') : '<tr><td colspan="9" class="vacio">No hay estudiantes que coincidan.</td></tr>';
     document.querySelectorAll('tr.fila').forEach((tr) => {
       tr.addEventListener('click', () => detalle(tr.dataset.id));
       tr.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') detalle(tr.dataset.id); });
     });
     pintarAnalisis();
+    pintarGruposCursos();
   }
 
   function detalle(id) {
@@ -120,6 +122,7 @@
       </div>
       <div class="chips">
         <span class="chip">${e.conectado ? 'En línea · ' + esc(ZONAS[e.zona] || '') : 'Última vez: ' + esc(hace(e.ultimo))}</span>
+        <span class="chip">${e.grupo ? `Grupo ${e.grupo}` : 'Sin grupo'}</span>
         <span class="chip">Nivel ${r.nivel || '–'}</span>
         <span class="chip">Acierto ${r.acierto === null ? '–' : r.acierto + ' %'} (${r.intentos} intentos)</span>
         <span class="chip">Enemigos vencidos: ${r.vencidos}</span>
@@ -315,22 +318,81 @@
   setInterval(pintarEstadoDesafios, 1000);
 
   // ---------- Obras cooperativas (puente al Bosque profundo) ----------
+  // ---------- Grupos (códigos, integrantes) y obras por curso y grupo ----------
+  let grupos = null, grupoCurso = null, grupoMsg = '';
+  const OBRAS_D = [['puente_bosque', '🌉 Puente', 'U1'], ['montacargas_valle', '🏗️ Montacargas', 'U2'], ['elevador_mina', '⛓️ Elevador', 'U3'], ['ruta_glaciar', '🧗 Ruta glaciar', 'U4']];
+  const pctO = (o) => { if (!o) return 0; if (o.completado) return 100; const m = o.meta || {}, ap = o.aportes || {}; const tot = Object.values(m).reduce((a, b) => a + b, 0); return Math.floor((Object.entries(m).reduce((a, [k, v]) => a + Math.min(v, ap[k] || 0), 0) / Math.max(1, tot)) * 100); };
   async function cargarObras() {
-    try {
-      const r = await Nube.docenteObras(token);
-      if (!r) return;
-      const lista = [];
-      for (const n of ['7', '8']) { lista.push([n, r[n], 'Puente al Bosque profundo (Unidad 1)']); lista.push([n, (r.valle || {})[n], 'Montacargas al Valle de la Esfinge (Unidad 2)']); lista.push([n, (r.mina || {})[n], 'Elevador a las Profundidades (Unidad 3)']); lista.push([n, (r.cima || {})[n], 'Ruta de escalada a la Cima del Glaciar (Unidad 4)']); }
-      $('obras').innerHTML = lista.map(([n, o0, titulo]) => {
-        const o = o0 || {}, meta = o.meta || {}, ap = o.aportes || {};
-        const tot = Object.values(meta).reduce((a, b) => a + b, 0), hecho = Object.entries(meta).reduce((a, [k, v]) => a + Math.min(v, ap[k] || 0), 0);
-        const pct = o.completado ? 100 : Math.floor((hecho / Math.max(1, tot)) * 100);
-        return `<div class="des-vivo ${o.completado ? '' : 'espera'}"><div class="fila-d"><strong>${n}° básico · ${titulo}</strong><span class="reloj">${o.completado ? '¡Terminado!' : pct + ' %'}</span></div>
-          <div class="meta"><i style="width:${pct}%"></i></div>
-          <span class="muted">${Object.entries(meta).map(([k, v]) => `${k}: ${Math.min(v, ap[k] || 0)}/${v}`).join(' · ')}</span>
-          <span class="muted">${o.aportantes || 0} estudiantes han aportado${(o.top || []).length ? ` · Más aportes: ${o.top.slice(0, 3).map((x) => `${esc(x.nombre)} (${x.total})`).join(', ')}` : ''}</span></div>`;
-      }).join('');
-    } catch (e) { /* se reintenta */ }
+    try { const r = await Nube.docenteGrupos(token); if (r) { grupos = r; pintarGruposCursos(); if ($('grupos-dlg').open) pintarGrupos(); } } catch (e) { /* se reintenta */ }
+  }
+  function pintarGruposCursos() {
+    if (!grupos) return;
+    $('grupos-cursos').innerHTML = CURSOS.map((c) => {
+      const g = grupos[c.id] || {}, lista = datos.filter((e) => e.curso === c.id), con = lista.filter((e) => e.grupo).length;
+      const ob = g.obras || {}; let hechas = 0;
+      for (let n = 1; n <= 8; n++) for (const [id] of OBRAS_D) if (ob[n] && ob[n][id] && ob[n][id].completado) hechas++;
+      return `<button type="button" class="gc-curso" data-gc="${c.id}"><strong>${c.nombre}</strong>
+        <span class="muted">${con} de ${lista.length} estudiantes con grupo${lista.length - con ? ` · <b style="color:var(--coral)">${lista.length - con} sin grupo</b>` : ''}</span>
+        <span class="muted">Obras terminadas: ${hechas} de 32</span><span class="meta"><i style="width:${(hechas / 32) * 100}%"></i></span>
+        <span class="btn mini pri" style="align-self:flex-start;display:inline-flex;align-items:center">Ver grupos y códigos</span></button>`;
+    }).join('');
+    $('grupos-cursos').querySelectorAll('[data-gc]').forEach((b) => b.addEventListener('click', () => { grupoCurso = b.dataset.gc; grupoMsg = ''; pintarGrupos(); $('grupos-dlg').showModal(); }));
+  }
+  function selGrupo(e) {
+    return `<select data-mover="${e.id}" aria-label="Grupo de ${esc(e.nombre)}"><option value="">Sin grupo</option>${Array.from({ length: 8 }, (_, i) => `<option value="${i + 1}" ${e.grupo === i + 1 ? 'selected' : ''}>Grupo ${i + 1}</option>`).join('')}</select>`;
+  }
+  function pintarGrupos() {
+    const c = CURSOS.find((x) => x.id === grupoCurso), g = (grupos || {})[grupoCurso] || {};
+    const lista = datos.filter((e) => e.curso === grupoCurso).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const sin = lista.filter((e) => !e.grupo);
+    const tarjetas = Array.from({ length: 8 }, (_, i) => {
+      const n = i + 1, miembros = lista.filter((e) => e.grupo === n), on = miembros.filter((e) => e.conectado).length, ob = (g.obras || {})[n] || {};
+      return `<div class="grupo-c"><div class="cab-g"><strong>Grupo ${n}</strong><span class="codigo">${esc((g.codigos || {})[n] || '–')}</span></div>
+        <span class="muted" style="font-size:13px">${miembros.length}/6 integrantes${on ? ` · <span class="est"><span class="punto"></span>${on} en línea</span>` : ''}</span>
+        <div class="obras-g">${OBRAS_D.map(([id, nom, u]) => { const o = ob[id], p = pctO(o); return `<div class="${p >= 100 ? 'listo' : ''}" title="${esc(`Unidad ${u.slice(1)} · ` + Object.entries((o && o.meta) || {}).map(([k, v]) => `${k}: ${Math.min(v, ((o && o.aportes) || {})[k] || 0)}/${v}`).join(' · '))}"><span class="fila-o"><span>${nom}</span><b>${p >= 100 ? '✓' : p + ' %'}</b></span><span class="barra"><i style="width:${p}%"></i></span></div>`; }).join('')}</div>
+        <div class="miembros">${miembros.length ? miembros.map((e) => `<div class="miembro"><span>${e.conectado ? '<span class="punto"></span> ' : ''}${esc(e.nombre)}</span>${selGrupo(e)}</div>`).join('') : '<span class="muted" style="font-size:13px">Nadie todavía.</span>'}</div></div>`;
+    }).join('');
+    $('grupos-det').innerHTML = `
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div><h3 id="gr-titulo">Grupos de ${c.nombre}</h3><span class="muted">${lista.length - sin.length} de ${lista.length} estudiantes con grupo. Para cambiar a alguien de grupo, elige el nuevo grupo en su lista: se moverá en unos segundos y conservará todo su avance personal.</span></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn pri" id="gr-proyectar">📽️ Mostrar códigos en grande</button><button type="button" class="btn peligro" id="gr-renovar">Renovar códigos</button><button type="button" class="btn" id="gr-cerrar">Cerrar</button></div>
+      </div>
+      <div class="tabs">${CURSOS.map((x) => `<button type="button" class="tab" data-gt="${x.id}" aria-selected="${x.id === grupoCurso}">${x.nombre}</button>`).join('')}</div>
+      <div id="gr-msg">${grupoMsg}</div>
+      ${sin.length ? `<div><h4>Sin grupo (${sin.length}) <small class="muted">· aún no escriben su código</small></h4><div class="sin-grupo">${sin.map((e) => `<div class="miembro"><span>${esc(e.nombre)}${e.tiene_clave ? '' : ' <small class="muted">(no ha entrado)</small>'}</span>${selGrupo(e)}</div>`).join('')}</div></div>` : ''}
+      <div class="grupos">${tarjetas}</div>`;
+    $('gr-cerrar').addEventListener('click', () => $('grupos-dlg').close());
+    $('grupos-det').querySelectorAll('[data-gt]').forEach((b) => b.addEventListener('click', () => { grupoCurso = b.dataset.gt; pintarGrupos(); }));
+    $('gr-proyectar').addEventListener('click', proyectarCodigos);
+    $('gr-renovar').addEventListener('click', async () => {
+      if (!confirm(`¿Crear códigos nuevos para ${c.nombre}? Los códigos actuales dejarán de funcionar. Quienes ya tienen grupo no cambian.`)) return;
+      try { const r = await Nube.docenteCodigos(token, grupoCurso); if (r) grupos = r; } catch (e) { /* */ }
+      pintarGrupos(); pintarGruposCursos();
+    });
+    $('grupos-det').querySelectorAll('[data-mover]').forEach((sel) => sel.addEventListener('change', async () => {
+      const e = datos.find((x) => x.id === sel.dataset.mover), nuevo = sel.value ? Number(sel.value) : null, antes = e.grupo || null;
+      sel.disabled = true; grupoMsg = '';
+      try {
+        const r = await Nube.docenteMover(token, e.id, nuevo);
+        if (r && r.ok) { e.grupo = nuevo; grupoMsg = `<div class="msg">${esc(e.nombre)} ${nuevo ? `ahora está en el Grupo ${nuevo}` : 'quedó sin grupo: deberá escribir un código al entrar'}.</div>`; }
+        else grupoMsg = `<div class="err">${r && r.error === 'lleno' ? 'Ese grupo ya tiene 6 integrantes. Mueve primero a alguien de ese grupo.' : 'No se pudo cambiar el grupo.'}</div>`;
+      } catch (err) { grupoMsg = '<div class="err">Sin conexión. Inténtalo otra vez.</div>'; }
+      $('gr-msg').innerHTML = grupoMsg;
+      if (e.grupo !== antes) { pintarGrupos(); pintarGruposCursos(); pintar(); } else sel.value = antes || '';
+      sel.disabled = false;
+    }));
+  }
+  function proyectarCodigos() {
+    const c = CURSOS.find((x) => x.id === grupoCurso), cods = ((grupos || {})[grupoCurso] || {}).codigos || {};
+    const el = document.createElement('div'); el.className = 'proyector'; el.setAttribute('role', 'dialog');
+    el.innerHTML = `<h2>Códigos de grupo · ${c.nombre}</h2><div class="cods">${Array.from({ length: 8 }, (_, i) => `<div class="cod"><span>Grupo ${i + 1}</span><b>${esc(cods[i + 1] || '–')}</b></div>`).join('')}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:20px">Entra al juego, escribe el código de tu grupo y presiona «Entrar al grupo».</span><button type="button" class="btn amarillo">Cerrar (Esc)</button></div>`;
+    const cerrar = () => { el.remove(); document.removeEventListener('keydown', tecla); };
+    const tecla = (e) => { if (e.key === 'Escape') cerrar(); };
+    el.querySelector('button').addEventListener('click', cerrar);
+    document.addEventListener('keydown', tecla);
+    document.body.appendChild(el);
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
   }
   cargarObras();
   setInterval(cargarObras, 30000);
@@ -375,16 +437,16 @@
     const resumenT = [['Curso', 'Unidad', 'Tema', 'Acierto del curso %', 'Respuestas', 'Correctas', 'Estudiantes que practicaron', 'Con dificultad (<50 %)']];
     for (const c of CURSOS) {
       const lista = datos.filter((e) => e.curso === c.id).sort((a, b) => a.nombre.localeCompare(b.nombre));
-      const filas = [['Estudiante', 'RUT', 'Curso', 'Entró al juego', 'Última conexión', 'Nivel', 'Acierto %', 'Respuestas', 'Tema más débil', 'Acierto tema débil %', 'Enemigos vencidos', 'Derrotas', 'Jefes vencidos', 'Logros', 'Título equipado', 'Necesita apoyo']];
+      const filas = [['Estudiante', 'RUT', 'Curso', 'Grupo', 'Entró al juego', 'Última conexión', 'Nivel', 'Acierto %', 'Respuestas', 'Tema más débil', 'Acierto tema débil %', 'Enemigos vencidos', 'Derrotas', 'Jefes vencidos', 'Logros', 'Título equipado', 'Necesita apoyo']];
       const apoyo = new Set(apoyoDe(lista, c.nivel).map((x) => x.e.id));
       for (const e of lista) {
         const p = e.progreso || {}, r = resumen(e);
-        filas.push([e.nombre, e.rut, c.nombre, e.tiene_clave ? 'Sí' : 'No', e.conectado ? 'En línea' : fecha(e.ultimo), r.nivel || '', r.acierto ?? '', r.intentos,
+        filas.push([e.nombre, e.rut, c.nombre, e.grupo || '', e.tiene_clave ? 'Sí' : 'No', e.conectado ? 'En línea' : fecha(e.ultimo), r.nivel || '', r.acierto ?? '', r.intentos,
           r.peor ? nombreTema(c.nivel, r.peor.k).titulo : '', r.peor ? Math.round(r.peor.pct * 100) : '', r.vencidos, r.muertes,
           Object.values(p.jefes || {}).reduce((a, b) => a + b, 0) + (p.reyVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0),
           Object.keys(p.logros || {}).length, p.tituloTxt || '', apoyo.has(e.id) ? 'Sí' : '']);
       }
-      hojas.push({ nombre: `Estudiantes ${c.nombre}`, filas, anchos: [34, 13, 7, 9, 18, 7, 10, 11, 34, 12, 11, 9, 9, 8, 22, 10] });
+      hojas.push({ nombre: `Estudiantes ${c.nombre}`, filas, anchos: [34, 13, 7, 7, 9, 18, 7, 10, 11, 34, 12, 11, 9, 9, 8, 22, 10] });
       const temas = temasDe(lista, c.nivel);
       temas.forEach((t) => resumenT.push([c.nombre, ZONAS[t.unidad] || '', t.titulo, t.pct, t.i, t.a, t.est, t.dif]));
       if (temas.length) {
@@ -393,6 +455,14 @@
         for (const e of lista) { const st = (e.progreso || {}).stats || {}; m.push([e.nombre, ...orden.map((t) => (st[t.k] && st[t.k].i ? Math.round((st[t.k].a / st[t.k].i) * 100) : ''))]); }
         hojas.push({ nombre: `Temas ${c.nombre} (%)`, filas: m, anchos: [34, ...orden.map(() => 16)] });
       }
+    }
+    if (grupos) {
+      const fg = [['Curso', 'Grupo', 'Código', 'Integrantes', ...OBRAS_D.map(([, n, u]) => `${n.replace(/^\S+ /, '')} (${u}) %`), 'Estudiantes']];
+      for (const c of CURSOS) for (let n = 1; n <= 8; n++) {
+        const g = grupos[c.id] || {}, ob = (g.obras || {})[n] || {}, m = datos.filter((e) => e.curso === c.id && e.grupo === n);
+        fg.push([c.nombre, n, (g.codigos || {})[n] || '', m.length, ...OBRAS_D.map(([id]) => pctO(ob[id])), m.map((e) => e.nombre).join(', ')]);
+      }
+      hojas.push({ nombre: 'Grupos y obras', filas: fg, anchos: [7, 7, 14, 11, 12, 15, 12, 15, 90] });
     }
     hojas.splice(0, 0, { nombre: 'Resumen por tema', filas: resumenT, anchos: [8, 11, 44, 12, 11, 10, 14, 14] });
     if (reportes.length) hojas.push({ nombre: 'Buzón', filas: [['Fecha', 'Curso', 'Estudiante', 'Tipo', 'Categoría', 'Mensaje', 'Zona', 'Leído'], ...reportes.map((r) => [fecha(r.creado), (CURSOS.find((c) => c.id === r.curso) || {}).nombre || r.curso, r.nombre, r.tipo === 'idea' ? 'Idea' : 'Problema', r.categoria || '', r.texto, r.zona || '', r.leido ? 'Sí' : 'No'])], anchos: [17, 7, 30, 10, 24, 70, 18, 7] });

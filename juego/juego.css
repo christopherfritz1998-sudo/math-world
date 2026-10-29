@@ -691,3 +691,4 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .pc-consejo span { font-size: 17px; font-weight: 700; }
 .pc-consejo span.entra { animation: pc-consejo .5s ease-out; }
 @keyframes pc-consejo { from { opacity: 0; transform: translateY(6px); } }
+.codigo-grupo { font-family: "Fredoka", "Nunito", sans-serif; font-size: 28px; text-align: center; letter-spacing: .08em; text-transform: uppercase; margin: 8px 0; }

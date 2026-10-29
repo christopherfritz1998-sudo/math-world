@@ -536,6 +536,7 @@
         else if (!antes && sesion.chat) toast('💬 Tu profesor activó el chat: saluda a tu grupo con la tecla T.');
         pintarChatBtn();
         if (r.anuncio) trasCarga(() => mostrarAnuncio(r.anuncio));
+        if ('grupo' in r && (r.grupo || 0) !== (sesion.grupo || 0) && !ui.abierto && !carga) cambioDeGrupo(r.grupo || 0);
       }
       if (r && r.abierto && Array.isArray(r.mundos)) {
         const nuevos = r.mundos.filter((u) => !(sesion.mundos || []).includes(u) && MUNDOS[u]);
@@ -543,6 +544,15 @@
         if (nuevos.length) toast(`¡Tu profesor abrió un mundo nuevo: ${nuevos.map((u) => nombreZona(u)).join(', ')}! Viaja por el portal de tu base.`);
       }
     } catch (e) { /* sin red: se reintenta */ }
+  }
+  // El docente cambió (o quitó) el grupo del estudiante desde el portal
+  function cambioDeGrupo(g) {
+    sesion.grupo = g;
+    for (const k of Object.keys(obraE)) obraE[k] = null;
+    const enMundo = escena && MUNDOS[escena.zona];
+    if (!g) { if (enMundo) viajar('base'); pedirCodigoGrupo(); return; }
+    toast(`Tu profesor te cambió al Grupo ${g}.${enMundo ? ' Vuelves a tu base: viaja por el portal para unirte a tu nuevo equipo.' : ''}`);
+    if (enMundo) viajar('base');
   }
   async function cerrarPorDocente() {
     if (juegoCerrado) return;
@@ -563,6 +573,9 @@
   const idJuego = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Math.random()).slice(2) + Date.now();
   const coopActivo = () => Boolean(window.Coop && Coop.disponible && (sesion.modo === 'nube' || sesion.modo === 'docente'));
   const nivelNum = () => (S.curso === '8basico' ? '8' : '7');
+  // Curso de la sala: el estudiante juega en su curso; el docente, en el curso que eligió visitar
+  const cursoCanal = () => (esDocente() ? sesion.docCurso || `${nivelNum()}A` : S.seccion || nivelNum());
+  const cursoNombre = (c) => `${String(c).charAt(0)}° ${String(c).slice(1)}`;
   window.addEventListener('pagehide', () => { guardar(); subir(true); });
 
   function sumar(recurso, n) {
@@ -964,7 +977,11 @@
       S.seccion = r.curso;
       if (!r.progreso || !r.progreso.v) S.pj = ingreso.pj;
       guardar(true);
-      empezar();
+      let gr = null;
+      try { gr = await Nube.grupoEstado(r.token); } catch (e) { gr = null; }
+      sesion.grupo = (gr && gr.grupo) || 0;
+      if (gr && gr.ok && !gr.grupo) pedirCodigoGrupo(() => empezar());
+      else empezar();
     } catch (e) {
       error('No hay conexión con el servidor. Revisa internet e inténtalo de nuevo.');
     } finally { btn.disabled = false; }
@@ -1273,17 +1290,17 @@
   // Todo el nivel (7° u 8° básico) aporta recursos a la misma obra; el avance queda guardado en el sistema
   // y, cuando se completa, queda construida para siempre.
   const OBRAS = {
-    puente: { id: 'puente_bosque', meta: { madera: 600, piedra: 350, agua: 150, cristal: 40 }, icono: '🌉', nombre: 'Puente al Bosque profundo', corto: 'el puente', al: 'al puente', local: 'obraLocal',
-      intro: 'El río no se puede cruzar. Todos los estudiantes de tu nivel aportan recursos a este mismo puente: el avance se guarda y, cuando se completa, queda construido para siempre.',
+    puente: { id: 'puente_bosque', meta: { madera: 360, piedra: 210, agua: 90, cristal: 24 }, icono: '🌉', nombre: 'Puente al Bosque profundo', corto: 'el puente', al: 'al puente', local: 'obraLocal',
+      intro: 'El río no se puede cruzar. Tu grupo construye su propio puente aportando recursos: el avance se guarda y, cuando se completa, queda construido para siempre para tu grupo.',
       listo: 'El puente está construido para siempre: cruza el río por el camino hacia el Bosque profundo.', fin: '¡Puente terminado!' },
-    valle: { id: 'montacargas_valle', meta: { fibra: 500, arenisca: 400, cobre: 200, oro: 60 }, icono: '🏗️', nombre: 'Montacargas al Valle de la Esfinge', corto: 'el montacargas', al: 'al montacargas', local: 'obraLocalValle',
-      intro: 'El acantilado no se puede escalar. Todo tu nivel construye el montacargas de poleas: cuerdas de fibra, plataforma de arenisca, poleas de cobre y engranajes de oro. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
+    valle: { id: 'montacargas_valle', meta: { fibra: 300, arenisca: 240, cobre: 120, oro: 36 }, icono: '🏗️', nombre: 'Montacargas al Valle de la Esfinge', corto: 'el montacargas', al: 'al montacargas', local: 'obraLocalValle',
+      intro: 'El acantilado no se puede escalar. Tu grupo construye su montacargas de poleas: cuerdas de fibra, plataforma de arenisca, poleas de cobre y engranajes de oro. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
       listo: 'El montacargas está terminado para siempre: sube por él hacia el Valle de la Esfinge.', fin: '¡Montacargas terminado!' },
-    mina: { id: 'elevador_mina', meta: { carbon: 500, plata: 300, hongo: 150, amatista: 50 }, icono: '⛓️', nombre: 'Elevador a las Profundidades', corto: 'el elevador', al: 'al elevador', local: 'obraLocalMina',
-      intro: 'La fosa no se puede bajar a pie. Todo tu nivel construye el elevador de la mina: carbón para la máquina, plata para los cables, hongos luminosos para alumbrar y amatista para el mecanismo. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
+    mina: { id: 'elevador_mina', meta: { carbon: 300, plata: 180, hongo: 90, amatista: 30 }, icono: '⛓️', nombre: 'Elevador a las Profundidades', corto: 'el elevador', al: 'al elevador', local: 'obraLocalMina',
+      intro: 'La fosa no se puede bajar a pie. Tu grupo construye su elevador de la mina: carbón para la máquina, plata para los cables, hongos luminosos para alumbrar y amatista para el mecanismo. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
       listo: 'El elevador está terminado para siempre: baja por él hacia las Profundidades.', fin: '¡Elevador terminado!' },
-    cima: { id: 'ruta_glaciar', meta: { hielo: 500, escarcha: 260, baya: 150, zafiro: 50 }, icono: '🧗', nombre: 'Ruta de escalada del glaciar', corto: 'la ruta de escalada', al: 'a la ruta de escalada', local: 'obraLocalCima',
-      intro: 'La pared del glaciar es demasiado alta y lisa. Todo tu nivel equipa la ruta de escalada: bloques de hielo para los peldaños, escarcha para fijar los anclajes, bayas para los escaladores y zafiros para los ganchos. El avance se guarda y, cuando se completa, la ruta queda lista para siempre. Además, cada escalador necesita su propio piolet y sus crampones.',
+    cima: { id: 'ruta_glaciar', meta: { hielo: 300, escarcha: 160, baya: 90, zafiro: 30 }, icono: '🧗', nombre: 'Ruta de escalada del glaciar', corto: 'la ruta de escalada', al: 'a la ruta de escalada', local: 'obraLocalCima',
+      intro: 'La pared del glaciar es demasiado alta y lisa. Tu grupo equipa su ruta de escalada: bloques de hielo para los peldaños, escarcha para fijar los anclajes, bayas para los escaladores y zafiros para los ganchos. El avance se guarda y, cuando se completa, la ruta queda lista para siempre. Además, cada escalador necesita su propio piolet y sus crampones.',
       listo: 'La ruta de escalada está lista para siempre: con piolet y crampones puedes subir a la Cima del Glaciar.', fin: '¡Ruta de escalada terminada!' },
   };
   const obraDeEscena = () => (escena && escena.rio ? 'puente' : escena && escena.valle ? 'valle' : escena && escena.prof ? 'mina' : escena && escena.cima ? 'cima' : null);
@@ -1294,9 +1311,9 @@
     let o = null;
     if (sesion.modo === 'nube' || sesion.modo === 'docente') {
       cargandoObra = true;
-      try { o = await Nube.obra(sesion.token, O.id, nivelNum()); } catch (e) { o = null; }
+      try { o = await Nube.obra(sesion.token, O.id, cursoCanal(), S.grupo || null); } catch (e) { o = null; }
       cargandoObra = false;
-      if (!o || !o.ok) return;
+      if (!o || !o.ok) { if (o && o.error === 'sin_grupo') { obraE[k] = null; if (escena && obraDeEscena() === k) escena.actualizarObra(false); } return; }
     } else {
       const L = S[O.local] = S[O.local] || { aportes: {}, completado: false, mio: 0 };
       o = { meta: O.meta, aportes: L.aportes, completado: L.completado, mio: L.mio, top: [], aportantes: 1 };
@@ -1339,7 +1356,7 @@
   function abrirObra(k = obraDeEscena()) {
     if (!k) return;
     const O = OBRAS[k];
-    ui.abrir(`<div class="modal-cab"><div><span class="etq">Obra de todo ${S.curso === '8basico' ? '8°' : '7°'} básico · se completa entre todos</span><h2 id="modal-titulo">${O.icono} ${esc(O.nombre)}</h2></div><button type="button" class="btn" id="obra-cerrar">Cerrar</button></div>
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">${esDocente() ? `Obra de ${esc(cursoNombre(cursoCanal()))} · Grupo ${S.grupo || '–'}` : `Obra de tu grupo · Grupo ${sesion.grupo || '–'} · se completa entre todos`}</span><h2 id="modal-titulo">${O.icono} ${esc(O.nombre)}</h2></div><button type="button" class="btn" id="obra-cerrar">Cerrar</button></div>
       <p class="nota">${O.intro}</p>
       <div id="obra-cuerpo"></div>`, 'ancho');
     $('obra-cerrar').addEventListener('click', () => ui.cerrar());
@@ -3148,9 +3165,9 @@
     L('bolas10', 'minijuegos', '❄️', 'Batalla helada', 'Juega 10 guerras de bolas de nieve.', 10, () => CN('bolas'), 'Guerra de Escarcha'),
     L('movedizo3', 'minijuegos', '🧊', 'Pies ligeros', 'Queda en pie 3 veces en el hielo movedizo.', 3, () => CN('movedizo_gana'), 'Pies Ligeros'),
     // Trabajo en equipo
-    L('aporte100', 'equipo', '🤝', 'Mano amiga', 'Aporta 100 recursos a las obras de tu nivel.', 100, () => CN('aporte'), 'Mano Amiga'),
-    L('aporte1000', 'equipo', '🏗️', 'Pilar del nivel', 'Aporta 1.000 recursos a las obras de tu nivel.', 1000, () => CN('aporte'), 'Pilar del Nivel'),
-    L('obras4', 'equipo', '🌉', 'Gran equipo', 'Ve terminadas las 4 obras de tu nivel (puente, montacargas, elevador y ruta).', 4, () => Object.keys(S.obrasVistas || {}).length, 'Gran Equipo'),
+    L('aporte100', 'equipo', '🤝', 'Mano amiga', 'Aporta 100 recursos a las obras de tu grupo.', 100, () => CN('aporte'), 'Mano Amiga'),
+    L('aporte1000', 'equipo', '🏗️', 'Pilar del grupo', 'Aporta 1.000 recursos a las obras de tu grupo.', 1000, () => CN('aporte'), 'Pilar del Grupo'),
+    L('obras4', 'equipo', '🌉', 'Gran equipo', 'Ve terminadas las 4 obras de tu grupo (puente, montacargas, elevador y ruta).', 4, () => Object.keys(S.obrasVistas || {}).length, 'Gran Equipo'),
     L('desafio10', 'equipo', '🎯', 'Siempre listo', 'Participa en 10 desafíos en vivo.', 10, () => CN('desafio'), 'Espíritu de Desafío'),
     L('duelo', 'equipo', '🥇', 'Rey del duelo', 'Gana un duelo por el cofre de suministros.', 1, () => CN('duelo'), 'Corona del Duelo'),
     L('meta_curso', 'equipo', '🙌', 'Todos para uno', 'Logra con tu curso la meta de un desafío en vivo.', 1, () => CN('meta_curso'), 'Fuerza de Equipo'),
@@ -3943,26 +3960,64 @@
     const pb = $('p-base');
     if (pb) pb.addEventListener('click', () => { ui.alCerrar = () => viajar('base'); ui.cerrar(); });
     document.querySelectorAll('[data-z]').forEach((b) => b.addEventListener('click', () => {
-      if (coopActivo()) elegirGrupo(b.dataset.z);
-      else { ui.alCerrar = () => viajar(b.dataset.z, 0); ui.cerrar(); }
+      if (coopActivo() && esDocente()) elegirGrupo(b.dataset.z);
+      else if (coopActivo() && sesion.modo === 'nube') {
+        if (!sesion.grupo) { ui.cerrar(); pedirCodigoGrupo(); return; }
+        ui.alCerrar = () => viajar(b.dataset.z, sesion.grupo); ui.cerrar();
+      } else { ui.alCerrar = () => viajar(b.dataset.z, 0); ui.cerrar(); }
     }));
   }
   const MAX_GRUPO = 6, N_GRUPOS = 8;
   async function elegirGrupo(zona) {
     let cuentas = {};
     try { cuentas = (await Nube.grupos(sesion.token, nivelNum())) || {}; } catch (e) { /* sin datos: igual se puede elegir */ }
-    const botones = Array.from({ length: N_GRUPOS }, (_, i) => {
-      const g = i + 1, n = cuentas[`${zona}-g${g}`] || 0, lleno = n >= MAX_GRUPO && !esDocente();
-      return `<button type="button" class="obj grupo" data-g="${g}" ${lleno ? 'disabled' : ''}><strong>Grupo ${g}</strong><small>${lleno ? 'Lleno' : n === 0 ? 'Vacío' : `${n} ${n === 1 ? 'jugador' : 'jugadores'}`}</small></button>`;
-    }).join('');
-    ui.abrir(`
-      <div class="modal-cab"><div><span class="etq">${esc(nombreZona(zona))}</span><h2 id="modal-titulo">¿Con qué grupo vas?</h2></div><button type="button" class="btn" id="gr-volver">Volver</button></div>
-      <p class="nota">Verás y jugarás con los compañeros de ${S.curso === '8basico' ? '8°' : '7°'} básico que elijan el mismo grupo (máximo ${MAX_GRUPO}). Para invocar y enfrentar al jefe final necesitan ser al menos ${JEFE_MIN} con sus misiones cumplidas.</p>
-      <div class="objetos">${botones}</div>
-      <div class="acciones"><span></span><button type="button" class="btn sec" id="gr-solo">Explorar solo</button></div>`);
-    $('gr-volver').addEventListener('click', () => abrirPortal());
-    $('gr-solo').addEventListener('click', () => { ui.alCerrar = () => viajar(zona, 0); ui.cerrar(); });
-    document.querySelectorAll('[data-g]').forEach((b) => b.addEventListener('click', () => { ui.alCerrar = () => viajar(zona, Number(b.dataset.g)); ui.cerrar(); }));
+    const cursos = [`${nivelNum()}A`, `${nivelNum()}B`];
+    if (!cursos.includes(sesion.docCurso)) sesion.docCurso = cursos[0];
+    const pintar = () => {
+      const botones = Array.from({ length: N_GRUPOS }, (_, i) => {
+        const g = i + 1, n = cuentas[`${sesion.docCurso}:${zona}-g${g}`] || 0;
+        return `<button type="button" class="obj grupo" data-g="${g}"><strong>Grupo ${g}</strong><small>${n === 0 ? 'Nadie conectado' : `${n} ${n === 1 ? 'jugador' : 'jugadores'}`}</small></button>`;
+      }).join('');
+      ui.abrir(`
+        <div class="modal-cab"><div><span class="etq">${esc(nombreZona(zona))} · modo docente</span><h2 id="modal-titulo">¿A qué grupo visitas?</h2></div><button type="button" class="btn" id="gr-volver">Volver</button></div>
+        <p class="nota">Cada grupo de cada curso tiene su propia sala y sus propias obras. Entra para ver y acompañar a ese grupo.</p>
+        <div class="rp-cats">${cursos.map((c) => `<button type="button" class="pildora-btn" data-cv="${c}" aria-checked="${c === sesion.docCurso}">${cursoNombre(c)}</button>`).join('')}</div>
+        <div class="objetos">${botones}</div>
+        <div class="acciones"><span></span><button type="button" class="btn sec" id="gr-solo">Explorar solo</button></div>`);
+      $('gr-volver').addEventListener('click', () => abrirPortal());
+      $('gr-solo').addEventListener('click', () => { ui.alCerrar = () => viajar(zona, 0); ui.cerrar(); });
+      document.querySelectorAll('[data-cv]').forEach((b) => b.addEventListener('click', () => { sesion.docCurso = b.dataset.cv; pintar(); }));
+      document.querySelectorAll('[data-g]').forEach((b) => b.addEventListener('click', () => { ui.alCerrar = () => viajar(zona, Number(b.dataset.g)); ui.cerrar(); }));
+    };
+    pintar();
+  }
+  // Código de grupo: el estudiante lo escribe una sola vez (después solo el docente lo cambia)
+  function pedirCodigoGrupo(alListo) {
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">${esc(cursoNombre(S.seccion || ''))}</span><h2 id="modal-titulo">🔑 Código de tu grupo</h2></div></div>
+      <p class="enunciado" style="font-size:18px">Escribe el código que te dio tu profesor. Quedarás en ese grupo y siempre jugarás con tus compañeros de equipo.</p>
+      <input id="cg-codigo" class="rp-texto codigo-grupo" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="EJ: ZORRO-27" aria-label="Código de grupo" data-foco>
+      <div class="mensaje oculto" id="cg-msg" role="alert"></div>
+      <div class="acciones"><span class="nota">Si te equivocas de grupo, avísale a tu profesor: él te puede cambiar.</span><button type="button" class="btn pri" id="cg-ok">Entrar al grupo</button></div>`, 'bloqueo');
+    const inp = $('cg-codigo'); inp.focus();
+    const msg = (t) => { $('cg-msg').textContent = t; $('cg-msg').className = 'mensaje mal'; };
+    const enviar = async () => {
+      const cod = inp.value.trim();
+      if (cod.length < 3) return msg('Escribe el código completo.');
+      $('cg-ok').disabled = true;
+      try {
+        const r = await Nube.grupoUnirse(sesion.token, cod);
+        if (r && r.ok) {
+          sesion.grupo = r.grupo; ui.cerrar();
+          if (alListo) alListo();
+          trasCarga(() => toast(`¡Listo! Eres parte del Grupo ${r.grupo}. Viaja por el portal para jugar con tu equipo.`));
+          return;
+        }
+        msg({ codigo: 'Ese código no existe. Revísalo con tu profesor.', otro_curso: 'Ese código es de otro curso. Pide el código de tu curso.', lleno: 'Ese grupo ya está completo (6 estudiantes). Habla con tu profesor.', bloqueado: 'Demasiados intentos. Espera 10 minutos o pide ayuda a tu profesor.' }[r && r.error] || 'No se pudo entrar al grupo. Inténtalo otra vez.');
+      } catch (e) { msg('Sin conexión. Inténtalo otra vez.'); }
+      $('cg-ok').disabled = false;
+    };
+    $('cg-ok').addEventListener('click', enviar);
+    inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') enviar(); });
   }
   function viajar(zona, grupo = 0) {
     const desde = escena.zona;
@@ -5131,7 +5186,7 @@
         if (celebrar) {
           this.cameras.main.shake(500, 0.006); this.celebrar(RX * TILE + 48, by * TILE);
           sfx('logro');
-          avisoGrande('¡El puente está terminado!', 'Ya pueden cruzar al Bosque profundo', 'Gracias a los aportes de todo el nivel');
+          avisoGrande('¡El puente está terminado!', 'Ya pueden cruzar al Bosque profundo', 'Gracias a los aportes de todo tu grupo');
         }
       }
       if (this.obraTag) this.obraTag.setText(listo ? 'Puente al Bosque profundo' : `Puente en construcción\n${pct} % · E para aportar`);
@@ -5311,7 +5366,7 @@
         if (celebrar) {
           this.cameras.main.shake(500, 0.006); this.celebrar(gx * TILE + 32, oy * TILE);
           sfx('logro');
-          avisoGrande('¡El montacargas está terminado!', 'Ya pueden subir al Valle de la Esfinge', 'Gracias a los aportes de todo el nivel');
+          avisoGrande('¡El montacargas está terminado!', 'Ya pueden subir al Valle de la Esfinge', 'Gracias a los aportes de todo tu grupo');
         }
       }
       if (this.obraTag) this.obraTag.setText(listo ? 'Montacargas al Valle de la Esfinge' : `Montacargas en construcción\n${pct} % · E para aportar`);
@@ -5520,7 +5575,7 @@
         if (celebrar) {
           this.cameras.main.shake(500, 0.006); this.celebrar(gx * TILE + 32, yb * TILE);
           sfx('logro');
-          avisoGrande('¡El elevador está terminado!', 'Ya pueden bajar a las Profundidades', 'Gracias a los aportes de todo el nivel');
+          avisoGrande('¡El elevador está terminado!', 'Ya pueden bajar a las Profundidades', 'Gracias a los aportes de todo tu grupo');
         }
       }
       if (this.obraTag) this.obraTag.setText(listo ? 'Elevador a las Profundidades' : `Elevador en construcción\n${pct} % · E para aportar`);
@@ -5698,7 +5753,7 @@
       if (listo && celebrar) {
         this.cameras.main.shake(500, 0.006); this.celebrar(gx * TILE + 32, oy * TILE);
         sfx('logro');
-        avisoGrande('¡La ruta de escalada está lista!', 'Con piolet y crampones ya pueden subir a la Cima del Glaciar', 'Gracias a los aportes de todo el nivel');
+        avisoGrande('¡La ruta de escalada está lista!', 'Con piolet y crampones ya pueden subir a la Cima del Glaciar', 'Gracias a los aportes de todo tu grupo');
       }
       if (this.obraTag) this.obraTag.setText(listo ? 'Ruta de escalada a la Cima\n(E al pie de la pared para escalar)' : `Ruta de escalada en construcción\n${pct} % · E para aportar`);
       if (this.objObra) this.objObra.listo = listo;
@@ -7275,7 +7330,7 @@
       this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
       this.primeraPresencia = true;
-      const c = new Coop.Canal(`mw-${nivelNum()}-${this.zona}-g${S.grupo}`, idJuego, meta);
+      const c = new Coop.Canal(`mw-${cursoCanal()}-${this.zona}-g${S.grupo}`, idJuego, meta, 300 + Math.random() * 2500);
       this.canal = c;
       c.alEstado = (e) => {
         if (e === 'ok') { c.emitir('hola', { id: idJuego }); this.ultimoMov.t = 0; this.avisarGuarida(); }
@@ -7386,7 +7441,7 @@
       const c = this.canal; if (!c || c.est !== 'ok') return;
       const u = this.ultimoMov, j = this.jugador, ahora = this.time.now;
       const n = 1 + this.otros.size;
-      const intervalo = Math.max(400, Math.min(2000, (1000 * n * n * 0.5) / 12));
+      const intervalo = n <= 2 ? 450 : n <= 4 ? 1000 : 1800;   // menos mensajes en grupos grandes (cuida el límite del servidor)
       if (u.t && ahora - u.t < intervalo) return;
       const dist = Math.hypot(j.x - u.x, j.y - u.y);
       if (u.t && !moviendo && !u.m && dist < 2) return;
