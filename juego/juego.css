@@ -789,3 +789,96 @@ ul.misiones li.ok .fila span { color: var(--ok); }
 .pv-lista { display: flex; flex-direction: column; gap: 6px; }
 .pv-lista li { width: 100%; box-sizing: border-box; }
 .pv-lista li small { white-space: nowrap; }
+
+/* =====================================================================
+   Modo celular (body.movil): interfaz compacta, menú ☰ y controles despejados
+   ===================================================================== */
+.btn-menu, .menu-movil, .girar-cel { display: none; }
+body.movil .botones, body.movil .btns-redondos, body.movil #btn-sonido, body.movil .btn-portal, body.movil .btn-hud kbd { display: none !important; }
+body.movil .btn-menu { display: grid; place-items: center; position: absolute; right: 8px; top: 58px; width: 46px; height: 46px; border-radius: 12px; border: 2px solid var(--amber); background: rgba(18, 32, 26, .94); color: var(--amber); font-size: 24px; font-weight: 800; z-index: 7; padding: 0; }
+body.movil .btn-menu.alerta::after { content: ""; position: absolute; top: -3px; right: -3px; width: 12px; height: 12px; border-radius: 50%; background: #ff5a5a; border: 2px solid #12201a; }
+body.movil .menu-movil { display: flex; flex-direction: column; gap: 8px; position: fixed; right: 8px; top: 110px; width: min(300px, calc(100vw - 16px)); max-height: calc(100dvh - 120px); overflow: auto; padding: 10px; border-radius: 16px; background: var(--panel); border: 2px solid var(--amber); box-shadow: 0 12px 30px rgba(0,0,0,.5); z-index: 12; }
+body.movil .menu-movil.oculto { display: none; }
+.mm-cab { display: flex; justify-content: space-between; align-items: center; font-family: "Fredoka", "Nunito", sans-serif; font-size: 17px; }
+.mm-x { border: none; background: none; color: var(--muted); font-size: 18px; padding: 4px 8px; }
+.mm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.mm-op { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 8px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--text); font: inherit; }
+.mm-op span { font-size: 24px; line-height: 1.1; }
+.mm-op small { font-size: 12px; font-weight: 800; }
+.mm-op:active { border-color: var(--amber); }
+.mm-op.alerta::after { content: ""; position: absolute; top: 4px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: #ff5a5a; }
+/* ficha del jugador compacta */
+body.movil .tarjeta-pj { left: 8px; top: 8px; width: auto; max-width: 200px; padding: 6px 8px 6px 6px; gap: 6px; border-radius: 12px; }
+body.movil .tarjeta-pj .foto { width: 38px; height: 38px; border-radius: 8px; background-size: 783px 348px; background-position: -24px -185px; }
+body.movil .tarjeta-pj .datos { gap: 2px; }
+body.movil .tarjeta-pj .fila { font-size: 11px; gap: 6px; }
+body.movil #hud-apodo { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+body.movil .titulo-pj { font-size: 10px; max-width: 140px; }
+body.movil .corazones { transform: scale(.8); transform-origin: left center; }
+body.movil .tarjeta-pj .barra { height: 5px; }
+body.movil .zona-actual { left: 8px; top: 64px; font-size: 11px; padding: 2px 8px; }
+body.movil .zona-actual.coop { top: 86px; }
+/* misiones: una píldora plegada que se abre al tocarla */
+body.movil .hud-misiones { left: 8px; top: 110px; width: min(230px, calc(100vw - 80px)); padding: 4px 8px 6px; }
+body.movil .hud-misiones.plegado { width: auto; padding: 3px 4px 3px 8px; }
+body.movil .hud-misiones li { font-size: 11px; }
+body.movil .hud-misiones strong, body.movil .hm-cab { font-size: 10px; }
+/* herramientas en una fila corta arriba a la derecha */
+body.movil .herramientas { top: 8px; right: 8px; flex-direction: row; padding: 3px; gap: 3px; border-radius: 12px; }
+body.movil .herramientas .ranura { width: 38px; height: 38px; border-width: 2px; border-radius: 8px; }
+body.movil .herramientas .ranura img { width: 26px; height: 26px; }
+body.movil .herramientas .ranura small { font-size: 8px; left: 2px; }
+/* controles de juego libres de obstáculos */
+body.movil .palanca { left: 14px; bottom: 14px; width: 124px; height: 124px; }
+body.movil .palanca i { left: 37px; top: 37px; }
+body.movil .btn-accion { right: 16px; bottom: 22px; width: 88px; height: 88px; font-size: 15px; }
+body.movil .aviso { bottom: 150px; max-width: calc(100vw - 24px); white-space: normal; font-size: 13px; padding: 7px 12px; }
+body.movil #toast { top: 150px; max-width: calc(100vw - 24px); width: max-content; font-size: 13px; padding: 8px 12px; text-align: center; }
+body.movil .desafio { top: 150px; width: calc(100vw - 16px); min-width: 0; padding: 6px 8px; }
+body.movil .aviso-logro { padding: 6px 12px 6px 8px; max-width: calc(100vw - 16px); }
+body.movil .aviso-logro .al-icono { font-size: 24px; }
+body.movil .aviso-logro b { font-size: 14px; }
+/* paneles del menú (chat y sonido) */
+body.movil .panel-chat { position: fixed; left: 8px; right: 8px; top: auto; bottom: 150px; width: auto; max-height: calc(100dvh - 170px); overflow: auto; }
+body.movil .panel-sonido { position: fixed; right: 8px; top: 110px; }
+/* ventanas: casi a pantalla completa y con menos relleno */
+body.movil .capa { padding: 6px; }
+body.movil .modal { max-height: calc(100dvh - 12px); padding: 14px; gap: 10px; border-radius: 14px; }
+body.movil .modal h2 { font-size: 21px; }
+body.movil .modal-cab .btn { min-height: 38px; padding: 0 12px; }
+body.movil .enunciado { font-size: 17px; }
+/* sugerencia de girar el celular (solo en vertical) */
+body.movil .girar-cel { display: flex; align-items: center; gap: 8px; position: fixed; left: 50%; transform: translateX(-50%); bottom: 150px; padding: 6px 6px 6px 12px; border-radius: 999px; background: rgba(18, 32, 26, .94); border: 2px solid var(--teal); color: var(--text); font-size: 12px; font-weight: 800; z-index: 6; white-space: nowrap; }
+body.movil .girar-cel button { border: none; background: none; color: var(--muted); font-size: 14px; padding: 2px 6px; }
+body.movil:has(.aviso:not(.oculto)) .girar-cel { bottom: 196px; }
+/* horizontal: hay poco alto, todo arriba se achica y los avisos van entre los controles */
+@media (orientation: landscape) {
+  body.movil .girar-cel { display: none; }
+  body.movil .aviso { bottom: 14px; max-width: calc(100vw - 300px); }
+  body.movil #toast { top: 60px; max-width: calc(100vw - 480px); }
+  body.movil .desafio { top: 8px; left: 230px; transform: none; width: calc(100vw - 460px); }
+  body.movil .hud-misiones { top: 64px; }
+  body.movil .zona-actual { top: auto; bottom: 146px; }
+  body.movil .zona-actual.coop { bottom: 168px; top: auto; }
+  body.movil .menu-movil { top: 60px; right: 62px; max-height: calc(100dvh - 70px); width: min(380px, calc(100vw - 16px)); }
+  body.movil .mm-grid { grid-template-columns: repeat(4, 1fr); }
+  body.movil .panel-chat { bottom: 14px; left: 150px; right: 120px; max-height: calc(100dvh - 30px); }
+  body.movil .palanca { width: 112px; height: 112px; }
+  body.movil .palanca i { left: 31px; top: 31px; }
+  body.movil .btn-accion { width: 80px; height: 80px; }
+}
+/* celular: recursos de Fabricar en una fila deslizable para que se vean las pestañas */
+body.movil .mis-recursos { padding: 8px 10px; gap: 4px; }
+body.movil .mis-recursos .lista { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+body.movil .recurso-fab { flex: 0 0 auto; padding: 3px 8px 3px 3px; gap: 4px; }
+body.movil .recurso-fab img { width: 24px; height: 24px; }
+body.movil .recurso-fab small { font-size: 10px; }
+body.movil .recurso-fab b { font-size: 15px; }
+/* minijuegos y arena: menos texto alrededor, más espacio para jugar */
+body.movil .pv-riesgo { display: block; }
+body.movil .modal.pantalla { padding: 8px 10px; gap: 6px; }
+body.movil .modal.pantalla .modal-cab .etq { display: none; }
+body.movil .modal.pantalla h2 { font-size: 18px; }
+body.movil .pv-mover .btn { width: 56px; height: 48px; }
+body.movil .pv-acciones .btn { min-width: 118px; height: 48px; font-size: 15px; }
+body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }

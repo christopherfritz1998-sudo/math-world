@@ -750,7 +750,7 @@
     pintarMisiones();
   }
   let misionesPlegadas = false;
-  function misionesOcultas() { try { const v = localStorage.getItem('mw_misiones_ocultas'); return v === null ? misionesPlegadas : v === '1'; } catch (e) { return misionesPlegadas; } }
+  function misionesOcultas() { const def = misionesPlegadas || document.body.classList.contains('movil'); try { const v = localStorage.getItem(document.body.classList.contains('movil') ? 'mw_misiones_ocultas_m' : 'mw_misiones_ocultas'); return v === null ? def : v === '1'; } catch (e) { return def; } }
   function pintarMisiones() {
     const el = $('hud-misiones');
     if (!el || !S) return;
@@ -1028,8 +1028,39 @@
     } catch (e) { error('No hay conexión con el servidor.', 'error-docente'); }
   }
 
+  // ---------- Modo celular: interfaz compacta con un menú ☰ ----------
+  const MENU_MOVIL = [['btn-base', '🔥', 'Fabricar'], ['btn-decorar', '🧰', 'Decorar'], ['btn-equipo', '⚔️', 'Equipo'], ['btn-misiones', '📜', 'Misiones'], ['btn-logros', '🏆', 'Logros'],
+    ['btn-mapa', '🗺️', 'Avance'], ['btn-chat', '💬', 'Chat'], ['btn-novedades', '💡', 'Novedades'], ['btn-reportar', '⚠️', 'Reportar'], ['btn-sonido', '🔊', 'Sonido'], ['btn-portal', '🏫', 'Portal docente']];
+  function prepararMovil() {
+    const movil = tactil() || Math.min(window.innerWidth, window.innerHeight) < 500;
+    document.body.classList.toggle('movil', movil);
+    if (!movil || prepararMovil.hecho) return;
+    prepararMovil.hecho = true;
+    const menu = $('menu-movil'), btn = $('btn-menu');
+    const cerrar = () => { menu.classList.add('oculto'); btn.setAttribute('aria-expanded', 'false'); };
+    const pintar = () => {
+      menu.innerHTML = `<div class="mm-cab"><b>Menú</b><button type="button" class="mm-x" aria-label="Cerrar menú">✕</button></div><div class="mm-grid">${MENU_MOVIL.filter(([id]) => $(id) && !$(id).classList.contains('oculto')).map(([id, ico, txt]) => {
+        const alerta = $(id).classList.contains('alerta') || $(id).classList.contains('nuevo');
+        return `<button type="button" class="mm-op ${alerta ? 'alerta' : ''}" data-mm="${id}"><span>${id === 'btn-sonido' ? $(id).textContent : ico}</span><small>${txt}</small></button>`;
+      }).join('')}</div>`;
+      menu.querySelector('.mm-x').addEventListener('click', cerrar);
+      menu.querySelectorAll('[data-mm]').forEach((b) => b.addEventListener('click', (e) => { e.stopPropagation(); cerrar(); const t = $(b.dataset.mm); setTimeout(() => t.click(), 30); }));
+    };
+    btn.addEventListener('click', (e) => { e.stopPropagation(); const abrir = menu.classList.contains('oculto'); if (abrir) pintar(); menu.classList.toggle('oculto', !abrir); btn.setAttribute('aria-expanded', String(abrir)); });
+    document.addEventListener('click', (e) => { if (!menu.classList.contains('oculto') && !e.target.closest('#menu-movil, #btn-menu')) cerrar(); });
+    // punto rojo en ☰ si hay algo pendiente (misiones por cobrar, novedades)
+    setInterval(() => { btn.classList.toggle('alerta', ['btn-misiones', 'btn-novedades'].some((id) => $(id) && ($(id).classList.contains('alerta') || $(id).classList.contains('nuevo')))); }, 1500);
+    // sugerencia de girar el celular (se puede cerrar)
+    const girar = document.createElement('div'); girar.className = 'girar-cel'; girar.innerHTML = '<span>📱↻</span><span>Gira tu celular para ver más mapa</span><button type="button" aria-label="Cerrar">✕</button>';
+    document.body.appendChild(girar);
+    girar.querySelector('button').addEventListener('click', () => { girar.remove(); try { sessionStorage.setItem('mw_girar', '1'); } catch (e) { /* */ } });
+    try { if (sessionStorage.getItem('mw_girar')) girar.remove(); } catch (e) { /* */ }
+  }
+  window.addEventListener('resize', () => { if (S && !$('hud').classList.contains('oculto')) prepararMovil(); });
+
   function empezar() {
     $('ingreso').classList.add('oculto');
+    prepararMovil();
     $('hud').classList.remove('oculto');
     if (tactil()) {
       $('tactil').classList.remove('oculto');
@@ -4814,7 +4845,7 @@
   $('btn-mapa').addEventListener('click', abrirMapa);
   $('btn-misiones').addEventListener('click', abrirMisiones);
   $('hud-misiones').addEventListener('click', (ev) => {
-    if (ev.target.closest('[data-plegar]')) { try { localStorage.setItem('mw_misiones_ocultas', misionesOcultas() ? '0' : '1'); } catch (e) { misionesPlegadas = !misionesPlegadas; } pintarMisiones(); }
+    if (ev.target.closest('[data-plegar]')) { try { localStorage.setItem(document.body.classList.contains('movil') ? 'mw_misiones_ocultas_m' : 'mw_misiones_ocultas', misionesOcultas() ? '0' : '1'); } catch (e) { misionesPlegadas = !misionesPlegadas; } pintarMisiones(); }
     else if (ev.target.closest('[data-ver-misiones]')) abrirMisiones();
   });
   $('btn-portal').addEventListener('click', volverAlPortal);
