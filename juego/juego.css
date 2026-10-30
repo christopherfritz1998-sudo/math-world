@@ -949,3 +949,44 @@ body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }
 @keyframes ing-sacude { 25%, 75% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
 @media (max-width: 760px) { .ing-desfile { transform: scale(.8); transform-origin: bottom left; width: 125%; } .ing-pasos { display: none; } }
 @media (prefers-reduced-motion: reduce) { #ingreso *, #ingreso *::before { animation: none !important; transition: none !important; } }
+
+/* ---------- ayudas: pista en voz alta + cuaderno (borrador y calculadora) ---------- */
+.mensaje.pista { position: relative; padding-right: 52px; }
+.btn-leer { position: absolute; top: 8px; right: 8px; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--teal); background: #1a3a33; font-size: 17px; cursor: pointer; display: grid; place-items: center; }
+.btn-leer:hover { background: var(--teal); }
+.btn-cuaderno { position: fixed; z-index: 30; right: 18px; bottom: 18px; display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; border: 3px solid #f6d36b; background: linear-gradient(180deg, #fff6d6, #f3dc8e); color: #3b2a07; font: 700 16px Fredoka, Nunito, sans-serif; box-shadow: 0 6px 18px rgba(0,0,0,.45); cursor: pointer; animation: cu-latido 1.2s ease-in-out 2; }
+.btn-cuaderno span { font-size: 22px; }
+@keyframes cu-latido { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.cuaderno { position: fixed; z-index: 31; right: 18px; bottom: 80px; width: min(380px, calc(100vw - 36px)); height: min(560px, calc(100vh - 110px)); display: flex; flex-direction: column; background: #fffdf4; color: #1d2a22; border-radius: 18px; border: 3px solid #f6d36b; box-shadow: 0 14px 40px rgba(0,0,0,.55); overflow: hidden; font-family: Nunito, sans-serif; }
+.cu-cab { display: flex; align-items: center; gap: 6px; padding: 8px; background: #f3dc8e; }
+.cu-tabs { display: flex; gap: 6px; flex: 1; }
+.cu-tabs button { flex: 1; padding: 8px 6px; border-radius: 10px; border: 0; background: transparent; font: 700 15px Fredoka, Nunito, sans-serif; color: #5b4510; cursor: pointer; }
+.cu-tabs button[aria-selected="true"] { background: #fffdf4; color: #1d2a22; box-shadow: 0 2px 0 rgba(0,0,0,.12); }
+.cu-x { width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(0,0,0,.08); font-size: 16px; cursor: pointer; color: #3b2a07; }
+.cu-hoja { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.cu-herr { display: flex; align-items: center; gap: 6px; padding: 8px; border-bottom: 1px solid #eadfb8; }
+.cu-herr span { flex: 1; }
+.cu-herr button { height: 34px; min-width: 34px; border-radius: 9px; border: 2px solid #e2d6ad; background: #fff; cursor: pointer; display: grid; place-items: center; font-size: 15px; font-weight: 700; color: #3b2a07; padding: 0 8px; }
+.cu-herr button[aria-pressed="true"] { border-color: #1f6fd1; box-shadow: 0 0 0 2px #bcd6f7; }
+.cu-herr i { width: 16px; height: 16px; border-radius: 50%; display: block; }
+.cu-lienzo { flex: 1; width: 100%; min-height: 0; touch-action: none; cursor: crosshair; background-color: #fffdf4; background-image: linear-gradient(#d9e6f5 1px, transparent 1px), linear-gradient(90deg, #d9e6f5 1px, transparent 1px); background-size: 22px 22px; }
+.cu-calc { flex: 1; display: flex; flex-direction: column; padding: 10px; gap: 10px; min-height: 0; }
+.cu-pantalla { background: #1d2a22; border-radius: 12px; padding: 8px 12px; text-align: right; }
+.cu-pantalla small { display: block; color: #9fc7bd; font-size: 13px; min-height: 18px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cu-pantalla input { width: 100%; background: transparent; border: 0; color: #fff; font: 700 28px Fredoka, Nunito, sans-serif; text-align: right; outline: none; }
+.cu-pantalla input.error { animation: cu-temblor .4s; color: #ff9c8a; }
+@keyframes cu-temblor { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+.cu-teclas { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; }
+.cu-teclas button { border-radius: 11px; border: 0; background: #efe7cc; font: 700 20px Fredoka, Nunito, sans-serif; color: #1d2a22; cursor: pointer; min-height: 42px; box-shadow: 0 3px 0 #d6cba5; }
+.cu-teclas button:active { transform: translateY(2px); box-shadow: 0 1px 0 #d6cba5; }
+.cu-teclas .op { background: #d6ecf9; box-shadow: 0 3px 0 #a9cde6; color: #134b80; }
+.cu-teclas .borra { background: #fbd9d0; box-shadow: 0 3px 0 #e8b3a5; color: #8a2a14; }
+.cu-teclas .igual { background: #2f9e6e; color: #fff; box-shadow: 0 3px 0 #1f7450; }
+@media (max-width: 760px) {
+  .btn-cuaderno { right: 10px; bottom: 10px; padding: 8px 12px; font-size: 14px; }
+  .btn-cuaderno b { display: none; }
+  .cuaderno { left: 0; right: 0; bottom: 0; width: 100%; height: 58vh; border-radius: 18px 18px 0 0; border-width: 3px 0 0; }
+  .cu-teclas button { min-height: 36px; font-size: 18px; }
+}
+@media (min-width: 900px) { body.cu-abierto .capa { padding-right: 410px; transition: padding .2s; } }
+@media (max-width: 760px) { body.cu-abierto .capa { align-items: flex-start; padding-bottom: 58vh; } body.cu-abierto .capa .modal { max-height: calc(42vh - 16px); overflow-y: auto; } }

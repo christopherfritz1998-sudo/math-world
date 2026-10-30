@@ -5013,6 +5013,17 @@
       },
       fin: (st) => (st.logrado ? 'Abriste todos los cofres.' : `Se acabó el tiempo: abriste ${st.n} de ${st.meta} cofres.`),
     },
+    apagon: {
+      estado: () => ({ rec: 0 }),
+      progreso: (st) => `🔦 Solo ves tu círculo de luz · recursos recolectados: ${st.rec}`,
+      montar(sc) { sc.crearApagon(); },
+      tick(sc) { if (sc.des.oscuro) sc.des.oscuro.setPosition(sc.jugador.x, sc.jugador.y - 16); },
+      evento(tipo, dato, st) { if (tipo === 'recurso') st.rec += Number(dato) || 1; },
+      fin(st) {
+        const xp = Math.min(120, 30 + st.rec * 2), txt = darPremio(paquete(Math.min(10, 2 + Math.floor(st.rec / 4)), 2), xp);
+        return `¡Volvió la luz! Recolectaste ${st.rec} ${st.rec === 1 ? 'recurso' : 'recursos'} a oscuras. Premio: ${txt} y ${xp} de experiencia.`;
+      },
+    },
     eclipse: {
       estado: () => ({ n: 0, meta: 8 }),
       progreso: (st) => `Luciérnagas atrapadas: ${st.n}${st.n < st.meta ? ` · bono al llegar a ${st.meta}` : ' · ¡sigue atrapando!'}`,
@@ -5183,6 +5194,8 @@
       if (escena && escena.jugador) escena.cameras.main.flash(500, 200, 160, 255);
     } else if (vivo.def.id === 'ladron') {
       avisoGrande('¡Viene un ladrón!', 'Llegará a tu base en 30 segundos', 'Vuelve a tu base y atrápalo respondiendo 5 preguntas (máximo 3 errores)', 'ladron');
+    } else if (vivo.def.id === 'apagon') {
+      avisoGrande('¡Se apagan las luces!', 'Solo verás un círculo de luz a tu alrededor', 'Dura 1 minuto y medio · ¡cuidado con los enemigos!');
     } else if (vivo.def.id === 'tesoro') {
       avisoGrande('¡Hay un tesoro escondido!', 'Está enterrado cerca de ti', 'Guíate por el calor: 🧊 frío … 🔥 muy caliente · presiona E para cavar');
     } else toast(`¡Comienza el desafío: ${vivo.def.nombre}!`);
@@ -8682,6 +8695,21 @@
       }
       this.add.text(cx, cy - 92, '⚔️ Arena PvP', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffd27a', stroke: '#3a1a0a', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(9999);
       this.objetos.push({ tipo: 'arena', x: cx, y: cy, activo: true });
+    }
+    // Luces apagadas: todo negro salvo un círculo pequeño alrededor del jugador
+    crearApagon() {
+      if (!this.textures.exists('apagon')) {
+        const t = this.textures.createCanvas('apagon', 1024, 1024), c = t.context;
+        c.fillStyle = 'rgba(0, 0, 0, 0.985)'; c.fillRect(0, 0, 1024, 1024);
+        c.globalCompositeOperation = 'destination-out';
+        const g = c.createRadialGradient(512, 512, 8, 512, 512, 20);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        c.fillStyle = g; c.beginPath(); c.arc(512, 512, 20, 0, Math.PI * 2); c.fill();
+        t.refresh(); t.setFilter(Phaser.Textures.FilterMode.LINEAR);
+      }
+      this.des.oscuro = this.add.image(this.jugador.x, this.jugador.y - 16, 'apagon').setScale(4.4).setDepth(20000).setAlpha(0);
+      this.tweens.add({ targets: this.des.oscuro, alpha: 1, duration: 900 });
+      this.des.objs.push(this.des.oscuro);
     }
     crearEclipse() {
       if (!this.textures.exists('eclipse')) {

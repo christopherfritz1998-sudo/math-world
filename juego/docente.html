@@ -181,6 +181,13 @@
     .proyector .cod { background: #2e4a3d; border: 3px solid #f2b544; border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
     .proyector .cod span { font-size: 26px; font-weight: 800; color: #c9d3c6; }
     .proyector .cod b { font-family: "Fredoka", sans-serif; font-size: clamp(24px, 3.3vw, 58px); letter-spacing: .03em; color: #ffd27a; white-space: nowrap; }
+    .btn-desafio { min-height: 52px; font-size: 17px; padding: 0 22px; box-shadow: 0 5px 0 #154d45; transition: transform .15s, box-shadow .15s; }
+    .btn-desafio:hover { transform: translateY(-2px); box-shadow: 0 7px 0 #154d45; }
+    .btn-desafio:active { transform: translateY(3px); box-shadow: 0 2px 0 #154d45; }
+    .des-nada { margin: 0; }
+    #desafios-dlg .des-cursos { position: sticky; top: -22px; z-index: 2; background: #fff; padding: 10px 0; border-bottom: 1px solid var(--line); }
+    .des-card { transition: transform .15s, box-shadow .15s; }
+    .des-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.12); }
   </style>
 </head>
 <body>
@@ -230,11 +237,11 @@
     </section>
     <section class="panel acceso" aria-labelledby="desafios-titulo">
       <div class="acceso-cab">
-        <div><h2 id="desafios-titulo">Desafíos en vivo</h2><span class="muted">Elige los cursos y lanza un desafío: a quienes estén jugando les aparecerá un contador de 10 segundos y luego comenzará. Cada curso tiene un desafío a la vez; puedes detenerlo cuando quieras.</span></div>
+        <div><h2 id="desafios-titulo">Desafíos en vivo</h2><span class="muted">Lanza un desafío a uno o varios cursos: a quienes estén jugando les aparecerá un contador de 10 segundos y luego comenzará. Cada curso tiene un desafío a la vez; puedes detenerlo cuando quieras.</span></div>
+        <button type="button" class="btn pri btn-desafio" id="btn-desafios"><span aria-hidden="true">🎯</span> Lanzar un desafío</button>
       </div>
-      <div class="des-cursos" id="des-cursos"></div>
       <div class="des-estado" id="des-estado"></div>
-      <div class="des-lista" id="des-lista"></div>
+      <p class="muted des-nada" id="des-nada">No hay desafíos en curso. Presiona «Lanzar un desafío» para elegir uno.</p>
     </section>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="tarjetas" id="tarjetas"></div>
@@ -260,6 +267,14 @@
   </main>
   <dialog id="detalle" aria-labelledby="det-nombre"><div class="det" id="det"></div></dialog>
   <dialog id="grupos-dlg" class="grande" aria-labelledby="gr-titulo"><div class="det" id="grupos-det"></div></dialog>
+  <dialog id="desafios-dlg" class="grande" aria-labelledby="dd-titulo"><div class="det">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div><h3 id="dd-titulo">🎯 Lanzar un desafío</h3><span class="muted">1. Elige los cursos · 2. Presiona «Lanzar» en el desafío que quieras.</span></div>
+      <button type="button" class="btn" id="dd-cerrar">Cerrar</button>
+    </div>
+    <div class="des-cursos" id="des-cursos"></div>
+    <div class="des-lista" id="des-lista"></div>
+  </div></dialog>
   <dialog id="buzon" class="ancho" aria-labelledby="buzon-titulo"><div class="det">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
       <div><h3 id="buzon-titulo">Buzón de estudiantes</h3><span class="muted">Problemas reportados desde el juego (botón ⚠️) e ideas enviadas en Novedades (botón 💡).</span></div>

@@ -52,5 +52,8 @@
     { id: 'racha', nombre: 'Racha imparable', icono: '🔥', seg: 90, color: '#c0392b', preguntas: true,
       resumen: 'Preguntas durante 90 segundos: cada acierto seguido sube el multiplicador hasta x5 y un error lo vuelve a x1. Premia la concentración y la constancia.',
       objetivo: 'Encadena aciertos para subir el multiplicador' },
+    { id: 'apagon', nombre: 'Luces apagadas', icono: '🔦', seg: 90, color: '#2d2a4a',
+      resumen: 'Durante 1 minuto y medio la pantalla se pone negra y cada jugador solo ve un pequeño círculo de luz a su alrededor. Hay que orientarse, recolectar y cuidarse de los enemigos casi a ciegas.',
+      objetivo: 'Sobrevive y recolecta con muy poca luz' },
   ];
 })(window);

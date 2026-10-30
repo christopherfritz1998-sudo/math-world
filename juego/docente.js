@@ -293,6 +293,7 @@
     }).join('');
     $('des-estado').innerHTML = tarjetas;
     $('des-estado').hidden = !tarjetas;
+    $('des-nada').hidden = Boolean(tarjetas);
     $('des-estado').querySelectorAll('[data-detener]').forEach((b) => b.addEventListener('click', () => detenerDesafio([b.dataset.detener])));
   }
   async function lanzarDesafio(id) {
@@ -305,6 +306,7 @@
       const r = await Nube.docenteDesafio(token, cursos, id, D.seg);
       if (r) { desDif = r.ahora - Date.now(); desEstado = r.cursos || {}; }
       $('error').hidden = true;
+      if ($('desafios-dlg').open) $('desafios-dlg').close();
     } catch (e) {
       $('error').textContent = 'No se pudo lanzar el desafío. Revisa tu conexión e inténtalo otra vez.';
       $('error').hidden = false;
@@ -316,6 +318,8 @@
     cargarDesafios();
   }
   setInterval(pintarEstadoDesafios, 1000);
+  $('btn-desafios').addEventListener('click', () => { pintarDesafios(); $('desafios-dlg').showModal(); });
+  $('dd-cerrar').addEventListener('click', () => $('desafios-dlg').close());
 
   // ---------- Obras cooperativas (puente al Bosque profundo) ----------
   // ---------- Grupos (códigos, integrantes) y obras por curso y grupo ----------
