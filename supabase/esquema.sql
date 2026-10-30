@@ -1129,3 +1129,11 @@ revoke all on function public.mw_comercio_listar(uuid), public.mw_comercio_crear
   public.mw_comercio_cancelar(uuid, bigint), public.mw_comercio_cobrar(uuid) from public, authenticated;
 grant execute on function public.mw_comercio_listar(uuid), public.mw_comercio_crear(uuid, jsonb, jsonb), public.mw_comercio_aceptar(uuid, bigint),
   public.mw_comercio_cancelar(uuid, bigint), public.mw_comercio_cobrar(uuid) to anon;
+
+-- Obras de los mundos 2, 3 y 4: más recursos para que tomen varias clases (el puente queda igual)
+create or replace function public.mw_obra_meta(p_id text) returns jsonb language sql immutable as $$
+  select case p_id when 'puente_bosque' then '{"madera": 360, "piedra": 210, "agua": 90, "cristal": 24}'::jsonb
+                   when 'montacargas_valle' then '{"fibra": 1000, "arenisca": 800, "cobre": 400, "oro": 120}'::jsonb
+                   when 'elevador_mina' then '{"carbon": 1000, "plata": 650, "hongo": 320, "amatista": 110}'::jsonb
+                   when 'ruta_glaciar' then '{"hielo": 1000, "escarcha": 560, "baya": 320, "zafiro": 110}'::jsonb else null end $$;
+revoke all on function public.mw_obra_meta(text) from public, anon, authenticated;
