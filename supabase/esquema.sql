@@ -1137,3 +1137,53 @@ create or replace function public.mw_obra_meta(p_id text) returns jsonb language
                    when 'elevador_mina' then '{"carbon": 1000, "plata": 650, "hongo": 320, "amatista": 110}'::jsonb
                    when 'ruta_glaciar' then '{"hielo": 1000, "escarcha": 560, "baya": 320, "zafiro": 110}'::jsonb else null end $$;
 revoke all on function public.mw_obra_meta(text) from public, anon, authenticated;
+-- Meta de cada obra según el curso: el puente de 7°B mantiene la meta original; los demás cursos piden más recursos
+create or replace function public.mw_obra_meta(p_id text, p_curso text) returns jsonb language sql immutable as $$
+  select case when p_id = 'puente_bosque' and coalesce(p_curso, '') <> '7B'
+              then '{"madera": 1100, "piedra": 700, "agua": 320, "cristal": 80}'::jsonb
+              else mw_obra_meta(p_id) end $$;
+
+create or replace function public.mw_obra_estado(p_curso text, p_grupo smallint, p_id text, p_yo uuid)
+returns json language sql stable security definer set search_path = public as $$
+  select json_build_object(
+    'id', p_id, 'curso', p_curso, 'grupo', p_grupo, 'meta', mw_obra_meta(p_id, p_curso),
+    'aportes', coalesce((select aportes from obras where curso = p_curso and grupo = p_grupo and id = p_id), '{}'::jsonb),
+    'completado', (select completado from obras where curso = p_curso and grupo = p_grupo and id = p_id) is not null,
+    'mio', coalesce((select total from obra_aportes where curso = p_curso and grupo = p_grupo and obra = p_id and estudiante_id = p_yo), 0),
+    'top', coalesce((select json_agg(x) from (select mw_nombre_corto(e.nombre) as nombre, a.total from obra_aportes a join estudiantes e on e.id = a.estudiante_id
+                     where a.curso = p_curso and a.grupo = p_grupo and a.obra = p_id order by a.total desc limit 5) x), '[]'::json),
+    'aportantes', (select count(*) from obra_aportes where curso = p_curso and grupo = p_grupo and obra = p_id)
+  ) $$;
+
+create or replace function public.mw_obra_aportar(p_token uuid, p_id text, p_recursos jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); c text; g smallint; meta jsonb; act jsonb; acep jsonb := '{}'::jsonb;
+  k text; quiere int; falta int; dado int; suma int := 0; listo boolean;
+begin
+  if id_e is null or mw_obra_meta(p_id) is null then return json_build_object('ok', false); end if;
+  select curso, grupo into c, g from estudiantes where id = id_e;
+  if g is null then return json_build_object('ok', false, 'error', 'sin_grupo'); end if;
+  meta := mw_obra_meta(p_id, c);
+  insert into obras (curso, grupo, id) values (c, g, p_id) on conflict do nothing;
+  select aportes into act from obras where curso = c and grupo = g and id = p_id for update;
+  if (select completado from obras where curso = c and grupo = g and id = p_id) is not null then
+    return (mw_obra_estado(c, g, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', '{}'::jsonb))::json;
+  end if;
+  for k in select jsonb_object_keys(meta) loop
+    quiere := greatest(0, least(coalesce((p_recursos->>k)::int, 0), 500));
+    falta := greatest(0, (meta->>k)::int - coalesce((act->>k)::int, 0));
+    dado := least(quiere, falta);
+    if dado > 0 then
+      act := act || jsonb_build_object(k, coalesce((act->>k)::int, 0) + dado);
+      acep := acep || jsonb_build_object(k, dado); suma := suma + dado;
+    end if;
+  end loop;
+  listo := not exists (select 1 from jsonb_object_keys(meta) k2 where coalesce((act->>k2)::int, 0) < (meta->>k2)::int);
+  update obras set aportes = act, completado = case when listo then now() else null end where curso = c and grupo = g and id = p_id;
+  if suma > 0 then
+    insert into obra_aportes (curso, grupo, obra, estudiante_id, total) values (c, g, p_id, id_e, suma)
+      on conflict (curso, grupo, obra, estudiante_id) do update set total = obra_aportes.total + excluded.total;
+  end if;
+  return (mw_obra_estado(c, g, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', acep))::json;
+end $$;
+revoke all on function public.mw_obra_meta(text, text) from public, anon, authenticated;

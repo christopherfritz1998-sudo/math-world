@@ -1390,7 +1390,8 @@
     if ($('obra-cuerpo')) pintarObra(k);
   }
   setInterval(() => { if (escena && obraDeEscena() && !document.hidden && !ui.abierto) cargarObra(); }, 15000);
-  const metaObra = (k) => (obraE[k] && obraE[k].meta) || OBRAS[k].meta;
+  const PUENTE_GRANDE = { madera: 1100, piedra: 700, agua: 320, cristal: 80 };   // el puente pide más en todos los cursos salvo 7° B
+  const metaObra = (k) => (obraE[k] && obraE[k].meta) || (k === 'puente' && sesion.modo === 'nube' && S && S.seccion !== '7B' ? PUENTE_GRANDE : OBRAS[k].meta);
   const obraFalta = (k, r) => Math.max(0, metaObra(k)[r] - ((obraE[k] && obraE[k].aportes && obraE[k].aportes[r]) || 0));
   const pctObra = (k) => {
     const o = obraE[k]; if (o && o.completado) return 100;
@@ -1400,7 +1401,7 @@
   };
   function pintarObra(k) {
     const O = OBRAS[k], o = obraE[k] || { meta: O.meta, aportes: {}, top: [], mio: 0, aportantes: 0 };
-    const meta = o.meta || O.meta, ap = o.aportes || {}, pct = pctObra(k);
+    const meta = o.meta || metaObra(k), ap = o.aportes || {}, pct = pctObra(k);
     const filas = Object.entries(meta).map(([r, n]) => {
       const v = Math.min(n, ap[r] || 0), tengo = esDocente() ? 0 : total_(r), max = Math.min(tengo, obraFalta(k, r));
       return `<div class="obra-fila"><img class="px" src="${ICONO(r)}" alt=""><div class="obra-info"><div class="fila"><strong>${esc(REC[r].nombre)}</strong><span>${v} de ${n}</span></div><div class="barra"><i style="width:${(v / n) * 100}%"></i></div></div>
