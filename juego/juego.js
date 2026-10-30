@@ -349,19 +349,19 @@
   const MUNDOS = {
     u1: { nombre: { '7basico': 'Bosque de los Enteros', '8basico': 'Bosque de las Potencias' }, semilla: 11, fondo: '#2f6b47',
       suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 175,
-      rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, profundo: true, cofres: 9, arbustos: 14, nieblas: 5, bichos: 0.18 },
+      rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, profundo: true, cofres: 9, arbustos: 9, nieblas: 4, bichos: 0.08 },
     // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
     u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
       suelo: [[8, 22, 1], [3, 19, 0.07]], valle: true, nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
-      escorpiones: 15, remolinos: 9, esqueletos: 12, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
+      escorpiones: 10, remolinos: 6, esqueletos: 8, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
     // Unidad 3: mina subterránea con recursos propios (carbón, plata, amatista y hongos luminosos)
     u3: { nombre: { '7basico': 'Mina de las Formas', '8basico': 'Mina de los Volúmenes' }, tipo: 'cueva', recursos: 'u3', semilla: 33, fondo: '#1a1a24',
       suelo: [[9, 2, 1], [9, 7, 0.08], [9, 3, 0.015]], nHongos: 112, nRocas: 72, vetasPlata: 19, vetasAmatista: 9, pozas: 5, cofres: 11,
-      murcielagos: 12, golems: 11, mineros: 12, cofre: { plata: 2, amatista: 1 }, oscuridad: 0.5, abismo: true },
+      murcielagos: 8, golems: 7, mineros: 8, cofre: { plata: 2, amatista: 1 }, oscuridad: 0.5, abismo: true },
     // Unidad 4: mundo helado con ventiscas y recursos propios (bayas de invierno, hielo, escarcha y zafiros)
     u4: { nombre: { '7basico': 'Glaciar de los Datos', '8basico': 'Glaciar del Azar' }, tipo: 'hielo', recursos: 'u4', semilla: 44, fondo: '#e4eef7',
       suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 112, nArbustos: 88, nRocas: 66, vetasEscarcha: 19, vetasZafiro: 9, cofres: 11,
-      lobos: 12, espiritus: 9, munecos: 12, cofre: { escarcha: 2, zafiro: 1 }, cima: true },
+      lobos: 8, espiritus: 6, munecos: 8, cofre: { escarcha: 2, zafiro: 1 }, cima: true },
   };
   // Cada mundo puede tener una zona extra con recursos propios (Bosque profundo, Valle de la Esfinge)
   const SUBZONA = { u1: 'u1p', u2: 'u2v', u3: 'u3p', u4: 'u4c' };
@@ -6042,13 +6042,13 @@
       const E = this.estanque;
       for (let y = E.ly - 2; y <= E.ly + E.h + 3; y++) for (let x = E.lx - 2; x <= E.lx + E.w + 1; x++) this.marcar(x, y);
       // enemigos del bosque profundo (antes que la vegetación, para que tengan espacio)
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 6; i++) {
         const p = lugarP(1); if (!p) break;
         const sp = this.add.image(p[0] * TILE + 16, (p[1] + 1) * TILE, 'arana').setOrigin(0.5, 1).setScale(2);
         sp.setDepth(sp.y);
         this.enemigos.push(this.nuevoEnemigo('arana', sp, { despierto: true, k: `p${i}` }));
       }
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = lugarP(1); if (!p) break;
         const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'tocon_raiz').setOrigin(0.5, 1).setScale(2);
         sp.setDepth(sp.y);
@@ -6289,13 +6289,13 @@
         this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
       }
       // enemigos del valle: escarabajos y momias dormidas en sus sarcófagos
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 6; i++) {
         const p = lugarV(1, 1, 8); if (!p) break;
         const sp = this.add.image(p[0] * TILE + 16, (p[1] + 1) * TILE, 'v_escarabajo').setOrigin(0.5, 1).setScale(2);
         sp.setDepth(sp.y);
         this.enemigos.push(this.nuevoEnemigo('escarabajo', sp, { despierto: true, k: `v${i}` }));
       }
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = lugarV(2, 1, 4); if (!p) break;
         const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'v_sarcofago').setOrigin(0.5, 1).setScale(2);
         sp.setDepth(sp.y);
@@ -6483,12 +6483,12 @@
         this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
       }
       // enemigos: salamandras de magma y gólems de cristal (dormidos, parecen cristales)
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < 6; i++) {
         const p = lugarP(1); if (!p) break;
         const sp = this.add.image(p[0] * TILE + 16, (p[1] + 1) * TILE, 'a_salamandra').setOrigin(0.5, 1).setScale(2); sp.setDepth(sp.y);
         this.enemigos.push(this.nuevoEnemigo('salamandra', sp, { despierto: true, k: `s${i}` }));
       }
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = lugarP(1); if (!p) break;
         const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'a_cristal_n').setOrigin(0.5, 1).setScale(2); sp.setDepth(sp.y);
         this.marcar(p[0], p[1]);
@@ -6650,13 +6650,13 @@
         this.objetos.push({ tipo: 'cofre', s: sp, z, x: sp.x, y: sp.y - 6, activo: true, vida: conVida, corazon });
       }
       // enemigos: halcones de escarcha (vuelan) y gólems de hielo eterno (dormidos como bloques)
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = lugarC(1, 1, 9); if (!p) break;
         const sp = this.add.image(p[0] * TILE + 16, p[1] * TILE + 16, 'g_halcon').setScale(2).setDepth(9000);
         this.tweens.add({ targets: sp, y: sp.y - 8, duration: 700, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
         this.enemigos.push(this.nuevoEnemigo('halcon', sp, { despierto: true, k: `h${i}` }));
       }
-      for (let i = 0; i < 7; i++) {
+      for (let i = 0; i < 5; i++) {
         const p = lugarC(1); if (!p) break;
         const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'g_bloque_eterno').setOrigin(0.5, 1).setScale(2); sp.setDepth(sp.y);
         this.marcar(p[0], p[1]);
@@ -7809,7 +7809,8 @@
           continue;
         }
         if (e.huye) { this.huir(e, obj, d, seg); continue; }
-        const persigue = e.ocupado ? true : d < (e.radio || E.radio || 240);
+        // tras un combate hay unos segundos de calma: nadie persigue al jugador recién salido de una pelea
+        const persigue = e.ocupado ? true : d < (e.radio || E.radio || 240) && !(obj.yo && this.tregua > ahora);
         const destino = persigue ? { x: obj.x, y: obj.y - 8 } : e.origen;
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
         const mueve = l > (e.ocupado ? 26 : 4);
@@ -7850,7 +7851,7 @@
       this.cameras.main.shake(120, 0.003);
       this.tweens.add({ targets: s, y: arbol.y + 40, duration: 380, ease: 'Quad.out', onUpdate: () => s.setDepth(s.y),
         onComplete: () => { e.cayendo = false; e.origen = { x: s.x, y: s.y }; } });
-      this.time.delayedCall(120000, () => { arbol.bicho = true; });
+      this.time.delayedCall(240000, () => { arbol.bicho = true; });
     }
     empezarCombate(e) {
       if (this.enCombate || this.enJefe) return;
@@ -7871,6 +7872,7 @@
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
+          if (!e.desafio) this.tregua = this.time.now + 8000;
           if (e.desafio) eventoDesafio('vencer', e);
           guardar(true);
         } else if (resultado === 'huir') {
@@ -7881,7 +7883,7 @@
             toast(`Huiste, pero el ${E.nombre.toLowerCase()} te alcanzó a golpear: −${VIDA_HUIR} corazón.`, 'alerta');
           }
           guardar();
-          e.aturdido = this.time.now + 4000;
+          e.aturdido = this.time.now + 4000; this.tregua = this.time.now + 5000;
           const ang = Phaser.Math.Angle.Between(e.s.x, e.s.y, this.jugador.x, this.jugador.y);
           this.jugador.x += Math.cos(ang) * 40; this.jugador.y += Math.sin(ang) * 40;
         } else if (resultado === 'derrota') {
@@ -7897,7 +7899,7 @@
       this.tweens.add({ targets: e.s, alpha: 0, scale: 0.5, duration: 400, onComplete: () => e.s.setVisible(false) });
       const E = ENEMIGOS[e.clase];
       if (e.desafio) { this.time.delayedCall(450, () => { e.s.destroy(); if (e.extra) e.extra.destroy(); this.enemigos = this.enemigos.filter((x) => x !== e); }); return; }
-      if (e.clase !== 'bicho') this.time.delayedCall(150000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(E.alfa || 1).setScale(E.anim ? 1 : 2).setVisible(true); if (E.oculto) this.esconder(e); e.vida = e.vidaMax; e.activo = true; });
+      if (e.clase !== 'bicho') this.time.delayedCall(240000, () => { e.s.setPosition(e.origen.x, e.origen.y).setAlpha(E.alfa || 1).setScale(E.anim ? 1 : 2).setVisible(true); if (E.oculto) this.esconder(e); e.vida = e.vidaMax; e.activo = true; });
     }
     enemigo(k) { return this.enemigos.find((x) => x.k === k); }
     // Enemigos escondidos (arbusto o montículo): salen al acercarse y vuelven a esconderse
