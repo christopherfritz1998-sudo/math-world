@@ -7765,7 +7765,8 @@
         if (this.aturdidoHasta > this.time.now) { vx = 0; vy = 0; }
       }
       const len = Math.hypot(vx, vy);
-      if (len > 0.15) {
+      if (this.empujon && this.empujon.hasta > this.time.now) { j.setVelocity(this.empujon.vx, this.empujon.vy); j.anims.stop(); }
+      else if (len > 0.15) {
         const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
         j.setVelocity((vx / Math.max(len, 1)) * vel, (vy / Math.max(len, 1)) * vel);
         this.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
@@ -7885,7 +7886,8 @@
           guardar();
           e.aturdido = this.time.now + 4000; this.tregua = this.time.now + 5000;
           const ang = Phaser.Math.Angle.Between(e.s.x, e.s.y, this.jugador.x, this.jugador.y);
-          this.jugador.x += Math.cos(ang) * 40; this.jugador.y += Math.sin(ang) * 40;
+          // retroceso con física (no teletransporte): así nunca atraviesa ríos, acantilados ni barreras
+          this.empujon = { vx: Math.cos(ang) * 260, vy: Math.sin(ang) * 260, hasta: this.time.now + 160 };
         } else if (resultado === 'derrota') {
           morir(E.nombre.toLowerCase());
         }
