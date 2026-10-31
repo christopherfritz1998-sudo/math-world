@@ -532,6 +532,7 @@
     try {
       const r = await Nube.latido(sesion.token, zonaRed());
       if (r && r.abierto === false) cerrarPorDocente();
+      if (r && r.ok === false && S.seccion === 'INV') return invitadoEliminado();
       if (r && r.abierto) {
         const antes = sesion.chat !== false;
         sesion.chat = r.chat !== false;
@@ -568,6 +569,16 @@
       <div class="acciones"><span></span><button type="button" class="btn pri" id="jc-ok" data-foco>Salir</button></div>`, 'bloqueo');
     $('jc-ok').addEventListener('click', () => location.reload());
   }
+  function invitadoEliminado() {
+    if (juegoCerrado) return;
+    juegoCerrado = true;
+    if (escena && escena.canal) { escena.canal.salir(); escena.canal = null; }
+    sesion.modo = 'fin';
+    ui.abrir(`<h2 id="modal-titulo">Tu acceso de invitado terminó</h2>
+      <p class="enunciado" style="font-size: 18px">Tu profesor eliminó tu perfil de la sala de invitados. ¡Gracias por jugar Math World! Si quieres volver, pide acceso otra vez.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="jc-ok" data-foco>Salir</button></div>`, 'bloqueo');
+    $('jc-ok').addEventListener('click', () => location.reload());
+  }
   // Zona que ve el docente: "base", "u1" (solo) o "u1-g3" (grupo 3)
   function zonaRed() {
     const z = escena ? escena.zona : (S && S.zona) || 'base';
@@ -578,7 +589,9 @@
   const nivelNum = () => (S.curso === '8basico' ? '8' : '7');
   // Curso de la sala: el estudiante juega en su curso; el docente, en el curso que eligió visitar
   const cursoCanal = () => (esDocente() ? sesion.docCurso || `${nivelNum()}A` : S.seccion || nivelNum());
-  const cursoNombre = (c) => `${String(c).charAt(0)}° ${String(c).slice(1)}`;
+  const cursoNombre = (c) => (c === 'INV' ? 'Sala de invitados' : `${String(c).charAt(0)}° ${String(c).slice(1)}`);
+  // La sala de invitados mezcla 7° y 8°: todos ven los mismos mapas
+  const semillaNivel = () => (cursoCanal() === 'INV' ? 0 : S.curso === '8basico' ? 100 : 0);
   window.addEventListener('pagehide', () => { guardar(); subir(true); });
 
   function sumar(recurso, n) {
@@ -924,7 +937,9 @@
       document.querySelectorAll('[data-pestana]').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
       $('form-estudiante').classList.toggle('oculto', b.dataset.pestana !== 'estudiante');
       $('form-docente').classList.toggle('oculto', b.dataset.pestana !== 'docente');
+      $('form-invitado').classList.toggle('oculto', b.dataset.pestana !== 'invitado');
     }));
+    prepararInvitado();
     // mathworld.cl → «Soy profesor» abre directo la pestaña docente
     const abrirDocenteHash = () => { if (location.hash === '#docente') { const b = document.querySelector('[data-pestana="docente"]'); if (b) b.click(); } };
     abrirDocenteHash(); window.addEventListener('hashchange', abrirDocenteHash);
@@ -940,6 +955,7 @@
     entrarComoDocente();
     $('form-estudiante').addEventListener('submit', enviarEstudiante);
     $('form-docente').addEventListener('submit', enviarDocente);
+    $('form-invitado').addEventListener('submit', enviarInvitado);
   }
   function reiniciarPaso() {
     if (!Nube.activo) return;
@@ -1016,6 +1032,90 @@
     } catch (e) {
       error('No hay conexión con el servidor. Revisa internet e inténtalo de nuevo.');
     } finally { btn.disabled = false; }
+  }
+
+  // ---------- Invitados: sala única de hasta 10 jugadores, con aprobación del docente ----------
+  const inv = { modo: 'entrar', nivel: '7', pj: 'zorro', espera: null };
+  function prepararInvitado() {
+    $('inv-personajes').innerHTML = PERSONAJES.filter((p) => !p.rey).map((p) => `
+      <button type="button" class="opcion" data-ipj="${p.id}" aria-pressed="${p.id === inv.pj}" aria-label="Personaje ${p.nombre}">
+        <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span>
+        <span style="font-size: 12px">${p.nombre}</span>
+      </button>`).join('');
+    const marcar = () => {
+      document.querySelectorAll('[data-inivel]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.inivel === inv.nivel)));
+      document.querySelectorAll('[data-ipj]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.ipj === inv.pj)));
+      document.querySelectorAll('[data-imodo]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.imodo === inv.modo)));
+      const nuevo = inv.modo === 'nuevo';
+      document.querySelectorAll('.inv-nuevo').forEach((e) => e.classList.toggle('oculto', !nuevo));
+      $('inv-bloque-pj').classList.toggle('oculto', !nuevo);
+      $('inv-intro').textContent = nuevo ? 'Crea tu usuario y tu clave. Tu profesor revisará tu solicitud y, cuando la apruebe, podrás entrar a jugar.' : 'Entra con el usuario y la clave que creaste al pedir acceso.';
+      $('btn-invitado').textContent = nuevo ? 'Enviar solicitud' : 'Entrar al mundo';
+      $('inv-clave').autocomplete = nuevo ? 'new-password' : 'current-password';
+    };
+    document.querySelectorAll('[data-inivel]').forEach((b) => b.addEventListener('click', () => { inv.nivel = b.dataset.inivel; marcar(); }));
+    document.querySelectorAll('[data-ipj]').forEach((b) => b.addEventListener('click', () => { inv.pj = b.dataset.ipj; marcar(); }));
+    document.querySelectorAll('[data-imodo]').forEach((b) => b.addEventListener('click', () => { inv.modo = b.dataset.imodo; pararEspera(); error('', 'error-invitado'); marcar(); }));
+    marcar();
+  }
+  function pararEspera() { clearTimeout(inv.espera); inv.espera = null; $('inv-espera').classList.add('oculto'); $('btn-invitado').classList.remove('oculto'); $('form-invitado').classList.remove('esperando'); }
+  function esperarAprobacion(usuario, clave, nombre) {
+    $('inv-espera').innerHTML = `<span class="reloj-arena" aria-hidden="true">⏳</span><span>¡Listo, ${esc(nombre || usuario)}! Tu solicitud está esperando que tu profesor la apruebe.<small>Deja esta pantalla abierta: entrarás al juego apenas te acepte. También puedes volver más tarde con tu usuario <b>${esc(usuario)}</b> y tu clave.</small></span>`;
+    $('inv-espera').classList.remove('oculto');
+    $('btn-invitado').classList.add('oculto');
+    $('form-invitado').classList.add('esperando');
+    $('inv-espera').scrollIntoView({ block: 'center', behavior: 'smooth' });
+    error('', 'error-invitado');
+    const revisar = async () => {
+      if ($('ingreso').classList.contains('oculto')) return;
+      try {
+        const r = await Nube.invitadoEntrar(usuario, clave);
+        if (r && r.ok) { pararEspera(); return entrarInvitado(r); }
+        if (r && r.error === 'no_esta') { pararEspera(); return error('Tu solicitud no fue aceptada. Habla con tu profesor si crees que es un error.', 'error-invitado'); }
+        if (r && r.error === 'cerrado') $('inv-espera').querySelector('small').textContent = '¡Tu profesor ya te aceptó! La sala de invitados está cerrada en este momento: entrarás apenas la abra.';
+      } catch (e) { /* sin red: se reintenta */ }
+      inv.espera = setTimeout(revisar, 8000);
+    };
+    clearTimeout(inv.espera); inv.espera = setTimeout(revisar, 8000);
+  }
+  async function enviarInvitado(ev) {
+    ev.preventDefault();
+    if (!Nube.activo) return error('El modo invitado necesita conexión con el servidor.', 'error-invitado');
+    const usuario = $('inv-usuario').value.trim().toLowerCase(), clave = $('inv-clave').value;
+    if (!/^[a-z0-9_.]{3,16}$/.test(usuario)) return error('El usuario debe tener entre 3 y 16 letras, números, punto o guion bajo, sin espacios ni tildes.', 'error-invitado');
+    const btn = $('btn-invitado'); btn.disabled = true;
+    try {
+      if (inv.modo === 'nuevo') {
+        const nombre = $('inv-nombre').value.trim().replace(/\s+/g, ' ');
+        if (nombre.length < 2) return error('Escribe tu nombre.', 'error-invitado');
+        if (clave.length < 4) return error('La clave debe tener al menos 4 caracteres.', 'error-invitado');
+        if (clave !== $('inv-clave2').value) return error('Las dos claves no coinciden.', 'error-invitado');
+        const r = await Nube.invitadoRegistrar(nombre, usuario, inv.nivel, clave, inv.pj);
+        if (!r || !r.ok) {
+          const msg = { existe: 'Ese usuario ya existe. Elige otro o entra en «Ya tengo usuario».', lleno: 'La sala de invitados está completa (10 jugadores). Pide a tu profesor que libere un cupo.', usuario: 'El usuario debe tener entre 3 y 16 letras, números, punto o guion bajo.', nombre: 'Escribe tu nombre (entre 2 y 40 letras).', clave_corta: 'La clave debe tener al menos 4 caracteres.' };
+          return error(msg[r && r.error] || 'No se pudo enviar la solicitud. Inténtalo otra vez.', 'error-invitado');
+        }
+        return esperarAprobacion(usuario, clave, nombre.split(' ')[0]);
+      }
+      const r = await Nube.invitadoEntrar(usuario, clave);
+      if (r && r.ok) return entrarInvitado(r);
+      if (r && r.error === 'pendiente') return esperarAprobacion(usuario, clave, String(r.nombre || '').split(' ')[0]);
+      const msg = { no_esta: 'Ese usuario no existe o tu solicitud fue rechazada. Si eres nuevo, presiona «Pedir acceso».', clave_incorrecta: 'Clave incorrecta. Si la olvidaste, pide a tu profesor que la restablezca.', bloqueado: 'Demasiados intentos fallidos. Espera 10 minutos.', clave_nueva: 'Tu profesor restableció tu clave: escribe una nueva de al menos 4 caracteres.', cerrado: 'La sala de invitados está cerrada en este momento. Tu profesor la abrirá en clases.' };
+      return error(msg[r && r.error] || 'No se pudo entrar. Inténtalo otra vez.', 'error-invitado');
+    } catch (e) {
+      error('No hay conexión con el servidor. Revisa internet e inténtalo de nuevo.', 'error-invitado');
+    } finally { btn.disabled = false; }
+  }
+  function entrarInvitado(r) {
+    const curso = r.nivel === '8' ? '8basico' : '7basico';
+    const prog = r.progreso || {};
+    sesion.modo = 'nube'; sesion.token = r.token; sesion.mundos = Array.isArray(r.mundos) ? r.mundos : null;
+    S = normalizar(prog.v ? prog : null, curso, String(r.nombre || 'Invitado').split(' ')[0], prog.pj || inv.pj);
+    if (!prog.v && prog.pj) S.pj = prog.pj;
+    S.curso = curso; S.seccion = 'INV';
+    sesion.grupo = 1;
+    guardar(true);
+    empezar();
   }
 
   // Entrada del docente al juego desde el portal: docente.html → ./?docente=7&pj=zorro
@@ -4726,10 +4826,10 @@
   async function elegirGrupo(zona) {
     let cuentas = {};
     try { cuentas = (await Nube.grupos(sesion.token, nivelNum())) || {}; } catch (e) { /* sin datos: igual se puede elegir */ }
-    const cursos = [`${nivelNum()}A`, `${nivelNum()}B`];
+    const cursos = [`${nivelNum()}A`, `${nivelNum()}B`, 'INV'];
     if (!cursos.includes(sesion.docCurso)) sesion.docCurso = cursos[0];
     const pintar = () => {
-      const botones = Array.from({ length: N_GRUPOS }, (_, i) => {
+      const botones = Array.from({ length: sesion.docCurso === 'INV' ? 1 : N_GRUPOS }, (_, i) => {
         const g = i + 1, n = cuentas[`${sesion.docCurso}:${zona}-g${g}`] || 0;
         return `<button type="button" class="obj grupo" data-g="${g}"><strong>Grupo ${g}</strong><small>${n === 0 ? 'Nadie conectado' : `${n} ${n === 1 ? 'jugador' : 'jugadores'}`}</small></button>`;
       }).join('');
@@ -4814,7 +4914,7 @@
       return `<details ${escena.zona === u.id || (enCasa() && u.id === 'u1') ? 'open' : ''}><summary><strong>Unidad ${u.numero} · ${esc(u.titulo)}</strong> ${mundoAbierto(u) ? '' : '<span class="nota">(cerrada)</span>'}</summary><div class="avance">${filas}</div></details>`;
     }).join('');
     ui.abrir(`
-      <div class="modal-cab"><div><span class="etq">${S.curso === '7basico' ? '7°' : '8°'} básico${S.seccion ? ' · ' + esc(S.seccion.slice(1)) : ''}</span><h2 id="modal-titulo">Tu avance</h2></div><button type="button" class="btn" id="m-cerrar">Cerrar</button></div>
+      <div class="modal-cab"><div><span class="etq">${S.curso === '7basico' ? '7°' : '8°'} básico${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + esc(S.seccion.slice(1)) : ''}</span><h2 id="modal-titulo">Tu avance</h2></div><button type="button" class="btn" id="m-cerrar">Cerrar</button></div>
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
@@ -6878,7 +6978,7 @@
       if (M.tipo === 'hielo') return this.crearHielo(M);
       this.ancho = MAPA_W + (M.profundo ? RIO_ANCHO + PROFUNDO_W : 0); this.alto = MAPA_H;
       this.anchoUtil = M.profundo ? MAPA_W - 1 : 0;
-      this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
+      this.rnd = azar(M.semilla + semillaNivel());
       // suelo: el primero es la base y los demás se pintan en manchas redondeadas
       const data = [];
       const [c0, r0] = M.suelo[0];
@@ -7016,7 +7116,7 @@
     crearDesierto(M) {
       const oy = M.valle ? VALLE_OY : 0;
       this.ancho = MAPA_W; this.alto = MAPA_H + oy; this.yUtil = oy;
-      this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
+      this.rnd = azar(M.semilla + semillaNivel());
       const ARENA = fr(M.suelo[0][0], M.suelo[0][1]);
       this.pisables = [ARENA, ...M.suelo.slice(1).map(([c, r]) => fr(c, r))];
       const data = [];
@@ -7185,7 +7285,7 @@
     // ---------- mundo de la mina (Unidad 3) ----------
     crearCueva(M) {
       this.ancho = MAPA_W; this.alto = MAPA_H + (M.abismo ? 24 : 0); this.altoUtil = MAPA_H;
-      this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
+      this.rnd = azar(M.semilla + semillaNivel());
       const fc = (c, r) => r * 29 + c;   // índice en la hoja de la cueva (29 columnas)
       const BASE = fc(M.suelo[0][0], M.suelo[0][1]), RIEL = fc(10, 7);
       this.pisables = [BASE, ...M.suelo.slice(1).map(([c, r]) => fc(c, r))];
@@ -7366,7 +7466,7 @@
     crearHielo(M) {
       const oy = M.cima ? VALLE_OY : 0;
       this.ancho = MAPA_W; this.alto = MAPA_H + oy; this.yUtil = oy;
-      this.rnd = azar(M.semilla + (S.curso === '8basico' ? 100 : 0));
+      this.rnd = azar(M.semilla + semillaNivel());
       const fn = (c, r) => r * 16 + c;   // índice en la hoja de nieve (16 columnas)
       const BASE = fn(M.suelo[0][0], M.suelo[0][1]), SENDERO = fn(3, 0);
       this.pisables = [BASE, ...M.suelo.slice(1).map(([c, r]) => fn(c, r))];
@@ -8205,7 +8305,7 @@
     }
     // ---------- modo cooperativo ----------
     iniciarCoop() {
-      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual() };
+      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual() };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
       this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };

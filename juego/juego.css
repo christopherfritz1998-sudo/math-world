@@ -990,3 +990,13 @@ body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }
 }
 @media (min-width: 900px) { body.cu-abierto .capa { padding-right: 410px; transition: padding .2s; } }
 @media (max-width: 760px) { body.cu-abierto .capa { align-items: flex-start; padding-bottom: 58vh; } body.cu-abierto .capa .modal { max-height: calc(42vh - 16px); overflow-y: auto; } }
+
+/* ---------- ingreso como invitado ---------- */
+.inv-modos { display: flex; gap: 6px; }
+.inv-modos button { flex: 1; min-height: 40px; border-radius: 10px; border: 2px solid var(--line, #2e4a3d); background: transparent; color: var(--muted); font: 800 14px Nunito, sans-serif; cursor: pointer; }
+.inv-modos button[aria-selected="true"] { border-color: #f6d36b; color: #fff3cf; background: rgba(246, 211, 107, .12); }
+.inv-espera { display: flex; gap: 14px; align-items: center; padding: 14px 16px; border-radius: 14px; background: rgba(246, 211, 107, .1); border: 2px dashed #f6d36b; color: #fff3cf; font-weight: 700; line-height: 1.4; }
+.inv-espera .reloj-arena { font-size: 30px; animation: inv-gira 2.4s ease-in-out infinite; }
+@keyframes inv-gira { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
+.inv-espera small { display: block; color: var(--muted); font-weight: 600; margin-top: 4px; }
+#form-invitado.esperando .campo, #form-invitado.esperando fieldset, #form-invitado.esperando #inv-intro { display: none; }

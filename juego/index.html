@@ -36,6 +36,7 @@
       <div class="form">
         <div class="pestanas solo-nube" role="tablist">
           <button type="button" role="tab" data-pestana="estudiante" aria-selected="true">Estudiante</button>
+          <button type="button" role="tab" data-pestana="invitado" aria-selected="false">Invitado</button>
           <button type="button" role="tab" data-pestana="docente" aria-selected="false">Docente</button>
         </div>
 
@@ -80,6 +81,46 @@
           <button type="submit" class="btn-principal btn-brillo" id="btn-entrar">Continuar</button>
           <p class="nota solo-nube">Tu avance se guarda en el sistema: puedes seguir desde cualquier computador o celular. ¿Olvidaste tu clave? Pídele a tu profesor que la restablezca.</p>
           <p class="nota solo-local oculto">El inicio de sesión con RUT aún no está activado: por ahora tu avance se guarda solo en este navegador.</p>
+        </form>
+
+        <form id="form-invitado" class="oculto" novalidate>
+          <h2>Jugar como invitado</h2>
+          <div class="inv-modos" role="tablist" aria-label="Opciones de invitado">
+            <button type="button" role="tab" data-imodo="entrar" aria-selected="true">Ya tengo usuario</button>
+            <button type="button" role="tab" data-imodo="nuevo" aria-selected="false">Pedir acceso</button>
+          </div>
+          <p class="nota" id="inv-intro">Entra con el usuario y la clave que creaste al pedir acceso.</p>
+          <div class="campo inv-nuevo oculto">
+            <label for="inv-nombre">Tu nombre</label>
+            <input id="inv-nombre" type="text" maxlength="40" autocomplete="name" placeholder="Ej: Camila Rojas">
+          </div>
+          <div class="campo">
+            <label for="inv-usuario">Usuario</label>
+            <input id="inv-usuario" type="text" maxlength="16" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Ej: camila.r">
+          </div>
+          <fieldset class="inv-nuevo oculto">
+            <legend>¿Qué ejercicios quieres?</legend>
+            <div class="cursos">
+              <button type="button" class="opcion" data-inivel="7" aria-pressed="true"><strong>7°</strong>Básico</button>
+              <button type="button" class="opcion" data-inivel="8" aria-pressed="false"><strong>8°</strong>Básico</button>
+            </div>
+          </fieldset>
+          <div class="campo">
+            <label for="inv-clave">Clave</label>
+            <input id="inv-clave" type="password" maxlength="40" autocomplete="current-password">
+          </div>
+          <div class="campo inv-nuevo oculto">
+            <label for="inv-clave2">Repite tu clave</label>
+            <input id="inv-clave2" type="password" maxlength="40" autocomplete="new-password">
+          </div>
+          <fieldset id="inv-bloque-pj" class="oculto">
+            <legend>Elige tu personaje</legend>
+            <div class="personajes" id="inv-personajes"></div>
+          </fieldset>
+          <div class="inv-espera oculto" id="inv-espera" role="status" aria-live="polite"></div>
+          <p class="error oculto" id="error-invitado" role="alert"></p>
+          <button type="submit" class="btn-principal btn-brillo" id="btn-invitado">Entrar al mundo</button>
+          <p class="nota">La sala de invitados es un solo grupo de hasta 10 jugadores. Tu profesor debe aprobar tu acceso antes de que puedas jugar.</p>
         </form>
 
         <form id="form-docente" class="oculto" novalidate>

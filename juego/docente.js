@@ -3,7 +3,12 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-  const CURSOS = [{ id: '7A', nombre: '7° A', nivel: '7basico' }, { id: '7B', nombre: '7° B', nivel: '7basico' }, { id: '8A', nombre: '8° A', nivel: '8basico' }, { id: '8B', nombre: '8° B', nivel: '8basico' }];
+  const CURSOS = [{ id: '7A', nombre: '7° A', nivel: '7basico' }, { id: '7B', nombre: '7° B', nivel: '7basico' }, { id: '8A', nombre: '8° A', nivel: '8basico' }, { id: '8B', nombre: '8° B', nivel: '8basico' }, { id: 'INV', nombre: 'Invitados', nivel: null, inv: true }];
+  const CURSOS_G = CURSOS.filter((c) => !c.inv);   // cursos con 8 grupos y códigos
+  const MAX_INV = 10;
+  // nivel de ejercicios de cada jugador (los invitados eligen 7° u 8°)
+  const nivelDe = (e) => (e.curso === 'INV' ? (e.nivel === '8' ? '8basico' : '7basico') : CURSOS.find((c) => c.id === e.curso).nivel);
+  const usuarioInv = (e) => String(e.rut || '').replace(/^INV-/, '');
   const ZONAS_BASE = { base: 'En su base', pieza: 'En su pieza', u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' };
   // "u1-g3" -> "Unidad 1 · Grupo 3"
   const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
@@ -15,7 +20,7 @@
   const titulos = {};
   for (const n of ['7basico', '8basico']) for (const u of ['u1', 'u2', 'u3', 'u4']) titulos[`${n}:${u}`] = Preguntas.titulos(n, u);
   const nombreTema = (nivel, tema) => {
-    for (const u of ['u1', 'u2', 'u3', 'u4']) { const t = titulos[`${nivel}:${u}`]; if (t && t[tema]) return { unidad: u, titulo: t[tema] }; }
+    for (const n of nivel ? [nivel] : ['7basico', '8basico']) for (const u of ['u1', 'u2', 'u3', 'u4']) { const t = titulos[`${n}:${u}`]; if (t && t[tema]) return { unidad: u, titulo: t[tema] }; }
     return { unidad: '', titulo: tema };
   };
   function hace(fecha) {
@@ -69,7 +74,7 @@
       <div class="tarjeta"><span>Ya entraron al juego</span><b>${entraron}</b><small>${lista.length - entraron} aún no crean su clave</small></div>
       <div class="tarjeta"><span>Nivel promedio</span><b>${promNivel}</b><small>de quienes ya juegan</small></div>
       <div class="tarjeta"><span>Acierto promedio</span><b>${promAcierto === null ? '–' : promAcierto + ' %'}</b><small>en todos los desafíos</small></div>`;
-    $('titulo-lista').textContent = `Estudiantes de ${CURSOS.find((c) => c.id === curso).nombre}`;
+    $('titulo-lista').textContent = curso === 'INV' ? 'Jugadores invitados' : `Estudiantes de ${CURSOS.find((c) => c.id === curso).nombre}`;
 
     const q = $('buscar').value.trim().toLowerCase();
     const solo = $('solo-online').checked;
@@ -77,10 +82,10 @@
       .filter(({ e }) => (!q || e.nombre.toLowerCase().includes(q) || e.rut.toLowerCase().includes(q)) && (!solo || e.conectado))
       .sort((a, b) => (b.e.conectado - a.e.conectado) || a.e.nombre.localeCompare(b.e.nombre));
     $('filas').innerHTML = filas.length ? filas.map(({ e, r }) => {
-      const nivel = CURSOS.find((c) => c.id === e.curso).nivel;
+      const nivel = nivelDe(e);
       const peor = r.peor ? nombreTema(nivel, r.peor.k).titulo : '–';
       return `<tr class="fila" data-id="${e.id}" tabindex="0">
-        <td><strong>${esc(e.nombre)}</strong>${e.tiene_clave ? '' : '<br><small class="muted">Aún no entra</small>'}</td>
+        <td><strong>${esc(e.nombre)}</strong>${e.curso === 'INV' ? `<br><small class="muted">${esc(usuarioInv(e))} · ${e.nivel === '8' ? '8°' : '7°'} básico</small>${e.aprobado === false ? ' <span class="etq-inv" style="background:#fff3d6;color:#8a5a00">Por aprobar</span>' : ''}` : e.tiene_clave ? '' : '<br><small class="muted">Aún no entra</small>'}</td>
         <td>${e.grupo ? `G${e.grupo}` : '<span class="muted">–</span>'}</td>
         <td><span class="est"><span class="punto ${e.conectado ? '' : 'off'}"></span>${e.conectado ? 'En línea' : esc(hace(e.ultimo))}</span></td>
         <td>${e.conectado ? esc(ZONAS[e.zona] || '–') : '<span class="muted">–</span>'}</td>
@@ -97,12 +102,55 @@
     });
     pintarAnalisis();
     pintarGruposCursos();
+    pintarInvitados();
+  }
+
+  // ---------- Sala de invitados: aprobar, rechazar y eliminar perfiles ----------
+  let invAvisoOculto = false;
+  function pintarInvitados() {
+    const lista = datos.filter((e) => e.curso === 'INV');
+    const pend = lista.filter((e) => e.aprobado === false).sort((a, b) => String(a.creado).localeCompare(String(b.creado)));
+    const act = lista.filter((e) => e.aprobado !== false).sort((a, b) => (b.conectado - a.conectado) || a.nombre.localeCompare(b.nombre));
+    $('inv-cupos').innerHTML = `<span>${lista.length} de ${MAX_INV} cupos</span><span class="cupos" aria-hidden="true">${Array.from({ length: MAX_INV }, (_, i) => `<i class="${i < act.length ? 'ok' : i < lista.length ? 'esp' : ''}"></i>`).join('')}</span>`;
+    const quien = (e, extra) => `<span class="quien"><b>${e.conectado ? '<span class="punto"></span> ' : ''}${esc(e.nombre)}</b><small>Usuario: ${esc(usuarioInv(e))} · ${e.nivel === '8' ? '8°' : '7°'} básico${extra ? ' · ' + extra : ''}</small></span>`;
+    $('inv-pend').innerHTML = pend.length ? pend.map((e) => `<div class="inv-fila pend">${quien(e, `pidió acceso ${esc(hace(e.creado).toLowerCase())}`)}
+        <span class="acc"><button type="button" class="btn pri mini" data-inv-ok="${e.id}">✔ Aceptar</button><button type="button" class="btn peligro mini" data-inv-del="${e.id}">✖ Rechazar</button></span></div>`).join('')
+      : '<p class="muted" style="margin:0">No hay solicitudes nuevas.</p>';
+    $('inv-act').innerHTML = act.length ? act.map((e) => { const r = resumen(e); return `<div class="inv-fila">${quien(e, e.conectado ? `en línea · ${esc(ZONAS[e.zona] || '')}` : r.nivel ? `nivel ${r.nivel} · ${esc(hace(e.ultimo).toLowerCase())}` : 'aún no entra a jugar')}
+        <span class="acc"><button type="button" class="btn mini" data-inv-ver="${e.id}">Ver avance</button><button type="button" class="btn peligro mini" data-inv-del="${e.id}">Eliminar</button></span></div>`; }).join('')
+      : '<p class="muted" style="margin:0">Todavía no hay invitados aceptados.</p>';
+    document.querySelectorAll('[data-inv-ok]').forEach((b) => b.addEventListener('click', () => accionInvitado(datos.find((x) => x.id === b.dataset.invOk), 'aprobar')));
+    document.querySelectorAll('[data-inv-del]').forEach((b) => b.addEventListener('click', () => accionInvitado(datos.find((x) => x.id === b.dataset.invDel), 'eliminar')));
+    document.querySelectorAll('[data-inv-ver]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.invVer)));
+    // aviso arriba cuando hay solicitudes esperando
+    const av = $('aviso-inv');
+    if (!pend.length) { av.hidden = true; invAvisoOculto = false; return; }
+    av.innerHTML = `<span><span class="ico">🙋</span>${pend.length === 1 ? `<b>${esc(pend[0].nombre)}</b> pidió` : `<b>${pend.length} personas</b> pidieron`} acceso a la sala de invitados.</span><span style="display:flex;gap:8px"><button type="button" class="btn pri" id="av-inv-ver">Revisar solicitudes</button><button type="button" class="btn" id="av-inv-ocultar">Más tarde</button></span>`;
+    av.hidden = invAvisoOculto;
+    $('av-inv-ver').addEventListener('click', () => { $('sec-invitados').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    $('av-inv-ocultar').addEventListener('click', () => { av.hidden = true; invAvisoOculto = true; });
+  }
+  async function accionInvitado(e, accion) {
+    if (!e) return false;
+    if (accion === 'eliminar') {
+      const pendiente = e.aprobado === false;
+      if (!confirm(pendiente ? `¿Rechazar la solicitud de ${e.nombre}?` : `¿Eliminar el perfil de ${e.nombre}?\n\nSe borra todo su avance y, si está jugando, saldrá del juego en unos segundos. Su cupo queda libre.`)) return false;
+    }
+    const msg = (t, err) => { $('inv-msg').innerHTML = `<div class="${err ? 'err' : 'msg'}">${esc(t)}</div>`; clearTimeout(msg.t); msg.t = setTimeout(() => { $('inv-msg').innerHTML = ''; }, 6000); };
+    try {
+      const r = await Nube.docenteInvitado(token, e.id, accion);
+      if (!r || !r.ok) { msg('No se pudo completar la acción. Actualiza e inténtalo otra vez.', true); cargar(); return false; }
+      if (accion === 'aprobar') { e.aprobado = true; e.grupo = 1; msg(`${e.nombre} ya puede jugar en la sala de invitados.`); }
+      else { datos = datos.filter((x) => x.id !== e.id); msg(e.aprobado === false ? `Solicitud de ${e.nombre} rechazada.` : `Perfil de ${e.nombre} eliminado. Su cupo quedó libre.`); }
+      pintar();
+      return true;
+    } catch (err) { msg('Sin conexión. Inténtalo otra vez.', true); return false; }
   }
 
   function detalle(id) {
     const e = datos.find((x) => x.id === id); if (!e) return;
     const p = e.progreso || {}, r = resumen(e);
-    const nivel = CURSOS.find((c) => c.id === e.curso).nivel;
+    const nivel = nivelDe(e);
     const porUnidad = {};
     for (const [k, s] of Object.entries(p.stats || {})) {
       const t = nombreTema(nivel, k);
@@ -117,7 +165,7 @@
     const rec = (o) => ['madera', 'piedra', 'agua', 'cristal', 'resina', 'miel', 'fibra', 'arenisca', 'cobre', 'oro', 'carbon', 'plata', 'amatista', 'hongo', 'baya', 'hielo', 'escarcha', 'zafiro', 'obsidiana', 'fosil', 'magma', 'cristal_eco', 'hielo_eterno', 'aurora', 'prisma', 'luciernaga'].filter((k, i) => i < 4 || (o || {})[k]).map((k) => `${(o || {})[k] || 0} ${k}`).join(' · ');
     $('det').innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
-        <div><h3 id="det-nombre">${esc(e.nombre)}</h3><span class="muted">RUT ${esc(e.rut)} · ${esc(CURSOS.find((c) => c.id === e.curso).nombre)}</span></div>
+        <div><h3 id="det-nombre">${esc(e.nombre)}</h3><span class="muted">${e.curso === 'INV' ? `Invitado · usuario ${esc(usuarioInv(e))} · ejercicios de ${e.nivel === '8' ? '8°' : '7°'} básico` : `RUT ${esc(e.rut)} · ${esc(CURSOS.find((c) => c.id === e.curso).nombre)}`}</span></div>
         <button type="button" class="btn" id="det-cerrar">Cerrar</button>
       </div>
       <div class="chips">
@@ -141,8 +189,12 @@
       <h4>Clave</h4>
       ${e.tiene_clave ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">Si el estudiante olvidó su clave, restablécela: la próxima vez que entre creará una nueva.</span>
         <button type="button" class="btn peligro" id="det-reset">Restablecer clave</button></div>` : '<span class="muted">Aún no crea su clave.</span>'}
+      ${e.curso === 'INV' ? `<h4>Perfil de invitado</h4><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">${e.aprobado === false ? 'Esta persona pidió acceso y espera tu aprobación.' : 'Puede seguir jugando o puedes eliminar su perfil para liberar el cupo (se borra todo su avance).'}</span>
+        ${e.aprobado === false ? '<button type="button" class="btn pri" id="det-aprobar">Aceptar</button>' : ''}<button type="button" class="btn peligro" id="det-eliminar">${e.aprobado === false ? 'Rechazar' : 'Eliminar perfil'}</button></div>` : ''}
       <div id="det-msg"></div>`;
     $('det-cerrar').addEventListener('click', () => $('detalle').close());
+    if ($('det-aprobar')) $('det-aprobar').addEventListener('click', () => accionInvitado(e, 'aprobar').then((ok) => { if (ok) $('detalle').close(); }));
+    if ($('det-eliminar')) $('det-eliminar').addEventListener('click', () => accionInvitado(e, 'eliminar').then((ok) => { if (ok) $('detalle').close(); }));
     const rb = $('det-reset');
     if (rb) rb.addEventListener('click', async () => {
       if (!confirm(`¿Restablecer la clave de ${e.nombre}?`)) return;
@@ -331,7 +383,7 @@
   }
   function pintarGruposCursos() {
     if (!grupos) return;
-    $('grupos-cursos').innerHTML = CURSOS.map((c) => {
+    $('grupos-cursos').innerHTML = CURSOS_G.map((c) => {
       const g = grupos[c.id] || {}, lista = datos.filter((e) => e.curso === c.id), con = lista.filter((e) => e.grupo).length;
       const ob = g.obras || {}; let hechas = 0;
       for (let n = 1; n <= 8; n++) for (const [id] of OBRAS_D) if (ob[n] && ob[n][id] && ob[n][id].completado) hechas++;
@@ -361,7 +413,7 @@
         <div><h3 id="gr-titulo">Grupos de ${c.nombre}</h3><span class="muted">${lista.length - sin.length} de ${lista.length} estudiantes con grupo. Para cambiar a alguien de grupo, elige el nuevo grupo en su lista: se moverá en unos segundos y conservará todo su avance personal.</span></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn pri" id="gr-proyectar">📽️ Mostrar códigos en grande</button><button type="button" class="btn peligro" id="gr-renovar">Renovar códigos</button><button type="button" class="btn" id="gr-cerrar">Cerrar</button></div>
       </div>
-      <div class="tabs">${CURSOS.map((x) => `<button type="button" class="tab" data-gt="${x.id}" aria-selected="${x.id === grupoCurso}">${x.nombre}</button>`).join('')}</div>
+      <div class="tabs">${CURSOS_G.map((x) => `<button type="button" class="tab" data-gt="${x.id}" aria-selected="${x.id === grupoCurso}">${x.nombre}</button>`).join('')}</div>
       <div id="gr-msg">${grupoMsg}</div>
       ${sin.length ? `<div><h4>Sin grupo (${sin.length}) <small class="muted">· aún no escriben su código</small></h4><div class="sin-grupo">${sin.map((e) => `<div class="miembro"><span>${esc(e.nombre)}${e.tiene_clave ? '' : ' <small class="muted">(no ha entrado)</small>'}</span>${selGrupo(e)}</div>`).join('')}</div></div>` : ''}
       <div class="grupos">${tarjetas}</div>`;
@@ -445,7 +497,7 @@
       const apoyo = new Set(apoyoDe(lista, c.nivel).map((x) => x.e.id));
       for (const e of lista) {
         const p = e.progreso || {}, r = resumen(e);
-        filas.push([e.nombre, e.rut, c.nombre, e.grupo || '', e.tiene_clave ? 'Sí' : 'No', e.conectado ? 'En línea' : fecha(e.ultimo), r.nivel || '', r.acierto ?? '', r.intentos,
+        filas.push([e.nombre, e.curso === 'INV' ? `Invitado: ${usuarioInv(e)} (${e.nivel || 7}°)` : e.rut, c.nombre, e.grupo || '', e.tiene_clave ? 'Sí' : 'No', e.conectado ? 'En línea' : fecha(e.ultimo), r.nivel || '', r.acierto ?? '', r.intentos,
           r.peor ? nombreTema(c.nivel, r.peor.k).titulo : '', r.peor ? Math.round(r.peor.pct * 100) : '', r.vencidos, r.muertes,
           Object.values(p.jefes || {}).reduce((a, b) => a + b, 0) + (p.reyVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0),
           Object.keys(p.logros || {}).length, p.tituloTxt || '', apoyo.has(e.id) ? 'Sí' : '']);
@@ -462,7 +514,7 @@
     }
     if (grupos) {
       const fg = [['Curso', 'Grupo', 'Código', 'Integrantes', ...OBRAS_D.map(([, n, u]) => `${n.replace(/^\S+ /, '')} (${u}) %`), 'Estudiantes']];
-      for (const c of CURSOS) for (let n = 1; n <= 8; n++) {
+      for (const c of CURSOS_G) for (let n = 1; n <= 8; n++) {
         const g = grupos[c.id] || {}, ob = (g.obras || {})[n] || {}, m = datos.filter((e) => e.curso === c.id && e.grupo === n);
         fg.push([c.nombre, n, (g.codigos || {})[n] || '', m.length, ...OBRAS_D.map(([id]) => pctO(ob[id])), m.map((e) => e.nombre).join(', ')]);
       }

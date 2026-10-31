@@ -123,6 +123,21 @@
     .err { padding: 16px; border-radius: 12px; background: #fde8e4; color: var(--coral); font-weight: 800; }
     .aviso-buzon { display: flex; gap: 14px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 14px 18px; border-radius: 14px; background: #fff3d6; border: 2px solid #f2b544; font-weight: 800; animation: av-entra .5s ease-out; }
     .aviso-buzon .ico { font-size: 26px; margin-right: 6px; }
+    .aviso-inv { background: #e6f4f1; border-color: #5cc8b8; }
+    .inv-cupos { display: flex; align-items: center; gap: 10px; font-weight: 800; }
+    .inv-cupos .cupos { display: flex; gap: 4px; }
+    .inv-cupos .cupos i { width: 14px; height: 14px; border-radius: 4px; background: #ece6d8; border: 1px solid #d6cdb9; }
+    .inv-cupos .cupos i.ok { background: var(--teal); border-color: var(--teal); }
+    .inv-cupos .cupos i.esp { background: #f2b544; border-color: #d99a1f; }
+    .inv-listas { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; }
+    .inv-lista h3 { margin: 0 0 8px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .inv-fila { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 2px solid var(--line); background: #faf8f2; margin-bottom: 8px; flex-wrap: wrap; }
+    .inv-fila.pend { border-color: #f2b544; background: #fff8e8; }
+    .inv-fila .quien { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .inv-fila .quien b { font-size: 16px; }
+    .inv-fila .quien small { color: var(--muted); font-weight: 700; }
+    .inv-fila .acc { display: flex; gap: 6px; flex-wrap: wrap; }
+    .etq-inv { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #e6f4f1; color: var(--teal); font-size: 12px; font-weight: 800; }
     @keyframes av-entra { from { transform: translateY(-10px); opacity: 0; } }
     .btn .badge { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: 6px; border-radius: 999px; background: #e0452c; color: #fff; font-size: 12px; }
     .com-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -206,12 +221,24 @@
   <main class="wrap">
     <div id="error" class="err" hidden></div>
     <div id="aviso-buzon" class="aviso-buzon" hidden role="alert"></div>
+    <div id="aviso-inv" class="aviso-buzon aviso-inv" hidden role="alert"></div>
     <section class="panel acceso" aria-labelledby="acceso-titulo">
       <div class="acceso-cab">
         <div><h2 id="acceso-titulo">Acceso al juego</h2><span class="muted">Cuando cierras un curso, nadie de ese curso puede entrar y quienes están jugando salen en unos segundos. Su avance queda guardado.</span></div>
         <div class="acceso-todos"><button type="button" class="btn pri" id="abrir-todos">Abrir todos</button><button type="button" class="btn peligro" id="cerrar-todos">Cerrar todos</button></div>
       </div>
       <div class="acceso-cursos" id="acceso-cursos"></div>
+    </section>
+    <section class="panel acceso" id="sec-invitados" aria-labelledby="inv-titulo">
+      <div class="acceso-cab">
+        <div><h2 id="inv-titulo">Sala de invitados</h2><span class="muted">Personas sin RUT en las listas pueden pedir acceso desde la pestaña «Invitado» del juego. Juntos forman un solo grupo de máximo 10 jugadores. Revisa cada solicitud: acéptala para que pueda jugar o recházala. Puedes eliminar un perfil cuando quieras para liberar su cupo.</span></div>
+        <div class="inv-cupos" id="inv-cupos"></div>
+      </div>
+      <div class="inv-listas">
+        <div class="inv-lista"><h3>⏳ Solicitudes por revisar</h3><div id="inv-pend"></div></div>
+        <div class="inv-lista"><h3>🎮 Invitados aceptados</h3><div id="inv-act"></div></div>
+      </div>
+      <div id="inv-msg"></div>
     </section>
     <section class="panel acceso" aria-labelledby="com-titulo">
       <div class="acceso-cab"><div><h2 id="com-titulo">Comunicación con la clase</h2><span class="muted">Envía un mensaje que aparecerá en la pantalla de quienes estén jugando y decide si pueden usar el chat. El chat del juego solo permite emoticones y frases predefinidas: nadie puede escribir texto libre a sus compañeros.</span></div></div>

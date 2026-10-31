@@ -57,6 +57,7 @@ const ACCESOS = [
 ];
 const FAQ = [
   ['¿Cómo entro al juego por primera vez?', 'Presiona «Jugar ahora», elige tu nivel, escribe tu RUT, crea una clave de al menos 4 caracteres y elige tu personaje. Después escribe el código de tu grupo que te da tu profesor.'],
+  ['No estoy en la lista del curso, ¿puedo jugar?', 'Sí, como invitado. Presiona «Jugar ahora», abre la pestaña «Invitado» y elige «Pedir acceso»: escribe tu nombre, crea un usuario y una clave. Cuando tu profesor acepte tu solicitud entrarás a la sala de invitados, un solo grupo de hasta 10 jugadores.'],
   ['Olvidé mi clave, ¿qué hago?', 'Pídele a tu profesor que la restablezca desde el portal docente. La próxima vez que entres podrás crear una clave nueva y conservarás todo tu avance.'],
   ['Me equivoqué de grupo', 'Avísale a tu profesor: él te puede cambiar de grupo desde su portal. Tu avance personal (nivel, recursos, logros) no se pierde.'],
   ['¿Puedo jugar desde el celular?', 'Sí. El juego tiene una vista especial para teléfonos con un menú ☰. Se ve mejor con el celular en horizontal.'],
