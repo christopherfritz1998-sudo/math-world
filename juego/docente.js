@@ -21,7 +21,7 @@
   for (const n of ['7basico', '8basico']) for (const u of ['u1', 'u2', 'u3', 'u4']) titulos[`${n}:${u}`] = Preguntas.titulos(n, u);
   const nombreTema = (nivel, tema) => {
     for (const n of nivel ? [nivel] : ['7basico', '8basico']) for (const u of ['u1', 'u2', 'u3', 'u4']) { const t = titulos[`${n}:${u}`]; if (t && t[tema]) return { unidad: u, titulo: t[tema] }; }
-    return { unidad: '', titulo: tema };
+    return { unidad: '', titulo: (Preguntas.tituloDe ? Preguntas.tituloDe(tema) : tema) };
   };
   function hace(fecha) {
     if (!fecha) return 'Nunca';

@@ -691,6 +691,12 @@
     S.misiones = S.misiones || {};
     if (!S.misiones[u]) S.misiones[u] = nuevasMisiones(u);
     const M = S.misiones[u];
+    // Misiones de acierto de un tema que ya no existe en el banco (se reorganizó): pasan a un tema actual, conservando el avance
+    const vigentes = Preguntas.titulos(S.curso, u);
+    for (const m of M.lista) if (m.t === 'acierto' && m.tema && !vigentes[m.tema]) {
+      const ks = Object.keys(vigentes); if (!ks.length) break;
+      m.tema = ks[Math.floor(Math.random() * ks.length)]; m.titulo = vigentes[m.tema];
+    }
     // Partidas con 3 misiones (versión anterior): se agrega la cuarta
     if (!M.ok && M.lista.length < MISIONES_JEFE) {
       const usados = new Set(M.lista.map((m) => m.t));

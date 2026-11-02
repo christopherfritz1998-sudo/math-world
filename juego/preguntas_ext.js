@@ -19,6 +19,7 @@
     const orig = t.gen.bind(t);
     const lista = [...Array(pesoOrig).fill(orig), ...extras.map((f) => (dif) => f(dif, t.titulo, tema))];
     t.gen = function (dif) { return pick(lista)(dif); };
+    t.variantes = [...(t.variantes || Array(pesoOrig).fill(orig)), ...lista.slice(pesoOrig)];
   }
 
   // =====================================================================
