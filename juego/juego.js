@@ -5059,7 +5059,7 @@
     horda: {
       estado: () => ({ n: 0 }),
       progreso: (st) => `Vencidos: ${st.n} · ¡siguen llegando enemigos!`,
-      montar: (sc) => { sc.soltarHorda(5); sc.des.hordaT = 7000; },
+      montar: (sc) => { sc.marcarZonaSegura(); sc.soltarHorda(5); sc.des.hordaT = 7000; },
       tick(sc, dt) {
         sc.des.hordaT -= dt;
         if (sc.des.hordaT > 0) return;
@@ -5092,7 +5092,7 @@
     meteoritos: {
       estado: () => ({ frag: 0, golpes: 0 }),
       progreso: (st) => `Fragmentos: ${st.frag} · Golpes: ${st.golpes}`,
-      montar: (sc) => { sc.des.meteoT = 800; },
+      montar: (sc) => { sc.marcarZonaSegura(); sc.des.meteoT = 800; },
       tick(sc, dt, st) {
         sc.des.meteoT -= dt;
         if (sc.des.meteoT <= 0) { sc.des.meteoT = 520 + Math.random() * 380; sc.lanzarMeteorito(); }
@@ -5262,6 +5262,7 @@
     curso: { estado: () => ({ mios: 0 }), progreso: () => `Curso: ${vivo.d.total || 0} de ${vivo.d.meta} correctas` },
   };
   const escudoActivo = () => desActivo('escudo');
+  const ZONA_SEGURA = 130;
   function eventoDesafio(tipo, dato) {
     if (vivo.fase !== 'activo') return;
     const I = IMPL[vivo.def.id];
@@ -7931,7 +7932,8 @@
         }
         if (e.huye) { this.huir(e, obj, d, seg); continue; }
         // tras un combate hay unos segundos de calma: nadie persigue al jugador recién salido de una pelea
-        const persigue = e.ocupado ? true : d < (e.radio || E.radio || 240) && !(obj.yo && this.tregua > ahora);
+        const persigue = e.ocupado ? true : d < (e.radio || E.radio || 240) && !(obj.yo && this.tregua > ahora)
+          && !(e.desafio && obj.yo && this.zonaSegura(obj.x, obj.y));   // junto al portal nadie te obliga a pelear
         const destino = persigue ? { x: obj.x, y: obj.y - 8 } : e.origen;
         const dx = destino.x - e.s.x, dy = destino.y - e.s.y, l = Math.hypot(dx, dy);
         const mueve = l > (e.ocupado ? 26 : 4);
@@ -7993,7 +7995,7 @@
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
-          if (!e.desafio) this.tregua = this.time.now + 8000;
+          this.tregua = this.time.now + (e.desafio ? 2500 : 8000);
           if (e.desafio) eventoDesafio('vencer', e);
           guardar(true);
         } else if (resultado === 'huir') {
@@ -8655,6 +8657,20 @@
       }
       return { x: Phaser.Math.Clamp(j.x + 60, m, W - m), y: Phaser.Math.Clamp(j.y, m + 16, H - m) };
     }
+    // Zona segura alrededor del portal (y de la puerta de la pieza) durante la horda y la lluvia de meteoritos:
+    // así cualquiera puede llegar al portal y viajar a otro mundo sin quedar atrapado en el desafío
+    zonaSegura(x, y) {
+      return this.objetos.some((o) => (o.tipo === 'portal' || o.tipo === 'puerta') && Phaser.Math.Distance.Between(x, y, o.x, o.y) < ZONA_SEGURA);
+    }
+    marcarZonaSegura() {
+      for (const o of this.objetos) {
+        if (o.tipo !== 'portal' && o.tipo !== 'puerta') continue;
+        const c = this.add.circle(o.x, o.y, ZONA_SEGURA, 0x5cc8b8, 0.12).setStrokeStyle(3, 0x5cc8b8, 0.7).setDepth(-3);
+        this.tweens.add({ targets: c, alpha: 0.55, duration: 900, yoyo: true, repeat: -1 });
+        const t = this.add.text(o.x, o.y - ZONA_SEGURA - 6, '🛡️ Zona segura del portal', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d6fff6', stroke: '#0e2b25', strokeThickness: 3 }).setOrigin(0.5, 1).setResolution(3).setDepth(9998);
+        this.des.objs.push(c, t);
+      }
+    }
     crearBichoDesafio(clase, x, y, extra = {}) {
       const E = ENEMIGOS[clase];
       let s;
@@ -8686,7 +8702,7 @@
         const a = (i / n) * Math.PI * 2 + Math.random() * 0.4, r = 230 + Math.random() * 90;
         const x = Phaser.Math.Clamp(j.x + Math.cos(a) * r, m, W - m), y = Phaser.Math.Clamp(j.y + Math.sin(a) * r, m + 16, H - m);
         const clase = clases[i % clases.length], E = ENEMIGOS[clase];
-        if (!E.flota && this.enAgua(x, y)) continue;
+        if ((!E.flota && this.enAgua(x, y)) || this.zonaSegura(x, y)) continue;
         this.time.delayedCall(i * 220, () => this.crearBichoDesafio(clase, x, y, { horda: true, vida: Math.max(2, E.vida - 2) }));
       }
     }
@@ -8722,6 +8738,7 @@
       const j = this.jugador, W = this.ancho * TILE, H = this.alto * TILE, m = TILE * 2.4;
       let p = Math.random() < 0.4 ? { x: j.x + j.body.velocity.x * 0.6, y: j.y + j.body.velocity.y * 0.6 } : this.puntoLibre(20, 240);
       p = { x: Phaser.Math.Clamp(p.x, m, W - m), y: Phaser.Math.Clamp(p.y, m + 16, H - m) };
+      if (this.zonaSegura(p.x, p.y)) { p = this.puntoLibre(190, 340); if (this.zonaSegura(p.x, p.y)) return; }
       const sombra = this.add.ellipse(p.x, p.y, 22, 11, 0xa01010, 0.3).setDepth(-4);
       this.tweens.add({ targets: sombra, scaleX: 3, scaleY: 3, fillAlpha: 0.55, duration: 1100 });
       const met = this.add.image(p.x + 170, p.y - 430, 'roca3').setScale(2.2).setTint(0xff8a3a).setDepth(99990);
@@ -8734,7 +8751,7 @@
         const dj = Phaser.Math.Distance.Between(this.jugador.x, this.jugador.y, p.x, p.y);
         if (dj < 500) sfx('boom');
         if (dj < 240) this.cameras.main.shake(140, dj < 70 ? 0.008 : 0.003);
-        if (dj < 34) {
+        if (dj < 34 && !this.zonaSegura(this.jugador.x, this.jugador.y)) {
           vivo.st.golpes += 1; this.aturdidoHasta = this.time.now + 1100; this.dolor();
           this.flotante(this.jugador.x, this.jugador.y - 70, '¡Auch! Aturdido', '#ff9a8a');
         }
