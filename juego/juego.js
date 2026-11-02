@@ -4803,6 +4803,7 @@
     return c ? c.unidades : [];
   }
   async function abrirPortal() {
+    if (portalBloqueado()) { sfx('alerta'); return toast(`🔒 El portal está bloqueado hasta que termine «${vivo.def.nombre}».`, 'alerta'); }
     const unidades = await cargarContenido();
     const enBase = escena.zona === 'base';
     const tarjetas = unidades.map((u) => {
@@ -5020,6 +5021,17 @@
   const ahoraSrv = () => Date.now() + vivo.dif;
   const porServidor = (D) => D && (D.id === 'arena' || D.id === 'curso');   // resultado calculado por el servidor
   const desActivo = (id) => Boolean(vivo.def && vivo.fase === 'activo' && vivo.def.id === id);
+  // Horda y lluvia de meteoritos: nadie puede escapar por el portal (desde la cuenta regresiva hasta que termina)
+  const SIN_ESCAPE = ['horda', 'meteoritos'];
+  const portalBloqueado = () => Boolean(vivo.def && SIN_ESCAPE.includes(vivo.def.id) && (vivo.fase === 'activo' || vivo.fase === 'espera'));
+  // Menús comunes (cofre, equipo, fabricar, misiones, ejercicios de recursos) se pueden interrumpir; los minijuegos y otros desafíos no
+  const menuInterrumpible = () => !/(^|\s)(pantalla|bloqueo|desafio-vivo|prisma)(\s|$)/.test($('modal').className);
+  // Si el menú del portal está abierto cuando parte (o se anuncia) uno de estos desafíos, se cierra
+  function cerrarPortalAbierto() {
+    if (!portalBloqueado() || !ui.abierto || !document.querySelector('#modal [data-z]')) return;
+    ui.alCerrar = null; ui.cerrar();
+    toast(`🔒 El portal se bloqueó: «${vivo.def.nombre}» no se puede evitar. ¡A luchar!`, 'alerta');
+  }
   const unidadDesafio = () => (escena && MUNDOS[escena.zona] ? escena.zona : ['u4', 'u3', 'u2', 'u1'].find((u) => (u === 'u1' || (sesion.mundos || []).includes(u)) && MUNDOS[u]) || 'u1');
   const cobrado = (n) => (S.desafios || []).includes(n);
   const marcarCobrado = (n) => { S.desafios = [...(S.desafios || []).slice(-30), n]; };
@@ -5283,7 +5295,7 @@
       if (vivo.d && (vivo.fase === 'espera' || vivo.fase === 'activo')) cerrarDesafio(null);
       vivo.d = d; vivo.def = DES[d.id]; vivo.st = {}; vivo.resultado = ''; vivo.resultadoModal = null; vivo.pendienteModal = false;
       if (ahoraSrv() >= d.fin) { vivo.fase = porServidor(vivo.def) && d.aciertos > 0 && !cobrado(d.n) ? 'fin' : 'cerrado'; vivo.hasta = 0; }
-      else vivo.fase = 'espera';
+      else { vivo.fase = 'espera'; cerrarPortalAbierto(); }
     } else Object.assign(vivo.d, d);
     if (porServidor(vivo.def)) pintarTablaDesafio();
     if (vivo.fase === 'fin' && porServidor(vivo.def)) resultadoPreguntas();
@@ -5305,6 +5317,7 @@
     } else if (vivo.def.id === 'tesoro') {
       avisoGrande('¡Hay un tesoro escondido!', 'Está enterrado cerca de ti', 'Guíate por el calor: 🧊 frío … 🔥 muy caliente · presiona E para cavar');
     } else toast(`¡Comienza el desafío: ${vivo.def.nombre}!`);
+    cerrarPortalAbierto();
     if (escena && escena.jugador) montarDesafio(escena);
     if (vivo.def.preguntas) vivo.pendienteModal = true;
   }
@@ -7899,7 +7912,7 @@
       this.moverAura(this.auraS);
       this.moverBurbujas();
       if (this.luz) this.luz.setPosition(j.x, j.y - 24);
-      if (!ui.abierto && !this.enCombate) this.moverEnemigos(dt / 1000);
+      if ((!ui.abierto || (desActivo('horda') && menuInterrumpible())) && !this.enCombate) this.moverEnemigos(dt / 1000);
       if (vivo.fase === 'activo') actualizarDesafio(this, dt);
       if (this.canal) { this.enviarMovimiento(len > 0.15); this.moverOtros(dt / 1000); this.revisarGuarida(); }
     }
@@ -7976,6 +7989,7 @@
     }
     empezarCombate(e) {
       if (this.enCombate || this.enJefe) return;
+      if (ui.abierto) { if (!menuInterrumpible()) return; ui.alCerrar = null; ui.cerrar(); }   // la horda te alcanza aunque tengas un menú abierto
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
       this.enCombate = true;
       this.jugador.setVelocity(0, 0);
