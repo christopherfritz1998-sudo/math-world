@@ -336,7 +336,8 @@
         if (fase === 'fin' && d.ganador_nombre) extra = `<div><strong>🏆 Ganó ${esc(d.ganador_nombre)}</strong></div>` + extra;
       } else if (d.id === 'curso') {
         const pct = Math.min(100, Math.round((d.total / Math.max(1, d.meta)) * 100));
-        extra = `<div class="fila-d"><span>${d.total} de ${d.meta} respuestas correctas</span><strong>${d.total >= d.meta ? '¡Lograda!' : pct + ' %'}</strong></div><div class="meta"><i style="width:${pct}%"></i></div><span class="muted">${d.participantes} participantes</span>`;
+        const niv = [[d.meta, '🥉 Bronce'], [Math.round(d.meta * 11 / 9), '🥈 Plata'], [Math.round(d.meta * 13 / 9), '🥇 Oro'], [Math.round(d.meta * 16 / 9), '💎 Diamante']].filter(([n]) => d.total >= n).pop();
+        extra = `<div class="fila-d"><span>${d.total} de ${d.meta} respuestas correctas</span><strong>${niv ? `¡Lograda! ${niv[1]}` : pct + ' %'}</strong></div><div class="meta"><i style="width:${pct}%"></i></div><span class="muted">${d.participantes} participantes</span>`;
       }
       return `<div class="des-vivo ${fase}">
         <div class="fila-d"><strong>${c.nombre} · ${D.icono} ${esc(D.nombre)}</strong>${fase !== 'fin' ? `<button type="button" class="btn peligro mini" data-detener="${c.id}">Detener</button>` : ''}</div>

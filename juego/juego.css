@@ -1000,3 +1000,7 @@ body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }
 @keyframes inv-gira { 0%, 40% { transform: rotate(0); } 50%, 90% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
 .inv-espera small { display: block; color: var(--muted); font-weight: 600; margin-top: 4px; }
 #form-invitado.esperando .campo, #form-invitado.esperando fieldset, #form-invitado.esperando #inv-intro { display: none; }
+/* meta del curso: niveles de premio */
+.meta-niveles { display: flex; gap: 4px; flex-wrap: wrap; margin: 2px 0; }
+.meta-niveles span { padding: 3px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.06); color: var(--muted); border: 1px solid rgba(255,255,255,.12); }
+.meta-niveles span.ok { background: rgba(92, 200, 184, .2); color: #c9fff4; border-color: var(--teal); }
