@@ -4745,7 +4745,7 @@
         <div class="info"><strong>${esc(m.nombre)}</strong><span>${esc(m.desc)}</span><div class="costo">${costoHTML(precio(m.costo))}</div></div>${der}</div>`;
     }).join('');
     const cuerpo = pestana === 'equipo' ? `<div class="mejoras">${filasEquipo}</div>`
-      : `<p class="nota">${pestana === 'base' ? 'Carpas y adornos. Tu carpa será tu casa en la base del grupo; los adornos se colocan dentro de tu casa o de la carpa común.' : 'Muebles para tu casa o para la carpa común del grupo.'} Los objetos fabricados se colocan con Decorar (G).</p>${catalogoHTML(pestana)}`;
+      : `<p class="nota">${pestana === 'base' ? 'Carpas y adornos para el exterior de la base del grupo (todos los ven; solo tú puedes mover lo tuyo). Tu carpa será tu casa.' : 'Muebles para tu casa o para la carpa común del grupo.'} Los objetos fabricados se colocan con Decorar (G).</p>${catalogoHTML(pestana)}`;
     ui.abrir(`
       <div class="modal-cab">
         <div><span class="etq">${escena.zona === 'pieza' ? 'Tu pieza' : 'Tu base'} · Los recursos se toman del cofre y la mochila</span><h2 id="modal-titulo">Fabricar</h2></div>
@@ -4794,21 +4794,21 @@
     const lugar = escena.zona === 'pieza' ? 'pieza' : 'base';
     if (lugar === 'pieza' && escena.sala.tipo === 'visita') { toast(`Estás de visita en la casa de ${escena.sala.nombre}: solo puedes mirar.`, 'alerta'); return; }
     // afuera solo se coloca tu carpa (tu casa); adentro de tu casa y de la carpa común, todo lo demás
-    const sirve = (o) => (lugar === 'base' ? Boolean(o.carpa) : !o.carpa);
+    const sirve = (o) => (lugar === 'base' ? Boolean(o.carpa) || (lugarDe(o).includes('base') && !o.pared) : !o.carpa);
     const items = OBJETOS.filter((o) => S.inventario[o.id] > 0 && sirve(o));
     const otros = OBJETOS.filter((o) => S.inventario[o.id] > 0 && !sirve(o)).length;
     const obj = escena.objetivo && escena.objetivo.tipo === 'colocado' ? escena.objetivo : null;
     const donde = lugar === 'base' ? 'Base del grupo' : escena.sala.tipo === 'comun' ? 'Carpa común del grupo' : 'Tu casa';
     const nota = lugar === 'base'
-      ? (S.casa ? 'Ya tienes tu casa en la base. Para moverla, mírala y presiona R para guardarla; luego vuelve a colocarla aquí.' : 'La base es compartida: afuera solo puedes colocar tu carpa, que será tu casa. Se colocará justo delante de tu personaje.')
+      ? `La base es compartida: todo el grupo ve lo que coloques afuera, y solo tú puedes guardar o mover lo tuyo.${S.casa ? ' Ya tienes tu casa: para moverla, mírala y presiona R.' : ' Tu carpa será tu casa.'} Se colocará justo delante de tu personaje.`
       : `Elige un objeto: se colocará justo delante de tu personaje. Los cuadros, espejos y antorchas se cuelgan: párate junto a la pared de arriba mirándola. Para guardar un objeto, mira hacia él y presiona R.${escena.sala.tipo === 'comun' ? ' En la carpa común cada uno puede guardar solo lo que puso.' : ''}`;
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">${donde}</span><h2 id="modal-titulo">Decorar</h2></div><button type="button" class="btn" id="g-cerrar">Cerrar</button></div>
       <p class="nota">${nota}</p>
       ${obj ? `<button type="button" class="btn sec" id="g-guardar">Guardar ${esc(obj.nombre.toLowerCase())} (el que tienes al frente)</button>` : ''}
-      ${lugar === 'base' && S.casa ? '' : items.length ? `<div class="objetos">${items.map((o) => `<button type="button" class="obj" data-o="${o.id}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><span>${esc(o.nombre)}</span><small>× ${S.inventario[o.id]}</small></button>`).join('')}</div>`
-        : `<div class="mensaje pista">${lugar === 'base' ? 'No tienes una carpa. Fabrícala con B, pestaña "Decorativos" (sección Carpas).' : 'No tienes muebles ni adornos. Fabrícalos con B, pestañas "Muebles" o "Decorativos".'}</div>`}
-      ${otros && lugar === 'base' && !S.casa ? `<p class="nota">Tus otros ${otros} ${otros === 1 ? 'objeto se coloca' : 'objetos se colocan'} dentro de tu casa o de la carpa común.</p>` : ''}`);
+      ${items.filter((o) => !(lugar === 'base' && o.carpa && S.casa)).length ? `<div class="objetos">${items.filter((o) => !(lugar === 'base' && o.carpa && S.casa)).map((o) => `<button type="button" class="obj" data-o="${o.id}"><img class="px" src="${escena.imagenTex(o.tex)}" alt=""><span>${esc(o.nombre)}</span><small>× ${S.inventario[o.id]}</small></button>`).join('')}</div>`
+        : `<div class="mensaje pista">${lugar === 'base' ? 'No tienes carpas ni decorativos de exterior. Fabrícalos con B, pestaña "Decorativos".' : 'No tienes muebles ni adornos. Fabrícalos con B, pestañas "Muebles" o "Decorativos".'}</div>`}
+      ${otros && lugar === 'base' ? `<p class="nota">Tus otros ${otros} ${otros === 1 ? 'objeto (mueble) se coloca' : 'objetos (muebles) se colocan'} dentro de tu casa o de la carpa común.</p>` : ''}`);
     $('g-cerrar').addEventListener('click', () => ui.cerrar());
     const bg = $('g-guardar'); if (bg) bg.addEventListener('click', () => { ui.alCerrar = () => escena.quitar(obj); ui.cerrar(); });
     document.querySelectorAll('.obj[data-o]').forEach((b) => b.addEventListener('click', () => {
@@ -5849,12 +5849,12 @@
   // ---------- Base compartida del grupo ----------
   // Todos los del grupo comparten la base: carpa común (la decoran todos) y la carpa individual de cada uno (su casa).
   const COMUN = { x: 22, y: 10 };        // casilla (abajo a la derecha) de la carpa común, sobre la fogata
-  const baseG = { yo: null, comun: [], casas: [], cargada: false };
+  const baseG = { yo: null, comun: [], exterior: [], casas: [], cargada: false };
   const baseEnGrupo = () => sesion.modo === 'nube' && (sesion.grupo || 0) > 0 && !esDocente();
   async function cargarBase() {
-    if (!baseEnGrupo()) { baseG.comun = S.comunLocal = S.comunLocal || []; baseG.casas = []; baseG.cargada = true; }
+    if (!baseEnGrupo()) { baseG.comun = S.comunLocal = S.comunLocal || []; baseG.exterior = S.exteriorLocal = S.exteriorLocal || []; baseG.casas = []; baseG.cargada = true; }
     else {
-      try { const r = await Nube.base(sesion.token); if (r && r.ok) { baseG.yo = r.yo; baseG.comun = Array.isArray(r.comun) ? r.comun : []; baseG.casas = Array.isArray(r.casas) ? r.casas : []; baseG.cargada = true; } } catch (e) { /* sin red: se usa lo último */ }
+      try { const r = await Nube.base(sesion.token); if (r && r.ok) { baseG.yo = r.yo; baseG.comun = Array.isArray(r.comun) ? r.comun : []; baseG.exterior = Array.isArray(r.exterior) ? r.exterior : []; baseG.casas = Array.isArray(r.casas) ? r.casas : []; baseG.cargada = true; } } catch (e) { /* sin red: se usa lo último */ }
     }
     if (escena && escena.jugador && escena.refrescarBase) escena.refrescarBase();
   }
@@ -7055,6 +7055,7 @@
       // casas (carpas individuales) del grupo
       this.casasDib = [];
       this.pintarCasas();
+      this.redibujarCompartidos();
       // todos aparecen en el mismo punto de partida, frente a la fogata; al salir de una carpa, frente a ella
       this.inicio = { x: COMUN.x * TILE + 16, y: 16 * TILE + 20 };
       if (this.desde === 'pieza' && this.carpa) this.inicio = { x: this.carpa.x * TILE, y: (this.carpa.y + 1) * TILE + 26 };
@@ -7090,8 +7091,8 @@
       this.buscarObjetivo();
     }
     refrescarBase() {
-      if (this.zona === 'base') this.pintarCasas();
-      else if (this.zona === 'pieza' && this.sala.tipo === 'comun') this.redibujarComun();
+      if (this.zona === 'base') { this.limpiarCompartidos(); this.pintarCasas(); this.redibujarCompartidos(); }
+      else if (this.zona === 'pieza' && this.sala.tipo === 'comun') this.redibujarCompartidos();
     }
     // Colocar o guardar tu carpa (tu casa) en la base compartida
     ponerCasa(id) {
@@ -7175,18 +7176,36 @@
       this.inicio = { x: PX * TILE + 16, y: Y1 * TILE + 26 };
     }
 
+    // decoración compartida: el exterior de la base o la carpa común (cada objeto lleva quién lo puso)
+    compartida() { return this.zona === 'base' || (this.zona === 'pieza' && this.sala.tipo === 'comun'); }
+    zonaCompartida() { return this.zona === 'base' ? 'afuera' : 'comun'; }
+    listaCompartida() { return this.zona === 'base' ? (baseG.exterior || []) : (baseG.comun || []); }
+    fijarListaCompartida(l) {
+      if (this.zona === 'base') { baseG.exterior = l; if (!baseEnGrupo()) S.exteriorLocal = l; }
+      else { baseG.comun = l; if (!baseEnGrupo()) S.comunLocal = l; }
+    }
+    esMio(c) { return !c.de || c.de === 'yo' || !baseG.yo || c.de === baseG.yo; }
+    limpiarCompartidos() {
+      for (const o of this.objetos.filter((x) => x.tipo === 'colocado')) this.borrarDibujo(o);
+      this.objetos = this.objetos.filter((x) => x.tipo !== 'colocado');
+    }
+    redibujarCompartidos() {
+      if (!this.compartida()) return;
+      this.limpiarCompartidos();
+      for (const c of this.listaCompartida()) {
+        if (!c || !OBJ[c.k]) continue;
+        const o = OBJ[c.k];
+        if (this.zona === 'base' && !o.piso && this.celdas(o, c.x, c.y).some(([x, y]) => this.ocupado.has(`${x},${y}`))) continue;   // nunca encima de una casa
+        this.dibujarColocado(c);
+      }
+      this.buscarObjetivo();
+    }
     itemsSala() {
       if (this.sala.tipo === 'comun') return (baseG.comun || []).filter((c) => c && OBJ[c.k]);
       if (this.sala.tipo === 'visita') return (this.sala.items || []).filter((c) => c && OBJ[c.k]);
       return (S.pieza = S.pieza || []);
     }
-    redibujarComun() {
-      if (this.zona !== 'pieza' || this.sala.tipo !== 'comun') return;
-      for (const o of this.objetos.filter((x) => x.tipo === 'colocado')) this.borrarDibujo(o);
-      this.objetos = this.objetos.filter((x) => x.tipo !== 'colocado');
-      this.itemsSala().forEach((c) => this.dibujarColocado(c));
-      this.buscarObjetivo();
-    }
+    redibujarComun() { this.redibujarCompartidos(); }
     borrarDibujo(obj) {
       obj.s.destroy(); if (obj.z) obj.z.destroy();
       (obj.extra || []).forEach((x) => x.destroy());
@@ -7194,7 +7213,7 @@
       obj.celdas.forEach(([x, y]) => obj.set.delete(`${x},${y}`));
     }
     // ¿Puedo decorar aquí? Solo dentro de mi casa y de la carpa común
-    puedeDecorar() { return this.zona === 'pieza' && this.sala.tipo !== 'visita'; }
+    puedeDecorar() { return this.zona === 'base' || this.sala.tipo !== 'visita'; }
     // ---------- objetos colocados (base y pieza) ----------
     // (x, y) es la casilla de abajo a la derecha del objeto
     celdas(o, x, y) {
@@ -7232,9 +7251,9 @@
       const o = OBJ[id];
       const [, , w, h] = o.t;
       const L = this.limites;
-      if (this.zona === 'base') return this.ponerCasa(id);
+      if (this.zona === 'base' && o.carpa) return this.ponerCasa(id);
       if (!this.puedeDecorar()) { toast(`Estás de visita: no puedes cambiar la casa de ${this.sala.nombre}.`, 'alerta'); return false; }
-      const comun = this.sala.tipo === 'comun';
+      const comun = this.compartida();
       const lista = comun ? null : (S.pieza = S.pieza || []);
       const tjx = Math.floor(this.jugador.x / TILE), tjy = Math.floor((this.jugador.y - 4) / TILE);
       let tx, ty;
@@ -7258,13 +7277,15 @@
       if (comun) {
         // carpa común: el objeto queda a tu nombre y se avisa al resto del grupo
         c.u = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`; c.de = baseG.yo || 'yo'; c.nom = S.nombre;
-        baseG.comun = [...(baseG.comun || []), c];
+        const zona = this.zonaCompartida(), aviso = zona === 'afuera' ? 'comun' : 'comun';
+        this.fijarListaCompartida([...this.listaCompartida(), c]);
         if (baseEnGrupo()) {
-          Nube.baseComun(sesion.token, { op: 'poner', item: { u: c.u, k: id, x: tx, y: ty } }).then((r) => {
-            if (r && r.ok) { baseG.comun = r.comun || baseG.comun; if (this.canal) this.canal.emitir('comun', {}); }
-            else { S.inventario[id] = (S.inventario[id] || 0) + 1; guardar(true); toast(r && r.error === 'lleno' ? 'La carpa común está llena (150 objetos).' : 'No se pudo colocar en la carpa común. Inténtalo otra vez.', 'alerta'); if (r && r.comun) baseG.comun = r.comun; this.redibujarComun(); }
-          }).catch(() => { S.inventario[id] = (S.inventario[id] || 0) + 1; guardar(true); toast('Sin conexión: no se pudo colocar en la carpa común.', 'alerta'); baseG.comun = baseG.comun.filter((x) => x !== c); this.redibujarComun(); });
-        } else S.comunLocal = baseG.comun;
+          Nube.baseComun(sesion.token, { op: 'poner', zona, item: { u: c.u, k: id, x: tx, y: ty } }).then((r) => {
+            if (!this.compartida() || this.zonaCompartida() !== zona) return;
+            if (r && r.ok) { this.fijarListaCompartida(r.comun || this.listaCompartida()); if (this.canal) this.canal.emitir(aviso, {}); }
+            else { S.inventario[id] = (S.inventario[id] || 0) + 1; guardar(true); toast(r && r.error === 'lleno' ? 'Ya no cabe más decoración aquí.' : 'No se pudo colocar. Inténtalo otra vez.', 'alerta'); if (r && r.comun) this.fijarListaCompartida(r.comun); else this.fijarListaCompartida(this.listaCompartida().filter((x) => x !== c)); this.redibujarCompartidos(); }
+          }).catch(() => { S.inventario[id] = (S.inventario[id] || 0) + 1; guardar(true); toast('Sin conexión: no se pudo colocar.', 'alerta'); if (this.compartida()) { this.fijarListaCompartida(this.listaCompartida().filter((x) => x !== c)); this.redibujarCompartidos(); } });
+        }
       } else lista.push(c);
       this.dibujarColocado(c);
       this.celebrar((tx + 1) * TILE - w * 16, (ty + 1) * TILE - 20);
@@ -7272,19 +7293,18 @@
     }
     quitar(obj) {
       if (!obj || !obj.activo) return;
-      if (this.zona !== 'pieza') return;
-      if (this.sala.tipo === 'visita') { toast(`Estás de visita: no puedes cambiar la casa de ${this.sala.nombre}.`, 'alerta'); return; }
-      if (this.sala.tipo === 'comun') {
-        const c = obj.c;
-        if (c.de && baseG.yo && c.de !== baseG.yo && c.de !== 'yo') { toast(`Esto lo puso ${c.nom || 'un compañero'}: solo esa persona puede guardarlo.`, 'alerta'); return; }
-        baseG.comun = (baseG.comun || []).filter((x) => x !== c);
+      if (this.zona === 'pieza' && this.sala.tipo === 'visita') { toast(`Estás de visita: no puedes cambiar la casa de ${this.sala.nombre}.`, 'alerta'); return; }
+      if (this.compartida()) {
+        const c = obj.c, zona = this.zonaCompartida();
+        if (!this.esMio(c)) { toast(`Esto lo puso ${c.nom || 'un compañero'}: solo esa persona puede guardarlo o moverlo.`, 'alerta'); return; }
+        this.fijarListaCompartida(this.listaCompartida().filter((x) => x !== c));
         if (baseEnGrupo() && c.u) {
-          Nube.baseComun(sesion.token, { op: 'quitar', u: c.u }).then((r) => {
+          Nube.baseComun(sesion.token, { op: 'quitar', zona, u: c.u }).then((r) => {
             if (r && r.ok) { if (this.canal) this.canal.emitir('comun', {}); return; }
             S.inventario[c.k] = Math.max(0, (S.inventario[c.k] || 0) - 1); guardar(true);
-            if (r && r.comun) { baseG.comun = r.comun; this.redibujarComun(); }
+            if (r && r.comun && this.compartida() && this.zonaCompartida() === zona) { this.fijarListaCompartida(r.comun); this.redibujarCompartidos(); }
           }).catch(() => { /* se verá al recargar */ });
-        } else S.comunLocal = baseG.comun;
+        }
       } else S.pieza = (S.pieza || []).filter((c) => c !== obj.c);
       S.inventario[obj.c.k] = (S.inventario[obj.c.k] || 0) + 1;
       this.borrarDibujo(obj);
@@ -8431,8 +8451,8 @@
         case 'sitio': return o.estado === 'vacio' ? 'Sitio excavado: vuelve más tarde' : tiene('pala') ? 'Excavar el sitio arqueológico' : 'Sitio arqueológico: necesitas una pala de arqueólogo';
         case 'muelle': return tiene('cana') ? `Pescar (caña: ${usosCana()} de ${CANA_USOS} usos)` : 'Muelle: necesitas una caña de pescar';
         case 'colocado':
-          if (this.sala.tipo === 'visita') return `${o.nombre} (estás de visita)`;
-          if (this.sala.tipo === 'comun' && o.c.de && baseG.yo && o.c.de !== baseG.yo && o.c.de !== 'yo') return `${o.nombre} · lo puso ${o.c.nom || 'un compañero'}`;
+          if (this.zona === 'pieza' && this.sala.tipo === 'visita') return `${o.nombre} (estás de visita)`;
+          if (this.compartida() && !this.esMio(o.c)) return `${o.nombre} · lo puso ${o.c.nom || 'un compañero'}`;
           return `Guardar ${o.nombre.toLowerCase()}`;
         case 'casa': return o.mia ? 'Entrar a tu casa (R: guardar tu carpa)' : `Visitar la casa de ${o.nombre}`;
         case 'comun': return 'Entrar a la carpa común del grupo';
