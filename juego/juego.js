@@ -6055,7 +6055,7 @@
     sfx('inicio');
     if (vivo.def.id === 'prisma') {
       const z = vivo.d.mundo;
-      avisoGrande('¡Apareció un recurso exclusivo!', `Prisma estelar en ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Dura 2 minutos · Responde bien 5 preguntas para llevártelo', 'prisma');
+      avisoGrande('¡Apareció un recurso exclusivo!', `Prisma estelar en ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Dura 2 minutos · Responde bien 5 preguntas para llevártelo (máximo 5 errores)', 'prisma');
       if (escena && escena.jugador) escena.cameras.main.flash(500, 200, 160, 255);
     } else if (vivo.def.id === 'ladron') {
       avisoGrande('¡Viene un ladrón!', 'Llegará a tu base en 30 segundos', 'Vuelve a tu base y atrápalo respondiendo 5 preguntas (máximo 3 errores)', 'ladron');
@@ -6164,6 +6164,9 @@
     return `<span class="etq">Ranking del curso</span><ol class="des-ranking">${filas || '<li class="vacio">Aún nadie acierta…</li>'}</ol><span class="nota">Tus aciertos: <b>${d.aciertos || 0}</b></span>`;
   }
   function pintarTablaDesafio() { const t = $('des-tabla'); if (t && vivo.d) t.innerHTML = tablaDesafioHTML(); }
+  const DUELO_ERR_MAX = 5;
+  const erroresDuelo = {};   // errores del duelo por número de desafío
+  const errDuelo = () => Math.max(erroresDuelo[vivo.d.n] || 0, vivo.d.errores || 0);
   function abrirModalPreguntas() {
     vivo.pendienteModal = false;
     if (vivo.def.id === 'relampago') { abrirRelampago(); return; }
@@ -6171,27 +6174,29 @@
     vivo.modal = true;
     const D = vivo.def;
     let d = Preguntas.nuevo(S.curso, unidadDesafio(), D.id === 'arena' ? 2 : 1, S.stats), fb = '', espera = false;
+    const fuera = () => D.id === 'arena' && errDuelo() >= DUELO_ERR_MAX;
     const pintar = () => {
       ui.abrir(`
         <div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">${D.icono} ${esc(D.nombre)}</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
         <div class="des-cols">
           <div class="des-preg">
             ${fb}
-            <p class="enunciado">${mate(d.enunciado)}</p>
-            ${alternativasHTML(d, null, new Set(), false)}
+            ${fuera() ? `<div class="mensaje mal" role="status" style="font-size:18px">Llegaste a ${DUELO_ERR_MAX} errores: quedaste fuera del duelo. Tus aciertos siguen contando en el ranking; espera el resultado.</div>` : `<p class="enunciado">${mate(d.enunciado)}</p>
+            ${alternativasHTML(d, null, new Set(), false)}`}
           </div>
           <aside class="des-tabla" id="des-tabla">${tablaDesafioHTML()}</aside>
         </div>
-        <div class="acciones"><span class="nota">${D.id === 'arena' ? 'Toca la alternativa correcta: ¡gana quien más acierte en el curso!' : 'Cada respuesta correcta suma para todo el curso.'}</span><button type="button" class="btn" id="dv-salir">Salir del desafío</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
+        <div class="acciones"><span class="nota">${D.id === 'arena' ? `Toca la alternativa correcta: ¡gana quien más acierte en el curso! Errores: ${errDuelo()} de ${DUELO_ERR_MAX}.` : 'Cada respuesta correcta suma para todo el curso.'}</span><button type="button" class="btn" id="dv-salir">Salir del desafío</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
       $('dv-salir').addEventListener('click', () => ui.cerrar());
       ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
     };
     const responder = (i) => {
-      if (espera || vivo.fase !== 'activo' || i >= d.opciones.length) return;
+      if (espera || fuera() || vivo.fase !== 'activo' || i >= d.opciones.length) return;
       const ok = i === d.correcta;
       registrar(d.tema, ok);
       if (ok) { ganarXP(3); vivo.d.aciertos = (vivo.d.aciertos || 0) + 1; if (D.id === 'curso') vivo.d.total = (vivo.d.total || 0) + 1; }
+      if (!ok && D.id === 'arena') erroresDuelo[vivo.d.n] = errDuelo() + 1;
       Nube.desafioResponder(sesion.token, vivo.d.n, ok).then(recibirDesafio).catch(() => {});
       fb = ok ? '<div class="mensaje bien" role="status">¡Correcto! +1</div>' : `<div class="mensaje mal" role="status">La respuesta era ${mate(d.opciones[d.correcta])}.</div>`;
       d = Preguntas.nuevo(S.curso, unidadDesafio(), D.id === 'arena' ? 2 : 1, S.stats);
@@ -6252,6 +6257,7 @@
 
   // ---------- Prisma estelar: el primero del grupo en responder bien 5 preguntas se lo lleva ----------
   const PRISMA_META = 5;
+  const PRISMA_ERR_MAX = 5;
   const grupoPrisma = () => (S.grupo && escena && escena.canal ? `${escena.zona}-g${S.grupo}` : `solo-${idJuego}`);
   function tablaPrismaHTML() {
     const st = vivo.st, otros = Object.values(st.otros || {}).sort((a, b) => b.p - a.p);
@@ -6263,6 +6269,7 @@
   function abrirPrisma() {
     const st = vivo.st;
     if (!desActivo('prisma') || st.gane || st.tomado || st.reclamando) return;
+    if ((st.e || 0) >= PRISMA_ERR_MAX) return toast(`Ya tuviste ${PRISMA_ERR_MAX} errores: no puedes seguir intentando el prisma estelar.`, 'alerta');
     if (sesion.modo !== 'nube') return toast('El prisma estelar solo se puede tomar con tu cuenta del curso.', 'alerta');
     vivo.modal = true;
     const u = unidadDesafio();
@@ -6274,13 +6281,13 @@
           <div class="des-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
           <aside class="des-tabla" id="prisma-tabla">${tablaPrismaHTML()}</aside>
         </div>
-        <div class="acciones"><span class="nota">Responde bien ${PRISMA_META} preguntas antes que tus compañeros de grupo para llevártelo.</span><button type="button" class="btn" id="dv-salir">Salir</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
+        <div class="acciones"><span class="nota">Responde bien ${PRISMA_META} preguntas antes que tus compañeros de grupo para llevártelo. Errores: ${st.e || 0} de ${PRISMA_ERR_MAX}.</span><button type="button" class="btn" id="dv-salir">Salir</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
       $('dv-salir').addEventListener('click', () => ui.cerrar());
       ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
     };
     const responder = (i) => {
-      if (espera || !desActivo('prisma') || st.gane || st.tomado || st.reclamando || i >= d.opciones.length) return;
+      if (espera || !desActivo('prisma') || st.gane || st.tomado || st.reclamando || (st.e || 0) >= PRISMA_ERR_MAX || i >= d.opciones.length) return;
       const ok = i === d.correcta;
       registrar(d.tema, ok);
       if (ok) {
@@ -6288,7 +6295,17 @@
         if (escena && escena.canal) escena.canal.emitir('prisma_prog', { n: vivo.d.n, id: idJuego, nombre: S.nombre, p: st.p });
         if (st.p >= PRISMA_META) { reclamarPrisma(); return; }
         fb = `<div class="mensaje bien" role="status">¡Correcto! Llevas ${st.p} de ${PRISMA_META}.</div>`;
-      } else fb = `<div class="mensaje mal" role="status">No era esa: la respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+      } else {
+        st.e = (st.e || 0) + 1;
+        fb = `<div class="mensaje mal" role="status">No era esa: la respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        if (st.e >= PRISMA_ERR_MAX) {
+          ui.abrir(`<div class="modal-cab"><div><span class="etq">Recurso exclusivo</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div></div>${fb}
+            <div class="mensaje mal" role="status" style="font-size:18px">Llegaste a ${PRISMA_ERR_MAX} errores: ya no puedes seguir intentando el prisma estelar.</div>
+            <div class="acciones"><span></span><button type="button" class="btn pri" id="dv-ok" data-foco>Entendido</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });
+          $('dv-ok').addEventListener('click', () => ui.cerrar());
+          return;
+        }
+      }
       d = Preguntas.nuevo(S.curso, u, 2, S.stats);
       pintar();
       if (!ok) { espera = true; document.querySelectorAll('.alt').forEach((b) => { b.disabled = true; }); setTimeout(() => { espera = false; document.querySelectorAll('#modal .alt').forEach((b) => { b.disabled = false; }); }, 1500); }
