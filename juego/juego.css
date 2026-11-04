@@ -1090,3 +1090,9 @@ body.movil .minimapa canvas { width: 116px; }
 body.movil .minimapa .mm-pie { font-size: 9px; }
 body.movil .minimapa.grande { right: 50%; top: 50%; width: calc(100vw - 24px); }
 body.movil .minimapa.grande canvas { width: 100%; }
+
+/* Tu avance (M): álbumes arriba; Equipo (Q): recursos arriba */
+.avance-sub { margin: 12px 0 6px; font-size: 15px; }
+.albumes-avance { display: flex; flex-wrap: wrap; gap: 8px; }
+.equipo-recursos { margin-bottom: 12px; }
+.equipo-recursos h3 { margin: 0 0 6px; }

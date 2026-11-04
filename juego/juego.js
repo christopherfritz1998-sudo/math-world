@@ -1324,8 +1324,15 @@
     const armas = Object.entries(ARMAS).filter(([id]) => tiene(id));
     const armaduras = Object.entries(ARMADURAS).filter(([id]) => tiene(id));
     const manos = [['hacha', 'Hacha', 'axe', true], ['pico', 'Pico', 'pickaxe', tiene('pico')], ['espada', 'Espada', 'espada', Boolean(S.arma)]];
+    const enBase = enCasa(), fuente = enBase ? S.cofre : S.mochila;
+    const recs = recursosVisibles().filter((r) => (fuente[r.id] || 0) > 0);
+    const recursosEq = `<section class="equipo-recursos"><h3>${enBase ? '📦 Recursos en tu cofre' : '🎒 Recursos en tu mochila'}</h3>
+      ${esDocente() ? '<p class="nota">Docente: recursos ilimitados.</p>'
+        : recs.length ? `<div class="objetos">${recs.map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${fuente[r.id]}</small></div>`).join('')}</div>`
+        : `<p class="nota">${enBase ? 'Tu cofre está vacío: lo que recolectes en los mundos se guarda aquí al volver a la base.' : 'Aún no llevas recursos: tala, pica o recolecta en este mundo.'}</p>`}</section>`;
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Tu personaje</span><h2 id="modal-titulo">Equipo</h2></div><button type="button" class="btn" id="eq-cerrar">Cerrar</button></div>
+      ${recursosEq}
       <div class="equipo">
         <div class="equipo-vista">
           ${figuraHTML(S.pj, S.armadura, S.herramienta, S.arma, 160)}
@@ -5294,9 +5301,12 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">${S.curso === '7basico' ? '7°' : '8°'} básico${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + esc(S.seccion.slice(1)) : ''}</span><h2 id="modal-titulo">Tu avance</h2></div><button type="button" class="btn" id="m-cerrar">Cerrar</button></div>
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
+      <h3 class="avance-sub">Tus álbumes</h3>
+      <div class="albumes-avance"><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-copos">❄️ Álbum de copos</button> <button type="button" class="btn sec" id="m-gjefe">👑 Gemas de los jefes</button></div>
+      <h3 class="avance-sub">Avance por unidad</h3>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
-        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-copos">❄️ Álbum de copos</button> <button type="button" class="btn sec" id="m-gjefe">👑 Gemas de los jefes</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
+        <span> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
     $('m-album').addEventListener('click', () => { ui.cerrar(); abrirAlbum(); });
     $('m-gemas').addEventListener('click', () => { ui.cerrar(); abrirAlbumGemas(); });
     $('m-copos').addEventListener('click', () => { ui.cerrar(); abrirAlbumCopos(); });
