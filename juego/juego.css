@@ -1155,3 +1155,26 @@ body.movil .minimapa.grande canvas { width: 100%; }
 @keyframes ko-heroe-salta { from { transform: translateY(0); } to { transform: translateY(-26px); } }
 @media (max-width: 700px) { .ko-heroe { width: 128px; height: 128px; background-size: 1152px 512px; background-position: 0 -256px; } .hab-fx-pj { width: 144px; height: 144px; margin: -72px 0 0 -72px; background-size: 1296px 576px; background-position: 0 -288px; } }
 @media (prefers-reduced-motion: reduce) { .hab-fx *, .hab-fx, .ko-confeti i, .ko-heroe { animation-duration: .01s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; } .hab-fx-nombre, .ko-victoria, .ko-heroe { opacity: 1; } }
+
+/* ===== Personajes de nivel 70-100 y leyendas ===== */
+.pj-eq.elem.flechas { box-shadow: inset 0 0 0 2px rgba(140, 210, 90, .7); }
+.pj-eq.elem.katana { box-shadow: inset 0 0 0 2px rgba(230, 40, 60, .7); }
+.pj-eq.elem.arcano { box-shadow: inset 0 0 0 2px rgba(150, 90, 255, .7); }
+.pj-eq.leyenda:not(.bloq) { box-shadow: inset 0 0 0 2px #ffd23a, 0 0 12px rgba(255, 200, 60, .75); animation: leyenda-brillo 1.6s ease-in-out infinite alternate; }
+@keyframes leyenda-brillo { to { box-shadow: inset 0 0 0 2px #fff2a8, 0 0 20px rgba(255, 210, 80, 1); } }
+.rey-pj.leyenda { box-shadow: 0 0 0 2px #ffd23a, 0 0 18px rgba(255, 200, 60, .8); }
+.btn.hab.lista.flechas { background: linear-gradient(135deg, #a6e36a, #3f7a1e); color: #102a05; }
+.btn.hab.lista.katana { background: linear-gradient(135deg, #ff5d6c, #7a0715); }
+.btn.hab.lista.arcano { background: linear-gradient(135deg, #b48cff, #3b1d8a); }
+.btn.hab.lista.dorado { background: linear-gradient(135deg, #fff1a0, #d99a00); color: #3a2400; }
+.btn.hab.lista.huesos { background: linear-gradient(135deg, #d6b4ff, #2a0b4a); }
+.btn.hab.lista.titan { background: linear-gradient(135deg, #ffb35c, #7a3205); }
+.hab-fx.flechas { --c1: #c8f59a; --c2: #2f6b16; }
+.hab-fx.katana { --c1: #ff8a96; --c2: #5c0010; }
+.hab-fx.arcano { --c1: #cdb4ff; --c2: #22105a; }
+.hab-fx.dorado { --c1: #fff3a0; --c2: #b87800; }
+.hab-fx.huesos { --c1: #e0c4ff; --c2: #15032a; }
+.hab-fx.titan { --c1: #ffc27a; --c2: #5a2203; }
+.hab-fx-nombre em { font-style: normal; font-weight: 800; font-size: 18px; letter-spacing: 3px; color: #3a2400; background: linear-gradient(90deg, #b8860b, #ffe066, #b8860b); padding: 3px 14px; border-radius: 999px; box-shadow: 0 0 18px rgba(255, 210, 60, .9); }
+.hab-fx.leyenda .hab-fx-pj { width: 240px; height: 240px; margin: -120px 0 0 -120px; background-size: 2160px 960px; background-position: 0 -480px; filter: drop-shadow(0 0 26px #ffd23a) drop-shadow(0 0 10px #fff); }
+.hab-fx.leyenda .hab-fx-nombre b { font-size: clamp(34px, 8vw, 76px); }

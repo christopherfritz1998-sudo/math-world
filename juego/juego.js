@@ -13,14 +13,18 @@
     { id: 'puma', nombre: 'Puma' }, { id: 'copihue', nombre: 'Copihue' },
     { id: 'condor', nombre: 'Cóndor' }, { id: 'huemul', nombre: 'Huemul' },
     { id: 'pudu', nombre: 'Pudú' }, { id: 'lobo', nombre: 'Lobo' },
-    // Caballeros alados: se desbloquean con el logro «El rey del juego»
-    { id: 'paladin', nombre: 'Paladín Solar', rey: true }, { id: 'valquiria', nombre: 'Valquiria del Viento', rey: true },
-    { id: 'draconico', nombre: 'Caballero Dragón', rey: true }, { id: 'arcangel', nombre: 'Arcángel Coronada', rey: true },
-    // Guerreros elementales: se desbloquean en el nivel 30 y tienen una habilidad especial (ver «Habilidad especial»)
-    { id: 'fenix', nombre: 'Fénix Llameante', n30: true, hab: { nombre: 'Llamarada del Fénix', icono: '🔥', clase: 'fuego', color: [255, 120, 40] } },
-    { id: 'trueno', nombre: 'Centinela del Trueno', n30: true, hab: { nombre: 'Rayo Celestial', icono: '⚡', clase: 'rayo', color: [255, 230, 90] } },
-    { id: 'sombra', nombre: 'Caballero de las Sombras', n30: true, hab: { nombre: 'Golpe Sombrío', icono: '🌑', clase: 'sombra', color: [150, 80, 220] } },
-    { id: 'bosque', nombre: 'Guardiana del Bosque', n30: true, hab: { nombre: 'Furia de la Naturaleza', icono: '🌿', clase: 'bosque', color: [90, 200, 110] } },
+    // Personajes especiales: se desbloquean por nivel y tienen una habilidad que quita una cantidad fija de vida
+    { id: 'fenix', nombre: 'Fénix Llameante', nivel: 30, hab: { nombre: 'Llamarada del Fénix', icono: '🔥', clase: 'fuego', color: [255, 120, 40], dano: 10 } },
+    { id: 'trueno', nombre: 'Centinela del Trueno', nivel: 40, hab: { nombre: 'Rayo Celestial', icono: '⚡', clase: 'rayo', color: [255, 230, 90], dano: 20 } },
+    { id: 'sombra', nombre: 'Caballero de las Sombras', nivel: 50, hab: { nombre: 'Golpe Sombrío', icono: '🌑', clase: 'sombra', color: [150, 80, 220], dano: 30 } },
+    { id: 'bosque', nombre: 'Guardiana del Bosque', nivel: 60, hab: { nombre: 'Furia de la Naturaleza', icono: '🌿', clase: 'bosque', color: [90, 200, 110], dano: 35 } },
+    { id: 'cazadora', nombre: 'Cazadora Élfica', nivel: 70, hab: { nombre: 'Lluvia de Flechas', icono: '🏹', clase: 'flechas', color: [140, 210, 90], dano: 40 } },
+    { id: 'ninja', nombre: 'Ninja Carmesí', nivel: 80, hab: { nombre: 'Danza de Katanas', icono: '🗡️', clase: 'katana', color: [230, 40, 60], dano: 45 } },
+    { id: 'archimago', nombre: 'Archimago Celestial', nivel: 90, hab: { nombre: 'Tormenta Arcana', icono: '🔮', clase: 'arcano', color: [150, 90, 255], dano: 50 } },
+    // Leyendas: los 3 personajes más fuertes del juego (nivel 100)
+    { id: 'emperador', nombre: 'Emperador Dorado', nivel: 100, leyenda: true, hab: { nombre: 'Juicio del Emperador', icono: '👑', clase: 'dorado', color: [255, 200, 60], dano: 60, leyenda: true } },
+    { id: 'esqueleto', nombre: 'Rey Esqueleto', nivel: 100, leyenda: true, hab: { nombre: 'Ejército de Huesos', icono: '💀', clase: 'huesos', color: [190, 80, 255], dano: 60, leyenda: true } },
+    { id: 'minotauro', nombre: 'Minotauro Titán', nivel: 100, leyenda: true, hab: { nombre: 'Embestida del Titán', icono: '🐂', clase: 'titan', color: [235, 120, 40], dano: 60, leyenda: true } },
   ];
   // Cada mundo tiene sus propios recursos (los mundos sin recursos propios usan los de la Unidad 1)
   const RECURSOS = [
@@ -104,7 +108,7 @@
   const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 }, espada5: { nombre: 'Espada de hielo', danio: 6 }, espada6: { nombre: 'Espada prismática', danio: 10 } };
   const ARMADURAS = { armadura: { nombre: 'Armadura de cuero', vida: 2, tex: 'cuero' }, armadura2: { nombre: 'Armadura de cristal', vida: 4, tex: 'cristal' }, armadura3: { nombre: 'Armadura de oro', vida: 6, tex: 'oro' }, armadura4: { nombre: 'Armadura de plata', vida: 8, tex: 'plata' }, armadura5: { nombre: 'Armadura de escarcha', vida: 10, tex: 'hielo' }, armadura6: { nombre: 'Armadura prismática', vida: 12, tex: 'prisma' } };
   const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata', 'hielo', 'prisma'];
-  const cuerpoDe = (pj) => (['luna', 'copihue', 'valquiria', 'arcangel'].includes(pj) ? 'thin' : 'male');
+  const cuerpoDe = (pj) => (['luna', 'copihue', 'trueno', 'bosque', 'cazadora'].includes(pj) ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
 
   // Banco de decorativos y muebles (se pueden fabricar varias veces).
@@ -914,7 +918,7 @@
     document.querySelectorAll('.ing-letras').forEach((el, k) => { el.innerHTML = [...el.textContent].map((c, i) => `<span style="--i:${i + k * 4}">${c}</span>`).join(''); });
     const S = ['π', '∑', '√', '÷', '∞', '%', '×', '±', '½', 'x²', '≠', 'Δ', '+', '='];
     $('ing-simbolos').innerHTML = Array.from({ length: 18 }, (_, i) => `<span style="--x:${(i * 53) % 100}%;--d:${9 + (i % 6) * 2}s;--r:${(i % 2 ? -1 : 1) * (12 + i * 8)}deg;--t:${0.9 + (i % 4) * 0.35}rem;animation-delay:-${i * 1.4}s">${S[i % S.length]}</span>`).join('');
-    const fila = [['zorro', 0], ['paladin', 7], ['luna', 3], ['valquiria', 8], ['condor', 4], ['draconico', 6], ['copihue', 1], ['arcangel', 9]];
+    const fila = [['zorro', 0], ['emperador', 7], ['luna', 3], ['cazadora', 8], ['condor', 4], ['minotauro', 6], ['copihue', 1], ['archimago', 9]];
     $('ing-desfile').innerHTML = fila.map(([p, m], i) => `<div class="ing-caminante" style="--d:${30 + (i % 3) * 5}s;--retraso:-${i * 4.2}s"><span class="ing-masc" style="--fila:${m}"></span><span class="ing-sprite" style="background-image:url('assets/pj/${p}_nada.png')"></span></div>`).join('');
     if (!quieto) window.addEventListener('pointermove', (e) => {
       if ($('ingreso').classList.contains('oculto')) return;
@@ -933,7 +937,7 @@
   decorarIngreso();
   function prepararIngreso() {
     const cont = $('personajes');
-    cont.innerHTML = PERSONAJES.filter((p) => !p.rey && !p.n30).map((p) => `
+    cont.innerHTML = PERSONAJES.filter((p) => !p.nivel).map((p) => `
       <button type="button" class="opcion" data-pj="${p.id}" aria-pressed="false" aria-label="Personaje ${p.nombre}">
         <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span>
         <span style="font-size: 12px">${p.nombre}</span>
@@ -1050,7 +1054,7 @@
   // ---------- Invitados: sala única de hasta 10 jugadores, con aprobación del docente ----------
   const inv = { modo: 'entrar', nivel: '7', pj: 'zorro', espera: null };
   function prepararInvitado() {
-    $('inv-personajes').innerHTML = PERSONAJES.filter((p) => !p.rey && !p.n30).map((p) => `
+    $('inv-personajes').innerHTML = PERSONAJES.filter((p) => !p.nivel).map((p) => `
       <button type="button" class="opcion" data-ipj="${p.id}" aria-pressed="${p.id === inv.pj}" aria-label="Personaje ${p.nombre}">
         <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span>
         <span style="font-size: 12px">${p.nombre}</span>
@@ -3714,7 +3718,7 @@
     L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
   ];
   // El logro final: se desbloquea al completar todos los demás
-  LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Desbloquea los 4 caballeros alados.', LOGROS.length,
+  LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Te da el título «El rey del juego».', LOGROS.length,
     () => LOGROS.filter((l) => l.id !== 'rey_juego' && S.logros && S.logros[l.id]).length, 'El rey del juego'));
   const LOGRO = Object.fromEntries(LOGROS.map((l) => [l.id, l]));
   const esRey = () => esDocente() || Boolean(S && S.logros && S.logros.rey_juego);
@@ -4061,7 +4065,7 @@
   }
 
   // ===================================================================
-  // Premio del nivel 100 (Aura del Centenario) y El rey del juego (caballeros alados)
+  // Premio del nivel 100 (Aura del Centenario) y El rey del juego (título)
   // ===================================================================
   const NIVEL_AURA = 100;
   const tieneAura = () => esDocente() || (S && (S.nivel || 1) >= NIVEL_AURA);
@@ -4093,42 +4097,38 @@
   }
   function abrirRey() {
     sfx('victoria');
-    const kn = PERSONAJES.filter((p) => p.rey);
     ui.abrir(`<div class="rey-modal"><div class="rey-brillo"></div>
       <span class="etq">Logro final</span><h2 id="modal-titulo">👑 ¡Eres El rey del juego!</h2>
-      <p class="enunciado">Completaste todos los logros de Math World. Desbloqueaste el título «El rey del juego» y los <b>4 caballeros alados</b>, los personajes más fuertes del juego.</p>
-      <div class="rey-pjs">${kn.map((p) => `<button type="button" class="rey-pj" data-rpj="${p.id}"><span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><b>${esc(p.nombre)}</b><small>Elegir</small></button>`).join('')}</div>
-      <div class="acciones"><span class="nota">También puedes cambiar de personaje después en Equipo (tecla Q).</span><button type="button" class="btn" id="ry-ok">Más tarde</button></div></div>`, 'rey');
-    $('ry-ok').addEventListener('click', () => ui.cerrar());
-    document.querySelectorAll('[data-rpj]').forEach((b) => b.addEventListener('click', () => { ponerPj(b.dataset.rpj); S.titulo = 'rey_juego'; S.tituloTxt = tituloDe('rey_juego'); guardar(true); pintarHUD(); if (escena) escena.pintarTituloYo(); ui.cerrar(); toast(`¡Ahora eres ${PERSONAJES.find((p) => p.id === b.dataset.rpj).nombre}!`); }));
+      <p class="enunciado">Completaste todos los logros de Math World y ganaste el título «El rey del juego». Tus compañeros lo verán sobre tu personaje.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="ry-ok" data-foco>¡Usar el título!</button></div></div>`, 'rey');
+    $('ry-ok').addEventListener('click', () => { S.titulo = 'rey_juego'; S.tituloTxt = tituloDe('rey_juego'); guardar(true); pintarHUD(); if (escena) escena.pintarTituloYo(); ui.cerrar(); });
     if (escena) escena.celebrar();
   }
-  const pjLibre = (id) => { const p = PERSONAJES.find((x) => x.id === id); return Boolean(p) && (!p.rey || esRey()) && (!p.n30 || esDocente() || (S && (S.nivel || 1) >= NIVEL_ELEM)); };
+  const pjLibre = (id) => { const p = PERSONAJES.find((x) => x.id === id); return Boolean(p) && (!p.nivel || esDocente() || (S && (S.nivel || 1) >= p.nivel)); };
   function ponerPj(id) {
     if (!pjLibre(id)) return;
     S.pj = id; guardar(true); pintarHUD();
     if (escena && escena.jugador) { escena.vestirJugador(); }
   }
   function personajesHTML() {
+    const sig = PERSONAJES.filter((p) => p.nivel && !pjLibre(p.id)).sort((a, b) => a.nivel - b.nivel)[0];
     return `<h3>Personaje</h3>
       <div class="pjs-eq">${PERSONAJES.map((p) => {
         const ok = pjLibre(p.id);
-        return `<button type="button" class="pj-eq ${p.rey ? 'rey' : ''} ${p.n30 ? 'elem ' + p.hab.clase : ''} ${ok ? '' : 'bloq'}" data-pjeq="${p.id}" aria-pressed="${S.pj === p.id}" ${ok ? '' : 'disabled'} title="${esc(ok ? p.nombre + (p.hab ? ` · Habilidad: ${p.hab.nombre}` : '') : p.n30 ? `Se desbloquea al llegar al nivel ${NIVEL_ELEM}` : 'Se desbloquea con el logro «El rey del juego»')}">
-          <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><small>${ok ? esc(p.nombre) : '🔒 ' + esc(p.nombre)}</small></button>`;
+        return `<button type="button" class="pj-eq ${p.hab ? 'elem ' + p.hab.clase : ''} ${p.leyenda ? 'leyenda' : ''} ${ok ? '' : 'bloq'}" data-pjeq="${p.id}" aria-pressed="${S.pj === p.id}" ${ok ? '' : 'disabled'} title="${esc(p.nombre + (p.hab ? ` · ${p.hab.nombre}: quita ${p.hab.dano}` : '') + (ok ? '' : ` · Se desbloquea en el nivel ${p.nivel}`))}">
+          <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><small>${ok ? esc(p.nombre) : `🔒 Nv. ${p.nivel}`}</small></button>`;
       }).join('')}</div>
-      ${esRey() ? '' : '<p class="nota">👑 Los caballeros alados se desbloquean al conseguir el logro «El rey del juego» (completar todos los demás logros).</p>'}
-      ${pjLibre('fenix') ? `<p class="nota">✨ Los guerreros elementales tienen una habilidad especial: se carga con ${HAB_CARGA} respuestas correctas seguidas (un error la vuelve a 0) y en combate quita el triple de tu golpe, también a los jefes.</p>`
-        : `<p class="nota">🔒 Al llegar al nivel ${NIVEL_ELEM} se desbloquean 4 guerreros elementales con habilidad especial. Vas en el nivel ${S.nivel || 1}.</p>`}`;
+      <p class="nota">✨ Desde el nivel 30 se desbloquean personajes con <b>habilidad especial</b>: se carga con ${HAB_CARGA} respuestas correctas seguidas (un error la vuelve a 0) y en combate quita una cantidad fija de vida, también a los jefes. ${sig ? `Próximo: <b>${esc(sig.nombre)}</b> en el nivel ${sig.nivel} (vas en el ${S.nivel || 1}).` : '¡Ya desbloqueaste todos los personajes!'}</p>`;
   }
   // ===================================================================
   // Habilidad especial de los guerreros elementales
   // Se carga con 5 respuestas correctas seguidas (de cualquier pregunta) y un error la vuelve a 0.
   // En combate (enemigos y jefes) quita el triple del golpe, con una transición a pantalla completa.
   // ===================================================================
-  const NIVEL_ELEM = 30, HAB_CARGA = 5, HAB_MULT = 3;
+  const HAB_CARGA = 5;
   const habDe = () => { const p = S && PERSONAJES.find((x) => x.id === S.pj); return p && p.hab && pjLibre(p.id) ? p.hab : null; };
   const habLista = () => Boolean(habDe()) && (S.habCarga || 0) >= HAB_CARGA;
-  const danioHab = () => danio() * HAB_MULT;
+  const danioHab = () => { const h = habDe(); return h ? h.dano : 0; };
   function cargarHabilidad(ok) {
     if (!S) return;
     const antes = S.habCarga || 0;
@@ -4146,10 +4146,10 @@
   function fxHabilidad(h, tex, n, quien, alTerminar) {
     const viejo = document.querySelector('.hab-fx'); if (viejo) viejo.remove();
     const el = document.createElement('div');
-    el.className = `hab-fx ${h.clase} ${quien ? 'otro' : ''}`; el.setAttribute('role', 'alert');
+    el.className = `hab-fx ${h.clase} ${h.leyenda ? 'leyenda' : ''} ${quien ? 'otro' : ''}`; el.setAttribute('role', 'alert');
     el.innerHTML = `<div class="hab-fx-fondo"></div><div class="hab-fx-rayos"></div><div class="hab-fx-onda"></div>
       <div class="hab-fx-pj" style="background-image:url('assets/pj/${esc(tex)}.png')"></div>
-      <div class="hab-fx-nombre"><span>${h.icono}</span><b>${esc(h.nombre)}</b><small>${quien ? `${esc(quien)} usó su habilidad · −${n}` : `−${n} de vida`}</small></div>
+      <div class="hab-fx-nombre">${h.leyenda ? '<em>⭐ LEGENDARIO ⭐</em>' : ''}<span>${h.icono}</span><b>${esc(h.nombre)}</b><small>${quien ? `${esc(quien)} usó su habilidad · −${n}` : `−${n} de vida`}</small></div>
       <div class="hab-fx-part">${Array.from({ length: 20 }, (_, i) => `<i style="--a:${i * 18}deg;--r:${i % 2 ? 1 : 0.7};--d:${(i % 4) * 0.06}s"></i>`).join('')}</div>`;
     document.body.appendChild(el);
     sfx('rugido'); setTimeout(() => sfx('golpe'), 650); setTimeout(() => sfx('golpe'), 800);
@@ -4171,19 +4171,30 @@
     if (!p || !p.hab || !escena || !escena.enJefe) return;
     fxHabilidad(p.hab, `${p.id}_${TEX_ARMADURA.includes(d.tex) ? d.tex : 'nada'}`, Number(d.n) || 0, String(d.nombre || 'Un compañero').slice(0, 24));
   }
-  // Al llegar al nivel 30 se presentan los guerreros elementales (una vez)
+  // Cada 5 s: si el personaje elegido ya no está disponible, se cambia; si se desbloqueó uno nuevo, se presenta
   setInterval(() => {
-    if (!S || esDocente() || (S.nivel || 1) < NIVEL_ELEM || S.elem30) return;
-    S.elem30 = Date.now(); guardar(true);
-    esperarYAbrir(abrirElementales);
+    if (!S) return;
+    if (!pjLibre(S.pj)) {
+      const libres = PERSONAJES.filter((p) => p.nivel && pjLibre(p.id)).sort((a, b) => b.nivel - a.nivel);
+      S.pj = libres.length ? libres[0].id : 'zorro'; guardar(true); pintarHUD();
+      if (escena && escena.jugador) escena.vestirJugador();
+      toast(`Tu personaje cambió a ${PERSONAJES.find((p) => p.id === S.pj).nombre}.`);
+    }
+    if (esDocente()) return;
+    if (!S.pjVistos) S.pjVistos = S.elem30 ? ['fenix'] : [];
+    const nuevos = PERSONAJES.filter((p) => p.nivel && (S.nivel || 1) >= p.nivel && !S.pjVistos.includes(p.id));
+    if (!nuevos.length) return;
+    S.pjVistos.push(...nuevos.map((p) => p.id)); guardar(true);
+    esperarYAbrir(() => abrirNuevosPj(nuevos));
   }, 5000);
-  function abrirElementales() {
+  function abrirNuevosPj(lista) {
     sfx('logro');
-    const kn = PERSONAJES.filter((p) => p.n30);
-    ui.abrir(`<div class="rey-modal elem-modal"><div class="rey-brillo"></div>
-      <span class="etq">Premio del nivel ${NIVEL_ELEM}</span><h2 id="modal-titulo">✨ ¡Guerreros elementales!</h2>
-      <p class="enunciado">Llegaste al nivel ${NIVEL_ELEM} y desbloqueaste <b>4 guerreros elementales</b>. Cada uno tiene una <b>habilidad especial</b>: se carga con ${HAB_CARGA} respuestas correctas seguidas y en combate quita el triple de tu golpe, ¡también a los jefes! Si fallas una pregunta, la carga vuelve a 0.</p>
-      <div class="rey-pjs">${kn.map((p) => `<button type="button" class="rey-pj elem ${p.hab.clase}" data-epj="${p.id}"><span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><b>${esc(p.nombre)}</b><small>${p.hab.icono} ${esc(p.hab.nombre)}</small></button>`).join('')}</div>
+    const ley = lista.some((p) => p.leyenda), uno = lista.length === 1;
+    ui.abrir(`<div class="rey-modal elem-modal ${ley ? 'leyenda' : ''}"><div class="rey-brillo"></div>
+      <span class="etq">${ley ? 'Premio del nivel 100 · Leyendas' : `Premio del nivel ${lista[lista.length - 1].nivel}`}</span>
+      <h2 id="modal-titulo">${ley ? '⭐ ¡Desbloqueaste a las leyendas!' : uno ? `✨ ¡Nuevo personaje: ${esc(lista[0].nombre)}!` : '✨ ¡Nuevos personajes!'}</h2>
+      <p class="enunciado">${ley ? 'Llegaste al nivel 100: estos son <b>los personajes más fuertes del juego</b>. ' : ''}Cada uno tiene una <b>habilidad especial</b> que se carga con ${HAB_CARGA} respuestas correctas seguidas y en combate quita una cantidad fija de vida, ¡también a los jefes! Si fallas una pregunta, la carga vuelve a 0.</p>
+      <div class="rey-pjs">${lista.map((p) => `<button type="button" class="rey-pj elem ${p.hab.clase} ${p.leyenda ? 'leyenda' : ''}" data-epj="${p.id}"><span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><b>${esc(p.nombre)}</b><small>${p.hab.icono} ${esc(p.hab.nombre)} · −${p.hab.dano}</small></button>`).join('')}</div>
       <div class="acciones"><span class="nota">También puedes cambiar de personaje después en Equipo (tecla Q).</span><button type="button" class="btn" id="el-ok">Más tarde</button></div></div>`, 'rey');
     $('el-ok').addEventListener('click', () => ui.cerrar());
     document.querySelectorAll('[data-epj]').forEach((b) => b.addEventListener('click', () => { ponerPj(b.dataset.epj); ui.cerrar(); toast(`¡Ahora eres ${PERSONAJES.find((p) => p.id === b.dataset.epj).nombre}!`); }));
