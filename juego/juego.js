@@ -22,9 +22,9 @@
     { id: 'ninja', nombre: 'Ninja Carmesí', nivel: 80, hab: { nombre: 'Danza de Katanas', icono: '🗡️', clase: 'katana', color: [230, 40, 60], dano: 45 } },
     { id: 'archimago', nombre: 'Archimago Celestial', nivel: 90, hab: { nombre: 'Tormenta Arcana', icono: '🔮', clase: 'arcano', color: [150, 90, 255], dano: 50 } },
     // Leyendas: los 3 personajes más fuertes del juego (nivel 100)
-    { id: 'emperador', nombre: 'Emperador Dorado', nivel: 100, leyenda: true, hab: { nombre: 'Juicio del Emperador', icono: '👑', clase: 'dorado', color: [255, 200, 60], dano: 60, leyenda: true } },
-    { id: 'esqueleto', nombre: 'Rey Esqueleto', nivel: 100, leyenda: true, hab: { nombre: 'Ejército de Huesos', icono: '💀', clase: 'huesos', color: [190, 80, 255], dano: 60, leyenda: true } },
-    { id: 'minotauro', nombre: 'Minotauro Titán', nivel: 100, leyenda: true, hab: { nombre: 'Embestida del Titán', icono: '🐂', clase: 'titan', color: [235, 120, 40], dano: 60, leyenda: true } },
+    { id: 'emperador', armaPropia: true, nombre: 'Emperador Dorado', nivel: 100, leyenda: true, hab: { nombre: 'Juicio del Emperador', icono: '👑', clase: 'dorado', color: [255, 200, 60], dano: 60, leyenda: true } },
+    { id: 'esqueleto', armaPropia: true, nombre: 'Rey Esqueleto', nivel: 100, leyenda: true, hab: { nombre: 'Ejército de Huesos', icono: '💀', clase: 'huesos', color: [190, 80, 255], dano: 60, leyenda: true } },
+    { id: 'minotauro', armaPropia: true, nombre: 'Minotauro Titán', nivel: 100, leyenda: true, hab: { nombre: 'Embestida del Titán', icono: '🐂', clase: 'titan', color: [235, 120, 40], dano: 60, leyenda: true } },
   ];
   // Cada mundo tiene sus propios recursos (los mundos sin recursos propios usan los de la Unidad 1)
   const RECURSOS = [
@@ -110,6 +110,8 @@
   const TEX_ARMADURA = ['nada', 'cuero', 'cristal', 'oro', 'plata', 'hielo', 'prisma'];
   const cuerpoDe = (pj) => (['luna', 'copihue', 'trueno', 'bosque', 'cazadora'].includes(pj) ? 'thin' : 'male');
   const texArmadura = (id) => (ARMADURAS[id] ? ARMADURAS[id].tex : 'nada');
+  // Personajes que ya traen su arma dibujada: no se les pone encima el hacha, el pico ni la espada
+  const armaPropia = (pj) => Boolean((PERSONAJES.find((p) => p.id === pj) || {}).armaPropia);
 
   // Banco de decorativos y muebles (se pueden fabricar varias veces).
   // t: [columna, fila, ancho, alto] en la hoja ('o' = exterior, 'i' = interior). lugar: base, pieza o ambos.
@@ -1318,9 +1320,10 @@
   function figuraHTML(pj, armadura, mano, arma, tam = 128) {
     const capa = (url) => `<span style="background-image:url('${url}');background-size:${tam * 9}px ${tam * 4}px;background-position:0 -${tam * 2}px"></span>`;
     let html = '';
-    if (mano === 'espada' && arma) html += capa(`assets/capas/${arma}_bg.png`);
+    const sinCapas = armaPropia(pj);
+    if (!sinCapas && mano === 'espada' && arma) html += capa(`assets/capas/${arma}_bg.png`);
     html += capa(`assets/pj/${pj}_${texArmadura(armadura)}.png`);
-    if (mano === 'espada' && arma) html += capa(`assets/capas/${arma}_fg.png`);
+    if (sinCapas) { /* arma propia del personaje */ } else if (mano === 'espada' && arma) html += capa(`assets/capas/${arma}_fg.png`);
     else if (mano === 'hacha' || mano === 'pico') html += capa(`assets/capas/${mano}_${cuerpoDe(pj)}.png`);
     return `<div class="figura" style="width:${tam}px;height:${tam}px" role="img" aria-label="Tu personaje con su equipo">${html}</div>`;
   }
@@ -8985,10 +8988,11 @@
     vestir(base, capas, pj, armadura, mano, arma) {
       const key = `pj_${pj}_${texArmadura(armadura)}`;
       if (base.texture.key !== key) { base.anims.stop(); base.setTexture(key, Number(base.frame.name) || 0); }
-      const espada = mano === 'espada' && ARMAS[arma];
+      const propia = armaPropia(pj);
+      const espada = !propia && mano === 'espada' && ARMAS[arma];
       capas.atras.setVisible(Boolean(espada));
       if (espada) capas.atras.setTexture(`capa_${arma}_bg`);
-      const tex = espada ? `capa_${arma}_fg` : mano === 'hacha' || mano === 'pico' ? `capa_${mano}_${cuerpoDe(pj)}` : null;
+      const tex = propia ? null : espada ? `capa_${arma}_fg` : mano === 'hacha' || mano === 'pico' ? `capa_${mano}_${cuerpoDe(pj)}` : null;
       capas.mano.setVisible(Boolean(tex));
       if (tex) capas.mano.setTexture(tex);
       this.seguir(base, capas);
