@@ -185,7 +185,7 @@
       <div class="muted">Logros: ${Object.keys(p.logros || {}).length}${p.tituloTxt ? ` · Título equipado: «${esc(p.tituloTxt)}»` : ''}</div>
       <div class="muted">Misión diaria: ${p.diaria ? `${p.diaria.cobrada ? 'cumplida y cobrada' : p.diaria.p >= p.diaria.n ? 'cumplida (sin cobrar)' : `${p.diaria.p} de ${p.diaria.n}`} (${esc(p.diaria.fecha)})` : 'sin registro'}</div>
       <div class="muted">Jefes desbloqueados: ${['u1', 'u2', 'u3', 'u4'].map((u) => { const m = (p.misiones || {})[u]; return m ? `${ZONAS[u]}: ${m.ok ? 'listo' : `${m.lista.filter((x) => x.p >= x.n).length} de ${m.lista.length} misiones`}` : null; }).filter(Boolean).join(' · ') || 'aún no recibe misiones'}</div>
-      <div class="muted">Jefes vencidos: ${Object.values(p.jefes || {}).reduce((a, b) => a + b, 0)}${p.reyVencido || p.colosoVencido || p.dragonVencido ? ` · Ancestrales: ${(p.reyVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0)}` : ''}${p.mascota ? ` · Mascota: ${esc(p.mascota)}` : ''}</div>
+      <div class="muted">Jefes vencidos: ${Object.values(p.jefes || {}).reduce((a, b) => a + b, 0)}${p.reyVencido || p.faraonVencido || p.colosoVencido || p.dragonVencido ? ` · Ancestrales: ${(p.reyVencido || 0) + (p.faraonVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0)}` : ''}${p.mascota ? ` · Mascota: ${esc(p.mascota)}` : ''}</div>
       <h4>Clave</h4>
       ${e.tiene_clave ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">Si el estudiante olvidó su clave, restablécela: la próxima vez que entre creará una nueva.</span>
         <button type="button" class="btn peligro" id="det-reset">Restablecer clave</button></div>` : '<span class="muted">Aún no crea su clave.</span>'}
@@ -318,7 +318,7 @@
     $('des-lista').innerHTML = DESAFIOS.map((d) => `<div class="des-card" style="--c:${d.color}">
         <div class="cab-d"><span class="ico" aria-hidden="true">${d.icono}</span><strong>${esc(d.nombre)}</strong></div>
         <p>${esc(d.resumen)}</p>
-        <div class="pie"><span class="dur">${d.seg < 60 ? d.seg + ' s' : mmss(d.seg * 1000) + ' min'}</span><button type="button" class="btn pri mini" data-lanzar="${d.id}" ${desOcupado ? 'disabled' : ''}>Lanzar</button></div>
+        <div class="pie"><span class="dur">${d.seg < 60 ? d.seg + ' s' : mmss(d.seg * 1000) + ' min'}${d.lugar === 'base' ? ' · 🏠 En la base' : d.lugar === 'mundos' ? ' · 🌍 En los mundos' : ''}</span><button type="button" class="btn pri mini" data-lanzar="${d.id}" ${desOcupado ? 'disabled' : ''}>Lanzar</button></div>
       </div>`).join('');
     $('des-lista').querySelectorAll('[data-lanzar]').forEach((b) => b.addEventListener('click', () => lanzarDesafio(b.dataset.lanzar)));
   }
@@ -500,7 +500,7 @@
         const p = e.progreso || {}, r = resumen(e);
         filas.push([e.nombre, e.curso === 'INV' ? `Invitado: ${usuarioInv(e)} (${e.nivel || 7}°)` : e.rut, c.nombre, e.grupo || '', e.tiene_clave ? 'Sí' : 'No', e.conectado ? 'En línea' : fecha(e.ultimo), r.nivel || '', r.acierto ?? '', r.intentos,
           r.peor ? nombreTema(c.nivel, r.peor.k).titulo : '', r.peor ? Math.round(r.peor.pct * 100) : '', r.vencidos, r.muertes,
-          Object.values(p.jefes || {}).reduce((a, b) => a + b, 0) + (p.reyVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0),
+          Object.values(p.jefes || {}).reduce((a, b) => a + b, 0) + (p.reyVencido || 0) + (p.faraonVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0),
           Object.keys(p.logros || {}).length, p.tituloTxt || '', apoyo.has(e.id) ? 'Sí' : '']);
       }
       hojas.push({ nombre: `Estudiantes ${c.nombre}`, filas, anchos: [34, 13, 7, 7, 9, 18, 7, 10, 11, 34, 12, 11, 9, 9, 8, 22, 10] });

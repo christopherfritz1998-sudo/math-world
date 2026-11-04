@@ -1004,3 +1004,62 @@ body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }
 .meta-niveles { display: flex; gap: 4px; flex-wrap: wrap; margin: 2px 0; }
 .meta-niveles span { padding: 3px 7px; border-radius: 999px; font-size: 12px; font-weight: 800; background: rgba(255,255,255,.06); color: var(--muted); border: 1px solid rgba(255,255,255,.12); }
 .meta-niveles span.ok { background: rgba(92, 200, 184, .2); color: #c9fff4; border-color: var(--teal); }
+
+/* ---------- K.O. al derrotar a un jefe (estilo juego de pelea) ---------- */
+.ko { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; overflow: hidden; cursor: pointer; background: radial-gradient(ellipse at center, rgba(70, 10, 0, .55), rgba(5, 4, 8, .88) 70%); animation: ko-fondo .25s ease-out; }
+.ko.sale { animation: ko-sale .45s ease-in forwards; }
+.ko-rayos { position: absolute; inset: -50%; background: repeating-conic-gradient(from 0deg, rgba(255, 200, 80, .22) 0 6deg, transparent 6deg 18deg); animation: ko-gira 6s linear infinite; pointer-events: none; }
+.ko-flash { position: absolute; inset: 0; background: #fff; opacity: 0; animation: ko-flash .5s ease-out .05s; pointer-events: none; }
+.ko-jefe { position: relative; height: 150px; }
+.ko-jefe img { width: 150px; height: 150px; filter: drop-shadow(0 0 18px rgba(255, 80, 40, .8)); animation: ko-cae 1.3s cubic-bezier(.5, -0.3, .7, 1) forwards; }
+.ko-texto { position: relative; display: flex; gap: 2px; font-family: "Fredoka", "Nunito", sans-serif; font-weight: 700; font-size: clamp(80px, 20vw, 190px); line-height: .9; }
+.ko-texto span { display: inline-block; color: #ffd23a; -webkit-text-stroke: 6px #6a0d00; paint-order: stroke fill; text-shadow: 0 8px 0 #2a0500, 0 0 40px rgba(255, 120, 30, .9); transform: scale(4) rotate(-12deg); opacity: 0; animation: ko-letra .42s cubic-bezier(.2, 1.6, .4, 1) forwards; }
+.ko-texto span:nth-child(1) { animation-delay: .35s; }
+.ko-texto span:nth-child(2) { animation-delay: .45s; }
+.ko-texto span:nth-child(3) { animation-delay: .55s; }
+.ko-texto span:nth-child(4) { animation-delay: .65s; }
+.ko-texto span:nth-child(5) { animation-delay: .8s; color: #ff5a3a; }
+.ko-sub { position: relative; font-family: "Fredoka", "Nunito", sans-serif; font-size: clamp(20px, 4vw, 30px); font-weight: 700; color: #fff; text-shadow: 0 3px 0 #000; opacity: 0; animation: ko-aparece .4s ease-out 1.2s forwards; text-align: center; padding: 0 16px; }
+.ko-gema { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; opacity: 0; animation: ko-gema 1s cubic-bezier(.3, 1.5, .5, 1) 2s forwards; }
+.ko-gema img { width: 88px; height: 88px; filter: drop-shadow(0 0 16px rgba(255, 255, 255, .9)); animation: ko-gema-brilla 1.2s ease-in-out 3s infinite alternate; }
+.ko-gema b { font-family: "Fredoka", "Nunito", sans-serif; font-size: 24px; color: #ffd27a; text-shadow: 0 2px 0 #000; }
+.ko-gema span { font-weight: 800; color: #fff; text-shadow: 0 2px 0 #000; }
+.ko-saltar { position: absolute; bottom: 18px; color: rgba(255, 255, 255, .6); font-weight: 800; }
+@keyframes ko-fondo { from { opacity: 0; } }
+@keyframes ko-sale { to { opacity: 0; transform: scale(1.06); } }
+@keyframes ko-gira { to { transform: rotate(360deg); } }
+@keyframes ko-flash { 0% { opacity: .95; } 100% { opacity: 0; } }
+@keyframes ko-cae { 0% { transform: translateX(0); } 8% { transform: translateX(-14px); } 16% { transform: translateX(12px); } 24% { transform: translateX(-10px); } 32% { transform: translateX(8px); filter: brightness(3) drop-shadow(0 0 18px #fff); } 45% { transform: translateX(0) rotate(0); filter: grayscale(.6) drop-shadow(0 0 18px rgba(255, 80, 40, .8)); opacity: 1; } 100% { transform: translate(60px, 80px) rotate(80deg); filter: grayscale(1); opacity: .35; } }
+@keyframes ko-letra { 0% { transform: scale(4) rotate(-12deg); opacity: 0; } 70% { transform: scale(.85) rotate(-4deg); opacity: 1; } 100% { transform: scale(1) rotate(-6deg); opacity: 1; } }
+@keyframes ko-aparece { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes ko-gema { 0% { opacity: 0; transform: translateY(-220px) scale(.4); } 60% { opacity: 1; transform: translateY(10px) scale(1.15); } 100% { opacity: 1; transform: none; } }
+@keyframes ko-gema-brilla { to { filter: drop-shadow(0 0 28px rgba(255, 240, 160, 1)) brightness(1.2); } }
+@media (prefers-reduced-motion: reduce) { .ko *, .ko { animation-duration: .01s !important; animation-delay: 0s !important; } .ko-texto span, .ko-sub, .ko-gema { opacity: 1; transform: none; } }
+.aviso-jefe.quinto { border-color: #c8a0ff; background: rgba(28, 14, 48, .94); box-shadow: 0 0 50px rgba(200, 160, 255, .6); }
+
+/* Álbum de gemas de los jefes y sello del 5to Mundo */
+.album.gemas-jefe { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.pez-card.gj img { width: 64px; height: 64px; }
+.pez-card.gj.brilla { border-color: #f2b544; box-shadow: 0 0 14px rgba(242, 181, 68, .35); }
+.pez-card.gj.falta img { filter: brightness(0) opacity(.35); }
+.quinto-sello { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding: 12px 14px; border-radius: 14px; border: 2px dashed #6a5a8a; background: rgba(40, 24, 64, .55); }
+.quinto-sello strong { display: block; font-family: "Fredoka", "Nunito", sans-serif; font-size: 20px; color: #d8c4ff; }
+.quinto-sello.listo { border-style: solid; border-color: #c8a0ff; box-shadow: 0 0 22px rgba(200, 160, 255, .45); }
+.qs-gemas { display: grid; grid-template-columns: repeat(4, 14px); gap: 4px; }
+.qs-gemas i { width: 14px; height: 14px; border-radius: 3px; transform: rotate(45deg); background: #2c2440; border: 2px solid #4a3e66; }
+.qs-gemas i.si { background: #ffd27a; border-color: #fff3c4; box-shadow: 0 0 8px #ffd27a; }
+/* Tarjeta bloqueada del 5to Mundo en el portal */
+.zona.quinto { position: relative; background: linear-gradient(135deg, #1c1030, #2d1a4a 60%, #120a20); border-color: #6a5a8a; color: #d8c4ff; overflow: hidden; }
+.zona.quinto::after { content: "🔒"; position: absolute; right: 12px; top: 10px; font-size: 22px; }
+.zona.quinto strong { font-size: 22px; letter-spacing: .04em; }
+.zona.quinto .q-misterio { font-family: "Fredoka", "Nunito", sans-serif; font-size: 20px; letter-spacing: .3em; color: #b49ae6; }
+.zona.quinto.listo { border-color: #c8a0ff; box-shadow: 0 0 24px rgba(200, 160, 255, .5); animation: q-late 2.4s ease-in-out infinite alternate; }
+@keyframes q-late { to { box-shadow: 0 0 40px rgba(200, 160, 255, .85); } }
+@media (max-width: 560px) { .album.gemas-jefe { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Reloj de 20 s en los combates de la horda */
+.horda-reloj { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px 10px; margin: 6px 0; }
+.horda-reloj > span { font-family: "Fredoka", "Nunito", sans-serif; font-size: 20px; font-weight: 700; color: #ffd27a; }
+.horda-reloj > span.apura { color: #ff6b5a; animation: h-apura .5s ease-in-out infinite alternate; }
+.horda-reloj > small { grid-column: 1 / -1; color: #ffb4a3; font-weight: 800; }
+.horda-reloj .rey-tiempo { margin: 0; }
+@keyframes h-apura { to { transform: scale(1.12); } }

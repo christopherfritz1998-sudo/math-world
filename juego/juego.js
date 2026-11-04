@@ -65,6 +65,7 @@
     { id: 'pala', nombre: 'Pala de arqueólogo', desc: 'Herramienta: permite excavar en los sitios arqueológicos del Valle de la Esfinge (incluye la brocha).', icono: 'pala', costo: { fibra: 10, cobre: 6, arenisca: 10 }, requiere: 'pico' },
     { id: 'pala2', nombre: 'Pala de obsidiana', desc: 'Las excavaciones aguantan más golpes antes de derrumbarse y la pala cava más hondo.', icono: 'pala2', costo: { obsidiana: 10, fosil: 6, oro: 4 }, requiere: 'pala' },
     { id: 'antorcha_esfinge', nombre: 'Antorcha de la esfinge', desc: 'Ilumina el laberinto de la Gran Esfinge, en el Valle de la Esfinge: sin ella no puedes entrar.', icono: 'antorcha_esfinge', costo: { obsidiana: 6, fosil: 3, fibra: 8 } },
+    { id: 'ankh', nombre: 'Ankh de obsidiana', desc: 'Abre la tumba del Faraón de las Arenas Eternas, en el Valle de la Esfinge.', icono: 'ankh', costo: { obsidiana: 12, fosil: 8, oro: 6 } },
     { id: 'pico3', nombre: 'Pico de cobre', desc: 'Permite extraer oro de las vetas doradas y saca más arenisca y cobre.', icono: 'pickaxe', costo: { cobre: 10, arenisca: 15, fibra: 6 }, requiere: 'pico2' },
     { id: 'espada3', nombre: 'Espada de oro', desc: 'Equipada, cada acierto en combate quita 4 de vida.', icono: 'espada', costo: { oro: 8, cobre: 10 }, requiere: 'espada2' },
     { id: 'armadura3', nombre: 'Armadura de oro', desc: 'Equipada, tu vida máxima sube a 11 corazones.', icono: 'armadura', costo: { oro: 12, arenisca: 20, fibra: 10 }, requiere: 'armadura2' },
@@ -1789,6 +1790,65 @@
     $('ag-cerrar').addEventListener('click', () => ui.cerrar());
   }
 
+  // ---------- Gemas de los jefes (una por jefe) y el 5to Mundo ----------
+  // Cada jefe deja caer su gema al ser derrotado por primera vez. Con las 8 se despierta el 5to Mundo.
+  const GEMAS_JEFE = [
+    { id: 'troll', nombre: 'Esmeralda del Troll', jefe: 'Troll Guardián del Bosque', donde: 'Bosque', v: () => (S.jefes || {}).u1 || 0 },
+    { id: 'lagarto', nombre: 'Ámbar de las Dunas', jefe: 'Rey Lagarto de las Dunas', donde: 'Desierto', v: () => (S.jefes || {}).u2 || 0 },
+    { id: 'minotauro', nombre: 'Amatista del Laberinto', jefe: 'Minotauro de las Profundidades', donde: 'Mina', v: () => (S.jefes || {}).u3 || 0 },
+    { id: 'yeti', nombre: 'Zafiro de Escarcha', jefe: 'Yeti, Rey de la Escarcha', donde: 'Glaciar', v: () => (S.jefes || {}).u4 || 0 },
+    { id: 'raices', nombre: 'Jade de Raíces', jefe: 'Rey Jabalí Ancestral', donde: 'Bosque profundo', v: () => S.reyVencido || 0 },
+    { id: 'faraon', nombre: 'Lapislázuli del Faraón', jefe: 'Faraón de las Arenas Eternas', donde: 'Valle de la Esfinge', v: () => S.faraonVencido || 0 },
+    { id: 'magma', nombre: 'Rubí de Magma', jefe: 'Coloso de Magma', donde: 'Profundidades de la mina', v: () => S.colosoVencido || 0 },
+    { id: 'aurora', nombre: 'Ópalo de Aurora', jefe: 'Dragón de la Aurora', donde: 'Cima del Glaciar', v: () => S.dragonVencido || 0 },
+  ];
+  const GEMA_JEFE = Object.fromEntries(GEMAS_JEFE.map((g) => [g.id, g]));
+  const GEMA_DE_ZONA = { u1: 'troll', u2: 'lagarto', u3: 'minotauro', u4: 'yeti' };
+  function gemasJefeTengo() { return S ? GEMAS_JEFE.filter((g) => (g.v() || 0) > 0).length : 0; }
+  function jefesVencidosTotal() {
+    if (!S) return 0;
+    return Object.values(S.jefes || {}).reduce((a, b) => a + (b || 0), 0) + (S.reyVencido || 0) + (S.faraonVencido || 0) + (S.colosoVencido || 0) + (S.dragonVencido || 0);
+  }
+  const quintoListo = () => gemasJefeTengo() >= GEMAS_JEFE.length;
+  // Aviso (una sola vez) cuando se reúnen las 8 gemas
+  function revisarQuinto() {
+    if (!S || S.quintoVisto || !quintoListo()) return;
+    S.quintoVisto = Date.now(); guardar(true);
+    setTimeout(() => { sfx('logro'); avisoGrande('¡Reuniste las 8 gemas!', 'El 5to Mundo ha despertado…', 'Míralo en el portal: muy pronto se abrirá', 'quinto'); }, 4200);
+  }
+  function abrirAlbumJefes() {
+    const tengo = gemasJefeTengo(), listo = quintoListo();
+    ui.abrir(`
+      <div class="modal-cab"><div><span class="etq">Colección · ${tengo} de ${GEMAS_JEFE.length} gemas</span><h2 id="modal-titulo">👑 Gemas de los jefes</h2></div><button type="button" class="btn" id="aj-cerrar">Cerrar</button></div>
+      <p class="nota">Cada jefe deja caer una gema única cuando lo derrotas por primera vez. Reúne las ${GEMAS_JEFE.length} para despertar el <strong>5to Mundo</strong>.</p>
+      <div class="album gemas-jefe">${GEMAS_JEFE.map((g) => { const ok = (g.v() || 0) > 0; return `<div class="pez-card gj ${ok ? 'brilla' : 'falta'}"><img class="px" src="${ICONO('gjefe_' + g.id)}" alt=""><strong>${ok ? esc(g.nombre) : '???'}</strong><small>${esc(g.jefe)}</small><small class="nota-mini">${esc(g.donde)}</small></div>`; }).join('')}</div>
+      <div class="quinto-sello ${listo ? 'listo' : ''}"><span class="qs-gemas">${GEMAS_JEFE.map((g) => `<i class="${(g.v() || 0) > 0 ? 'si' : ''}"></i>`).join('')}</span>
+        <div><strong>5to Mundo</strong><small>${listo ? '¡Las 8 gemas brillan! El 5to Mundo despertará muy pronto.' : `Faltan ${GEMAS_JEFE.length - tengo} ${GEMAS_JEFE.length - tengo === 1 ? 'gema' : 'gemas'} para despertarlo.`}</small></div></div>`);
+    $('aj-cerrar').addEventListener('click', () => ui.cerrar());
+  }
+  // Animación de K.O. (estilo juego de pelea) al derrotar a un jefe; si deja su gema, cae al final.
+  // Se cierra sola (o con un clic) y no bloquea el resto del juego.
+  function animacionKO({ nombre, retrato, gema, nueva }) {
+    const viejo = document.getElementById('ko'); if (viejo) viejo.remove();
+    const g = gema && GEMA_JEFE[gema];
+    const el = document.createElement('div');
+    el.id = 'ko'; el.className = 'ko'; el.setAttribute('role', 'alert');
+    el.innerHTML = `<div class="ko-rayos"></div><div class="ko-flash"></div>
+      <div class="ko-jefe">${retrato ? `<img class="px" src="${retrato}" alt="">` : ''}</div>
+      <div class="ko-texto" aria-label="K.O."><span>K</span><span>.</span><span>O</span><span>.</span><span>!</span></div>
+      <div class="ko-sub">¡${esc(nombre)} ha sido derrotado!</div>
+      ${g ? `<div class="ko-gema"><img class="px" src="${ICONO('gjefe_' + g.id)}" alt=""><b>${nueva ? '¡Nueva gema!' : 'Gema del jefe'}</b><span>${esc(g.nombre)}${nueva ? ` · ${gemasJefeTengo()} de ${GEMAS_JEFE.length}` : ' · ya está en tu álbum'}</span></div>` : ''}
+      <small class="ko-saltar">Toca para continuar</small>`;
+    document.body.appendChild(el);
+    sfx('golpe'); setTimeout(() => sfx('rugido'), 200); setTimeout(() => sfx('victoria'), 1300); if (g && nueva) setTimeout(() => sfx('logro'), 2300);
+    if (g && nueva) { const n = el.querySelector('.ko-gema span'); if (n) n.textContent = `${g.nombre} · ${Math.min(GEMAS_JEFE.length, gemasJefeTengo() + ((g.v() || 0) > 0 ? 0 : 1))} de ${GEMAS_JEFE.length}`; }
+    if (escena && escena.cameras) { escena.cameras.main.shake(700, 0.016); escena.cameras.main.flash(250, 255, 255, 255); }
+    if (navigator.vibrate) { try { navigator.vibrate([120, 60, 260]); } catch (e) { /* */ } }
+    const quitar = () => { if (!el.isConnected) return; el.classList.add('sale'); setTimeout(() => el.remove(), 450); };
+    el.addEventListener('click', quitar);
+    setTimeout(quitar, g ? 4600 : 3400);
+  }
+
   // ---------- Minijuego de excavación ----------
   // Bajo la arena hay piezas enterradas. La brocha quita una capa de una casilla; la pala quita más, pero
   // hace temblar la excavación. Si la firmeza llega a 0, se derrumba y se pierde lo que quedó enterrado.
@@ -2545,7 +2605,7 @@
       const banner = J.fase === 2 ? '<div class="mensaje pista rey-fase">🪨 ¡Coraza de magma! Rómpela con aciertos antes de poder herirlo. Cada error la endurece y quita 2 corazones.</div>'
         : J.fase === 3 ? '<div class="mensaje mal rey-fase">🌋 ¡Erupción! Solo lo hieres con <b>2 aciertos seguidos</b> (el segundo hace doble daño). Cada error quita 3 corazones y lo cura 3.</div>' : '';
       let cuerpo;
-      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px">¡Venciste al Coloso de Magma! Ganas ${Object.entries(COLOSO.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${COLOSO.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Coloso</strong> para tu base (Decorar).' : ''} Volverá a encenderse en 10 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px"><span>¡Venciste al Coloso de Magma! Ganas ${Object.entries(COLOSO.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${COLOSO.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Coloso</strong> para tu base (Decorar).' : ''} Volverá a encenderse en 10 minutos.</span></div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
       else if (fin === 'derrota') cuerpo = '<div class="mensaje mal" role="status">Te quedaste sin corazones. Vuelves a tu base y pierdes lo que llevabas en la mochila. El Coloso descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>';
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El Coloso recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banner}${ultimo}
@@ -2598,7 +2658,7 @@
           if (J.racha >= 2) { herir(danio() * 2); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Doble golpe! ${mate(d.explicacion)}</div>`; }
           else ultimo = '<div class="mensaje bien" role="status">¡Bien! Un acierto más seguido y le darás un doble golpe.</div>';
         } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
-        if (J.hp <= 0) fin = 'victoria';
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -3178,7 +3238,7 @@
     const pintar = () => {
       const pct = Math.max(0, J.hp) / J.max * 100;
       let cuerpo;
-      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px">¡Venciste al Dragón de la Aurora! Ganas ${Object.entries(DRAGON.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${DRAGON.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Dragón</strong> para tu base (Decorar).' : ''} Volverá a despertar en 12 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px"><span>¡Venciste al Dragón de la Aurora! Ganas ${Object.entries(DRAGON.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${DRAGON.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Dragón</strong> para tu base (Decorar).' : ''} Volverá a despertar en 12 minutos.</span></div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
       else if (fin === 'derrota') cuerpo = '<div class="mensaje mal" role="status">Te quedaste sin corazones. Vuelves a tu base y pierdes lo que llevabas en la mochila. El dragón descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>';
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El dragón recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banners[J.fase]}${ultimo}
@@ -3232,7 +3292,7 @@
           if (J.racha >= 3) { herir(danio() * 3); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Triple golpe de aurora! ${mate(d.explicacion)}</div>`; }
           else ultimo = `<div class="mensaje bien" role="status">¡Bien! ${3 - J.racha === 1 ? 'Un acierto más seguido' : 'Dos aciertos más seguidos'} y le darás un triple golpe.</div>`;
         } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
-        if (J.hp <= 0) fin = 'victoria';
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -3242,6 +3302,120 @@
           if (f === 2) { J.muro = 4; for (let i = 0; i < 2; i++) sc.soltarBichoJunto(); }
           if (f === 3) sc.dragon.setTint(0x9fe8ff);
           if (f === 4) { sc.dragon.setTint(0xc9a0ff); J.racha = 0; }
+        }
+        nueva();
+      }
+      pintar();
+    };
+    nueva();
+    pintar();
+    reloj = setInterval(() => {
+      if (fin || !J.limite) return;
+      const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
+      if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
+      if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
+    }, 200);
+  }
+
+  // ---------- Faraón de las Arenas Eternas (jefe ancestral del Valle de la Esfinge) ----------
+  // 4 fases: vendas malditas (escudo), tormenta de arena (se cura) e ira del faraón (2 aciertos seguidos).
+  const FARAON = { nombre: 'Faraón de las Arenas Eternas', vida: 46, premio: { obsidiana: 10, fosil: 8, oro: 10, arenisca: 16 }, xp: 300 };
+  function abrirFaraon() {
+    const sc = escena;
+    if (S.arma && S.herramienta !== 'espada') equipar('espada');
+    const J = { hp: FARAON.vida, max: FARAON.vida, fase: 1, vendas: 0, racha: 0, limite: 0, t0: 0 };
+    let d = null, elegida = null, fallidas = new Set(), fin = null, ultimo = '', reloj = 0;
+    const primeraVez = !S.faraonVencido;
+    sc.enCombate = true;
+    if (sc.faraon) { sc.faraon.setTint(0xffffff); sc.faraon.anims.play('jefe_u2b_down', true); sc.cameras.main.shake(500, 0.01); sfx('rugido'); }
+    const nueva = () => {
+      d = Preguntas.nuevo(S.curso, 'u2', J.fase === 1 ? 2 : 3, S.stats); elegida = null; fallidas = new Set();
+      J.limite = [0, 18000, 15000, 12000, 11000][J.fase]; J.t0 = performance.now();
+    };
+    const faseDe = () => (J.hp <= J.max * 0.25 ? 4 : J.hp <= J.max * 0.5 ? 3 : J.hp <= J.max * 0.75 ? 2 : 1);
+    const cerrar = (res) => {
+      clearInterval(reloj); sc.enCombate = false;
+      if (res === 'victoria') {
+        sfx('logro');
+        Object.entries(FARAON.premio).forEach(([r, n]) => sumar(r, n)); ganarXP(FARAON.xp);
+        S.faraonVencido = (S.faraonVencido || 0) + 1; S.faraonHasta = Date.now() + 12 * 60000;
+        guardar(true); if (sc.faraon) sc.celebrar(sc.faraon.x, sc.faraon.y - 80);
+      } else if (res === 'derrota') { S.faraonHasta = Date.now() + 2 * 60000; guardar(true); }
+      if (sc.actualizarFaraon) sc.actualizarFaraon();
+      if (res === 'derrota') morir(FARAON.nombre);
+    };
+    const banners = ['', '',
+      '<div class="mensaje pista rey-fase">🩹 ¡Vendas malditas! Rómpelas con aciertos antes de poder herirlo. Cada error suma una venda y quita 2 corazones.</div>',
+      '<div class="mensaje mal rey-fase">🌪️ ¡Tormenta de arena! Solo 12 segundos por pregunta. Cada error quita 2 corazones y el faraón se cura 3.</div>',
+      '<div class="mensaje mal rey-fase">☀️ ¡Ira del faraón! Solo lo hieres con <b>2 aciertos seguidos</b> (el segundo hace doble daño). Cada error quita 3 corazones y lo cura 4.</div>'];
+    const pintar = () => {
+      const pct = Math.max(0, J.hp) / J.max * 100;
+      let cuerpo;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px"><span>¡Venciste al Faraón de las Arenas Eternas! Ganas ${Object.entries(FARAON.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${FARAON.xp} de experiencia.${primeraVez ? ' Además, el <strong>gato sagrado</strong> ahora es tu mascota y te llevas el <strong>Lapislázuli del Faraón</strong>.' : ''} Volverá a despertar en 12 minutos.</span></div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      else if (fin === 'derrota') cuerpo = '<div class="mensaje mal" role="status">Te quedaste sin corazones. Vuelves a tu base y pierdes lo que llevabas en la mochila. El faraón descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>';
+      else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El faraón recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
+      else cuerpo = `${banners[J.fase]}${ultimo}
+          <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
+          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${alternativasHTML(d, elegida, fallidas, false)}
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+      ui.abrir(`
+        <div class="combate-cab">
+          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u2b_retrato')}" alt="" width="72" height="72">
+            <div><span class="etq" style="color: var(--coral)">Jefe del Valle de la Esfinge · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${FARAON.nombre}</h2>
+              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
+              ${J.vendas > 0 ? `<span class="rey-escudo">🩹 Vendas malditas: ${J.vendas}</span>` : ''}${J.fase === 4 ? `<span class="rey-escudo">☀️ Racha: ${J.racha} de 2</span>` : ''}</div></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
+        </div>${cuerpo}`, 'combate jefe rey faraon');
+      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+      on('r-ok', atacar);
+      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
+      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
+      ui.teclas = (e) => {
+        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
+        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
+      };
+    };
+    const golpeRecibido = (motivo) => {
+      sfx('dano'); J.racha = 0;
+      if (escudoActivo()) { vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1; ultimo = `<div class="mensaje pista" role="status">${motivo} ¡Tu escudo de cristal bloqueó el golpe!</div>`; return; }
+      const n = [0, 1, 2, 2, 3][J.fase];
+      S.vida = Math.max(0, S.vida - n); sc.dolor(); pintarHUD();
+      if (J.fase === 2) J.vendas = Math.min(6, J.vendas + 1);
+      if (J.fase === 3) J.hp = Math.min(J.max, J.hp + 3);
+      if (J.fase === 4) J.hp = Math.min(J.max, J.hp + 4);
+      ultimo = `<div class="mensaje mal" role="status">${motivo} ¡El faraón te lanzó una maldición de arena (−${n} ${n === 1 ? 'corazón' : 'corazones'})!${J.fase === 2 ? ' Sus vendas se reforzaron.' : J.fase === 3 ? ' Y se curó 3.' : J.fase === 4 ? ' Y se curó 4.' : ''}</div>`;
+      if (S.vida <= 0) fin = 'derrota';
+    };
+    const herir = (n) => {
+      J.hp -= n;
+      if (!sc.faraon) return;
+      sc.flotante(sc.faraon.x, sc.faraon.y - 130, `−${n}`, '#ffe08a');
+      sc.tweens.add({ targets: sc.faraon, x: sc.faraon.x + 5, duration: 50, yoyo: true, repeat: 2 });
+    };
+    const atacar = () => {
+      if (fin || elegida === null) return;
+      const ok = elegida === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) {
+        ganarXP(5 + 2 * J.fase); sfx('golpe');
+        if (J.vendas > 0) { J.vendas -= 1; ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.vendas ? `Las vendas resisten: quedan ${J.vendas}.` : '¡Rompiste las vendas malditas!'}</div>`; }
+        else if (J.fase === 4) {
+          J.racha += 1;
+          if (J.racha >= 2) { herir(danio() * 2); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Doble golpe! ${mate(d.explicacion)}</div>`; }
+          else ultimo = '<div class="mensaje bien" role="status">¡Bien! Un acierto más seguido y le darás un doble golpe.</div>';
+        } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez }); }
+      } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
+      if (!fin) {
+        const f = faseDe();
+        if (f > J.fase) {
+          J.fase = f; sc.cameras.main.shake(600, 0.012); sc.cameras.main.flash(300, 255, 210, 90);
+          sfx('rugido');
+          if (f === 2) { J.vendas = 4; for (let i = 0; i < 2; i++) sc.soltarBichoJunto(); }
+          if (f === 3 && sc.faraon) sc.faraon.setTint(0xffd48a);
+          if (f === 4) { if (sc.faraon) sc.faraon.setTint(0xff9a5a); J.racha = 0; }
         }
         nueva();
       }
@@ -3310,6 +3484,13 @@
     L('coloso', 'combate', '🌋', 'Corazón ardiente', 'Vence al Coloso de Magma.', 1, () => S.colosoVencido || 0, 'Puño de Magma'),
     L('dragon', 'combate', '🐉', 'Domar a la aurora', 'Vence al Dragón de la Aurora.', 1, () => S.dragonVencido || 0, 'Jinete de la Aurora'),
     L('ancestrales', 'combate', '🌟', 'Leyenda ancestral', 'Vence al Rey Jabalí, al Coloso de Magma y al Dragón de la Aurora.', 3, () => [S.reyVencido, S.colosoVencido, S.dragonVencido].filter(Boolean).length, 'Leyenda Ancestral'),
+    L('faraon', 'combate', '⚱️', 'La maldición rota', 'Vence al Faraón de las Arenas Eternas en el Valle de la Esfinge.', 1, () => S.faraonVencido || 0, 'Faraón de las Arenas'),
+    L('faraon5', 'combate', '🏺', 'Señor de las pirámides', 'Vence 5 veces al Faraón de las Arenas Eternas.', 5, () => S.faraonVencido || 0, 'Señor de las Pirámides'),
+    L('ancestrales4', 'combate', '🌠', 'Leyenda de las cuatro tierras', 'Vence a los 4 jefes ancestrales: Rey Jabalí, Faraón, Coloso y Dragón.', 4, () => [S.reyVencido, S.faraonVencido, S.colosoVencido, S.dragonVencido].filter(Boolean).length, 'Leyenda de las Cuatro Tierras'),
+    L('ko10', 'combate', '💥', '¡K.O.!', 'Da el golpe final a jefes 10 veces (de grupo o ancestrales).', 10, () => jefesVencidosTotal(), 'Rey del K.O.'),
+    L('gemajefe1', 'coleccion', '💠', 'Primera gema legendaria', 'Consigue la gema de un jefe al derrotarlo.', 1, () => gemasJefeTengo(), 'Buscador de Gemas'),
+    L('gemajefe4', 'coleccion', '🔷', 'Medio tesoro', 'Reúne 4 gemas de jefes distintos en tu álbum.', 4, () => gemasJefeTengo(), 'Coleccionista Legendario'),
+    L('gemajefe8', 'coleccion', '👑', 'Guardián de las gemas', 'Reúne las 8 gemas de los jefes y despierta el 5to Mundo.', 8, () => gemasJefeTengo(), 'Guardián de las Gemas'),
     // Aprendizaje
     L('aciertos50', 'aprender', '🧠', 'Mente brillante', 'Responde bien 50 ejercicios.', 50, aciertosTotales, 'Mente Brillante'),
     L('aciertos250', 'aprender', '⚡', 'Cerebro veloz', 'Responde bien 250 ejercicios.', 250, aciertosTotales, 'Cerebro Veloz'),
@@ -3356,7 +3537,9 @@
     L('idea', 'equipo', '💡', 'Mente creativa', 'Envía una idea para el juego en Novedades.', 1, () => CN('idea'), 'Mente Creativa'),
     L('mascota1', 'coleccion', '🐾', 'Amigo fiel', 'Desbloquea tu primera mascota venciendo a un jefe final.', 1, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Amigo de los Animales'),
     L('mascota4', 'coleccion', '🦉', 'Cuidador', 'Desbloquea 4 mascotas distintas.', 4, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Cuidador de Bestias'),
-    L('mascota7', 'coleccion', '🐲', 'Arca de leyendas', 'Desbloquea las 7 mascotas de los jefes finales.', 7, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Señor de las Bestias'),
+    L('mascota7', 'coleccion', '🐲', 'Arca de leyendas', 'Desbloquea 7 mascotas de jefes finales.', 7, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Señor de las Bestias'),
+    L('gato', 'coleccion', '🐈‍⬛', 'Bendición del faraón', 'Desbloquea al gato sagrado venciendo al Faraón de las Arenas Eternas.', 1, () => S.faraonVencido || 0, 'Amigo del Gato Sagrado'),
+    L('mascota8', 'coleccion', '🦁', 'Arca completa', 'Desbloquea las 8 mascotas de los jefes finales.', 8, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Domador de Leyendas'),
     L('comercio1', 'equipo', '🤝', 'Comerciante', 'Haz un intercambio con un compañero en el cofre de comercio.', 1, () => CN('comercio'), 'Comerciante'),
     L('comercio10', 'equipo', '💼', 'Gran mercader', 'Haz 10 intercambios con tus compañeros.', 10, () => CN('comercio'), 'Gran Mercader'),
     L('pvp1', 'combate', '⚔️', 'Gladiador', 'Gana un duelo en la arena PvP.', 1, () => CN('pvp_victoria'), 'Gladiador'),
@@ -3471,6 +3654,7 @@
     { id: 'jabato', nombre: 'Jabato de raíces', jefe: 'Rey Jabalí Ancestral', donde: 'Bosque profundo', v: () => S.reyVencido || 0 },
     { id: 'ajolote', nombre: 'Ajolote de lava', jefe: 'Coloso de Magma', donde: 'Profundidades de la mina', v: () => S.colosoVencido || 0 },
     { id: 'dragon', nombre: 'Dragoncito de aurora', jefe: 'Dragón de la Aurora', donde: 'Cima del glaciar', v: () => S.dragonVencido || 0 },
+    { id: 'gato', nombre: 'Gato sagrado', jefe: 'Faraón de las Arenas Eternas', donde: 'Valle de la Esfinge', v: () => S.faraonVencido || 0 },
     // Mascotas exclusivas por nivel
     { id: 'grifo', nombre: 'Grifo dorado', nivel: 50, v: () => ((S.nivel || 1) >= 50 ? 1 : 0) },
     { id: 'fenix', nombre: 'Fénix de fuego', nivel: 70, v: () => ((S.nivel || 1) >= 70 ? 1 : 0) },
@@ -3501,7 +3685,7 @@
       ? `🐾 ¡Desbloqueaste una mascota: ${m.nombre}! Equípala en Equipo (tecla Q).`
       : `🐾 ¡Desbloqueaste una mascota: ${m.nombre}! Podrás llevarla contigo desde el nivel ${NIVEL_MASCOTA}.`), 4500 + i * 4000));
   }
-  setInterval(() => { if (S) revisarMascotas(); }, 4000);
+  setInterval(() => { if (S) { revisarMascotas(); revisarQuinto(); } }, 4000);
   function mascotasHTML() {
     const libres = mascotasLibres().length;
     const nota = puedeMascota() ? '' : `<p class="nota">🔒 Las mascotas se pueden equipar desde el <b>nivel ${NIVEL_MASCOTA}</b> (vas en el nivel ${S.nivel || 1}). Igual puedes ir desbloqueándolas venciendo jefes.</p>`;
@@ -3619,13 +3803,16 @@
   // Reportar un problema y Novedades (ideas para el profesor)
   // ===================================================================
   const NOVEDADES = [
-    ['🐾', 'Mascotas', 'Vence jefes finales para ganar 7 mascotas distintas. Se equipan desde el nivel 30 y te siguen por todo el mapa.'],
+    ['🐾', 'Mascotas', 'Vence jefes finales para ganar 8 mascotas distintas. Se equipan desde el nivel 30 y te siguen por todo el mapa.'],
     ['💬', 'Chat seguro', 'Saluda y coordínate con tu grupo usando emoticones y frases (tecla T).'],
     ['🏆', 'Logros y títulos', 'Más de 70 logros. Cada uno desbloquea un título para mostrar sobre tu nombre.'],
     ['🎁', 'Premios de nivel', 'Desde el nivel 30, cada 5 niveles recibes un objeto exclusivo.'],
     ['🏔️', 'Cima del Glaciar', 'Escala el glaciar, juega guerra de bolas de nieve y hielo movedizo, y enfrenta al Dragón de la Aurora.'],
     ['⛏️', 'Profundidades de la mina', 'Carrera de carritos, rompecabezas de cristales y el Coloso de Magma.'],
-    ['🏜️', 'Valle de la Esfinge', 'Excavaciones, laberintos aleatorios y el álbum de gemas.'],
+    ['🏜️', 'Valle de la Esfinge', 'Excavaciones, laberintos aleatorios, el álbum de gemas y el Faraón de las Arenas Eternas.'],
+    ['⚱️', 'Faraón de las Arenas Eternas', 'Nuevo jefe ancestral en el Valle de la Esfinge. Fabrica el ankh de obsidiana para despertarlo y gana al gato sagrado.'],
+    ['👑', 'Gemas de los jefes y el 5to Mundo', 'Cada jefe deja caer una gema única. Reúne las 8 en tu álbum para despertar el misterioso 5to Mundo.'],
+    ['🎯', 'Desafíos en los mundos', 'Los desafíos en vivo se juegan en los mundos; solo el ladrón y la horda llegan a la base. En la horda tienes 20 segundos por pregunta.'],
   ];
   const CATS_PROBLEMA = ['El juego se trabó', 'Una pregunta está mal', 'Perdí recursos u objetos', 'No puedo entrar a una zona', 'Problema con mi grupo', 'Otro'];
   function abrirReporte() {
@@ -4398,7 +4585,10 @@
     const nuevo = () => Preguntas.nuevo(S.curso, unidadActual(), dif, S.stats);
     let d = nuevo(), elegida = null, fallidas = new Set(), fase = 'pregunta', ultimo = '', pista = false;
     const retrato = escena.retrato(enemigo.clase);
-    const fin = unaVez((r) => alTerminar(r));
+    // Horda: 20 segundos por pregunta; si no respondes a tiempo pierdes 2 corazones
+    const conReloj = Boolean(enemigo.horda), LIMITE_HORDA = 20000;
+    let t0 = performance.now(), reloj = 0; const cid = String(Math.random());
+    const fin = unaVez((r) => { clearInterval(reloj); alTerminar(r); });
 
     const pintar = () => {
       const vidaE = Math.max(0, enemigo.vida);
@@ -4411,8 +4601,10 @@
         cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Volverás a tu base y perderás lo que llevabas en la mochila.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="c-fin" data-foco>Volver a mi base</button></div>`;
       } else {
+        const resto = Math.max(0, LIMITE_HORDA - (performance.now() - t0));
         cuerpo = `
           ${ultimo}
+          ${conReloj ? `<div class="horda-reloj"><span>⏱️ <b id="h-seg">${Math.ceil(resto / 1000)}</b> s</span><div class="rey-tiempo"><i id="h-tiempo" data-c="${cid}" style="width:${(resto / LIMITE_HORDA) * 100}%"></i></div><small>Si no respondes a tiempo: −2 ❤</small></div>` : ''}
           <p class="enunciado">${mate(d.enunciado)}</p>
           ${alternativasHTML(d, elegida, fallidas, false)}
           ${pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : ''}
@@ -4460,9 +4652,32 @@
         if (S.vida <= 0) fase = 'derrota';
       }
       guardar();
-      d = nuevo(); elegida = null; fallidas = new Set(); pista = false;
+      d = nuevo(); elegida = null; fallidas = new Set(); pista = false; t0 = performance.now();
       pintar();
     };
+    // Se acabó el tiempo (solo en la horda)
+    const sinTiempo = () => {
+      registrar(d.tema, false); sfx('dano');
+      if (escudoActivo()) {
+        vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1;
+        ultimo = `<div class="mensaje pista" role="status">⏱️ ¡Se acabó el tiempo! Tu escudo de cristal bloqueó el golpe. La respuesta era ${mate(d.opciones[d.correcta])}.</div>`;
+      } else {
+        S.vida = Math.max(0, S.vida - 2); escena.dolor(); pintarHUD();
+        ultimo = `<div class="mensaje mal" role="status">⏱️ ¡Se acabó el tiempo! La horda te golpeó (−2 corazones). La respuesta era ${mate(d.opciones[d.correcta])}.</div>`;
+        if (S.vida <= 0) fase = 'derrota';
+      }
+      guardar();
+      d = nuevo(); elegida = null; fallidas = new Set(); pista = false; t0 = performance.now();
+      pintar();
+    };
+    if (conReloj) reloj = setInterval(() => {
+      let barra = $('h-tiempo'); if (barra && barra.dataset.c !== cid) barra = null;
+      if (fase !== 'pregunta' || !barra) { clearInterval(reloj); return; }
+      const resto = LIMITE_HORDA - (performance.now() - t0);
+      barra.style.width = `${Math.max(0, (resto / LIMITE_HORDA) * 100)}%`;
+      const sg = $('h-seg'); if (sg) { sg.textContent = Math.max(0, Math.ceil(resto / 1000)); sg.parentElement.classList.toggle('apura', resto < 6000); }
+      if (resto <= 0) sinTiempo();
+    }, 200);
     const teclas = (e) => {
       if (fase !== 'pregunta') { if (e.key === 'Enter') { e.preventDefault(); ui.alCerrar = () => fin(fase); ui.cerrar(); } return; }
       if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); }
@@ -4508,7 +4723,7 @@
       const banner = J.fase === 2 ? '<div class="mensaje pista rey-fase">🐗 ¡Llamó a su manada! Un escudo de raíces lo protege: rómpelo con aciertos. Cada pregunta tiene tiempo.</div>'
         : J.fase === 3 ? '<div class="mensaje mal rey-fase">🔥 ¡Furia ancestral! Preguntas difíciles, menos tiempo y cada error quita 3 corazones.</div>' : '';
       let cuerpo;
-      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px">¡Venciste al Rey Jabalí Ancestral! Ganas ${Object.entries(REY.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${REY.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Rey Jabalí</strong> para tu base (Decorar).' : ''} Volverá a despertar en 10 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px"><span>¡Venciste al Rey Jabalí Ancestral! Ganas ${Object.entries(REY.premio).map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')} y ${REY.xp} de experiencia.${primeraVez ? ' Además, ganaste la <strong>Estatua del Rey Jabalí</strong> para tu base (Decorar).' : ''} Volverá a despertar en 10 minutos.</span></div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
       else if (fin === 'derrota') cuerpo = '<div class="mensaje mal" role="status">Te quedaste sin corazones. Vuelves a tu base y pierdes lo que llevabas en la mochila. El Rey Jabalí descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>';
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El Rey Jabalí recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banner}${ultimo}
@@ -4557,7 +4772,7 @@
           sc.tweens.add({ targets: sc.rey, x: sc.rey.x + 5, duration: 50, yoyo: true, repeat: 2 });
           ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
         }
-        if (J.hp <= 0) fin = 'victoria';
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -4676,8 +4891,10 @@
         fase = 'victoria';
         if (!pagado) {
           pagado = true;
+          S.jefes = S.jefes || {};
+          animacionKO({ nombre: J0.nombre, retrato, gema: GEMA_DE_ZONA[e.zona], nueva: !S.jefes[e.zona] });
           Object.entries(J0.premio || JEFE_PREMIO).forEach(([r, n]) => sumar(r, n));
-          S.jefes = S.jefes || {}; S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1;
+          S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1;
           S.misiones[e.zona] = nuevasMisiones(e.zona);
           ganarXP(80); guardar(true);
           setTimeout(() => { toast('Recibiste nuevas misiones para volver a enfrentar al jefe.'); e.avisarGuarida(); pintarMisiones(); }, 2500);
@@ -4838,18 +5055,20 @@
     const unidades = await cargarContenido();
     const enBase = escena.zona === 'base';
     const tarjetas = unidades.map((u) => {
-      const ok = mundoAbierto(u) && MUNDOS[u.id];
+      const ok = mundoAbierto(u) && MUNDOS[u.id] && !desEnCurso('horda');
       const aqui = escena.zona === u.id;
       return `<button type="button" class="zona ${ok ? '' : 'cerrada'} ${aqui ? 'aqui' : ''}" data-z="${u.id}" ${ok && !aqui ? '' : 'disabled'}>
         <small>UNIDAD ${u.numero} · ${esc(u.titulo).toUpperCase()}</small><strong>${esc(MUNDOS[u.id] ? nombreZona(u.id) : 'Zona nueva')}</strong>
-        <span>${aqui ? 'Estás aquí' : ok ? 'Viajar a este mundo' : `Se abre cuando tu profesor habilite la Unidad ${u.numero}.`}</span></button>`;
-    }).join('');
+        <span>${aqui ? 'Estás aquí' : ok ? 'Viajar a este mundo' : desEnCurso('horda') && mundoAbierto(u) ? '⚔️ ¡La horda ataca la base! Vuelve a defenderla.' : `Se abre cuando tu profesor habilite la Unidad ${u.numero}.`}</span></button>`;
+    }).join('') + `<button type="button" class="zona quinto ${quintoListo() ? 'listo' : ''}" id="p-quinto" aria-disabled="true">
+        <small>${quintoListo() ? 'LAS 8 GEMAS BRILLAN' : `GEMAS DE LOS JEFES · ${gemasJefeTengo()} DE ${GEMAS_JEFE.length}`}</small><strong>5to Mundo</strong><span class="q-misterio">??????</span></button>`;
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Portal</span><h2 id="modal-titulo">¿A dónde quieres ir?</h2></div><button type="button" class="btn" id="p-cerrar">Cerrar</button></div>
       ${enBase ? '' : `<button type="button" class="zona" id="p-base"><small>TU BASE</small><strong>Volver a tu base</strong><span>Lo que llevas en la mochila se guarda en tu cofre y recuperas toda tu vida.</span></button>`}
       <div class="zonas">${tarjetas}</div>
       ${enBase ? '' : '<p class="nota">En los mundos tu vida no se recupera sola: vuelve a tu base o abre los cofres con corazón. Huir de un enemigo te quita 1 corazón. Si pierdes un combate, vuelves a tu base sin lo que llevabas en la mochila.</p>'}`);
     $('p-cerrar').addEventListener('click', () => ui.cerrar());
+    $('p-quinto').addEventListener('click', () => { sfx('alerta'); toast(quintoListo() ? '🔒 El 5to Mundo despertó con tus 8 gemas… pero su portal aún no se abre. ¡Muy pronto!' : `🔒 El 5to Mundo está sellado. Reúne las ${GEMAS_JEFE.length} gemas de los jefes (llevas ${gemasJefeTengo()}). Míralas en Tu avance → Gemas de los jefes.`, 'alerta'); });
     const pb = $('p-base');
     if (pb) pb.addEventListener('click', () => { ui.alCerrar = () => viajar('base'); ui.cerrar(); });
     document.querySelectorAll('[data-z]').forEach((b) => b.addEventListener('click', () => {
@@ -4956,10 +5175,11 @@
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
-        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-copos">❄️ Álbum de copos</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
+        <span><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-copos">❄️ Álbum de copos</button> <button type="button" class="btn sec" id="m-gjefe">👑 Gemas de los jefes</button> <button type="button" class="btn sec" id="m-salir">${esDocente() ? 'Volver al portal docente' : 'Cerrar sesión'}</button></span></div>`);
     $('m-album').addEventListener('click', () => { ui.cerrar(); abrirAlbum(); });
     $('m-gemas').addEventListener('click', () => { ui.cerrar(); abrirAlbumGemas(); });
     $('m-copos').addEventListener('click', () => { ui.cerrar(); abrirAlbumCopos(); });
+    $('m-gjefe').addEventListener('click', () => { ui.cerrar(); abrirAlbumJefes(); });
     $('m-cerrar').addEventListener('click', () => ui.cerrar());
     $('m-salir').addEventListener('click', async () => {
       guardar(true); await subir();
@@ -5053,9 +5273,17 @@
   const ahoraSrv = () => Date.now() + vivo.dif;
   const porServidor = (D) => D && (D.id === 'arena' || D.id === 'curso');   // resultado calculado por el servidor
   const desActivo = (id) => Boolean(vivo.def && vivo.fase === 'activo' && vivo.def.id === id);
-  // Horda y lluvia de meteoritos: nadie puede escapar por el portal (desde la cuenta regresiva hasta que termina)
-  const SIN_ESCAPE = ['horda', 'meteoritos'];
-  const portalBloqueado = () => Boolean(vivo.def && SIN_ESCAPE.includes(vivo.def.id) && (vivo.fase === 'activo' || vivo.fase === 'espera'));
+  // Dónde se juega cada desafío: el ladrón y la horda llegan a la base; los que ponen cosas en el mapa, solo en los mundos.
+  // (Los de preguntas en pantalla y los efectos generales —sabiduría doble, mercado— valen en cualquier lugar.)
+  const DES_BASE = ['ladron', 'horda'];
+  const DES_MUNDO = ['dorado', 'meteoritos', 'cofres', 'apagon', 'eclipse', 'recolecta', 'fiebre', 'turbo', 'escudo', 'tesoro', 'runas', 'buscados', 'estrellas'];
+  const enMundo = (sc = escena) => Boolean(sc && MUNDOS[sc.zona]);
+  const enLaBase = (sc = escena) => Boolean(sc && (sc.zona === 'base' || sc.zona === 'pieza'));
+  const desFueraDeLugar = (id, sc = escena) => (DES_MUNDO.includes(id) && !enMundo(sc)) || (id === 'horda' && !enLaBase(sc));
+  // Horda y lluvia de meteoritos: nadie puede escapar por el portal (desde la cuenta regresiva hasta que termina).
+  // Desde la base sí se puede viajar a un mundo para jugar los meteoritos; desde un mundo, durante la horda, solo se puede volver a la base.
+  const desEnCurso = (id) => Boolean(vivo.def && vivo.def.id === id && (vivo.fase === 'activo' || vivo.fase === 'espera'));
+  const portalBloqueado = () => (desEnCurso('horda') && !enMundo()) || (desEnCurso('meteoritos') && enMundo());
   // Menús comunes (cofre, equipo, fabricar, misiones, ejercicios de recursos) se pueden interrumpir; los minijuegos y otros desafíos no
   const menuInterrumpible = () => !/(^|\s)(pantalla|bloqueo|desafio-vivo|prisma)(\s|$)/.test($('modal').className);
   // Si el menú del portal está abierto cuando parte (o se anuncia) uno de estos desafíos, se cierra
@@ -5458,6 +5686,8 @@
       if (escena && escena.jugador) escena.cameras.main.flash(500, 200, 160, 255);
     } else if (vivo.def.id === 'ladron') {
       avisoGrande('¡Viene un ladrón!', 'Llegará a tu base en 30 segundos', 'Vuelve a tu base y atrápalo respondiendo 5 preguntas (máximo 3 errores)', 'ladron');
+    } else if (vivo.def.id === 'horda') {
+      avisoGrande('¡Una horda ataca la base!', enLaBase() ? '¡No hay escapatoria: defiéndela!' : 'Vuelve por el portal a tu base para defenderla', 'Tienes 20 segundos por pregunta · si no respondes, pierdes 2 corazones');
     } else if (vivo.def.id === 'apagon') {
       avisoGrande('¡Se apagan las luces!', 'Solo verás un círculo de luz a tu alrededor', 'Dura 1 minuto y medio · ¡cuidado con los enemigos!');
     } else if (vivo.def.id === 'runas') {
@@ -5477,10 +5707,16 @@
   }
   function montarDesafio(sc) {
     if (vivo.fase !== 'activo' || vivo.st.logrado) return;
+    if (desFueraDeLugar(vivo.def.id, sc)) {
+      const id = vivo.def.id;
+      setTimeout(() => toast(id === 'horda' ? '⚔️ ¡Una horda ataca la base! Vuelve por el portal a defenderla.' : `🌍 «${vivo.def.nombre}» se juega en los mundos: ¡viaja por el portal!`, 'alerta'), 900);
+      return;
+    }
     const I = IMPL[vivo.def.id];
     if (I.montar) I.montar(sc, vivo.st);
   }
   function actualizarDesafio(sc, dt) {
+    if (desFueraDeLugar(vivo.def.id, sc)) return;
     const I = IMPL[vivo.def.id];
     if (I.tick && !vivo.st.logrado) I.tick(sc, dt, vivo.st);
   }
@@ -5744,7 +5980,7 @@
     let det, rel = '', pct = 0;
     if (vivo.fase === 'espera') { det = D.resumen; rel = `${Math.min(10, Math.ceil((vivo.d.inicio - t) / 1000))}`; }
     else if (vivo.fase === 'activo') {
-      det = IMPL[D.id].progreso(vivo.st);
+      det = vivo.fase === 'activo' && desFueraDeLugar(D.id) ? (D.id === 'horda' ? '⚔️ ¡La horda ataca la base! Vuelve por el portal' : '🌍 Se juega en los mundos: ¡viaja por el portal!') : IMPL[D.id].progreso(vivo.st);
       rel = reloj(vivo.d.fin - t);
       pct = Math.max(0, Math.min(100, ((vivo.d.fin - t) / (vivo.d.fin - vivo.d.inicio)) * 100));
     } else if (vivo.fase === 'fin') { det = 'Calculando el resultado…'; }
@@ -5899,7 +6135,7 @@
       if (!this.textures.exists('jefe_u1b_hoja')) this.load.spritesheet('jefe_u1b_hoja', 'assets/enemigos/jefe_u1b.png', { frameWidth: 64, frameHeight: 64 });
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u3b', 'jefe_u4b', 'ladron']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -5916,7 +6152,7 @@
       this.aguas = [];   // rectángulos de agua: los enemigos que caminan no pueden entrar
       this.ocupado = new Set();
       // la escena se reutiliza al viajar: se limpia todo lo propio de cada mundo
-      for (const k of ['rio', 'valle', 'prof', 'cima', 'pisables', 'luz', 'jefeLuz', 'tormenta', 'granLago', 'santuario', 'estanque', 'rey', 'reyTag', 'sello', 'coloso', 'colosoTag', 'selloColoso', 'dragon', 'dragonTag', 'selloDragon',
+      for (const k of ['rio', 'valle', 'prof', 'cima', 'pisables', 'luz', 'jefeLuz', 'tormenta', 'granLago', 'santuario', 'estanque', 'rey', 'reyTag', 'sello', 'coloso', 'colosoTag', 'selloColoso', 'dragon', 'dragonTag', 'selloDragon', 'faraon', 'faraonTag', 'selloFaraon',
         'puenteSpr', 'montaSpr', 'elevSpr', 'rutaSpr', 'huecoSpr', 'huecoMina', 'tramoPuente', 'tramoValle', 'tramoMina', 'objObra', 'obraTag', 'objEscalar', 'lavas', 'pozaValle', 'estacion', 'estBolas', 'estHielo', 'arenaP']) this[k] = null;
       this.muelles = []; this.yUtil = 0; this.altoUtil = 0; this.anchoUtil = 0; this.ventisca = false;
       if (!MUNDOS[this.zona] && this.zona !== 'pieza') this.zona = 'base';
@@ -6094,7 +6330,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u3b', 'jefe_u4b', 'ladron'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -6535,6 +6771,22 @@
       this.add.particles(ex, ey - 30, 'p_brillo', { x: { min: -10, max: 10 }, lifespan: 1200, frequency: 300, speedY: { min: -20, max: -5 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(ey + 1);
       this.objetos.push({ tipo: 'esfinge', x: ex, y: ey + 6, activo: true });
       for (const dx of [-3, 3]) { const c = this.sprite('v_estatua_chacal', gx + dx, 6); this.solido(c.x, c.y - 10, 18, 14); }
+      // tumba del Faraón de las Arenas Eternas (al oeste del valle)
+      {
+        const TX = 8, TY = 9;
+        for (let y = TY - 4; y <= TY + 3; y++) for (let x = TX - 4; x <= TX + 4; x++) this.marcar(x, y);
+        const sar = this.sprite('v_sarcofago', TX, TY - 1); this.solido(sar.x, sar.y - 10, 18, 14);
+        for (const dx of [-3, 3]) { const o = this.sprite('v_obelisco', TX + dx, TY); this.solido(o.x, o.y - 8, 16, 12); }
+        for (const dx of [-2, 2]) { const t = this.sprite('v_antorcha_obsidiana', TX + dx, TY - 2); this.add.particles(t.x, t.y - 26, 'p_rojo', { lifespan: 500, frequency: 140, speedY: { min: -30, max: -10 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.9, end: 0 } }).setDepth(t.y + 1); }
+        const cx = TX * TILE + 16, cy = (TY + 2) * TILE + 6;
+        this.faraon = this.add.sprite(cx, cy, 'jefe_u2b_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.3).setDepth(cy).setTint(0x8a7a6a);
+        this.solido(cx, cy - 16, 50, 24);
+        this.faraonTag = this.add.text(cx, cy - 140, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+        this.selloFaraon = this.add.particles(cx, cy - 30, 'p_brillo', { x: { min: -50, max: 50 }, y: { min: -40, max: 30 }, lifespan: 1400, frequency: 90, speedY: { min: -20, max: -6 }, scale: { start: 1, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(9999);
+        this.tweens.add({ targets: this.faraon, scaleY: 2.36, duration: 1500, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.objetos.push({ tipo: 'faraon', x: cx, y: cy + 8, activo: true });
+        this.actualizarFaraon();
+      }
       // avenida de obeliscos y antorchas
       for (const y of [9, 11, 17, 19]) for (const dx of [-1, 1]) {
         if (y >= cy0 - 1) continue;
@@ -6985,6 +7237,15 @@
         if (k === 'g_arbol_aurora') luz(sp.x, sp.y - 30, 0x7af0c0, 0.6, 0.25);
       }
       this.objetos.forEach((o, i) => { o.idx = i; });
+    }
+    actualizarFaraon() {
+      if (!this.faraon) return;
+      const descansa = (S.faraonHasta || 0) > Date.now(), abierto = tiene('ankh');
+      const despierto = abierto && !descansa;
+      this.faraon.setTint(despierto ? 0xffffff : 0x8a7a6a);
+      if (despierto) this.faraon.anims.play('jefe_u2b_down', true); else { this.faraon.anims.stop(); this.faraon.setFrame(DIRS.down * 9); }
+      this.selloFaraon.emitting = !abierto;
+      this.faraonTag.setText(`Faraón de las Arenas Eternas\n(${!abierto ? 'sellado: necesitas el ankh de obsidiana' : descansa ? `descansa: vuelve en ${Math.ceil(((S.faraonHasta || 0) - Date.now()) / 60000)} min` : '¡despierto! E para desafiarlo'})`);
     }
     actualizarDragon() {
       if (!this.dragon) return;
@@ -8397,7 +8658,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'ladron', 'tesoro', 'runa', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'ladron', 'tesoro', 'runa', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -8446,6 +8707,7 @@
         case 'rapel': return 'Bajar en rapel al glaciar';
         case 'dragon': return !tiene('cetro_aurora') ? 'Dragón dormido: necesitas el cetro de la aurora' : (S.dragonHasta || 0) > Date.now() ? 'El Dragón de la Aurora descansa' : '¡Desafiar al Dragón de la Aurora!';
         case 'altar': return o.estado === 'vacio' ? 'Altar apagado: vuelve más tarde' : 'Resolver el rompecabezas de cristales';
+        case 'faraon': return !tiene('ankh') ? 'Tumba sellada: necesitas el ankh de obsidiana' : (S.faraonHasta || 0) > Date.now() ? 'El Faraón descansa' : '¡Desafiar al Faraón de las Arenas Eternas!';
         case 'coloso': return !tiene('corazon_cristal') ? 'Coloso sellado: necesitas el corazón de cristal' : (S.colosoHasta || 0) > Date.now() ? 'El Coloso de Magma descansa' : '¡Desafiar al Coloso de Magma!';
         case 'esfinge': return tiene('antorcha_esfinge') ? 'Entrar al laberinto de la Gran Esfinge' : 'Gran Esfinge: necesitas la antorcha de la esfinge';
         case 'sitio': return o.estado === 'vacio' ? 'Sitio excavado: vuelve más tarde' : tiene('pala') ? 'Excavar el sitio arqueológico' : 'Sitio arqueológico: necesitas una pala de arqueólogo';
@@ -8524,6 +8786,11 @@
         if (o.estado === 'vacio') return toast('Este altar está apagado. Vuelve en unos minutos o busca otro.');
         this.mirarA(o);
         return abrirDesafio({ accion: 'Activar el altar de cristal', dif: difPara(2), premio: 'Premio: resolver el rompecabezas de cristales', onOk: () => abrirCristales(() => this.altarUsado(o)) });
+      }
+      if (o.tipo === 'faraon') {
+        if (!tiene('ankh')) return toast('La tumba del Faraón está sellada. Fabrica el ankh de obsidiana (obsidiana, fósiles y oro) en la fogata de tu base.', 'alerta');
+        if ((S.faraonHasta || 0) > Date.now()) return toast(`El Faraón de las Arenas Eternas descansa. Vuelve en ${Math.ceil((S.faraonHasta - Date.now()) / 60000)} min.`);
+        return abrirFaraon();
       }
       if (o.tipo === 'coloso') {
         if (!tiene('corazon_cristal')) return toast('El Coloso está sellado. Fabrica el corazón de cristal (cristal resonante y magma) en la fogata de tu base.', 'alerta');
@@ -9026,10 +9293,10 @@
     }
     // La manada del Rey Jabalí: jabalíes que salen junto al santuario
     soltarBichoJunto() {
-      if (!this.rey) return;
+      const jefe = this.rey || this.faraon; if (!jefe) return;
       const a = Math.random() * Math.PI * 2;
-      const e = this.crearBichoDesafio('bicho', this.rey.x + Math.cos(a) * 110, this.rey.y + 60 + Math.sin(a) * 50, { vida: 2 });
-      this.flotante(e.s.x, e.s.y - 50, '¡La manada!', '#ffb4a3');
+      const e = this.crearBichoDesafio(this.rey ? 'bicho' : 'momia', jefe.x + Math.cos(a) * 110, jefe.y + 60 + Math.sin(a) * 50, { vida: 2 });
+      this.flotante(e.s.x, e.s.y - 50, this.rey ? '¡La manada!' : '¡Las momias despiertan!', '#ffb4a3');
     }
     soltarHorda(n, refuerzo = false) {
       const clases = { base: ['niebla', 'bicho', 'arbusto'], pieza: ['bicho', 'arbusto'], u1: ['niebla', 'bicho', 'arbusto'], u2: ['esqueleto', 'remolino', 'escorpion'], u3: ['murcielago', 'minero', 'golem'], u4: ['lobo_nieve', 'espiritu', 'muneco'] }[this.zona] || ['niebla', 'bicho'];
