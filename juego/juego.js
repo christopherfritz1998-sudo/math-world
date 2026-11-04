@@ -18,9 +18,9 @@
     { id: 'trueno', nombre: 'Centinela del Trueno', nivel: 40, hab: { nombre: 'Rayo Celestial', icono: '⚡', clase: 'rayo', color: [255, 230, 90], dano: 20 } },
     { id: 'sombra', nombre: 'Caballero de las Sombras', nivel: 50, hab: { nombre: 'Golpe Sombrío', icono: '🌑', clase: 'sombra', color: [150, 80, 220], dano: 30 } },
     { id: 'bosque', nombre: 'Guardiana del Bosque', nivel: 60, hab: { nombre: 'Furia de la Naturaleza', icono: '🌿', clase: 'bosque', color: [90, 200, 110], dano: 35 } },
-    { id: 'cazadora', nombre: 'Cazadora Élfica', nivel: 70, hab: { nombre: 'Lluvia de Flechas', icono: '🏹', clase: 'flechas', color: [140, 210, 90], dano: 40 } },
-    { id: 'ninja', nombre: 'Ninja Carmesí', nivel: 80, hab: { nombre: 'Danza de Katanas', icono: '🗡️', clase: 'katana', color: [230, 40, 60], dano: 45 } },
-    { id: 'archimago', nombre: 'Archimago Celestial', nivel: 90, hab: { nombre: 'Tormenta Arcana', icono: '🔮', clase: 'arcano', color: [150, 90, 255], dano: 50 } },
+    { id: 'cazadora', armaPropia: true, nombre: 'Cazadora Élfica', nivel: 70, hab: { nombre: 'Lluvia de Flechas', icono: '🏹', clase: 'flechas', color: [140, 210, 90], dano: 40 } },
+    { id: 'ninja', armaPropia: true, nombre: 'Ninja Carmesí', nivel: 80, hab: { nombre: 'Danza de Katanas', icono: '🗡️', clase: 'katana', color: [230, 40, 60], dano: 45 } },
+    { id: 'archimago', armaPropia: true, nombre: 'Archimago Celestial', nivel: 90, hab: { nombre: 'Tormenta Arcana', icono: '🔮', clase: 'arcano', color: [150, 90, 255], dano: 50 } },
     // Leyendas: los 3 personajes más fuertes del juego (nivel 100)
     { id: 'emperador', armaPropia: true, nombre: 'Emperador Dorado', nivel: 100, leyenda: true, hab: { nombre: 'Juicio del Emperador', icono: '👑', clase: 'dorado', color: [255, 200, 60], dano: 60, leyenda: true } },
     { id: 'esqueleto', armaPropia: true, nombre: 'Rey Esqueleto', nivel: 100, leyenda: true, hab: { nombre: 'Ejército de Huesos', icono: '💀', clase: 'huesos', color: [190, 80, 255], dano: 60, leyenda: true } },
