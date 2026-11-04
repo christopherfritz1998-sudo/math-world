@@ -413,7 +413,7 @@
       furia: { titulo: '¡Ventisca helada!', toast: 'desató una ventisca helada', particula: 'p_nieve', tinte: 0xbfe8ff, flash: [210, 235, 255] } },
   };
   const VIDA_HUIR = 1, VIDA_COFRE = 2;
-  const JEFE_MIN = 4, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
+  const JEFE_MIN = 4, JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
   // ===================================================================
@@ -4801,7 +4801,7 @@
   function abrirInfoJefe(zona) {
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq" style="color: var(--coral)">Jefe final</span><h2 id="modal-titulo">${esc(JEFES[zona].nombre)}</h2></div></div>
-      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y cuando al menos <strong>${JEFE_MIN} jugadores</strong> cumplan sus misiones de este mundo, el jefe aparecerá en un lugar al azar del mapa: búsquenlo y lleguen juntos hasta él. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
+      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y cuando al menos <strong>${JEFE_MIN} jugadores</strong> cumplan sus misiones de este mundo, el jefe aparecerá en un lugar al azar del mapa: búsquenlo y lleguen juntos hasta él. Pueden luchar de <strong>${JEFE_MIN} a ${JEFE_MAX} jugadores</strong>: los que lleguen después se pueden unir al combate. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
       <div class="acciones"><span></span><button type="button" class="btn pri" id="ij-ok" data-foco>Entendido</button></div>`, 'jefe');
     $('ij-ok').addEventListener('click', () => ui.cerrar());
   }
@@ -8975,6 +8975,7 @@
       c.on('libre', (d) => { const e = this.enemigo(d.k); if (e) { e.ocupado = null; e.aturdido = this.time.now + 3000; } });
       c.on('vencido', (d) => { const e = this.enemigo(d.k); if (e && !(this.enCombate && combateActual === e)) this.vencerEnemigo(e); });
       c.on('jefe_pedir', () => this.iniciarJefeSiLider());
+      c.on('jefe_unir', (d) => this.unirAlJefe(d && d.id));
       c.on('golpe', (d) => this.golpeAlJefe(d.dmg));
       c.on('caido', (d) => this.sacarDelJefe(d.id));
     }
@@ -9115,6 +9116,12 @@
       if (this.yoEnGuarida && misionesListas(this.zona)) ids.push(idJuego);
       return ids;
     }
+    // Todos los que están junto al jefe (con o sin misiones): pueden luchar de 4 a 6
+    jugadoresJuntoAlJefe() {
+      const ids = [...this.estadoJug].filter(([id, st]) => st.dentro && this.otros.has(id)).map(([id]) => id);
+      if (this.yoEnGuarida) ids.push(idJuego);
+      return ids;
+    }
     // El jefe está oculto hasta que al menos JEFE_MIN jugadores del grupo cumplan sus misiones
     jefeVisible() {
       const J = this.jefe;
@@ -9177,7 +9184,7 @@
       }
       if (vis) {
         const n = this.jugadoresEnGuarida().length;
-        const txt = this.jefe.estado === 'combate' ? nombre : `${nombre}\n(${Math.min(n, JEFE_MIN)} de ${JEFE_MIN} jugadores aquí)`;
+        const txt = this.jefe.estado === 'combate' ? `${nombre}\n(${this.jefe.part.length} de ${JEFE_MAX} luchando${this.jefe.part.length < JEFE_MAX && !this.jefe.part.includes(idJuego) ? ' · E para unirse' : ''})` : `${nombre}\n(${n} ${n === 1 ? 'jugador' : 'jugadores'} aquí · se lucha de ${JEFE_MIN} a ${JEFE_MAX})`;
         if (txt !== this.jefeTagTxt) { this.jefeTagTxt = txt; this.jefeTag.setText(txt).setAlign('center'); }
       }
     }
@@ -9192,6 +9199,8 @@
     }
     jefeDisponible() { const J = this.jefe; return J && (J.estado === 'libre' || (J.estado === 'vencido' && J.hasta <= Date.now())); }
     textoJefe() {
+      const Jc = this.jefe;
+      if (this.canal && Jc && Jc.estado === 'combate' && !Jc.part.includes(idJuego)) return Jc.part.length < JEFE_MAX ? `¡Unirse al combate contra el jefe! (${Jc.part.length} de ${JEFE_MAX})` : `Tu grupo está luchando (${JEFE_MAX} de ${JEFE_MAX}: combate lleno)`;
       if (!misionesListas(this.zona)) { const M = misionesDe(this.zona); return `Jefe final: cumple tus misiones para enfrentarlo (${M.lista.filter((m) => m.p >= m.n).length} de ${M.lista.length})`; }
       if (!this.canal) return 'Jefe final: viaja con un grupo';
       const J = this.jefe;
@@ -9199,9 +9208,19 @@
       if (!this.jefeDisponible()) return `Jefe derrotado: vuelve en ${Math.ceil((J.hasta - Date.now()) / 60000)} min`;
       if (!this.jefeVisible()) return `Jefe oculto: ${this.jugadoresListos().length} de ${JEFE_MIN} jugadores listos`;
       const n = this.jugadoresEnGuarida().length;
-      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${n} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores aquí`;
+      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${Math.min(JEFE_MAX, this.jugadoresJuntoAlJefe().length)} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores listos aquí (máximo ${JEFE_MAX})`;
     }
     pedirJefe() {
+      const Jc = this.jefe;
+      // Unirse a un combate que ya empezó (hasta 6 jugadores)
+      if (this.canal && Jc && Jc.estado === 'combate' && !Jc.part.includes(idJuego)) {
+        if (Jc.part.length >= JEFE_MAX) return toast(`El combate ya tiene ${JEFE_MAX} jugadores: es el máximo.`, 'alerta');
+        if (S.arma && S.herramienta !== 'espada') equipar('espada');
+        this.avisarGuarida();
+        this.canal.emitir('jefe_unir', { id: idJuego });
+        toast('Uniéndote al combate…');
+        return;
+      }
       if (!misionesListas(this.zona)) { toast(`Para enfrentar al jefe primero cumple tus ${MISIONES_JEFE} misiones de este mundo.`, 'alerta'); return abrirMisiones(); }
       if (!this.canal) return abrirInfoJefe(this.zona);
       const J = this.jefe;
@@ -9216,11 +9235,23 @@
     }
     iniciarJefeSiLider() {
       if (!this.jefeDisponible()) return;
-      const part = this.jugadoresEnGuarida().sort();
-      if (part.length < JEFE_MIN || part[0] !== idJuego) return;
+      const listos = this.jugadoresEnGuarida().sort();
+      if (listos.length < JEFE_MIN || listos[0] !== idJuego) return;
+      // entran todos los que están junto al jefe (primero los que cumplieron sus misiones), hasta 6
+      const part = [...new Set([...listos, ...this.jugadoresJuntoAlJefe().sort()])].slice(0, JEFE_MAX).sort();
+      if (!part.includes(idJuego)) part[0] = idJuego;
       const max = (JEFES[this.zona].vida || JEFE_VIDA_POR_JUGADOR) * part.length;
       this.jefe = { estado: 'combate', hp: max, max, part, lider: idJuego, hasta: 0 };
       this.publicarJefe();
+    }
+    // El líder suma a un compañero que llega tarde: el jefe gana la vida de un jugador más
+    unirAlJefe(id) {
+      const J = this.jefe;
+      if (!J || J.estado !== 'combate' || J.lider !== idJuego || !id || J.part.includes(id) || J.part.length >= JEFE_MAX || !this.otros.has(id)) return;
+      const extra = JEFES[this.zona].vida || JEFE_VIDA_POR_JUGADOR;
+      J.part = [...J.part, id]; J.max += extra; J.hp += extra;
+      this.publicarJefe();
+      this.flotante(this.jefeSpr ? this.jefeSpr.x : this.jugador.x, (this.jefeSpr ? this.jefeSpr.y : this.jugador.y) - 120, `¡${this.nombreJugador(id)} se une!`, '#9fe8a8');
     }
     jefeParaEnviar() { const J = this.jefe; return { estado: J.estado, hp: J.hp, max: J.max, part: J.part, lider: J.lider, resta: Math.max(0, J.hasta - Date.now()), lugar: this.jefeLugar }; }
     publicarJefe() { if (this.canal) this.canal.emitir('jefe', this.jefeParaEnviar()); this.alCambiarJefe(); }
