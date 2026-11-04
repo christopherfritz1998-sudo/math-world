@@ -16,6 +16,11 @@
     // Caballeros alados: se desbloquean con el logro «El rey del juego»
     { id: 'paladin', nombre: 'Paladín Solar', rey: true }, { id: 'valquiria', nombre: 'Valquiria del Viento', rey: true },
     { id: 'draconico', nombre: 'Caballero Dragón', rey: true }, { id: 'arcangel', nombre: 'Arcángel Coronada', rey: true },
+    // Guerreros elementales: se desbloquean en el nivel 30 y tienen una habilidad especial (ver «Habilidad especial»)
+    { id: 'fenix', nombre: 'Fénix Llameante', n30: true, hab: { nombre: 'Llamarada del Fénix', icono: '🔥', clase: 'fuego', color: [255, 120, 40] } },
+    { id: 'trueno', nombre: 'Centinela del Trueno', n30: true, hab: { nombre: 'Rayo Celestial', icono: '⚡', clase: 'rayo', color: [255, 230, 90] } },
+    { id: 'sombra', nombre: 'Caballero de las Sombras', n30: true, hab: { nombre: 'Golpe Sombrío', icono: '🌑', clase: 'sombra', color: [150, 80, 220] } },
+    { id: 'bosque', nombre: 'Guardiana del Bosque', n30: true, hab: { nombre: 'Furia de la Naturaleza', icono: '🌿', clase: 'bosque', color: [90, 200, 110] } },
   ];
   // Cada mundo tiene sus propios recursos (los mundos sin recursos propios usan los de la Unidad 1)
   const RECURSOS = [
@@ -405,15 +410,15 @@
   const xpPara = (nivel) => 60 + 40 * nivel;
   const JEFES = {
     u1: { nombre: 'Troll Guardián del Bosque', color: '#7d8a7a', lpc: true, retrato: 'jefe_u1_retrato' },
-    u2: { nombre: 'Rey Lagarto de las Dunas', color: '#c9a46b', lpc: true, retrato: 'jefe_u2_retrato', vida: 9, fases: true, premio: { oro: 6, cobre: 8, arenisca: 10 },
+    u2: { nombre: 'Rey Lagarto de las Dunas', color: '#c9a46b', lpc: true, retrato: 'jefe_u2_retrato', vida: 14, fases: true, premio: { oro: 6, cobre: 8, arenisca: 10 },
       furia: { titulo: '¡Tormenta de arena!', toast: 'desató una tormenta de arena', particula: 'p_arena', tinte: 0xffc07a, flash: [230, 170, 60] } },
-    u3: { nombre: 'Minotauro de las Profundidades', color: '#8a7aa6', lpc: true, retrato: 'jefe_u3_retrato', vida: 10, fases: true, premio: { amatista: 5, plata: 8, carbon: 10 },
+    u3: { nombre: 'Minotauro de las Profundidades', color: '#8a7aa6', lpc: true, retrato: 'jefe_u3_retrato', vida: 15, fases: true, premio: { amatista: 5, plata: 8, carbon: 10 },
       furia: { titulo: '¡Derrumbe en la mina!', toast: 'provocó un derrumbe', particula: 'p_piedra', tinte: 0xc9b6ff, flash: [150, 130, 200] } },
-    u4: { nombre: 'Yeti, Rey de la Escarcha', color: '#9fc6e6', lpc: true, retrato: 'jefe_u4_retrato', vida: 11, fases: true, premio: { zafiro: 5, escarcha: 8, hielo: 10 },
+    u4: { nombre: 'Yeti, Rey de la Escarcha', color: '#9fc6e6', lpc: true, retrato: 'jefe_u4_retrato', vida: 17, fases: true, premio: { zafiro: 5, escarcha: 8, hielo: 10 },
       furia: { titulo: '¡Ventisca helada!', toast: 'desató una ventisca helada', particula: 'p_nieve', tinte: 0xbfe8ff, flash: [210, 235, 255] } },
   };
   const VIDA_HUIR = 1, VIDA_COFRE = 2;
-  const JEFE_MIN = 4, JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 6, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
+  const JEFE_MIN = 4, JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 9, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
   // ===================================================================
@@ -928,7 +933,7 @@
   decorarIngreso();
   function prepararIngreso() {
     const cont = $('personajes');
-    cont.innerHTML = PERSONAJES.filter((p) => !p.rey).map((p) => `
+    cont.innerHTML = PERSONAJES.filter((p) => !p.rey && !p.n30).map((p) => `
       <button type="button" class="opcion" data-pj="${p.id}" aria-pressed="false" aria-label="Personaje ${p.nombre}">
         <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span>
         <span style="font-size: 12px">${p.nombre}</span>
@@ -1045,7 +1050,7 @@
   // ---------- Invitados: sala única de hasta 10 jugadores, con aprobación del docente ----------
   const inv = { modo: 'entrar', nivel: '7', pj: 'zorro', espera: null };
   function prepararInvitado() {
-    $('inv-personajes').innerHTML = PERSONAJES.filter((p) => !p.rey).map((p) => `
+    $('inv-personajes').innerHTML = PERSONAJES.filter((p) => !p.rey && !p.n30).map((p) => `
       <button type="button" class="opcion" data-ipj="${p.id}" aria-pressed="${p.id === inv.pj}" aria-label="Personaje ${p.nombre}">
         <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span>
         <span style="font-size: 12px">${p.nombre}</span>
@@ -1336,7 +1341,7 @@
       <div class="equipo">
         <div class="equipo-vista">
           ${figuraHTML(S.pj, S.armadura, S.herramienta, S.arma, 160)}
-          <div class="pildoras"><span class="pildora">Golpe: ${danio()}</span><span class="pildora">Vida máx.: ${vidaMax()}</span></div>
+          <div class="pildoras"><span class="pildora">Golpe: ${danio()}</span><span class="pildora">Vida máx.: ${vidaMax()}</span>${habDe() ? `<span class="pildora hab-pild">${habDe().icono} ${esc(habDe().nombre)}: ${Math.min(HAB_CARGA, S.habCarga || 0)}/${HAB_CARGA}</span>` : ''}</div>
         </div>
         <div class="equipo-listas">
           <h3>En la mano</h3>
@@ -1400,6 +1405,7 @@
     const st = S.stats[tema] || (S.stats[tema] = { a: 0, i: 0 });
     st.i += 1; if (acierto) st.a += 1;
     S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
+    cargarHabilidad(acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
   }
@@ -1414,13 +1420,11 @@
   function abrirDesafio({ accion, dif, premio, unidad, onOk }) {
     const pagarUnaVez = unaVez(onOk);
     const nuevo = () => Preguntas.nuevo(S.curso, unidad || unidadActual(), dif, S.stats);
-    let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = false, fallidas = new Set();
+    let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = false, fallidas = new Set(), aviso = '';
     const pintar = () => {
       let msg = '';
       if (resuelto) msg = `<div class="mensaje bien" role="status">¡Correcto! ${mate(d.explicacion)}</div>`;
-      else if (fallos >= 2) msg = `<div class="mensaje mal" role="status">Revisemos juntos: ${mate(d.explicacion)} Puedes elegir esa respuesta o pedir otro desafío.</div>`;
-      else if (fallos === 1) msg = `<div class="mensaje mal" role="status">Casi. ${mate(d.pista)} Inténtalo otra vez.</div>`;
-      else if (pista) msg = `<div class="mensaje pista">${mate(d.pista)}</div>`;
+      else msg = aviso + (pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : '');
       ui.abrir(`
         <div class="modal-cab">
           <div><span class="etq">${esc(d.titulo)}</span><h2 id="modal-titulo">${esc(accion)}</h2></div>
@@ -1431,7 +1435,7 @@
         ${msg}
         <div class="acciones">
           <div>${resuelto ? '' : `<button type="button" class="btn sec" id="d-pista">${pista ? 'Ocultar pista' : 'Ver pista'}</button>`}
-               ${!resuelto && fallos >= 2 ? '<button type="button" class="btn sec" id="d-otro">Otro desafío</button>' : ''}</div>
+               </div>
           <div>${resuelto ? '<button type="button" class="btn pri" id="d-seguir" data-foco>¡Seguir!</button>'
             : `<button type="button" class="btn" id="d-salir">Salir</button><button type="button" class="btn pri" id="d-ok" ${elegida === null ? 'disabled' : ''}>Comprobar</button>`}</div>
         </div>`);
@@ -1449,7 +1453,12 @@
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
       if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4); }
-      else { fallos += 1; sfx('error'); fallidas.add(elegida); elegida = null; }
+      else {
+        // Error: no quita vida; se muestra la respuesta correcta y se cambia a otra pregunta
+        fallos += 1; sfx('error');
+        aviso = `<div class="mensaje mal" role="status">No era esa: la respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)} Aquí tienes otra pregunta.</div>`;
+        d = nuevo(); elegida = null; fallidas = new Set(); pista = false;
+      }
       guardar();
       pintar();
     };
@@ -1597,16 +1606,16 @@
   // Todo el nivel (7° u 8° básico) aporta recursos a la misma obra; el avance queda guardado en el sistema
   // y, cuando se completa, queda construida para siempre.
   const OBRAS = {
-    puente: { id: 'puente_bosque', meta: { madera: 360, piedra: 210, agua: 90, cristal: 24 }, icono: '🌉', nombre: 'Puente al Bosque profundo', corto: 'el puente', al: 'al puente', local: 'obraLocal',
+    puente: { id: 'puente_bosque', meta: { madera: 540, piedra: 315, agua: 135, cristal: 36 }, icono: '🌉', nombre: 'Puente al Bosque profundo', corto: 'el puente', al: 'al puente', local: 'obraLocal',
       intro: 'El río no se puede cruzar. Tu grupo construye su propio puente aportando recursos: el avance se guarda y, cuando se completa, queda construido para siempre para tu grupo.',
       listo: 'El puente está construido para siempre: cruza el río por el camino hacia el Bosque profundo.', fin: '¡Puente terminado!' },
-    valle: { id: 'montacargas_valle', meta: { fibra: 1000, arenisca: 800, cobre: 400, oro: 120 }, icono: '🏗️', nombre: 'Montacargas al Valle de la Esfinge', corto: 'el montacargas', al: 'al montacargas', local: 'obraLocalValle',
+    valle: { id: 'montacargas_valle', meta: { fibra: 1500, arenisca: 1200, cobre: 600, oro: 180 }, icono: '🏗️', nombre: 'Montacargas al Valle de la Esfinge', corto: 'el montacargas', al: 'al montacargas', local: 'obraLocalValle',
       intro: 'El acantilado no se puede escalar. Tu grupo construye su montacargas de poleas: cuerdas de fibra, plataforma de arenisca, poleas de cobre y engranajes de oro. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
       listo: 'El montacargas está terminado para siempre: sube por él hacia el Valle de la Esfinge.', fin: '¡Montacargas terminado!' },
-    mina: { id: 'elevador_mina', meta: { carbon: 1000, plata: 650, hongo: 320, amatista: 110 }, icono: '⛓️', nombre: 'Elevador a las Profundidades', corto: 'el elevador', al: 'al elevador', local: 'obraLocalMina',
+    mina: { id: 'elevador_mina', meta: { carbon: 1500, plata: 975, hongo: 480, amatista: 165 }, icono: '⛓️', nombre: 'Elevador a las Profundidades', corto: 'el elevador', al: 'al elevador', local: 'obraLocalMina',
       intro: 'La fosa no se puede bajar a pie. Tu grupo construye su elevador de la mina: carbón para la máquina, plata para los cables, hongos luminosos para alumbrar y amatista para el mecanismo. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
       listo: 'El elevador está terminado para siempre: baja por él hacia las Profundidades.', fin: '¡Elevador terminado!' },
-    cima: { id: 'ruta_glaciar', meta: { hielo: 1000, escarcha: 560, baya: 320, zafiro: 110 }, icono: '🧗', nombre: 'Ruta de escalada del glaciar', corto: 'la ruta de escalada', al: 'a la ruta de escalada', local: 'obraLocalCima',
+    cima: { id: 'ruta_glaciar', meta: { hielo: 1500, escarcha: 840, baya: 480, zafiro: 165 }, icono: '🧗', nombre: 'Ruta de escalada del glaciar', corto: 'la ruta de escalada', al: 'a la ruta de escalada', local: 'obraLocalCima',
       intro: 'La pared del glaciar es demasiado alta y lisa. Tu grupo equipa su ruta de escalada: bloques de hielo para los peldaños, escarcha para fijar los anclajes, bayas para los escaladores y zafiros para los ganchos. El avance se guarda y, cuando se completa, la ruta queda lista para siempre. Además, cada escalador necesita su propio piolet y sus crampones.',
       listo: 'La ruta de escalada está lista para siempre: con piolet y crampones puedes subir a la Cima del Glaciar.', fin: '¡Ruta de escalada terminada!' },
   };
@@ -1631,7 +1640,7 @@
     if ($('obra-cuerpo')) pintarObra(k);
   }
   setInterval(() => { if (escena && obraDeEscena() && !document.hidden && !ui.abierto) cargarObra(); }, 15000);
-  const PUENTE_GRANDE = { madera: 1100, piedra: 700, agua: 320, cristal: 80 };   // el puente pide más en todos los cursos salvo 7° B
+  const PUENTE_GRANDE = { madera: 1650, piedra: 1050, agua: 480, cristal: 120 };   // el puente pide más en todos los cursos salvo 7° B
   const metaObra = (k) => (obraE[k] && obraE[k].meta) || (k === 'puente' && sesion.modo === 'nube' && S && S.seccion !== '7B' ? PUENTE_GRANDE : OBRAS[k].meta);
   const obraFalta = (k, r) => Math.max(0, metaObra(k)[r] - ((obraE[k] && obraE[k].aportes && obraE[k].aportes[r]) || 0));
   const pctObra = (k) => {
@@ -1959,8 +1968,13 @@
     const g = gema && GEMA_JEFE[gema];
     const el = document.createElement('div');
     el.id = 'ko'; el.className = 'ko'; el.setAttribute('role', 'alert');
-    el.innerHTML = `<div class="ko-rayos"></div><div class="ko-flash"></div>
-      <div class="ko-jefe">${retrato ? `<img class="px" src="${retrato}" alt="">` : ''}</div>
+    const colores = ['#ffd23a', '#ff5a3a', '#4fd1c5', '#9f7aea', '#68d391', '#f6ad55', '#ffffff'];
+    const confeti = Array.from({ length: 46 }, (_, i) => `<i style="--x:${(i * 37) % 100}vw;--c:${colores[i % colores.length]};--d:${1.4 + (i % 9) * 0.12}s;--t:${2.4 + (i % 5) * 0.5}s;--g:${(i % 2 ? 1 : -1) * (120 + (i % 7) * 50)}deg"></i>`).join('');
+    const trozos = Array.from({ length: 12 }, (_, i) => `<i style="--a:${i * 30}deg;--r:${110 + (i % 3) * 40}px"></i>`).join('');
+    const heroe = S ? `<div class="ko-heroe" style="background-image:url('assets/pj/${esc(S.pj)}_${esc(texArmadura(S.armadura))}.png')"></div>` : '';
+    el.innerHTML = `<div class="ko-rayos"></div><div class="ko-flash"></div><div class="ko-confeti">${confeti}</div>
+      <div class="ko-jefe">${retrato ? `<img class="px" src="${retrato}" alt="">` : ''}<div class="ko-trozos">${trozos}</div></div>
+      ${heroe}<div class="ko-victoria"><span>🏆 ¡VICTORIA! 🏆</span></div>
       <div class="ko-texto" aria-label="K.O."><span>K</span><span>.</span><span>O</span><span>.</span><span>!</span></div>
       <div class="ko-sub">¡${esc(nombre)} ha sido derrotado!</div>
       ${g ? `<div class="ko-gema"><img class="px" src="${ICONO('gjefe_' + g.id)}" alt=""><b>${nueva ? '¡Nueva gema!' : 'Gema del jefe'}</b><span>${esc(g.nombre)}${nueva ? ` · ${gemasJefeTengo()} de ${GEMAS_JEFE.length}` : ' · ya está en tu álbum'}</span></div>` : ''}
@@ -1972,7 +1986,7 @@
     if (navigator.vibrate) { try { navigator.vibrate([120, 60, 260]); } catch (e) { /* */ } }
     const quitar = () => { if (!el.isConnected) return; el.classList.add('sale'); setTimeout(() => el.remove(), 450); };
     el.addEventListener('click', quitar);
-    setTimeout(quitar, g ? 4600 : 3400);
+    setTimeout(quitar, g ? 5800 : 4800);
   }
 
   // ---------- Minijuego de excavación ----------
@@ -2699,7 +2713,7 @@
   }
 
   // ---------- Coloso de Magma: jefe de las Profundidades (solo, 3 fases) ----------
-  const COLOSO = { nombre: 'Coloso de Magma', vida: 42, premio: { magma: 10, cristal_eco: 8, amatista: 6, plata: 10 }, xp: 260 };
+  const COLOSO = { nombre: 'Coloso de Magma', vida: 63, premio: { magma: 10, cristal_eco: 8, amatista: 6, plata: 10 }, xp: 260 };
   function abrirColoso() {
     const sc = escena;
     if (S.arma && S.herramienta !== 'espada') equipar('espada');
@@ -2738,7 +2752,7 @@
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
           ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
       ui.abrir(`
         <div class="combate-cab">
           <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u3b_retrato')}" alt="" width="72" height="72">
@@ -2750,6 +2764,7 @@
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('r-ok', atacar);
+      on('hab-usar', () => usarHabilidad(especial));
       on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
       on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
       ui.teclas = (e) => {
@@ -2771,6 +2786,13 @@
       J.hp -= n;
       sc.flotante(sc.coloso.x, sc.coloso.y - 130, `−${n}`, '#ffd27a');
       sc.tweens.add({ targets: sc.coloso, x: sc.coloso.x + 5, duration: 50, yoyo: true, repeat: 2 });
+    };
+    const especial = (n) => {
+      if (fin) return;
+      J.coraza = 0; herir(n); J.t0 = performance.now();
+      ultimo = msgHab(n);
+      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez }); }
+      pintar();
     };
     const atacar = () => {
       if (fin || elegida === null) return;
@@ -3331,7 +3353,7 @@
   }
 
   // ---------- Dragón de la Aurora: jefe de la Cima del Glaciar (solo, 4 fases) ----------
-  const DRAGON = { nombre: 'Dragón de la Aurora', vida: 52, premio: { aurora: 10, hielo_eterno: 10, zafiro: 8, escarcha: 12 }, xp: 320 };
+  const DRAGON = { nombre: 'Dragón de la Aurora', vida: 78, premio: { aurora: 10, hielo_eterno: 10, zafiro: 8, escarcha: 12 }, xp: 320 };
   function abrirDragon() {
     const sc = escena;
     if (S.arma && S.herramienta !== 'espada') equipar('espada');
@@ -3371,7 +3393,7 @@
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
           ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
       ui.abrir(`
         <div class="combate-cab">
           <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u4b_retrato')}" alt="" width="72" height="72">
@@ -3383,6 +3405,7 @@
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('r-ok', atacar);
+      on('hab-usar', () => usarHabilidad(especial));
       on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
       on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
       ui.teclas = (e) => {
@@ -3405,6 +3428,13 @@
       J.hp -= n;
       sc.flotante(sc.dragon.x, sc.dragon.y - 130, `−${n}`, '#bff4ff');
       sc.tweens.add({ targets: sc.dragon, x: sc.dragon.x + 5, duration: 50, yoyo: true, repeat: 2 });
+    };
+    const especial = (n) => {
+      if (fin) return;
+      J.muro = 0; herir(n); J.t0 = performance.now();
+      ultimo = msgHab(n);
+      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez }); }
+      pintar();
     };
     const atacar = () => {
       if (fin || elegida === null) return;
@@ -3445,7 +3475,7 @@
 
   // ---------- Faraón de las Arenas Eternas (jefe ancestral del Valle de la Esfinge) ----------
   // 4 fases: vendas malditas (escudo), tormenta de arena (se cura) e ira del faraón (2 aciertos seguidos).
-  const FARAON = { nombre: 'Faraón de las Arenas Eternas', vida: 46, premio: { obsidiana: 10, fosil: 8, oro: 10, arenisca: 16 }, xp: 300 };
+  const FARAON = { nombre: 'Faraón de las Arenas Eternas', vida: 69, premio: { obsidiana: 10, fosil: 8, oro: 10, arenisca: 16 }, xp: 300 };
   function abrirFaraon() {
     const sc = escena;
     if (S.arma && S.herramienta !== 'espada') equipar('espada');
@@ -3484,7 +3514,7 @@
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
           ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
       ui.abrir(`
         <div class="combate-cab">
           <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u2b_retrato')}" alt="" width="72" height="72">
@@ -3496,6 +3526,7 @@
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('r-ok', atacar);
+      on('hab-usar', () => usarHabilidad(especial));
       on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
       on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
       ui.teclas = (e) => {
@@ -3519,6 +3550,13 @@
       if (!sc.faraon) return;
       sc.flotante(sc.faraon.x, sc.faraon.y - 130, `−${n}`, '#ffe08a');
       sc.tweens.add({ targets: sc.faraon, x: sc.faraon.x + 5, duration: 50, yoyo: true, repeat: 2 });
+    };
+    const especial = (n) => {
+      if (fin) return;
+      J.vendas = 0; herir(n); J.t0 = performance.now();
+      ultimo = msgHab(n);
+      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez }); }
+      pintar();
     };
     const atacar = () => {
       if (fin || elegida === null) return;
@@ -4065,7 +4103,7 @@
     document.querySelectorAll('[data-rpj]').forEach((b) => b.addEventListener('click', () => { ponerPj(b.dataset.rpj); S.titulo = 'rey_juego'; S.tituloTxt = tituloDe('rey_juego'); guardar(true); pintarHUD(); if (escena) escena.pintarTituloYo(); ui.cerrar(); toast(`¡Ahora eres ${PERSONAJES.find((p) => p.id === b.dataset.rpj).nombre}!`); }));
     if (escena) escena.celebrar();
   }
-  const pjLibre = (id) => { const p = PERSONAJES.find((x) => x.id === id); return Boolean(p) && (!p.rey || esRey()); };
+  const pjLibre = (id) => { const p = PERSONAJES.find((x) => x.id === id); return Boolean(p) && (!p.rey || esRey()) && (!p.n30 || esDocente() || (S && (S.nivel || 1) >= NIVEL_ELEM)); };
   function ponerPj(id) {
     if (!pjLibre(id)) return;
     S.pj = id; guardar(true); pintarHUD();
@@ -4075,10 +4113,81 @@
     return `<h3>Personaje</h3>
       <div class="pjs-eq">${PERSONAJES.map((p) => {
         const ok = pjLibre(p.id);
-        return `<button type="button" class="pj-eq ${p.rey ? 'rey' : ''} ${ok ? '' : 'bloq'}" data-pjeq="${p.id}" aria-pressed="${S.pj === p.id}" ${ok ? '' : 'disabled'} title="${esc(ok ? p.nombre : 'Se desbloquea con el logro «El rey del juego»')}">
+        return `<button type="button" class="pj-eq ${p.rey ? 'rey' : ''} ${p.n30 ? 'elem ' + p.hab.clase : ''} ${ok ? '' : 'bloq'}" data-pjeq="${p.id}" aria-pressed="${S.pj === p.id}" ${ok ? '' : 'disabled'} title="${esc(ok ? p.nombre + (p.hab ? ` · Habilidad: ${p.hab.nombre}` : '') : p.n30 ? `Se desbloquea al llegar al nivel ${NIVEL_ELEM}` : 'Se desbloquea con el logro «El rey del juego»')}">
           <span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><small>${ok ? esc(p.nombre) : '🔒 ' + esc(p.nombre)}</small></button>`;
       }).join('')}</div>
-      ${esRey() ? '' : '<p class="nota">👑 Los caballeros alados se desbloquean al conseguir el logro «El rey del juego» (completar todos los demás logros).</p>'}`;
+      ${esRey() ? '' : '<p class="nota">👑 Los caballeros alados se desbloquean al conseguir el logro «El rey del juego» (completar todos los demás logros).</p>'}
+      ${pjLibre('fenix') ? `<p class="nota">✨ Los guerreros elementales tienen una habilidad especial: se carga con ${HAB_CARGA} respuestas correctas seguidas (un error la vuelve a 0) y en combate quita el triple de tu golpe, también a los jefes.</p>`
+        : `<p class="nota">🔒 Al llegar al nivel ${NIVEL_ELEM} se desbloquean 4 guerreros elementales con habilidad especial. Vas en el nivel ${S.nivel || 1}.</p>`}`;
+  }
+  // ===================================================================
+  // Habilidad especial de los guerreros elementales
+  // Se carga con 5 respuestas correctas seguidas (de cualquier pregunta) y un error la vuelve a 0.
+  // En combate (enemigos y jefes) quita el triple del golpe, con una transición a pantalla completa.
+  // ===================================================================
+  const NIVEL_ELEM = 30, HAB_CARGA = 5, HAB_MULT = 3;
+  const habDe = () => { const p = S && PERSONAJES.find((x) => x.id === S.pj); return p && p.hab && pjLibre(p.id) ? p.hab : null; };
+  const habLista = () => Boolean(habDe()) && (S.habCarga || 0) >= HAB_CARGA;
+  const danioHab = () => danio() * HAB_MULT;
+  function cargarHabilidad(ok) {
+    if (!S) return;
+    const antes = S.habCarga || 0;
+    S.habCarga = ok ? Math.min(HAB_CARGA, antes + 1) : 0;
+    const h = habDe();
+    if (h && ok && antes < HAB_CARGA && S.habCarga >= HAB_CARGA) { setTimeout(() => toast(`${h.icono} ¡${h.nombre} está lista! Úsala en tu próximo combate.`), 600); }
+  }
+  function habBtnHTML() {
+    const h = habDe(); if (!h) return '';
+    const c = Math.min(HAB_CARGA, S.habCarga || 0), lista = c >= HAB_CARGA;
+    return `<button type="button" class="btn hab ${h.clase} ${lista ? 'lista' : ''}" id="hab-usar" ${lista ? '' : 'disabled'} title="${esc(h.nombre)}: quita ${danioHab()} de vida. Se carga con ${HAB_CARGA} respuestas correctas seguidas.">${h.icono} ${lista ? `${esc(h.nombre)} (−${danioHab()})` : `Habilidad ${c}/${HAB_CARGA}`}</button>`;
+  }
+  const msgHab = (n) => { const h = habDe() || { icono: '✨', nombre: 'Habilidad especial' }; return `<div class="mensaje bien hab-msg" role="status">${h.icono} ¡${esc(h.nombre)}! Quitaste ${n} de vida de un solo golpe.</div>`; };
+  // Transición a pantalla completa (la ve quien la usa y, en los jefes de grupo, también sus compañeros)
+  function fxHabilidad(h, tex, n, quien, alTerminar) {
+    const viejo = document.querySelector('.hab-fx'); if (viejo) viejo.remove();
+    const el = document.createElement('div');
+    el.className = `hab-fx ${h.clase} ${quien ? 'otro' : ''}`; el.setAttribute('role', 'alert');
+    el.innerHTML = `<div class="hab-fx-fondo"></div><div class="hab-fx-rayos"></div><div class="hab-fx-onda"></div>
+      <div class="hab-fx-pj" style="background-image:url('assets/pj/${esc(tex)}.png')"></div>
+      <div class="hab-fx-nombre"><span>${h.icono}</span><b>${esc(h.nombre)}</b><small>${quien ? `${esc(quien)} usó su habilidad · −${n}` : `−${n} de vida`}</small></div>
+      <div class="hab-fx-part">${Array.from({ length: 20 }, (_, i) => `<i style="--a:${i * 18}deg;--r:${i % 2 ? 1 : 0.7};--d:${(i % 4) * 0.06}s"></i>`).join('')}</div>`;
+    document.body.appendChild(el);
+    sfx('rugido'); setTimeout(() => sfx('golpe'), 650); setTimeout(() => sfx('golpe'), 800);
+    if (escena && escena.cameras) { const c = h.color || [255, 255, 255]; escena.cameras.main.flash(350, c[0], c[1], c[2]); setTimeout(() => { if (escena && escena.cameras) escena.cameras.main.shake(450, 0.014); }, 650); }
+    let hecho = false;
+    const terminar = () => { if (hecho) return; hecho = true; el.classList.add('sale'); setTimeout(() => el.remove(), 350); if (alTerminar) alTerminar(); };
+    setTimeout(terminar, quien ? 1300 : 1600); el.addEventListener('click', terminar);
+  }
+  function usarHabilidad(aplicar) {
+    const h = habDe(); if (!h || !habLista()) return;
+    S.habCarga = 0; guardar();
+    const b = $('hab-usar'); if (b) b.disabled = true;
+    const n = danioHab();
+    fxHabilidad(h, `${S.pj}_${texArmadura(S.armadura)}`, n, null, () => aplicar(n));
+  }
+  // Un compañero usó su habilidad contra el jefe del grupo
+  function verHabilidadCompanero(d) {
+    const p = d && PERSONAJES.find((x) => x.id === d.pj);
+    if (!p || !p.hab || !escena || !escena.enJefe) return;
+    fxHabilidad(p.hab, `${p.id}_${TEX_ARMADURA.includes(d.tex) ? d.tex : 'nada'}`, Number(d.n) || 0, String(d.nombre || 'Un compañero').slice(0, 24));
+  }
+  // Al llegar al nivel 30 se presentan los guerreros elementales (una vez)
+  setInterval(() => {
+    if (!S || esDocente() || (S.nivel || 1) < NIVEL_ELEM || S.elem30) return;
+    S.elem30 = Date.now(); guardar(true);
+    esperarYAbrir(abrirElementales);
+  }, 5000);
+  function abrirElementales() {
+    sfx('logro');
+    const kn = PERSONAJES.filter((p) => p.n30);
+    ui.abrir(`<div class="rey-modal elem-modal"><div class="rey-brillo"></div>
+      <span class="etq">Premio del nivel ${NIVEL_ELEM}</span><h2 id="modal-titulo">✨ ¡Guerreros elementales!</h2>
+      <p class="enunciado">Llegaste al nivel ${NIVEL_ELEM} y desbloqueaste <b>4 guerreros elementales</b>. Cada uno tiene una <b>habilidad especial</b>: se carga con ${HAB_CARGA} respuestas correctas seguidas y en combate quita el triple de tu golpe, ¡también a los jefes! Si fallas una pregunta, la carga vuelve a 0.</p>
+      <div class="rey-pjs">${kn.map((p) => `<button type="button" class="rey-pj elem ${p.hab.clase}" data-epj="${p.id}"><span class="retrato" style="background-image:url('assets/pj/${p.id}_nada.png')"></span><b>${esc(p.nombre)}</b><small>${p.hab.icono} ${esc(p.hab.nombre)}</small></button>`).join('')}</div>
+      <div class="acciones"><span class="nota">También puedes cambiar de personaje después en Equipo (tecla Q).</span><button type="button" class="btn" id="el-ok">Más tarde</button></div></div>`, 'rey');
+    $('el-ok').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-epj]').forEach((b) => b.addEventListener('click', () => { ponerPj(b.dataset.epj); ui.cerrar(); toast(`¡Ahora eres ${PERSONAJES.find((p) => p.id === b.dataset.epj).nombre}!`); }));
+    if (escena) escena.celebrar();
   }
   function auraHTML() {
     if (!tieneAura()) return `<h3>Premio del nivel 100</h3><p class="nota">🔒 Al llegar al nivel ${NIVEL_AURA} ganarás el <b>Aura del Centenario</b>, un premio que muy pocos consiguen. Vas en el nivel ${S.nivel || 1}.</p>`;
@@ -4738,7 +4847,7 @@
           ${pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : ''}
           <div class="acciones">
             <div><button type="button" class="btn sec" id="c-pista">${pista ? 'Ocultar pista' : 'Ver pista'}</button><button type="button" class="btn" id="c-huir" title="Huir te quita ${VIDA_HUIR} corazón">Huir (−${VIDA_HUIR} ❤)</button></div>
-            <div><button type="button" class="btn pri" id="c-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div>
+            <div>${habBtnHTML()}<button type="button" class="btn pri" id="c-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div>
           </div>`;
       }
       ui.abrir(`
@@ -4754,6 +4863,13 @@
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('c-ok', atacar);
+      on('hab-usar', () => usarHabilidad((n) => {
+        if (fase !== 'pregunta') return;
+        enemigo.vida -= n; escena.golpeEnemigo(enemigo, n);
+        ultimo = msgHab(n); t0 = performance.now();
+        if (enemigo.vida <= 0) { fase = 'victoria'; setTimeout(() => sfx('victoria'), 150); }
+        pintar();
+      }));
       on('c-pista', () => { pista = !pista; pintar(); });
       on('c-huir', () => { ui.alCerrar = () => fin('huir'); ui.cerrar(); });
       on('c-fin', () => { ui.alCerrar = () => fin(fase); ui.cerrar(); });
@@ -4818,7 +4934,7 @@
   // Fase 1: preguntas normales. Fase 2 (≤ 2/3 de vida): llama a su manada y se cubre con un escudo de raíces que
   // hay que romper con aciertos seguidos; además cada pregunta tiene tiempo. Fase 3 (≤ 1/3): furia ancestral:
   // preguntas difíciles, menos tiempo, cada error quita 3 corazones y el jefe recupera vida.
-  const REY = { nombre: 'Rey Jabalí Ancestral', vida: 30, premio: { resina: 10, miel: 8, cristal: 6, madera: 20 }, xp: 180 };
+  const REY = { nombre: 'Rey Jabalí Ancestral', vida: 45, premio: { resina: 10, miel: 8, cristal: 6, madera: 20 }, xp: 180 };
   function abrirReyJabali() {
     const sc = escena;
     if (S.arma && S.herramienta !== 'espada') equipar('espada');
@@ -4858,7 +4974,7 @@
           ${J.limite ? `<div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>` : ''}
           <p class="enunciado">${mate(d.enunciado)}</p>
           ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div><button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
       ui.abrir(`
         <div class="combate-cab">
           <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u1b_retrato')}" alt="" width="72" height="72">
@@ -4870,6 +4986,7 @@
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('r-ok', atacar);
+      on('hab-usar', () => usarHabilidad(especial));
       on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
       on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
       ui.teclas = (e) => {
@@ -4886,6 +5003,15 @@
       if (J.fase === 2) J.escudo = Math.min(3, J.escudo + 1);
       ultimo = `<div class="mensaje mal" role="status">${motivo} ¡El Rey Jabalí te embistió (−${n} ${n === 1 ? 'corazón' : 'corazones'})!${J.fase === 3 ? ' Y recuperó 2 de vida.' : J.fase === 2 ? ' Su escudo de raíces creció.' : ''}</div>`;
       if (S.vida <= 0) fin = 'derrota';
+    };
+    const especial = (n) => {
+      if (fin) return;
+      J.escudo = 0; J.hp -= n; J.t0 = performance.now();
+      sc.flotante(sc.rey.x, sc.rey.y - 120, `−${n}`, '#ffd27a');
+      sc.tweens.add({ targets: sc.rey, x: sc.rey.x + 8, duration: 50, yoyo: true, repeat: 4 });
+      ultimo = msgHab(n);
+      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez }); }
+      pintar();
     };
     const atacar = () => {
       if (fin || elegida === null) return;
@@ -4963,7 +5089,7 @@
           ${alternativasHTML(d, elegida, new Set(), false)}
           <div class="acciones">
             <div><button type="button" class="btn" id="j-salir">Retirarse</button></div>
-            <div><button type="button" class="btn pri" id="j-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div>
+            <div>${habBtnHTML()}<button type="button" class="btn pri" id="j-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div>
           </div>`;
       }
       ui.abrir(`
@@ -4982,6 +5108,12 @@
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('j-ok', atacar);
+      on('hab-usar', () => usarHabilidad((n) => {
+        if (fase !== 'pregunta') return;
+        if (e.canal) e.canal.emitir('hab', { pj: S.pj, tex: texArmadura(S.armadura), nombre: S.nombre, n });
+        e.golpeLocal(n); ultimo = msgHab(n);
+        revisar();
+      }));
       on('j-salir', () => { e.salirDelJefe(); e.perderContraJefe(); jefeUI = null; ui.cerrar(); });
       on('j-fin', terminar);
       ui.teclas = (ev) => {
@@ -9382,6 +9514,7 @@
       c.on('jefe_pedir', () => this.iniciarJefeSiLider());
       c.on('jefe_unir', (d) => this.unirAlJefe(d && d.id));
       c.on('golpe', (d) => this.golpeAlJefe(d.dmg));
+      c.on('hab', (d) => verHabilidadCompanero(d));
       c.on('caido', (d) => this.sacarDelJefe(d.id));
     }
     sincronizarPresencia(p) {

@@ -1096,3 +1096,62 @@ body.movil .minimapa.grande canvas { width: 100%; }
 .albumes-avance { display: flex; flex-wrap: wrap; gap: 8px; }
 .equipo-recursos { margin-bottom: 12px; }
 .equipo-recursos h3 { margin: 0 0 6px; }
+
+/* ===== Guerreros elementales y su habilidad especial ===== */
+.pj-eq.elem { box-shadow: inset 0 0 0 2px rgba(255, 210, 90, .45); }
+.pj-eq.elem.fuego { box-shadow: inset 0 0 0 2px rgba(255, 120, 40, .7); }
+.pj-eq.elem.rayo { box-shadow: inset 0 0 0 2px rgba(255, 230, 90, .7); }
+.pj-eq.elem.sombra { box-shadow: inset 0 0 0 2px rgba(160, 90, 230, .7); }
+.pj-eq.elem.bosque { box-shadow: inset 0 0 0 2px rgba(90, 200, 110, .7); }
+.rey-pj.elem small { color: #ffe9a8; }
+.hab-pild { background: rgba(255, 210, 90, .18); }
+.btn.hab { margin-right: 8px; font-weight: 800; }
+.btn.hab:disabled { opacity: .6; }
+.btn.hab.lista { color: #fff; border-color: transparent; animation: hab-late 1s ease-in-out infinite alternate; }
+.btn.hab.lista.fuego { background: linear-gradient(135deg, #ff9a3a, #d6301a); }
+.btn.hab.lista.rayo { background: linear-gradient(135deg, #ffe45a, #e0a400); color: #2a1d00; }
+.btn.hab.lista.sombra { background: linear-gradient(135deg, #9b5cf0, #3b1670); }
+.btn.hab.lista.bosque { background: linear-gradient(135deg, #6fdc7f, #23793a); }
+@keyframes hab-late { from { box-shadow: 0 0 0 0 rgba(255, 220, 120, .7); } to { box-shadow: 0 0 16px 4px rgba(255, 220, 120, .85); } }
+.hab-msg { font-weight: 800; }
+
+.hab-fx { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; overflow: hidden; cursor: pointer; --c1: #ffd23a; --c2: #ff5a3a; }
+.hab-fx.fuego { --c1: #ffb347; --c2: #e0281a; }
+.hab-fx.rayo { --c1: #fff27a; --c2: #3aa0ff; }
+.hab-fx.sombra { --c1: #c08bff; --c2: #1d0838; }
+.hab-fx.bosque { --c1: #9ff0a0; --c2: #145c2a; }
+.hab-fx.sale { animation: hab-sale .35s ease-in forwards; }
+.hab-fx-fondo { position: absolute; inset: 0; background: radial-gradient(circle at 50% 55%, var(--c1) 0%, var(--c2) 45%, rgba(0, 0, 0, .92) 100%); opacity: 0; animation: hab-fondo .35s ease-out forwards; }
+.hab-fx-rayos { position: absolute; inset: -60%; background: repeating-conic-gradient(from 0deg, rgba(255, 255, 255, .22) 0 5deg, transparent 5deg 15deg); animation: ko-gira 3s linear infinite; mix-blend-mode: screen; }
+.hab-fx-onda { position: absolute; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px; border-radius: 50%; border: 8px solid var(--c1); opacity: 0; animation: hab-onda .9s ease-out .6s forwards; }
+.hab-fx-pj { position: absolute; left: 50%; top: 46%; width: 192px; height: 192px; margin: -96px 0 0 -96px; background-size: 1728px 768px; background-position: 0 -384px; image-rendering: pixelated; filter: drop-shadow(0 0 20px var(--c1)); animation: hab-pj 1.6s cubic-bezier(.2, .9, .3, 1) forwards; }
+.hab-fx-nombre { position: absolute; left: 0; right: 0; top: 66%; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-family: "Fredoka", "Nunito", sans-serif; opacity: 0; animation: hab-nombre .5s cubic-bezier(.3, 1.6, .5, 1) .35s forwards; }
+.hab-fx-nombre span { font-size: 54px; line-height: 1; filter: drop-shadow(0 0 12px var(--c1)); }
+.hab-fx-nombre b { font-size: clamp(30px, 7vw, 64px); color: #fff; -webkit-text-stroke: 3px rgba(0, 0, 0, .55); paint-order: stroke fill; text-shadow: 0 0 24px var(--c1), 0 4px 0 rgba(0, 0, 0, .6); letter-spacing: .5px; }
+.hab-fx-nombre small { font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 2px 0 #000; }
+.hab-fx-part { position: absolute; left: 50%; top: 46%; }
+.hab-fx-part i { position: absolute; width: 14px; height: 14px; margin: -7px; border-radius: 50%; background: var(--c1); box-shadow: 0 0 12px var(--c1); opacity: 0; transform: rotate(var(--a)) translateY(0); animation: hab-part .8s ease-out calc(.65s + var(--d)) forwards; }
+.hab-fx.otro .hab-fx-fondo { background: radial-gradient(circle at 50% 55%, var(--c1) 0%, var(--c2) 40%, rgba(0, 0, 0, .75) 100%); }
+@keyframes hab-fondo { to { opacity: .94; } }
+@keyframes hab-sale { to { opacity: 0; transform: scale(1.08); } }
+@keyframes hab-onda { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(30); } }
+@keyframes hab-pj { 0% { transform: translateX(-70vw) scale(.8); } 35% { transform: translateX(0) scale(1.15); } 45% { transform: translateX(0) scale(1.35); } 60%, 100% { transform: translateX(0) scale(1.2); } }
+@keyframes hab-nombre { from { opacity: 0; transform: scale(2.4); } to { opacity: 1; transform: none; } }
+@keyframes hab-part { 0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1.4); } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-46vmin * var(--r))) scale(.4); } }
+
+/* ===== Victoria contra un jefe: confeti, el jefe estalla en trozos, tu personaje celebra y aparece «¡VICTORIA!» ===== */
+.ko-confeti { position: absolute; inset: 0; pointer-events: none; }
+.ko-confeti i { position: absolute; top: -20px; left: var(--x); width: 10px; height: 16px; background: var(--c); border-radius: 2px; opacity: 0; animation: ko-confeti var(--t) linear var(--d) infinite; }
+.ko-trozos { position: absolute; left: 50%; top: 50%; }
+.ko-trozos i { position: absolute; width: 18px; height: 18px; margin: -9px; background: #ffb347; border: 2px solid #6a0d00; opacity: 0; transform: rotate(var(--a)) translateY(0); animation: ko-trozo .9s ease-out 1.15s forwards; }
+.ko-jefe img { animation: ko-cae 1.3s cubic-bezier(.5, -0.3, .7, 1) forwards, ko-estalla .5s ease-in 1.1s forwards; }
+.ko-heroe { position: absolute; left: 6%; bottom: 6%; width: 192px; height: 192px; background-size: 1728px 768px; background-position: 0 -384px; image-rendering: pixelated; opacity: 0; filter: drop-shadow(0 0 16px rgba(255, 220, 120, .9)); animation: ko-heroe-entra .5s ease-out 1.5s forwards, ko-heroe-salta .55s ease-in-out 2s infinite alternate; }
+.ko-victoria { position: relative; opacity: 0; animation: ko-aparece .6s cubic-bezier(.3, 1.6, .5, 1) 1.7s forwards; }
+.ko-victoria span { display: inline-block; padding: 8px 28px; border-radius: 999px; background: linear-gradient(90deg, #b8860b, #ffd23a, #b8860b); color: #3a1a00; font-family: "Fredoka", "Nunito", sans-serif; font-weight: 700; font-size: clamp(24px, 5vw, 40px); box-shadow: 0 6px 0 #6a3d00, 0 0 30px rgba(255, 210, 60, .8); }
+@keyframes ko-confeti { 0% { opacity: 1; transform: translateY(0) rotate(0); } 100% { opacity: 1; transform: translateY(110vh) rotate(var(--g)); } }
+@keyframes ko-trozo { 0% { opacity: 1; transform: rotate(var(--a)) translateY(0) rotate(0); } 100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--r))) rotate(220deg); } }
+@keyframes ko-estalla { to { opacity: 0; transform: scale(1.6); filter: brightness(3) blur(4px); } }
+@keyframes ko-heroe-entra { from { opacity: 0; transform: translateX(-80px); } to { opacity: 1; transform: none; } }
+@keyframes ko-heroe-salta { from { transform: translateY(0); } to { transform: translateY(-26px); } }
+@media (max-width: 700px) { .ko-heroe { width: 128px; height: 128px; background-size: 1152px 512px; background-position: 0 -256px; } .hab-fx-pj { width: 144px; height: 144px; margin: -72px 0 0 -72px; background-size: 1296px 576px; background-position: 0 -288px; } }
+@media (prefers-reduced-motion: reduce) { .hab-fx *, .hab-fx, .ko-confeti i, .ko-heroe { animation-duration: .01s !important; animation-delay: 0s !important; animation-iteration-count: 1 !important; } .hab-fx-nombre, .ko-victoria, .ko-heroe { opacity: 1; } }

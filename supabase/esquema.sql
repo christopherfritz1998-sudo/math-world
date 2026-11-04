@@ -1187,3 +1187,15 @@ begin
   return (mw_obra_estado(c, g, p_id, id_e)::jsonb || jsonb_build_object('ok', true, 'aceptado', acep))::json;
 end $$;
 revoke all on function public.mw_obra_meta(text, text) from public, anon, authenticated;
+
+-- Pases a la extensión de cada mundo: 50 % más de recursos (las obras ya terminadas siguen terminadas)
+create or replace function public.mw_obra_meta(p_id text) returns jsonb language sql immutable as $$
+  select case p_id when 'puente_bosque' then '{"madera": 540, "piedra": 315, "agua": 135, "cristal": 36}'::jsonb
+                   when 'montacargas_valle' then '{"fibra": 1500, "arenisca": 1200, "cobre": 600, "oro": 180}'::jsonb
+                   when 'elevador_mina' then '{"carbon": 1500, "plata": 975, "hongo": 480, "amatista": 165}'::jsonb
+                   when 'ruta_glaciar' then '{"hielo": 1500, "escarcha": 840, "baya": 480, "zafiro": 165}'::jsonb else null end $$;
+revoke all on function public.mw_obra_meta(text) from public, anon, authenticated;
+create or replace function public.mw_obra_meta(p_id text, p_curso text) returns jsonb language sql immutable as $$
+  select case when p_id = 'puente_bosque' and coalesce(p_curso, '') <> '7B'
+              then '{"madera": 1650, "piedra": 1050, "agua": 480, "cristal": 120}'::jsonb
+              else mw_obra_meta(p_id) end $$;
