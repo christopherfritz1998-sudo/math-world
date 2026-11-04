@@ -1467,6 +1467,125 @@
     if (navigator.vibrate) { try { navigator.vibrate([200, 80, 200]); } catch (e) { /* */ } }
   }
 
+  // ===================================================================
+  // Minimapa: el suelo del mundo reducido con jugadores, enemigos, jefes, portal, cofres y objetos de desafío
+  // ===================================================================
+  const mm = { sc: null, fondo: null, k: 1, W: 0, H: 0, alertaHasta: 0, jefeVisto: false };
+  const MM_LEYENDA = [['#ffffff', 'Tú'], ['#5ab0ff', 'Compañeros'], ['#ff5a4a', 'Enemigos'], ['#3ad6ff', 'Portal'], ['#ffcf4a', 'Cofres'], ['#c08aff', 'Desafío en vivo'], ['#ff3030', 'Jefe del mundo'], ['#ffd27a', 'Jefe ancestral'], ['#ff9a3a', 'Mascotas fugitivas']];
+  function prepararMinimapa(sc) {
+    const cv = $('mm-cv'); if (!cv || !sc || !sc.ancho) return;
+    const W = sc.ancho * TILE, H = sc.alto * TILE, k = Math.min(400 / W, 280 / H);
+    Object.assign(mm, { sc, W, H, k, fondo: null, jefeVisto: false });
+    cv.width = Math.round(W * k); cv.height = Math.round(H * k);
+    $('mm-leyenda').innerHTML = MM_LEYENDA.map(([c, t]) => `<span><i style="background:${c}"></i>${t}</span>`).join('');
+    // fondo: cada casilla del suelo pintada con el color promedio de su baldosa
+    try {
+      const T = sc.terreno, hoja = sc.hojaSuelo;
+      if (!T || !hoja || !sc.textures.exists(hoja)) return;
+      const img = sc.textures.get(hoja).getSourceImage();
+      const cols = Math.floor((img.width + 1) / 17);
+      const tmp = document.createElement('canvas'); tmp.width = img.width; tmp.height = img.height;
+      const tg = tmp.getContext('2d'); tg.drawImage(img, 0, 0);
+      const datos = tg.getImageData(0, 0, img.width, img.height).data, colores = new Map();
+      const colorDe = (i) => {
+        if (colores.has(i)) return colores.get(i);
+        const x0 = (i % cols) * 17, y0 = Math.floor(i / cols) * 17;
+        let r = 0, gg = 0, b = 0, n = 0;
+        for (let y = y0 + 2; y < y0 + 14; y += 2) for (let x = x0 + 2; x < x0 + 14; x += 2) { const q = (y * img.width + x) * 4; if (datos[q + 3] < 128) continue; r += datos[q]; gg += datos[q + 1]; b += datos[q + 2]; n++; }
+        const c = n ? `rgb(${Math.round(r / n)},${Math.round(gg / n)},${Math.round(b / n)})` : '#1d3326';
+        colores.set(i, c); return c;
+      };
+      const fondo = document.createElement('canvas'); fondo.width = cv.width; fondo.height = cv.height;
+      const fg = fondo.getContext('2d'), t = TILE * k;
+      for (let y = 0; y < T.length; y++) for (let x = 0; x < T[y].length; x++) { if (T[y][x] < 0) continue; fg.fillStyle = colorDe(T[y][x]); fg.fillRect(Math.floor(x * t), Math.floor(y * t), Math.ceil(t) + 1, Math.ceil(t) + 1); }
+      mm.fondo = fondo;
+    } catch (e) { /* sin fondo: se dibuja liso */ }
+  }
+  function pintarMinimapa() {
+    const el = $('minimapa'), sc = escena;
+    if (!el) return;
+    const ver = Boolean(S && sc && sc.jugador && sc.sys && sc.sys.isActive() && !$('hud').classList.contains('oculto'));
+    el.classList.toggle('oculto', !ver);
+    if (!ver) return;
+    if (mm.sc !== sc) prepararMinimapa(sc);
+    const cv = $('mm-cv'), g = cv.getContext('2d'), k = mm.k, ahora = Date.now(), pulso = 0.5 + 0.5 * Math.sin(ahora / 180);
+    g.fillStyle = '#1d3326'; g.fillRect(0, 0, cv.width, cv.height);
+    if (mm.fondo) g.drawImage(mm.fondo, 0, 0, cv.width, cv.height);
+    g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(0, 0, cv.width, cv.height);
+    // zonas que aún no se pueden alcanzar (obras sin terminar)
+    if (sc.valle && !valleListo()) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, 0, cv.width, sc.valle.oy * TILE * k); }
+    if (sc.prof && !minaListo()) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, sc.prof.yb * TILE * k, cv.width, cv.height); }
+    if (sc.rio && !puenteListo()) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(sc.rio.RX * TILE * k, 0, cv.width, cv.height); }
+    const punto = (x, y, r, col, borde) => { g.beginPath(); g.arc(x * k, y * k, r, 0, Math.PI * 2); g.fillStyle = col; g.fill(); if (borde) { g.lineWidth = 1.5; g.strokeStyle = borde; g.stroke(); } };
+    const icono = (x, y, txt, tam = 12, a = 1) => { g.globalAlpha = a; g.font = `${tam}px "Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, x * k, y * k); g.globalAlpha = 1; };
+    // ejes del plano cartesiano (desafío Coordenadas perdidas)
+    if (desActivo('cartesiano') && enMundo(sc) && sc.origenPlano) {
+      const O = sc.origenPlano();
+      g.strokeStyle = 'rgba(191,244,255,.85)'; g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(0, O.y * k); g.lineTo(cv.width, O.y * k); g.moveTo(O.x * k, 0); g.lineTo(O.x * k, cv.height); g.stroke();
+      g.fillStyle = 'rgba(191,244,255,.9)';
+      for (let i = -60; i <= 60; i += 5) { if (!i) continue; g.fillRect((O.x + i * TILE) * k - 0.5, O.y * k - 2, 1, 4); g.fillRect(O.x * k - 2, (O.y - i * TILE) * k - 0.5, 4, 1); }
+      g.font = 'bold 9px Nunito, sans-serif'; g.fillText('x', cv.width - 6, O.y * k - 6); g.fillText('y', O.x * k + 7, 7);
+    }
+    // objetos del mundo
+    for (const o of sc.objetos) {
+      if (o.desafio) { if (o.activo && o.tipo !== 'coord' && o.tipo !== 'tesoro') { punto(o.x, o.y, 3.5 + pulso, '#c08aff', '#2a1440'); } continue; }
+      switch (o.tipo) {
+        case 'portal': punto(o.x, o.y, 4.5, '#3ad6ff', '#0b3a48'); break;
+        case 'cofre': if (o.activo) { g.fillStyle = '#ffcf4a'; g.fillRect(o.x * k - 2, o.y * k - 2, 4, 4); } break;
+        case 'fogata': case 'cofre_base': case 'comercio': punto(o.x, o.y, 2.5, '#ff9a3a'); break;
+        case 'casa': g.fillStyle = '#c89a62'; g.fillRect(o.x * k - 3, o.y * k - 3, 6, 6); break;
+        case 'arena': icono(o.x, o.y, '⚔️', 10, 0.85); break;
+        case 'esfinge': icono(o.x, o.y, '🏺', 11, 0.9); break;
+        case 'muelle': icono(o.x, o.y, '⚓', 10, 0.85); break;
+        case 'carrera': icono(o.x, o.y, '🛒', 10, 0.85); break;
+        case 'obra': if (!o.listo) icono(o.x, o.y, '🏗️', 11, 0.9); break;
+        case 'santuario': case 'coloso': case 'dragon': case 'faraon': {
+          const hasta = { santuario: S.reyHasta, coloso: S.colosoHasta, dragon: S.dragonHasta, faraon: S.faraonHasta }[o.tipo] || 0;
+          punto(o.x, o.y, 6, 'rgba(255,210,122,.35)'); icono(o.x, o.y, '👑', 12, hasta > ahora ? 0.45 : 1); break;
+        }
+        default: if (o.carpa) { g.fillStyle = '#c89a62'; g.fillRect(o.x * k - 3, o.y * k - 3, 6, 6); }
+      }
+    }
+    // jefe del mundo
+    const jefeVis = Boolean(sc.jefeVisto && sc.jefeSpr && sc.jefeSpr.visible);
+    if (jefeVis && !mm.jefeVisto) mm.alertaHasta = ahora + 9000;
+    mm.jefeVisto = jefeVis;
+    if (jefeVis) { punto(sc.jefeSpr.x, sc.jefeSpr.y, 7 + 3 * pulso, `rgba(255,48,48,${0.35 + 0.3 * pulso})`); icono(sc.jefeSpr.x, sc.jefeSpr.y - 4, '👹', 14); }
+    // objetos de desafíos en vivo
+    for (const it of (sc.des && sc.des.items) || []) {
+      if (it.tipo === 'cayendo' || it.tipo === 'cayendo_b') continue;
+      const x = it.s && it.s.active ? it.s.x : it.x, y = it.s && it.s.active ? it.s.y : it.y;
+      if (it.tipo === 'fugitiva') punto(x, y, 4, '#ff9a3a', '#4a2200');
+      else if (it.tipo === 'cofre') { g.fillStyle = '#ffcf4a'; g.fillRect(x * k - 2.5, y * k - 2.5, 5, 5); }
+      else punto(x, y, 2.5, '#c08aff');
+    }
+    // enemigos
+    for (const e of sc.enemigos || []) {
+      if (!e.activo || !e.s || !e.s.visible) continue;
+      if (e.dorada) icono(e.s.x, e.s.y, '⭐', 11);
+      else if (e.buscado) icono(e.s.x, e.s.y, '👑', 10);
+      else punto(e.s.x, e.s.y, e.horda ? 2.6 : 2, '#ff5a4a');
+    }
+    if (sc.des && sc.des.ladron) icono(sc.des.ladron.s.x, sc.des.ladron.s.y, '🦹', 12);
+    // compañeros y tú
+    for (const o of (sc.otros && sc.otros.values()) || []) if (o.spr && o.spr.alpha > 0) punto(o.spr.x, o.spr.y, 3, '#5ab0ff', '#0b2440');
+    const v = sc.cameras.main.worldView;
+    g.strokeStyle = 'rgba(255,255,255,.45)'; g.lineWidth = 1; g.strokeRect(v.x * k, v.y * k, v.width * k, v.height * k);
+    punto(sc.jugador.x, sc.jugador.y, 3.6 + pulso * 0.8, '#ffffff', '#12201a');
+    // pie y alerta
+    const alerta = ahora < mm.alertaHasta;
+    el.classList.toggle('alerta', alerta);
+    const al = $('mm-alerta'); al.classList.toggle('oculto', !alerta); if (alerta) al.textContent = '👹 ¡Apareció el jefe!';
+    const z = $('mm-zona'); const nz = nombreZona(sc.zona); if (z.textContent !== nz) z.textContent = nz;
+  }
+  setInterval(() => { try { pintarMinimapa(); } catch (e) { /* el minimapa nunca debe romper el juego */ } }, 200);
+  document.addEventListener('click', (e) => {
+    const el = $('minimapa'); if (!el) return;
+    if (el.contains(e.target)) el.classList.toggle('grande');
+    else if (el.classList.contains('grande')) el.classList.remove('grande');
+  });
+
   // ---------- Obras cooperativas: el puente al Bosque profundo y el montacargas al Valle de la Esfinge ----------
   // Todo el nivel (7° u 8° básico) aporta recursos a la misma obra; el avance queda guardado en el sistema
   // y, cuando se completa, queda construida para siempre.
@@ -3812,6 +3931,8 @@
     ['🏜️', 'Valle de la Esfinge', 'Excavaciones, laberintos aleatorios, el álbum de gemas y el Faraón de las Arenas Eternas.'],
     ['⚱️', 'Faraón de las Arenas Eternas', 'Nuevo jefe ancestral en el Valle de la Esfinge. Fabrica el ankh de obsidiana para despertarlo y gana al gato sagrado.'],
     ['👑', 'Gemas de los jefes y el 5to Mundo', 'Cada jefe deja caer una gema única. Reúne las 8 en tu álbum para despertar el misterioso 5to Mundo.'],
+    ['🗺️', 'Minimapa', 'Arriba a la derecha ves todo el mundo: compañeros, enemigos, portal, cofres, jefes y desafíos. Haz clic para agrandarlo.'],
+    ['🧭', '5 desafíos nuevos', 'Coordenadas perdidas, Burbujas del resultado, Cofres de verdad o mentira, Mascotas fugitivas y Sendero de las cifras.'],
     ['🎯', 'Desafíos en los mundos', 'Los desafíos en vivo se juegan en los mundos; solo el ladrón y la horda llegan a la base. En la horda tienes 20 segundos por pregunta.'],
   ];
   const CATS_PROBLEMA = ['El juego se trabó', 'Una pregunta está mal', 'Perdí recursos u objetos', 'No puedo entrar a una zona', 'Problema con mi grupo', 'Otro'];
@@ -5276,7 +5397,7 @@
   // Dónde se juega cada desafío: el ladrón y la horda llegan a la base; los que ponen cosas en el mapa, solo en los mundos.
   // (Los de preguntas en pantalla y los efectos generales —sabiduría doble, mercado— valen en cualquier lugar.)
   const DES_BASE = ['ladron', 'horda'];
-  const DES_MUNDO = ['dorado', 'meteoritos', 'cofres', 'apagon', 'eclipse', 'recolecta', 'fiebre', 'turbo', 'escudo', 'tesoro', 'runas', 'buscados', 'estrellas'];
+  const DES_MUNDO = ['dorado', 'meteoritos', 'cofres', 'apagon', 'eclipse', 'recolecta', 'fiebre', 'turbo', 'escudo', 'tesoro', 'runas', 'buscados', 'estrellas', 'cartesiano', 'burbujas', 'mimicos', 'fugitivas', 'orden'];
   const enMundo = (sc = escena) => Boolean(sc && MUNDOS[sc.zona]);
   const enLaBase = (sc = escena) => Boolean(sc && (sc.zona === 'base' || sc.zona === 'pieza'));
   const desFueraDeLugar = (id, sc = escena) => (DES_MUNDO.includes(id) && !enMundo(sc)) || (id === 'horda' && !enLaBase(sc));
@@ -5619,6 +5740,133 @@
       evento(tipo, dato, st) { if (tipo === 'fabricar') st.n += 1; },
       fin: (st) => (st.n ? `Cerró el mercado relámpago: fabricaste ${st.n} ${st.n === 1 ? 'cosa' : 'cosas'} a mitad de precio.` : 'Cerró el mercado relámpago.'),
     },
+    // ---------- Coordenadas perdidas: plano cartesiano con origen en el portal ----------
+    cartesiano: {
+      estado: () => ({ n: 0, meta: 4, obj: null }),
+      progreso(st) {
+        if (st.logrado) return '¡Encontraste los 4 puntos!';
+        const sc = escena, yo = sc && sc.coordDe ? sc.coordDe(sc.jugador.x, sc.jugador.y) : null;
+        return st.obj ? `🧭 Ve a (${nfmt(st.obj.x)}, ${nfmt(st.obj.y)}) · Estás en ${yo ? `(${nfmt(yo.x)}, ${nfmt(yo.y)})` : '…'} · ${st.n} de ${st.meta}` : '🧭 Buscando coordenadas…';
+      },
+      montar(sc, st) {
+        if (!st.anunciado) { st.anunciado = true; avisoGrande('¡Coordenadas perdidas!', 'El portal es el origen (0, 0): → es x positivo y ↑ es y positivo', 'Camina hasta el punto que indica el aviso y presiona E para cavar · 4 puntos'); }
+        if (!st.logrado) sc.ponerCoordenada(st);
+      },
+      tick(sc, dt, st) {
+        const C = sc.des.coord; if (!C) return;
+        const dd = Phaser.Math.Distance.Between(sc.jugador.x, sc.jugador.y, C.x, C.y);
+        C.marca.setAlpha(dd < 46 ? 1 : 0);
+      },
+      fin: (st) => (st.logrado ? 'Encontraste todos los puntos del plano.' : `Terminó la búsqueda: encontraste ${st.n} de ${st.meta} puntos.`),
+    },
+    // ---------- Burbujas del resultado ----------
+    burbujas: {
+      estado: () => ({ pts: 0, buenas: 0, malas: 0, meta: 0, t: 0 }),
+      progreso: (st) => `🫧 Atrapa las que dan ${nfmt(st.meta)} · ${st.pts} ${st.pts === 1 ? 'punto' : 'puntos'}`,
+      montar(sc, st) {
+        sc.des.burT = 600;
+        if (!st.meta) st.meta = objetivoBurbuja();
+        if (!st.anunciado) { st.anunciado = true; avisoGrande('¡Burbujas del resultado!', `Atrapa solo las operaciones que dan ${nfmt(st.meta)}`, 'El número cambia cada 25 segundos · una burbuja equivocada resta un punto'); }
+      },
+      tick(sc, dt, st) {
+        st.t += dt;
+        if (st.t > 25000) {
+          st.t = 0; let m = st.meta; while (m === st.meta) m = objetivoBurbuja(); st.meta = m;
+          sfx('alerta'); sc.flotante(sc.jugador.x, sc.jugador.y - 90, `Nuevo objetivo: ${nfmt(st.meta)}`, '#bfeaff');
+          for (const it of sc.des.items.filter((x) => x.tipo === 'burbuja' || x.tipo === 'cayendo_b')) sc.quitarItem(it);
+        }
+        sc.des.burT -= dt;
+        if (sc.des.burT <= 0) { sc.des.burT = 700 + Math.random() * 450; sc.lanzarBurbuja(st.meta); }
+        sc.recoger('burbuja', (o) => {
+          if (o.ok) { st.pts += 1; st.buenas += 1; sc.flotante(o.x, o.y - 30, `+1 · ${o.txt} = ${nfmt(st.meta)} ✓`, '#bfeaff'); sfx('acierto'); }
+          else { st.pts = Math.max(0, st.pts - 1); st.malas += 1; sc.flotante(o.x, o.y - 30, `−1 · ${o.txt} = ${nfmt(o.v)}`, '#ff9a8a'); sfx('error'); }
+        });
+      },
+      fin(st) {
+        if (!st.pts) return `Se reventaron las burbujas: ${st.buenas} buenas y ${st.malas} equivocadas, sin puntos esta vez.`;
+        const xp = Math.min(160, 8 * st.pts), txt = darPremio(paquete(Math.min(12, 2 + Math.ceil(st.pts / 2)), 3), xp);
+        return `¡Se acabaron las burbujas! ${st.pts} puntos (${st.buenas} buenas, ${st.malas} equivocadas): ganas ${txt} y ${xp} de experiencia.`;
+      },
+    },
+    // ---------- Cofres de verdad o mentira ----------
+    mimicos: {
+      estado: () => ({ buenos: 0, malos: 0, total: 0, verdaderos: 0, puestos: false }),
+      progreso: (st) => (st.logrado ? '¡Abriste todos los cofres verdaderos!' : `🎭 Verdaderos abiertos: ${st.buenos} de ${st.verdaderos || 3} · mordidas: ${st.malos}`),
+      montar(sc, st) {
+        if (!st.anunciado) { st.anunciado = true; avisoGrande('¡Cofres de verdad o mentira!', 'Cada cofre dice algo: los que mienten son mímicos que muerden', 'Lee la afirmación y abre (E) solo los verdaderos'); }
+        if (!st.puestos) { st.puestos = true; st.cofres = generarAfirmaciones(6); st.verdaderos = st.cofres.filter((c) => c.ok).length; }
+        st.cofres.forEach((c) => { if (!c.abierto) sc.ponerMimico(c); });
+      },
+      fin(st) {
+        if (!st.buenos) return `Terminó el desafío de los cofres: no abriste cofres verdaderos${st.malos ? ` y te mordieron ${st.malos} mímicos` : ''}.`;
+        return `Terminó el desafío de los cofres: abriste ${st.buenos} de ${st.verdaderos} verdaderos${st.malos ? ` y te mordieron ${st.malos} mímicos` : ''}.`;
+      },
+    },
+    // ---------- Mascotas fugitivas ----------
+    fugitivas: {
+      estado: () => ({ n: 0, meta: 5 }),
+      progreso: (st) => (st.logrado ? '¡Atrapaste a todas las mascotas!' : `🐾 Atrapadas: ${st.n} de ${st.meta} · míralas en el minimapa`),
+      montar(sc, st) {
+        if (!st.anunciado) { st.anunciado = true; avisoGrande('¡Se escaparon las mascotas!', 'Corren por el mundo: búscalas en el minimapa', 'Alcánzalas y responde bien para atraparlas · 5 mascotas'); }
+        for (let i = sc.des.items.filter((x) => x.tipo === 'fugitiva').length; i < st.meta - st.n; i++) sc.time.delayedCall(200 + i * 300, () => sc.soltarFugitiva());
+      },
+      tick(sc, dt, st) {
+        const j = sc.jugador;
+        for (const it of sc.des.items.filter((x) => x.tipo === 'fugitiva')) {
+          const dd = Phaser.Math.Distance.Between(j.x, j.y, it.s.x, it.s.y);
+          if (it.quieta) continue;
+          if (dd < 34 && !ui.abierto && !sc.enCombate) { atraparFugitiva(sc, it, st); continue; }
+          it.t -= dt;
+          let vx = it.vx, vy = it.vy;
+          if (dd < 150) { const a = Phaser.Math.Angle.Between(j.x, j.y, it.s.x, it.s.y) + (Math.random() - 0.5) * 0.8; vx = Math.cos(a) * 92; vy = Math.sin(a) * 92; }
+          else if (it.t <= 0) { it.t = 1200 + Math.random() * 1800; const a = Math.random() * Math.PI * 2, v = Math.random() < 0.3 ? 0 : 45; it.vx = Math.cos(a) * v; it.vy = Math.sin(a) * v; vx = it.vx; vy = it.vy; }
+          const nx = it.s.x + vx * dt / 1000, ny = it.s.y + vy * dt / 1000, m = TILE * 2;
+          const W = sc.ancho * TILE, H = sc.alto * TILE;
+          const libre = nx > m && ny > m && nx < W - m && ny < H - m && sc.alcanzable(nx, ny) && !sc.physics.overlapRect(nx - 8, ny - 8, 16, 10, false, true).length;
+          if (libre) { it.s.setPosition(nx, ny).setDepth(ny); it.x = nx; it.y = ny; if (Math.abs(vx) > 2) it.s.setFlipX(vx < 0); }
+          else { it.vx = -it.vx; it.vy = -it.vy; it.t = 400; }
+        }
+      },
+      fin: (st) => (st.logrado ? 'Atrapaste a todas las mascotas fugitivas.' : `Las mascotas se escondieron: atrapaste ${st.n} de ${st.meta}.`),
+    },
+    // ---------- Sendero de las cifras: tocar las piedras en orden ----------
+    orden: {
+      estado: () => ({ ronda: 0, pts: 0, errores: 0, sig: 0, piedras: null }),
+      progreso: (st) => `🔢 ${st.ronda % 2 === 0 ? 'De menor a mayor' : 'De mayor a menor'} · ronda ${st.ronda + 1} · ${st.pts} ${st.pts === 1 ? 'punto' : 'puntos'}`,
+      montar(sc, st) {
+        if (!st.anunciado) { st.anunciado = true; avisoGrande('¡Sendero de las cifras!', 'Toca las 5 piedras de menor a mayor', 'En la ronda siguiente, de mayor a menor · un error resta un punto'); }
+        if (!st.piedras) nuevaRondaOrden(st);
+        sc.ponerPiedras(st);
+      },
+      tick(sc, dt, st) {
+        const j = sc.jugador;
+        for (const it of sc.des.items.filter((x) => x.tipo === 'cifra')) {
+          if (Phaser.Math.Distance.Between(j.x, j.y - 10, it.x, it.y - 10) > 30) { it.tocando = false; continue; }
+          if (it.tocando) continue;
+          it.tocando = true;
+          const esperado = st.piedras[st.sig];
+          if (it.p === esperado) {
+            sc.quitarItem(it); sfx('acierto'); st.sig += 1; st.pts += 1;
+            sc.flotante(it.x, it.y - 40, `✓ ${it.p.txt}`, '#b8f5b0');
+            if (st.sig >= st.piedras.length) {
+              st.pts += 3; st.ronda += 1; sfx('logro');
+              const txt = darPremio(paquete(2, 1), 20, false);
+              sc.flotante(j.x, j.y - 90, `¡Ronda completa! +3 · ${txt}`, '#ffe08a');
+              nuevaRondaOrden(st); sc.time.delayedCall(900, () => { if (desActivo('orden')) sc.ponerPiedras(st); });
+            }
+          } else {
+            sfx('error'); st.errores += 1; st.pts = Math.max(0, st.pts - 1);
+            sc.flotante(it.x, it.y - 40, `Todavía no: falta ${esperado.txt}`, '#ff9a8a');
+            sc.tweens.add({ targets: it.s, x: it.s.x + 4, duration: 50, yoyo: true, repeat: 3 });
+          }
+        }
+      },
+      fin(st) {
+        if (!st.pts) return 'Terminó el sendero de las cifras sin puntos esta vez.';
+        const xp = Math.min(160, 6 * st.pts), txt = darPremio(paquete(Math.min(12, 2 + Math.ceil(st.pts / 3)), 3), xp);
+        return `¡Terminó el sendero de las cifras! ${st.ronda} ${st.ronda === 1 ? 'ronda completa' : 'rondas completas'} y ${st.pts} puntos: ganas ${txt} y ${xp} de experiencia.`;
+      },
+    },
     arena: { estado: () => ({ mios: 0 }), progreso: () => `Tus aciertos: ${vivo.d.aciertos || 0}` },
     curso: { estado: () => ({ mios: 0 }), progreso: () => `Curso: ${vivo.d.total || 0} de ${vivo.d.meta} correctas` },
   };
@@ -5648,6 +5896,131 @@
     ],
   };
   const reglaEstrella = (st) => REGLAS_EST[nivelNum()][st.regla || 0];
+  // ---------- Generadores de los desafíos nuevos ----------
+  // Burbujas: número objetivo y operaciones que dan (o no) ese resultado
+  const npar = (x) => Preguntas.h.par(x);
+  const sup = (n) => String(n).split('').map((d) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[d]).join('');
+  const objetivoBurbuja = () => (nivelNum() === 8 ? elegir([-12, -8, -6, 4, 6, 8, 9, 12, 16, 18, 24, 27, 32, 36]) : elegir([6, 8, 9, 10, 12, 14, 15, 16, 18, 20, 24, 30, 36]));
+  function operacionCon(v) {
+    const ocho = nivelNum() === 8, f = [];
+    for (let a = 2; a <= 12; a++) if (v % a === 0 && Math.abs(v / a) <= 12 && Math.abs(v / a) !== 1) f.push(`${a} · ${npar(v / a)}`);
+    const k = azarEnt(2, 6); f.push(`${nfmt(v * k)} : ${k}`);
+    const b = azarEnt(2, 15); f.push(`${nfmt(v + b)} − ${b}`);
+    const c = azarEnt(-9, -2); f.push(`${nfmt(v - c)} + (${nfmt(c)})`);
+    if (ocho) {
+      for (let a = 2; a <= 6; a++) for (let e = 2; e <= 5; e++) if (a ** e === v) f.push(`${a}${sup(e)}`);
+      for (let a = 2; a <= 6; a++) if (-(a ** 2) === v) f.push(`−${a}²`);
+      if (v % 2 === 0 && v !== 0) f.push(`(−2) · ${npar(-v / 2)}`);
+      if (v > 0 && Number.isInteger(Math.sqrt(v * v))) f.push(`√${v * v}`);
+    } else {
+      if (v % 2 === 0) f.push(`½ de ${v * 2}`);
+      if (v % 3 === 0) f.push(`⅓ de ${v * 3}`);
+      f.push(`${v * 10} : 10`);
+    }
+    return elegir(f);
+  }
+  // Afirmaciones verdaderas o falsas para los cofres mímicos
+  function afirmacion() {
+    const ocho = nivelNum() === 8, T = [];
+    T.push(() => { const n = azarEnt(11, 60); return { txt: `${n} es un número primo`, ok: esPrimo(n) }; });
+    T.push(() => { const k = elegir([3, 4, 6, 9]), n = azarEnt(12, 99); return { txt: `${n} es divisible por ${k}`, ok: n % k === 0 }; });
+    T.push(() => { const a = azarEnt(-9, 9) || 3, b = azarEnt(-9, 9) || -4, err = Math.random() < 0.5; const r = a * b + (err ? elegir([-2, 2, -a * b * 2 || 1]) : 0); return { txt: `${npar(a)} · ${npar(b)} = ${nfmt(r)}`, ok: r === a * b }; });
+    T.push(() => { const a = azarEnt(-15, 15), b = azarEnt(-15, 15), err = Math.random() < 0.5; const r = a + b + (err ? elegir([-2, 2, -1, 1]) : 0); return { txt: `${nfmt(a)} + ${npar(b)} = ${nfmt(r)}`, ok: r === a + b }; });
+    T.push(() => { const p = elegir([10, 20, 25, 50, 75]), n = elegir([40, 60, 80, 120, 200]), r = n * p / 100, err = Math.random() < 0.5; const v = err ? r + elegir([-5, 5, 10]) : r; return { txt: `El ${p} % de ${n} es ${nfmt(v)}`, ok: v === r }; });
+    T.push(() => { const a = azarEnt(1, 5), b = azarEnt(a + 1, 9), k = azarEnt(2, 4), err = Math.random() < 0.5; const c = a * k + (err ? 1 : 0); return { txt: `${a}/${b} = ${c}/${b * k}`, ok: c === a * k }; });
+    T.push(() => { const a = azarEnt(1, 8), b = azarEnt(2, 9), c = azarEnt(1, 8), d = azarEnt(2, 9); return a / b === c / d ? { txt: `${a}/${b} > ${c}/${d}`, ok: false } : { txt: `${a}/${b} > ${c}/${d}`, ok: a / b > c / d }; });
+    T.push(() => { const x = elegir([0.5, 0.25, 0.75, 0.2]), fr = { 0.5: '1/2', 0.25: '1/4', 0.75: '3/4', 0.2: '1/5' }, otra = elegir(['1/2', '1/4', '3/4', '1/5', '2/5']); return { txt: `${nfmt(x)} = ${otra}`, ok: fr[x] === otra }; });
+    T.push(() => { const n = azarEnt(-9, -1), m = azarEnt(-9, 9); return n === m ? { txt: `${nfmt(n)} < ${nfmt(m)}`, ok: false } : { txt: `${nfmt(n)} < ${nfmt(m)}`, ok: n < m }; });
+    if (ocho) {
+      T.push(() => { const a = azarEnt(2, 5), e = azarEnt(2, 4), err = Math.random() < 0.5, r = a ** e + (err ? a : 0); return { txt: `${a}${sup(e)} = ${r}`, ok: r === a ** e }; });
+      T.push(() => { const a = azarEnt(2, 4), m = azarEnt(2, 4), n = azarEnt(2, 4), err = Math.random() < 0.5, e = m + n + (err ? (Math.random() < 0.5 ? -1 : m * n - m - n || 1) : 0); return { txt: `${a}${sup(m)} · ${a}${sup(n)} = ${a}${sup(e)}`, ok: e === m + n }; });
+      T.push(() => { const r = azarEnt(3, 12), err = Math.random() < 0.5; const v = err ? r * r + elegir([-1, 1, r]) : r * r; return { txt: `√${v} = ${r}`, ok: v === r * r }; });
+      T.push(() => { const e = azarEnt(1, 3), err = Math.random() < 0.5; return { txt: `(−1)${sup(e * 2 + (err ? 1 : 0))} = 1`, ok: !err }; });
+    } else {
+      T.push(() => { const a = azarEnt(2, 9), b = azarEnt(2, 9), err = Math.random() < 0.5; return { txt: `${a} · ${b} = ${a * b + (err ? elegir([-1, 1, a]) : 0)}`, ok: !err }; });
+      T.push(() => { const a = (azarEnt(1, 9) + azarEnt(1, 9) / 10), b = azarEnt(1, 9) / 10, err = Math.random() < 0.5; const r = Math.round((a + b + (err ? 0.1 : 0)) * 10) / 10; return { txt: `${nfmt(a)} + ${nfmt(b)} = ${nfmt(r)}`, ok: !err }; });
+    }
+    return elegir(T)();
+  }
+  function generarAfirmaciones(n) {
+    const lista = [], vistos = new Set();
+    let ver = 0, fal = 0, k = 0;
+    while (lista.length < n && k++ < 400) {
+      const a = afirmacion();
+      if (vistos.has(a.txt)) continue;
+      if (a.ok && ver >= Math.ceil(n / 2)) continue;
+      if (!a.ok && fal >= Math.ceil(n / 2)) continue;
+      vistos.add(a.txt); lista.push({ ...a, id: lista.length, abierto: false }); if (a.ok) ver += 1; else fal += 1;
+    }
+    return mezclar(lista);
+  }
+  // Sendero de las cifras: 5 números distintos de distintos tipos
+  function nuevaRondaOrden(st) {
+    const ocho = nivelNum() === 8, gen = [
+      () => { const n = azarEnt(-20, 20); return { v: n, txt: nfmt(n) }; },
+      () => { const d = azarEnt(-50, 50) / 10; return { v: d, txt: nfmt(d) }; },
+      () => { const b = elegir([2, 3, 4, 5, 8, 10]), a = azarEnt(1, b * 2) * (Math.random() < 0.3 ? -1 : 1); return { v: a / b, txt: `${a < 0 ? '−' : ''}${Math.abs(a)}/${b}` }; },
+    ];
+    if (ocho) gen.push(() => { const a = elegir([2, 3]), e = azarEnt(0, 4); return { v: a ** e, txt: `${a}${sup(e)}` }; }, () => { const r = azarEnt(1, 6); return { v: r, txt: `√${r * r}` }; });
+    const L = [];
+    let k = 0;
+    while (L.length < 5 && k++ < 300) { const p = elegir(gen)(); if (!L.some((q) => Math.abs(q.v - p.v) < 1e-9)) L.push(p); }
+    const desc = st.ronda % 2 === 1;
+    st.piedras = [...L].sort((a, b) => (desc ? b.v - a.v : a.v - b.v)); st.sig = 0;
+  }
+  function atraparFugitiva(sc, it, st) {
+    it.quieta = true;
+    abrirDesafio({ accion: `Atrapar mascota (${st.n + 1} de ${st.meta})`, dif: difPara(1 + Math.floor(st.n / 2)), premio: st.n + 1 < st.meta ? 'Premio: recursos' : 'Premio: ¡el gran botín!', onOk: () => {
+      it.atrapada = true;
+      if (!desActivo('fugitivas')) return;
+      st.n += 1;
+      if (escena && escena.jugador) { escena.celebrar(it.s.x, it.s.y - 20); escena.quitarItem(it); }
+      if (st.n >= st.meta) { contar('fugitivas'); lograr('Atrapaste a las 5 mascotas fugitivas', paquete(9, 4, true), 130); return; }
+      const txt = darPremio(paquete(2, 1), 15, false);
+      toast(`🐾 ¡Atrapaste una mascota! Ganas ${txt}. Quedan ${st.meta - st.n}.`);
+    } });
+    // si sale sin responder, la mascota escapa un poco más lejos
+    setTimeout(() => {
+      const vigila = setInterval(() => {
+        if (ui.abierto) return;
+        clearInterval(vigila);
+        if (it.atrapada || !it.s || !it.s.active) return;
+        it.quieta = false;
+        const a = Math.random() * Math.PI * 2; it.vx = Math.cos(a) * 110; it.vy = Math.sin(a) * 110; it.t = 1500;
+        if (escena) escena.flotante(it.s.x, it.s.y - 30, '¡Se escapó!', '#ffd0a0');
+      }, 250);
+    }, 300);
+  }
+  function excavarCoord(o) {
+    const st = vivo.st, sc = escena, C = sc.des.coord;
+    if (!C || C.o !== o || st.logrado) return;
+    sfx('cofre'); sc.celebrar(C.x, C.y - 10);
+    st.n += 1; sc.quitarCoordenada();
+    if (st.n >= st.meta) { contar('cartesiano'); lograr('Encontraste los 4 puntos del plano cartesiano', paquete(9, 4, true), 130); return; }
+    const txt = darPremio(paquete(2, 1), 15, false);
+    toast(`🧭 ¡Punto encontrado! Ganas ${txt}. Quedan ${st.meta - st.n}.`);
+    st.obj = null; sc.ponerCoordenada(st);
+  }
+  function abrirMimico(o) {
+    const st = vivo.st, sc = escena, c = o.cofre;
+    if (!c || c.abierto) return;
+    c.abierto = true;
+    const M = (sc.des.mimicos || []).find((x) => x.c === c);
+    if (c.ok) {
+      st.buenos += 1; sfx('cofre');
+      const txt = darPremio(paquete(2, 1), 15, false);
+      if (M) sc.flotante(M.s.x, M.s.y - 60, `¡Verdadero! +${txt}`, '#b8f5b0');
+      toast(`🎭 «${c.txt}» es verdadero: ganas ${txt}.`);
+    } else {
+      st.malos += 1; sfx('dano');
+      if (escudoActivo()) toast(`🎭 «${c.txt}» era falso: ¡un mímico! Tu escudo de cristal te protegió.`, 'alerta');
+      else { S.vida = Math.max(1, S.vida - 1); pintarHUD(); if (escena) escena.dolor(); toast(`🎭 «${c.txt}» era falso: ¡un mímico te mordió (−1 corazón)!`, 'alerta'); }
+      if (M) { M.s.setTint(0xff6a6a); sc.tweens.add({ targets: M.s, y: M.s.y - 10, duration: 90, yoyo: true, repeat: 3 }); }
+    }
+    if (M) sc.time.delayedCall(700, () => sc.quitarMimico(M));
+    if (st.buenos >= st.verdaderos) { contar('mimicos'); lograr('Abriste todos los cofres verdaderos', paquete(8, 4, true), 110); }
+  }
+
   function eventoDesafio(tipo, dato) {
     if (vivo.fase !== 'activo') return;
     const I = IMPL[vivo.def.id];
@@ -5696,7 +6069,7 @@
       avisoGrande('¡Se buscan 3 enemigos coronados!', 'Son más fuertes y dejan un gran botín', 'Sigue la flecha dorada y véncelos a los 3');
     } else if (vivo.def.id === 'sabio') {
       avisoGrande('¡Sabiduría doble!', 'Toda la experiencia vale el doble', 'Cada 3 respuestas correctas recibes un regalo de recursos');
-    } else if (['estrellas', 'mercado'].includes(vivo.def.id)) {
+    } else if (['estrellas', 'mercado', 'cartesiano', 'burbujas', 'mimicos', 'fugitivas', 'orden'].includes(vivo.def.id)) {
       /* su aviso se muestra al montar el desafío */
     } else if (vivo.def.id === 'tesoro') {
       avisoGrande('¡Hay un tesoro escondido!', 'Está enterrado cerca de ti', 'Guíate por el calor: 🧊 frío … 🔥 muy caliente · presiona E para cavar');
@@ -6192,6 +6565,7 @@
       this.des = { objs: [], items: [] };
       if (obraDeEscena()) cargarObra();
       if (vivo.fase === 'activo') montarDesafio(this);
+      this.time.delayedCall(250, () => prepararMinimapa(this));
       if (this.zona === 'pieza' && this.sala.tipo === 'mia' && !(S.pieza || []).length) setTimeout(() => toast('¡Esta es tu casa! Fabrica muebles con B (pestaña Muebles) y colócalos con G.'), 700);
       if (this.zona === 'pieza' && this.sala.tipo === 'visita') setTimeout(() => toast(`Estás de visita en la casa de ${this.sala.nombre}: puedes mirar, pero no cambiar nada.`), 700);
       if (this.zona === 'pieza' && this.sala.tipo === 'comun') setTimeout(() => toast('Carpa común: todo el grupo puede decorarla con G. Cada uno puede guardar solo lo que puso.'), 700);
@@ -6393,10 +6767,10 @@
 
     // ---------- utilidades de construcción ----------
     suelo(data, hoja = 'kenney') {
-      this.terreno = data;
+      this.terreno = data; this.hojaSuelo = hoja;
       const mapa = this.make.tilemap({ data, tileWidth: 16, tileHeight: 16 });
       const ts = mapa.addTilesetImage(hoja, hoja, 16, 16, 0, 1);
-      mapa.createLayer(0, ts, 0, 0).setScale(2).setDepth(-10);
+      this.capaSuelo = mapa.createLayer(0, ts, 0, 0).setScale(2).setDepth(-10);
     }
     marcar(x, y) { this.ocupado.add(`${x},${y}`); }
     libre(x, y) {
@@ -8658,7 +9032,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'ladron', 'tesoro', 'runa', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -8720,6 +9094,8 @@
         case 'comun': return 'Entrar a la carpa común del grupo';
         case 'puerta': return 'Salir a tu base';
         case 'runa': return 'Activar la runa (responde su pregunta)';
+        case 'coord': return '¡Es aquí! Cavar en este punto';
+        case 'mimico': return `Abrir cofre: «${o.cofre.txt}»`;
         default: return null;
       }
     }
@@ -8739,6 +9115,8 @@
       if (o.tipo === 'ladron') return desActivo('ladron') && abrirLadron(vivo.st);
       if (o.tipo === 'tesoro') return desActivo('tesoro') && cavarTesoro(vivo.st);
       if (o.tipo === 'runa') return desActivo('runas') && activarRuna(o);
+      if (o.tipo === 'coord') return desActivo('cartesiano') && excavarCoord(o);
+      if (o.tipo === 'mimico') return desActivo('mimicos') && abrirMimico(o);
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
@@ -9475,6 +9853,100 @@
         this.time.delayedCall(6500, () => { if (estrella.active) this.tweens.add({ targets: [estrella, numero], alpha: 0, duration: 500, onComplete: () => this.quitarItem(it) }); });
       } });
     }
+    // ---------- desafíos nuevos: plano cartesiano, burbujas, mímicos, fugitivas y cifras ----------
+    origenPlano() { const P = this.objetos.find((o) => o.tipo === 'portal'); return P ? { x: P.x, y: P.y } : { x: this.inicio.x, y: this.inicio.y }; }
+    coordDe(x, y) { const O = this.origenPlano(); return { x: Math.round((x - O.x) / TILE), y: Math.round((O.y - y) / TILE) }; }
+    ponerCoordenada(st) {
+      if (this.des.coord || !this.jugador) return;
+      const O = this.origenPlano();
+      if (!st.obj || st.zona !== this.zona) {
+        st.obj = null;
+        for (let i = 0; i < 40 && !st.obj; i++) {
+          const p = this.puntoLibre(200, 620), c = this.coordDe(p.x, p.y);
+          if (Math.abs(c.x) < 3 || Math.abs(c.y) < 2) continue;
+          const wx = O.x + c.x * TILE, wy = O.y - c.y * TILE;
+          if (!this.alcanzable(wx, wy) || this.physics.overlapRect(wx - 12, wy - 12, 24, 20, false, true).length) continue;
+          st.obj = c; st.zona = this.zona;
+        }
+        if (!st.obj) return;
+      }
+      const x = O.x + st.obj.x * TILE, y = O.y - st.obj.y * TILE;
+      const marca = this.add.text(x, y - 4, '✖', { fontFamily: 'Arial', fontSize: '26px', fontStyle: 'bold', color: '#0d4a5a', stroke: '#bff4ff', strokeThickness: 3 }).setOrigin(0.5).setDepth(-3).setAlpha(0);
+      const o = { tipo: 'coord', x, y, activo: true, desafio: true };
+      this.objetos.push(o);
+      this.des.coord = { x, y, marca, o };
+      this.des.objs.push(marca);
+    }
+    quitarCoordenada() {
+      const C = this.des.coord; if (!C) return;
+      this.objetos = this.objetos.filter((o) => o !== C.o);
+      if (C.marca.active) C.marca.destroy();
+      this.des.coord = null;
+    }
+    lanzarBurbuja(meta) {
+      if (!this.jugador) return;
+      const ok = Math.random() < 0.45, v = ok ? meta : meta + elegir([-4, -3, -2, -1, 1, 2, 3, 4, 6]);
+      const txt = operacionCon(v);
+      const p = this.puntoLibre(80, 330);
+      const bola = this.add.circle(p.x, p.y - 300, 30, 0x8fd8ff, 0.5).setStrokeStyle(3, 0xffffff, 0.9).setDepth(99990);
+      const brillo = this.add.circle(p.x - 10, p.y - 312, 7, 0xffffff, 0.7).setDepth(99991);
+      const t = this.add.text(p.x, p.y - 300, txt, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#0b2a3a', stroke: '#e8f8ff', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99992);
+      const it = { tipo: 'cayendo_b', s: bola, extra: t, sombra: brillo, x: p.x, y: p.y, v, ok, txt };
+      this.des.items.push(it); this.des.objs.push(bola, t, brillo);
+      this.tweens.add({ targets: [bola, t], y: p.y - 14, duration: 1100, ease: 'Sine.out' });
+      this.tweens.add({ targets: brillo, y: p.y - 26, duration: 1100, ease: 'Sine.out', onComplete: () => {
+        if (!bola.active) return;
+        it.tipo = 'burbuja';
+        bola.setDepth(p.y); brillo.setDepth(p.y + 1); t.setDepth(p.y + 2);
+        this.tweens.add({ targets: [bola, t, brillo], y: '-=6', duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.time.delayedCall(7000, () => { if (bola.active) this.tweens.add({ targets: [bola, t, brillo], alpha: 0, duration: 400, onComplete: () => this.quitarItem(it) }); });
+      } });
+    }
+    ponerMimico(c) {
+      if (!this.jugador) return;
+      this.des.mimicos = this.des.mimicos || [];
+      if (this.des.mimicos.some((m) => m.c === c)) return;
+      let p = null;
+      for (let i = 0; i < 12; i++) { const q = this.puntoLibre(110, 420); if (!this.des.mimicos.some((m) => Phaser.Math.Distance.Between(m.x, m.y, q.x, q.y) < 120)) { p = q; break; } p = q; }
+      const sCofre = this.add.image(p.x, p.y, 'cofre').setOrigin(0.5, 1).setScale(2).setDepth(p.y);
+      const t = this.add.text(p.x, p.y - 46, c.txt, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#fff6dc', backgroundColor: 'rgba(58,24,74,0.88)', padding: { x: 6, y: 3 }, align: 'center' }).setOrigin(0.5, 1).setResolution(3).setDepth(99980);
+      this.tweens.add({ targets: sCofre, scaleY: 2.08, duration: 700 + Math.random() * 400, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+      const o = { tipo: 'mimico', x: p.x, y: p.y - 8, activo: true, desafio: true, cofre: c };
+      this.objetos.push(o);
+      const M = { c, s: sCofre, t, o, x: p.x, y: p.y };
+      this.des.mimicos.push(M); this.des.objs.push(sCofre, t);
+    }
+    quitarMimico(M) {
+      this.objetos = this.objetos.filter((o) => o !== M.o);
+      this.des.mimicos = (this.des.mimicos || []).filter((m) => m !== M);
+      this.add.particles(M.x, M.y - 16, M.c.ok ? 'p_brillo' : 'p_morado', { speed: { min: 50, max: 150 }, lifespan: 600, scale: { start: 1.4, end: 0 }, emitting: false }).setDepth(99999).explode(18);
+      this.tweens.add({ targets: [M.s, M.t], alpha: 0, duration: 350, onComplete: () => { if (M.s.active) M.s.destroy(); if (M.t.active) M.t.destroy(); } });
+    }
+    soltarFugitiva() {
+      if (!this.jugador || !desActivo('fugitivas')) return;
+      const lista = MASCOTAS.filter((m) => m.jefe), m = elegir(lista);
+      const p = this.puntoLibre(220, 560);
+      const s = this.add.sprite(p.x, p.y, 'mascotas', MASCOTA[m.id].fila * 2).setOrigin(0.5, 0.95).setScale(1.15).setDepth(p.y);
+      if (this.anims.exists(`masc_${m.id}`)) s.anims.play(`masc_${m.id}`);
+      const it = { tipo: 'fugitiva', s, x: p.x, y: p.y, vx: 0, vy: 0, t: 0, id: m.id };
+      this.des.items.push(it); this.des.objs.push(s);
+      this.add.particles(p.x, p.y - 16, 'p_brillo', { speed: { min: 40, max: 130 }, lifespan: 500, scale: { start: 1.3, end: 0 }, emitting: false }).setDepth(99999).explode(14);
+    }
+    ponerPiedras(st) {
+      if (!this.jugador || !st.piedras) return;
+      for (const it of this.des.items.filter((x) => x.tipo === 'cifra')) this.quitarItem(it);
+      const puestas = [];
+      for (const pd of st.piedras.slice(st.sig)) {
+        let p = null;
+        for (let i = 0; i < 20; i++) { const q = this.puntoLibre(90, 330); p = q; if (!puestas.some((u) => Phaser.Math.Distance.Between(u.x, u.y, q.x, q.y) < 80) && Phaser.Math.Distance.Between(q.x, q.y, this.jugador.x, this.jugador.y) > 70) break; }
+        puestas.push(p);
+        const piedra = this.add.ellipse(p.x, p.y - 12, 58, 40, 0x8d8a80).setStrokeStyle(3, 0x4a463e).setDepth(p.y);
+        const t = this.add.text(p.x, p.y - 13, pd.txt, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#fffbe8', stroke: '#2a2620', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(p.y + 1);
+        this.tweens.add({ targets: piedra, scaleX: 1.05, scaleY: 1.05, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        const it = { tipo: 'cifra', s: piedra, extra: t, x: p.x, y: p.y, p: pd };
+        this.des.items.push(it); this.des.objs.push(piedra, t);
+      }
+    }
     enterrarTesoro() {
       if (this.des.tesoro || !this.jugador) return;
       const p = this.puntoLibre(this.zona === 'base' || this.zona === 'pieza' ? 140 : 300, this.zona === 'base' || this.zona === 'pieza' ? 300 : 640);
@@ -9603,7 +10075,7 @@
       if (this.des.prisma) { this.objetos = this.objetos.filter((o) => o !== this.des.prisma.o); this.des.prisma = null; }
       this.objetos = this.objetos.filter((o) => !o.desafio);
       if (this.des.ladron) { const L = this.des.ladron; this.add.particles(L.s.x, L.s.y - 20, 'p_morado', { speed: { min: 40, max: 140 }, lifespan: 600, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24); L.s.destroy(); L.tag.destroy(); this.des.ladron = null; }
-      this.des.tesoro = null; this.des.runas = null;
+      this.des.tesoro = null; this.des.runas = null; this.des.coord = null; this.des.mimicos = null;
       if (oscuro && oscuro.active) this.tweens.add({ targets: oscuro, alpha: 0, duration: 1000, onComplete: () => oscuro.destroy() });
     }
     flotante(x, y, txt, color = '#ffffff') {

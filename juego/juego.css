@@ -1063,3 +1063,30 @@ body.movil .pv-acciones kbd, body.movil .mj-controles kbd { display: none; }
 .horda-reloj > small { grid-column: 1 / -1; color: #ffb4a3; font-weight: 800; }
 .horda-reloj .rey-tiempo { margin: 0; }
 @keyframes h-apura { to { transform: scale(1.12); } }
+
+/* ---------- HUD más compacto (escritorio) ---------- */
+body:not(.movil) { --hud-z: .8; }
+@media (max-width: 1280px), (max-height: 760px) { body:not(.movil) { --hud-z: .72; } }
+body:not(.movil) #hud .tarjeta-pj, body:not(.movil) #hud .zona-actual, body:not(.movil) #hud .hud-misiones, body:not(.movil) #hud .herramientas,
+body:not(.movil) #hud .btn-sonido, body:not(.movil) #hud .panel-sonido, body:not(.movil) #hud .btns-redondos, body:not(.movil) #hud .panel-chat,
+body:not(.movil) #hud .botones, body:not(.movil) #hud .aviso, body:not(.movil) #hud .desafio, body:not(.movil) #hud .recursos, body:not(.movil) #hud .minimapa { zoom: var(--hud-z, 1); }
+
+/* ---------- Minimapa ---------- */
+.minimapa { position: absolute; right: 72px; top: 84px; width: 216px; padding: 6px 6px 4px; border-radius: 14px; background: rgba(18, 32, 26, .9); border: 2px solid var(--line); box-shadow: 0 6px 18px rgba(0,0,0,.35); cursor: pointer; z-index: 5; display: flex; flex-direction: column; gap: 3px; transition: border-color .2s; }
+.minimapa canvas { display: block; width: 200px; height: auto; border-radius: 9px; image-rendering: pixelated; background: #142219; }
+.minimapa .mm-pie { display: flex; justify-content: space-between; gap: 6px; font-size: 11px; font-weight: 800; color: var(--muted); padding: 0 2px; }
+.minimapa .mm-pie #mm-alerta { color: #ff8a7a; }
+.minimapa.alerta { border-color: #ff5a5a; animation: mm-alerta .55s ease-in-out infinite alternate; }
+@keyframes mm-alerta { to { box-shadow: 0 0 22px rgba(255, 80, 70, .85); } }
+.minimapa .mm-leyenda { display: none; }
+.minimapa.grande { right: 50%; top: 50%; transform: translate(50%, -50%); width: min(620px, calc(100vw - 40px)); z-index: 9; padding: 10px; }
+.minimapa.grande canvas { width: 100%; }
+.minimapa.grande .mm-pie { font-size: 13px; }
+.minimapa.grande .mm-leyenda { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; font-weight: 700; color: var(--text); padding: 2px; }
+.mm-leyenda span { display: inline-flex; align-items: center; gap: 4px; }
+.mm-leyenda i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+body.movil .minimapa { right: 62px; top: 58px; width: 126px; padding: 4px 4px 2px; border-radius: 10px; }
+body.movil .minimapa canvas { width: 116px; }
+body.movil .minimapa .mm-pie { font-size: 9px; }
+body.movil .minimapa.grande { right: 50%; top: 50%; width: calc(100vw - 24px); }
+body.movil .minimapa.grande canvas { width: 100%; }
