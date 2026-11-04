@@ -30,15 +30,24 @@ const GALERIA = [
   ['g_excava', '🏺 Excavaciones', 'Descubre fósiles, tesoros y gemas en el Valle de la Esfinge.'],
   ['g_cima', '🏔️ La Cima del Glaciar', 'Escala, baja en rapel y encuentra el trono del dragón.'],
 ];
+// Personajes: los 8 iniciales y los 10 especiales que se desbloquean por nivel, cada uno con su habilidad especial
+// [id, nombre, nivel, habilidad, daño, leyenda]
 const PERSONAJES = [['zorro', 'Zorro'], ['luna', 'Luna'], ['puma', 'Puma'], ['copihue', 'Copihue'], ['condor', 'Cóndor'], ['huemul', 'Huemul'], ['pudu', 'Pudú'], ['lobo', 'Lobo'],
-  ['paladin', 'Paladín Solar', 1], ['valquiria', 'Valquiria del Viento', 1], ['draconico', 'Caballero Dragón', 1], ['arcangel', 'Arcángel Coronada', 1]];
+  ['fenix', 'Fénix Llameante', 30, '🔥 Llamarada del Fénix', 10], ['trueno', 'Centinela del Trueno', 40, '⚡ Rayo Celestial', 20],
+  ['sombra', 'Caballero de las Sombras', 50, '🌑 Golpe Sombrío', 30], ['bosque', 'Guardiana del Bosque', 60, '🌿 Furia de la Naturaleza', 35],
+  ['cazadora', 'Cazadora Élfica', 70, '🏹 Lluvia de Flechas', 40], ['ninja', 'Ninja Carmesí', 80, '🗡️ Danza de Katanas', 45],
+  ['archimago', 'Archimago Celestial', 90, '🔮 Tormenta Arcana', 50],
+  ['emperador', 'Emperador Dorado', 100, '👑 Juicio del Emperador', 60, 1], ['esqueleto', 'Rey Esqueleto', 100, '💀 Ejército de Huesos', 60, 1], ['minotauro', 'Minotauro Titán', 100, '🐂 Embestida del Titán', 60, 1]];
 const MASCOTAS = [['buho', 'Búho'], ['fenec', 'Fénec'], ['topo', 'Topo minero'], ['pinguino', 'Pingüino'], ['jabato', 'Jabato'], ['ajolote', 'Ajolote de lava'], ['dragon', 'Dragoncito'], ['grifo', 'Grifo (nivel 50)'], ['fenix', 'Fénix (nivel 70)'], ['unicornio', 'Unicornio (nivel 90)']];
 const NOVEDADES = [
+  ['✨', 'Personajes especiales', 'Del nivel 30 al 100 se desbloquean 10 personajes nuevos, cada uno con su propia habilidad especial.'],
+  ['⭐', 'Las 3 leyendas', 'En el nivel 100 te esperan el Emperador Dorado, el Rey Esqueleto y el Minotauro Titán: los personajes más fuertes del juego.'],
+  ['⚡', 'Habilidad especial', 'Responde bien 5 preguntas seguidas para cargarla y lánzala en combate: quita mucha vida, ¡también a los jefes! Si fallas, la carga vuelve a 0.'],
+  ['👹', 'Jefes más fuertes', 'Los jefes tienen más vida y ahora vencerlos tiene su propia animación de victoria con confeti y K.O.'],
+  ['🏅', '20 logros nuevos', 'Una nueva pestaña «Héroes y habilidades», niveles 50, 75 y 100, y logros por duelos y prismas perfectos.'],
+  ['🎯', 'Desafíos renovados', 'En el Duelo por el cofre y el Prisma estelar quedas fuera con 5 errores, y la Meta del curso dura 3 minutos.'],
+  ['🌱', 'Aprender del error', 'Al talar, picar o recolectar, si te equivocas ves la respuesta correcta y pasas a otra pregunta sin perder vida.'],
   ['🐾', 'Mascotas', 'Vence a los jefes finales y gana 10 mascotas que te siguen por todo el mapa.'],
-  ['⚔️', 'Arena PvP', 'Duelos 1 contra 1 en cada mundo: el ganador se lleva la mochila del otro.'],
-  ['🤝', 'Comercio', 'Intercambia recursos con tu curso desde el cofre de comercio de tu base.'],
-  ['👑', 'El rey del juego', 'Completa todos los logros y desbloquea los 4 caballeros alados.'],
-  ['🦹', 'El ladrón', 'Un nuevo desafío en vivo: vuelve a tu base antes de que te roben.'],
   ['📱', 'Juega en el celular', 'Una vista especial para teléfonos, con menú ☰ y controles táctiles.'],
 ];
 // Accesos de la página: activo:true se puede abrir; activo:false muestra «Pronto»
@@ -59,6 +68,9 @@ const FAQ = [
   ['¿Cómo entro al juego por primera vez?', 'Presiona «Jugar ahora», elige tu nivel, escribe tu RUT, crea una clave de al menos 4 caracteres y elige tu personaje. Después escribe el código de tu grupo que te da tu profesor.'],
   ['No estoy en la lista del curso, ¿puedo jugar?', 'Sí, como invitado. Presiona «Jugar ahora», abre la pestaña «Invitado» y elige «Pedir acceso»: escribe tu nombre, crea un usuario y una clave. Cuando tu profesor acepte tu solicitud entrarás a la sala de invitados, un solo grupo de hasta 10 jugadores.'],
   ['Olvidé mi clave, ¿qué hago?', 'Pídele a tu profesor que la restablezca desde el portal docente. La próxima vez que entres podrás crear una clave nueva y conservarás todo tu avance.'],
+  ['¿Cómo desbloqueo los personajes especiales?', 'Subiendo de nivel. En el nivel 30 se desbloquea el Fénix Llameante y luego uno nuevo cada 10 niveles. En el nivel 100 se desbloquean las 3 leyendas. Cuando llegues al nivel, el juego te avisa y lo puedes elegir en Equipo (tecla Q).'],
+  ['¿Cómo funciona la habilidad especial?', 'Los personajes especiales tienen una habilidad que se carga con 5 respuestas correctas seguidas. Cuando está lista, aparece un botón en el combate: al usarla le quita una cantidad fija de vida al enemigo o al jefe. Si te equivocas en una pregunta, la carga vuelve a 0.'],
+  ['¿Qué pasa si me equivoco al recolectar?', 'No pierdes vida: ves la respuesta correcta con su explicación y aparece otra pregunta para que lo vuelvas a intentar.'],
   ['Me equivoqué de grupo', 'Avísale a tu profesor: él te puede cambiar de grupo desde su portal. Tu avance personal (nivel, recursos, logros) no se pierde.'],
   ['¿Puedo jugar desde el celular?', 'Sí. El juego tiene una vista especial para teléfonos con un menú ☰. Se ve mejor con el celular en horizontal.'],
   ['¿Por qué no puedo entrar a un mundo?', 'Cada mundo corresponde a una unidad y tu profesor lo abre cuando la empiezan a estudiar en clases. Las zonas especiales se abren construyendo obras con tu grupo.'],
@@ -93,7 +105,7 @@ function portada() {
   const S = ['π', '∑', '√', '÷', '∞', '%', '×', '±', '½', 'x²', '≠', '∠', 'Δ', '7', '8', '+', '='];
   $('simbolos').innerHTML = Array.from({ length: 22 }, (_, i) => `<span style="--x:${(i * 47) % 100}%;--d:${8 + (i % 7) * 2}s;--r:${(i % 2 ? -1 : 1) * (10 + i * 7)}deg;--t:${0.8 + (i % 4) * 0.35}rem;animation-delay:-${i * 1.3}s">${S[i % S.length]}</span>`).join('');
   // desfile de personajes con sus mascotas
-  const fila = [['zorro', 0], ['luna', 3], ['paladin', 7], ['copihue', 1], ['draconico', 6], ['condor', 4], ['arcangel', 9], ['huemul', 5], ['valquiria', 8], ['pudu', 2]];
+  const fila = [['zorro', 0], ['luna', 3], ['emperador', 7], ['copihue', 1], ['minotauro', 6], ['cazadora', 4], ['archimago', 9], ['fenix', 5], ['esqueleto', 8], ['ninja', 2]];
   $('desfile').innerHTML = fila.map(([p, m], i) => `<div class="caminante" style="--d:${26 + (i % 3) * 4}s;--retraso:-${i * 3.1}s;--y:${(i % 3) * 10}px">${sprite(p, 'camina')}${mascota(m, 'sigue')}</div>`).join('');
   // fondo con movimiento suave al mover el mouse
   if (!QUIETO) window.addEventListener('pointermove', (e) => {
@@ -166,16 +178,16 @@ function galeria() {
 
 // ------------------------------------------------------------------ personajes y mascotas
 function elenco() {
-  $('elenco').innerHTML = PERSONAJES.map(([id, nombre, rey], i) => `
-    <button type="button" class="pj ${rey ? 'rey' : ''} aparece" style="--retraso:${i * 50}ms" aria-label="${esc(nombre)}">
-      ${rey ? '<span class="corona">👑</span>' : ''}${sprite(id)}<small>${esc(nombre)}</small>
+  $('elenco').innerHTML = PERSONAJES.map(([id, nombre, nivel, hab, dano, leyenda], i) => `
+    <button type="button" class="pj ${nivel ? 'esp' : ''} ${leyenda ? 'rey' : ''} aparece" style="--retraso:${i * 40}ms" aria-label="${esc(nombre)}${nivel ? `, se desbloquea en el nivel ${nivel}` : ''}" ${nivel ? `data-info="${esc(`${nombre} · nivel ${nivel} · ${hab}: quita ${dano}`)}"` : ''}>
+      ${leyenda ? '<span class="corona">⭐</span>' : ''}${nivel ? `<span class="nv">Nv. ${nivel}</span>` : ''}${sprite(id)}<small>${esc(nombre)}</small>${nivel ? `<em>${esc(hab.split(' ')[0])} −${dano}</em>` : ''}
     </button>`).join('');
   document.querySelectorAll('.pj').forEach((b) => {
     const s = b.querySelector('.sprite');
     const caminar = () => { s.classList.add('camina'); };
     const parar = () => { s.classList.remove('camina'); };
     b.addEventListener('pointerenter', caminar); b.addEventListener('pointerleave', parar);
-    b.addEventListener('click', () => { b.classList.remove('salta'); void b.offsetWidth; b.classList.add('salta'); s.classList.toggle('camina'); if (b.classList.contains('rey')) toast('👑 Se desbloquea con el logro «El rey del juego»'); });
+    b.addEventListener('click', () => { b.classList.remove('salta'); void b.offsetWidth; b.classList.add('salta'); s.classList.toggle('camina'); if (b.dataset.info) toast(`✨ ${b.dataset.info}`); });
   });
   $('corral').innerHTML = `<span class="etq">Mascotas</span><div class="mascotas-fila">${MASCOTAS.map(([id, nombre], i) => `<button type="button" class="m-chip" style="--retraso:${i * 60}ms" aria-label="${esc(nombre)}">${mascota(i)}<small>${esc(nombre)}</small></button>`).join('')}</div>`;
   document.querySelectorAll('.m-chip').forEach((b) => b.addEventListener('click', () => { b.classList.remove('salta'); void b.offsetWidth; b.classList.add('salta'); }));

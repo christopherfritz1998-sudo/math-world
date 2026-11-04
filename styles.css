@@ -269,3 +269,9 @@ a.unidad:hover { transform: translateY(-5px); border-color: var(--teal); }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .aparece { opacity: 1; transform: none; }
 }
+
+/* Personajes especiales (por nivel) y leyendas en la portada */
+.pj.esp { padding-top: 18px; }
+.pj .nv { position: absolute; top: 6px; left: 8px; padding: 1px 7px; border-radius: 999px; background: rgba(255, 210, 74, .16); color: #ffd24a; font-size: 11px; font-weight: 800; }
+.pj em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--muted); }
+.pj.rey .nv { background: #ffd24a; color: #3a2400; }
