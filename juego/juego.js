@@ -1459,7 +1459,7 @@
       if (elegida === null || resuelto) return;
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
-      if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4); }
+      if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4); if (fallos > 0) contar('recupera'); }
       else {
         // Error: no quita vida; se muestra la respuesta correcta y se cambia a otra pregunta
         fallos += 1; sfx('error');
@@ -2796,9 +2796,10 @@
     };
     const especial = (n) => {
       if (fin) return;
+      contar('hab_jefe');
       J.coraza = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez }); }
       pintar();
     };
     const atacar = () => {
@@ -3438,9 +3439,10 @@
     };
     const especial = (n) => {
       if (fin) return;
+      contar('hab_jefe');
       J.muro = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez }); }
       pintar();
     };
     const atacar = () => {
@@ -3560,9 +3562,10 @@
     };
     const especial = (n) => {
       if (fin) return;
+      contar('hab_jefe');
       J.vendas = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez }); }
       pintar();
     };
     const atacar = () => {
@@ -3608,12 +3611,13 @@
   // Cada logro se cumple con el avance del jugador y desbloquea un título que se puede equipar:
   // se muestra arriba del nombre (en el HUD y sobre el personaje, también para los compañeros).
   const CN = (k) => (S && S.cont && S.cont[k]) || 0;
+  const pjEspLibres = (hasta = 999) => PERSONAJES.filter((p) => p.nivel && p.nivel <= hasta && (S.nivel || 1) >= p.nivel).length;
   const sumaC = (...ks) => ks.reduce((a, k) => a + CN(k), 0);
   const visto = (k) => Boolean(S.visitados && S.visitados[k]);
   const aciertosTotales = () => Object.values(S.stats || {}).reduce((a, s) => a + (s.a || 0), 0);
   const albumListo = (lista, A) => lista.filter((x) => A && A[x.id]).length;
   const ENE_MUNDO = { bosque: ['arbusto', 'niebla', 'bicho', 'arana', 'raiz'], desierto: ['escorpion', 'remolino', 'esqueleto', 'escarabajo', 'momia'], mina: ['murcielago', 'golem', 'minero', 'salamandra', 'golem_cristal'], hielo: ['lobo_nieve', 'espiritu', 'muneco', 'halcon', 'golem_hielo'] };
-  const CATS_LOGRO = { explorar: '🧭 Exploración', recolectar: '🪓 Recolección', combate: '⚔️ Combate', aprender: '🧠 Aprendizaje', nivel: '⭐ Niveles', fabricar: '🔨 Fabricación', coleccion: '📖 Colecciones', minijuegos: '🎮 Minijuegos', equipo: '🤝 Trabajo en equipo', rey: '👑 El rey del juego' };
+  const CATS_LOGRO = { explorar: '🧭 Exploración', recolectar: '🪓 Recolección', combate: '⚔️ Combate', aprender: '🧠 Aprendizaje', nivel: '⭐ Niveles', fabricar: '🔨 Fabricación', coleccion: '📖 Colecciones', minijuegos: '🎮 Minijuegos', equipo: '🤝 Trabajo en equipo', heroes: '✨ Héroes y habilidades', rey: '👑 El rey del juego' };
   const L = (id, cat, icono, nombre, desc, meta, v, titulo) => ({ id, cat, icono, nombre, desc, meta, v, titulo });
   const LOGROS = [
     // Exploración
@@ -3719,6 +3723,29 @@
     L('tesoro', 'explorar', '🗝️', 'Cazatesoros', 'Encuentra el tesoro escondido del desafío de tu profesor.', 1, () => CN('tesoro'), 'Cazatesoros'),
     L('racha5', 'aprender', '🔥', 'Imparable', 'Llega al multiplicador x5 en la racha imparable.', 1, () => CN('racha5'), 'Imparable'),
     L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
+    // ----- Héroes y habilidades (personajes especiales por nivel y su habilidad especial) -----
+    L('pj_fenix', 'heroes', '🔥', 'Despertar del fuego', 'Desbloquea tu primer personaje especial: el Fénix Llameante (nivel 30).', 1, () => pjEspLibres(), 'Portador del Fuego'),
+    L('pj_elem4', 'heroes', '🌪️', 'Los cuatro elementos', 'Desbloquea los 4 guerreros elementales: Fénix, Centinela, Sombras y Guardiana (nivel 60).', 4, () => pjEspLibres(60), 'Señor de los Elementos'),
+    L('pj_heroes7', 'heroes', '🛡️', 'Forjador de héroes', 'Desbloquea 7 personajes especiales: hasta el Archimago Celestial (nivel 90).', 7, () => pjEspLibres(90), 'Forjador de Héroes'),
+    L('pj_leyendas', 'heroes', '⭐', 'Las tres leyendas', 'Desbloquea a las 3 leyendas del nivel 100: Emperador Dorado, Rey Esqueleto y Minotauro Titán.', 3, () => PERSONAJES.filter((p) => p.leyenda && (S.nivel || 1) >= p.nivel).length, 'Leyenda Eterna'),
+    L('pj_usa5', 'heroes', '🎭', 'Mil caras', 'Juega con 5 personajes especiales distintos (elígelos en Equipo, tecla Q).', 5, () => (S.pjUsados || []).filter((id) => PERSONAJES.some((p) => p.id === id && p.nivel)).length, 'Mil Caras'),
+    L('hab1', 'heroes', '✨', 'Poder despertado', 'Usa la habilidad especial de tu personaje por primera vez.', 1, () => CN('habilidad'), 'Poder Despertado'),
+    L('hab25', 'heroes', '💥', 'Maestría especial', 'Usa tu habilidad especial 25 veces.', 25, () => CN('habilidad'), 'Maestro de Habilidades'),
+    L('hab100', 'heroes', '🌟', 'Energía infinita', 'Usa tu habilidad especial 100 veces.', 100, () => CN('habilidad'), 'Energía Infinita'),
+    L('hab_carga10', 'heroes', '🧘', 'Concentración total', 'Carga tu habilidad especial 10 veces (5 respuestas correctas seguidas cada vez).', 10, () => CN('hab_carga'), 'Mente Concentrada'),
+    L('hab_jefe10', 'heroes', '🎯', 'Golpe a los gigantes', 'Usa tu habilidad especial contra jefes 10 veces.', 10, () => CN('hab_jefe'), 'Azote de Jefes'),
+    L('hab_ko', 'heroes', '☄️', 'Remate especial', 'Vence a un jefe con el golpe de tu habilidad especial.', 1, () => CN('hab_ko'), 'Golpe de Gracia'),
+    L('leyenda_vence50', 'heroes', '🏆', 'Fuerza legendaria', 'Vence a 50 enemigos jugando con una de las 3 leyendas.', 50, () => CN('vence_leyenda'), 'Furia Legendaria'),
+    // ----- Niveles altos -----
+    L('nivel50', 'nivel', '🌠', 'Medio siglo', 'Llega al nivel 50.', 50, () => S.nivel, 'Medio Siglo'),
+    L('nivel75', 'nivel', '🎖️', 'Veterano de Math World', 'Llega al nivel 75.', 75, () => S.nivel, 'Veterano'),
+    L('nivel100', 'nivel', '💯', 'Centenario', 'Llega al nivel 100.', 100, () => S.nivel, 'Centenario'),
+    // ----- Desafíos en vivo renovados -----
+    L('duelo_perfecto', 'equipo', '🎯', 'Duelo perfecto', 'Gana un duelo por el cofre sin cometer ningún error.', 1, () => CN('duelo_perfecto'), 'Precisión Absoluta'),
+    L('meta_oro', 'equipo', '🥇', 'Meta de oro', 'Logra con tu curso el nivel oro o diamante en la Meta del curso (3 minutos).', 1, () => CN('meta_oro'), 'Curso de Oro'),
+    L('prisma_perfecto', 'recolectar', '💎', 'Prisma impecable', 'Consigue el prisma estelar sin cometer ningún error.', 1, () => CN('prisma_perfecto'), 'Luz Perfecta'),
+    // ----- Aprender del error (recolección: tras fallar, aparece otra pregunta) -----
+    L('recupera20', 'aprender', '🌱', 'Aprender del error', 'Al recolectar, responde bien la nueva pregunta después de equivocarte 20 veces.', 20, () => CN('recupera'), 'Aprende y Avanza'),
   ];
   // El logro final: se desbloquea al completar todos los demás
   LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Te da el título «El rey del juego».', LOGROS.length,
@@ -4110,7 +4137,7 @@
   const pjLibre = (id) => { const p = PERSONAJES.find((x) => x.id === id); return Boolean(p) && (!p.nivel || esDocente() || (S && (S.nivel || 1) >= p.nivel)); };
   function ponerPj(id) {
     if (!pjLibre(id)) return;
-    S.pj = id; guardar(true); pintarHUD();
+    S.pj = id; S.pjUsados = [...new Set([...(S.pjUsados || []), id])]; guardar(true); pintarHUD(); programarLogros();
     if (escena && escena.jugador) { escena.vestirJugador(); }
   }
   function personajesHTML() {
@@ -4137,7 +4164,7 @@
     const antes = S.habCarga || 0;
     S.habCarga = ok ? Math.min(HAB_CARGA, antes + 1) : 0;
     const h = habDe();
-    if (h && ok && antes < HAB_CARGA && S.habCarga >= HAB_CARGA) { setTimeout(() => toast(`${h.icono} ¡${h.nombre} está lista! Úsala en tu próximo combate.`), 600); }
+    if (h && ok && antes < HAB_CARGA && S.habCarga >= HAB_CARGA) { contar('hab_carga'); setTimeout(() => toast(`${h.icono} ¡${h.nombre} está lista! Úsala en tu próximo combate.`), 600); }
   }
   function habBtnHTML() {
     const h = habDe(); if (!h) return '';
@@ -4163,7 +4190,7 @@
   }
   function usarHabilidad(aplicar) {
     const h = habDe(); if (!h || !habLista()) return;
-    S.habCarga = 0; guardar();
+    S.habCarga = 0; guardar(); contar('habilidad');
     const b = $('hab-usar'); if (b) b.disabled = true;
     const n = danioHab();
     fxHabilidad(h, `${S.pj}_${texArmadura(S.armadura)}`, n, null, () => aplicar(n));
@@ -5020,11 +5047,12 @@
     };
     const especial = (n) => {
       if (fin) return;
+      contar('hab_jefe');
       J.escudo = 0; J.hp -= n; J.t0 = performance.now();
       sc.flotante(sc.rey.x, sc.rey.y - 120, `−${n}`, '#ffd27a');
       sc.tweens.add({ targets: sc.rey, x: sc.rey.x + 8, duration: 50, yoyo: true, repeat: 4 });
       ultimo = msgHab(n);
-      if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez }); }
       pintar();
     };
     const atacar = () => {
@@ -5125,7 +5153,7 @@
       on('hab-usar', () => usarHabilidad((n) => {
         if (fase !== 'pregunta') return;
         if (e.canal) e.canal.emitir('hab', { pj: S.pj, tex: texArmadura(S.armadura), nombre: S.nombre, n });
-        e.golpeLocal(n); ultimo = msgHab(n);
+        contar('hab_jefe'); e.golpeLocal(n); ultimo = msgHab(n); if (e.jefe && e.jefe.hp <= 0) contar('hab_ko');
         revisar();
       }));
       on('j-salir', () => { e.salirDelJefe(); e.perderContraJefe(); jefeUI = null; ui.cerrar(); });
@@ -6276,7 +6304,7 @@
     const top = (d.ranking || [])[0];
     if (d.id === 'arena') {
       if (d.gane && !cobrado(d.n)) {
-        marcarCobrado(d.n); gano = true; contar('duelo');
+        marcarCobrado(d.n); gano = true; contar('duelo'); if (!(d.errores > 0)) contar('duelo_perfecto');
         txt = `¡Ganaste el duelo con ${plural(d.aciertos, 'acierto')}! Tu cofre de suministros trae ${darPremio(paquete(6, 4, true), 80)} y 80 de experiencia.`;
       } else if (d.gane) txt = '¡Ganaste el duelo! (El premio ya está en tu inventario.)';
       else if (d.ganador_nombre) txt = `Ganó ${d.ganador_nombre} con ${top ? plural(top.aciertos, 'acierto') : 'más aciertos'}. Tú lograste ${d.aciertos || 0}.`;
@@ -6284,7 +6312,7 @@
     } else {
       const k = nivelMeta(d.total, d.meta), N = k ? nivelesMeta(d.meta)[k - 1] : null;
       if (k && d.aciertos > 0 && !cobrado(d.n)) {
-        marcarCobrado(d.n); gano = true; contar('meta_curso');
+        marcarCobrado(d.n); gano = true; contar('meta_curso'); if (k >= 3) contar('meta_oro');
         // el premio crece con el nivel que alcanzó el curso, y un poco con lo que aportó cada uno
         const xp = 40 + 30 * k + Math.min(60, 2 * d.aciertos);
         txt = `¡El curso logró la meta ${N[2]} ${N[1]} con ${d.total} respuestas correctas! Tu premio: ${darPremio(paquete(4 + 3 * k, 2 + k, true), xp)} y ${xp} de experiencia.`;
@@ -6479,7 +6507,7 @@
     let html;
     if (r && r.ok) {
       st.gane = true;
-      sumarCofre({ prisma: 1 }); ganarXP(60); contar('prisma'); guardar(true);
+      sumarCofre({ prisma: 1 }); ganarXP(60); contar('prisma'); if (!(st.e > 0)) contar('prisma_perfecto'); guardar(true);
       if (escena && escena.canal) escena.canal.emitir('prisma_fin', { n, id: idJuego, nombre: S.nombre });
       if (escena && escena.jugador) { escena.celebrar(); escena.limpiarDesafio(); }
       avisoGrande('¡Es tuyo!', 'Conseguiste el Prisma estelar', 'Se guardó en tu cofre', 'prisma');
@@ -9140,7 +9168,7 @@
         if (e.desafio && resultado !== 'victoria' && vivo.fase !== 'activo') this.time.delayedCall(4200, () => this.limpiarDesafio());
         if (resultado === 'victoria') {
           Object.entries(e.botin || E.botin).forEach(([r, n], i) => { sumar(r, n); this.time.delayedCall(i * 300, () => this.flotante(e.s.x, e.s.y - 40 - i * 18, `+${n} ${r}`)); });
-          S.vencidos = (S.vencidos || 0) + 1;
+          S.vencidos = (S.vencidos || 0) + 1; if ((PERSONAJES.find((p) => p.id === S.pj) || {}).leyenda) contar('vence_leyenda');
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
