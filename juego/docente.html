@@ -255,6 +255,15 @@
     .c-alto { background: #b9e4c4; } .c-medio { background: #f7df94; } .c-bajo { background: #f2a993; } .c-nada { background: #f1eee6; color: #b3ad9f; }
     .calor tfoot td { position: sticky; bottom: 0; background: #fbf8f0; font-weight: 800; }
     .leyenda-calor { padding: 1px 8px; border-radius: 6px; font-weight: 700; }
+    /* Menú horizontal de secciones */
+    [hidden] { display: none !important; }
+    .vistas { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 4px; margin: -8px -4px 0; background: var(--bg); box-shadow: 0 6px 10px -10px rgba(0,0,0,.4); }
+    .vistas button { flex: 0 0 auto; position: relative; min-height: 42px; padding: 0 14px; border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--text); font: inherit; font-weight: 800; font-size: 14px; cursor: pointer; white-space: nowrap; }
+    .vistas button:hover { border-color: var(--teal); }
+    .vistas button[aria-current="page"] { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .vistas button i { position: absolute; top: 4px; right: 6px; width: 9px; height: 9px; border-radius: 50%; background: #e0563c; box-shadow: 0 0 0 2px var(--card); display: none; }
+    .vistas button.activo i { display: block; }
+    .vista-oculta { display: none !important; }
   </style>
 </head>
 <body>
@@ -271,17 +280,28 @@
     </div>
   </header>
   <main class="wrap">
+    <nav class="vistas" id="vistas" aria-label="Secciones del portal">
+      <button type="button" data-v="curso">👩‍🎓 Mi curso<i></i></button>
+      <button type="button" data-v="analisis">📊 Análisis<i></i></button>
+      <button type="button" data-v="tema">📚 Tema de la clase<i></i></button>
+      <button type="button" data-v="ticket">🎟️ Ticket de salida<i></i></button>
+      <button type="button" data-v="desafios">⚡ Desafíos en vivo<i></i></button>
+      <button type="button" data-v="guerra">⚔️ Guerra de clanes<i></i></button>
+      <button type="button" data-v="grupos">👥 Grupos y obras<i></i></button>
+      <button type="button" data-v="acceso">🔓 Acceso y mundos<i></i></button>
+      <button type="button" data-v="com">💬 Comunicación<i></i></button>
+    </nav>
     <div id="error" class="err" hidden></div>
     <div id="aviso-buzon" class="aviso-buzon" hidden role="alert"></div>
     <div id="aviso-inv" class="aviso-buzon aviso-inv" hidden role="alert"></div>
-    <section class="panel acceso" aria-labelledby="acceso-titulo">
+    <section class="panel acceso" data-vista="acceso" aria-labelledby="acceso-titulo">
       <div class="acceso-cab">
         <div><h2 id="acceso-titulo">Acceso al juego</h2><span class="muted">Cuando cierras un curso, nadie de ese curso puede entrar y quienes están jugando salen en unos segundos. Su avance queda guardado.</span></div>
         <div class="acceso-todos"><button type="button" class="btn pri" id="abrir-todos">Abrir todos</button><button type="button" class="btn peligro" id="cerrar-todos">Cerrar todos</button></div>
       </div>
       <div class="acceso-cursos" id="acceso-cursos"></div>
     </section>
-    <section class="panel acceso" id="sec-invitados" aria-labelledby="inv-titulo">
+    <section class="panel acceso" data-vista="acceso" id="sec-invitados" aria-labelledby="inv-titulo">
       <div class="acceso-cab">
         <div><h2 id="inv-titulo">Sala de invitados</h2><span class="muted">Personas sin RUT en las listas pueden pedir acceso desde la pestaña «Invitado» del juego. Juntos forman un solo grupo de máximo 10 jugadores. Revisa cada solicitud: acéptala para que pueda jugar o recházala. Puedes eliminar un perfil cuando quieras para liberar su cupo.</span></div>
         <div class="inv-cupos" id="inv-cupos"></div>
@@ -292,7 +312,7 @@
       </div>
       <div id="inv-msg"></div>
     </section>
-    <section class="panel acceso" aria-labelledby="com-titulo">
+    <section class="panel acceso" data-vista="com" aria-labelledby="com-titulo">
       <div class="acceso-cab"><div><h2 id="com-titulo">Comunicación con la clase</h2><span class="muted">Envía un mensaje que aparecerá en la pantalla de quienes estén jugando y decide si pueden usar el chat. El chat del juego solo permite emoticones y frases predefinidas: nadie puede escribir texto libre a sus compañeros.</span></div></div>
       <div class="des-cursos" id="com-cursos"></div>
       <div class="com-form">
@@ -304,17 +324,17 @@
       <div id="com-msg"></div>
       <div class="acceso-cursos" id="com-estado"></div>
     </section>
-    <section class="panel acceso" aria-labelledby="mundos-titulo">
+    <section class="panel acceso" data-vista="acceso" aria-labelledby="mundos-titulo">
       <div class="acceso-cab">
         <div><h2 id="mundos-titulo">Mundos del juego</h2><span class="muted">La Unidad 1 siempre está abierta. Abre las demás unidades por curso cuando quieras que tus estudiantes puedan viajar a ese mundo desde el portal de su base.</span></div>
       </div>
       <div class="mundos-tabla" id="mundos"></div>
     </section>
-    <section class="panel acceso" aria-labelledby="obras-titulo">
+    <section class="panel acceso" data-vista="grupos" aria-labelledby="obras-titulo">
       <div class="acceso-cab"><div><h2 id="obras-titulo">Grupos y obras cooperativas</h2><span class="muted">Cada curso tiene 8 grupos (máximo 6 estudiantes cada uno). Los estudiantes entran a su grupo con un código y desde ahí juegan siempre con su equipo. Cada grupo construye sus propias obras: el puente (Unidad 1), el montacargas (Unidad 2), el elevador (Unidad 3) y la ruta del glaciar (Unidad 4). Elige un curso para ver sus códigos, sus grupos y el avance de cada uno.</span></div></div>
       <div class="acceso-cursos" id="grupos-cursos"></div>
     </section>
-    <section class="panel acceso" aria-labelledby="desafios-titulo">
+    <section class="panel acceso" data-vista="desafios" aria-labelledby="desafios-titulo">
       <div class="acceso-cab">
         <div><h2 id="desafios-titulo">Desafíos en vivo</h2><span class="muted">Lanza un desafío a uno o varios cursos: a quienes estén jugando les aparecerá un contador de 10 segundos y luego comenzará. Cada curso tiene un desafío a la vez; puedes detenerlo cuando quieras.</span></div>
         <button type="button" class="btn pri btn-desafio" id="btn-desafios"><span aria-hidden="true">🎯</span> Lanzar un desafío</button>
@@ -322,15 +342,15 @@
       <div class="des-estado" id="des-estado"></div>
       <p class="muted des-nada" id="des-nada">No hay desafíos en curso. Presiona «Lanzar un desafío» para elegir uno.</p>
     </section>
-    <section class="panel acceso" aria-labelledby="foco-titulo">
+    <section class="panel acceso" data-vista="tema" aria-labelledby="foco-titulo">
       <div class="acceso-cab"><div><h2 id="foco-titulo">📚 Tema de la clase</h2><span class="muted">Elige el tema que estás enseñando: mientras esté activo, la mayoría de las preguntas del juego (recolección, combates, desafíos y guerra de clanes) saldrán de ese tema para el curso elegido.</span></div></div>
       <div id="foco-cuerpo"><p class="muted">Cargando…</p></div>
     </section>
-    <section class="panel acceso" aria-labelledby="ticket-titulo">
+    <section class="panel acceso" data-vista="ticket" aria-labelledby="ticket-titulo">
       <div class="acceso-cab"><div><h2 id="ticket-titulo">🎟️ Ticket de salida</h2><span class="muted">Al final de la clase, lanza unas preguntas del tema del día: a cada estudiante le aparecen en el juego (un intento, sin pistas) y aquí ves al instante cuántos lo lograron.</span></div></div>
       <div id="ticket-cuerpo"><p class="muted">Cargando…</p></div>
     </section>
-    <section class="panel acceso" aria-labelledby="guerra-titulo">
+    <section class="panel acceso" data-vista="guerra" aria-labelledby="guerra-titulo">
       <div class="acceso-cab">
         <div><h2 id="guerra-titulo">Guerra de clanes</h2><span class="muted">Cada grupo es un clan: en el letrero de su carpa común votan a su líder y el líder le pone nombre. Inicia una guerra en un curso y lanza tareas con tiempo (cada acción suma puntos a su clan), organiza duelos PvP entre clanes que todo el curso puede mirar y termínala cuando quieras: cada clan recibe premios según su lugar.</span></div>
         <button type="button" class="btn pri btn-desafio" id="btn-guerra"><span aria-hidden="true">⚔️</span> Guerra de clanes</button>
@@ -338,20 +358,20 @@
       <div class="des-estado" id="guerra-estado"></div>
       <p class="muted des-nada" id="guerra-nada">No hay guerras de clanes en curso.</p>
     </section>
-    <div class="tabs" role="tablist" id="tabs"></div>
-    <div class="tarjetas" id="tarjetas"></div>
-    <section class="panel analisis" aria-label="Análisis del curso">
+    <div class="tabs" role="tablist" id="tabs" data-vista="curso analisis"></div>
+    <div class="tarjetas" id="tarjetas" data-vista="curso"></div>
+    <section class="panel analisis" data-vista="analisis" aria-label="Análisis del curso">
       <div><h2 id="temas-titulo">Resumen por tema</h2><span class="muted">Acierto de todo el curso en cada tema, de más difícil a más fácil. «Con dificultad» cuenta a quienes tienen menos de 50 % en ese tema.</span>
         <div class="tabla"><table><thead><tr><th>Tema</th><th>Acierto del curso</th><th>Practicaron</th><th>Con dificultad</th></tr></thead><tbody id="temas-curso"></tbody></table></div></div>
       <div><h2>Necesitan apoyo</h2><span class="muted">Estudiantes con acierto bajo 60 % (con al menos 10 respuestas) o con un tema bajo 40 %. Haz clic para ver el detalle.</span>
         <div class="apoyo" id="apoyo" style="margin-top:10px"></div></div>
     </section>
-    <section class="panel" aria-labelledby="calor-titulo">
+    <section class="panel" data-vista="analisis" aria-labelledby="calor-titulo">
       <h2 id="calor-titulo">🗺️ Mapa de calor por tema</h2>
       <span class="muted">Cada fila es un estudiante y cada columna un tema: <b class="leyenda-calor c-alto">70 % o más</b> <b class="leyenda-calor c-medio">40 a 69 %</b> <b class="leyenda-calor c-bajo">bajo 40 %</b> <b class="leyenda-calor c-nada">sin respuestas</b>. Pasa el mouse sobre una celda para ver el detalle y haz clic en un nombre para abrir su ficha.</span>
       <div class="calor" id="mapa-calor"></div>
     </section>
-    <section class="panel">
+    <section class="panel" data-vista="curso">
       <h2 id="titulo-lista">Estudiantes</h2>
       <div class="filtros">
         <input type="search" id="buscar" placeholder="Buscar por nombre o RUT" aria-label="Buscar estudiante">

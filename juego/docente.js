@@ -10,6 +10,34 @@
   const nivelDe = (e) => (e.curso === 'INV' ? (e.nivel === '8' ? '8basico' : '7basico') : CURSOS.find((c) => c.id === e.curso).nivel);
   const usuarioInv = (e) => String(e.rut || '').replace(/^INV-/, '');
   const ZONAS_BASE = { base: 'En su base', pieza: 'En su pieza', u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' };
+
+  // ---------- Menú horizontal: se ve una sección a la vez ----------
+  const VISTAS = ['curso', 'analisis', 'tema', 'ticket', 'desafios', 'guerra', 'grupos', 'acceso', 'com'];
+  let vista = 'curso';
+  try { const v = localStorage.getItem('mw_doc_vista'); if (VISTAS.includes(v)) vista = v; } catch (e) { /* sin almacenamiento */ }
+  function irVista(v) {
+    if (!VISTAS.includes(v)) return;
+    vista = v;
+    document.querySelectorAll('[data-vista]').forEach((el) => el.classList.toggle('vista-oculta', !el.dataset.vista.split(' ').includes(v)));
+    document.querySelectorAll('#vistas [data-v]').forEach((b) => { if (b.dataset.v === v) { b.setAttribute('aria-current', 'page'); b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } else b.removeAttribute('aria-current'); });
+    try { localStorage.setItem('mw_doc_vista', v); } catch (e) { /* sin almacenamiento */ }
+  }
+  document.querySelectorAll('#vistas [data-v]').forEach((b) => b.addEventListener('click', () => { irVista(b.dataset.v); window.scrollTo({ top: 0 }); }));
+  irVista(vista);
+  // Punto rojo en las secciones con algo en curso (desafío, guerra, ticket, tema o solicitudes de invitados)
+  function marcarVistas() {
+    const hay = (id, re) => { const el = $(id); return Boolean(el && re.test(el.textContent)); };
+    const visible = (id) => { const el = $(id); return Boolean(el && !el.hidden); };
+    const estado = {
+      desafios: Boolean($('des-nada') && $('des-nada').hidden),
+      guerra: Boolean($('guerra-nada') && $('guerra-nada').hidden),
+      ticket: hay('ticket-cuerpo', /Ticket abierto/),
+      tema: hay('foco-cuerpo', /Activo en/),
+      acceso: visible('aviso-inv'),
+    };
+    document.querySelectorAll('#vistas [data-v]').forEach((b) => b.classList.toggle('activo', Boolean(estado[b.dataset.v])));
+  }
+  setInterval(marcarVistas, 2000);
   // "u1-g3" -> "Unidad 1 · Grupo 3"
   const ZONAS = new Proxy({}, { get: (_, z) => { const [u, g] = String(z || '').split('-g'); return ZONAS_BASE[u] ? ZONAS_BASE[u] + (g ? ` · Grupo ${g}` : '') : undefined; } });
   const MEJORAS = { pico: 'Pico', balde: 'Balde', cana: 'Caña de pescar', ahumador: 'Ahumador', hacha3: 'Hacha ancestral', amuleto: 'Amuleto ancestral', espada: 'Espada de piedra', hacha2: 'Hacha de hierro', armadura: 'Armadura de cuero', pico2: 'Pico reforzado', espada2: 'Espada de cristal', armadura2: 'Armadura de cristal', cantimplora: 'Cantimplora', pico3: 'Pico de cobre', espada3: 'Espada de oro', armadura3: 'Armadura de oro', casco: 'Casco de minero', pico4: 'Pico de plata', espada4: 'Espada de amatista', armadura4: 'Armadura de plata', abrigo: 'Abrigo de piel', pico5: 'Pico de escarcha', espada5: 'Espada de hielo', armadura5: 'Armadura de escarcha', espada6: 'Espada prismática', armadura6: 'Armadura prismática', pala: 'Pala de arqueólogo', pala2: 'Pala de obsidiana', antorcha_esfinge: 'Antorcha de la esfinge', guantes: 'Guantes térmicos', cincel: 'Cincel de cristal', pico_magma: 'Pico de magma', corazon_cristal: 'Corazón de cristal', piolet: 'Piolet de escarcha', crampones: 'Crampones de hielo', frasco_aurora: 'Frasco de aurora', pico_eterno: 'Pico de hielo eterno', cetro_aurora: 'Cetro de la aurora' };
@@ -127,7 +155,7 @@
     if (!pend.length) { av.hidden = true; invAvisoOculto = false; return; }
     av.innerHTML = `<span><span class="ico">🙋</span>${pend.length === 1 ? `<b>${esc(pend[0].nombre)}</b> pidió` : `<b>${pend.length} personas</b> pidieron`} acceso a la sala de invitados.</span><span style="display:flex;gap:8px"><button type="button" class="btn pri" id="av-inv-ver">Revisar solicitudes</button><button type="button" class="btn" id="av-inv-ocultar">Más tarde</button></span>`;
     av.hidden = invAvisoOculto;
-    $('av-inv-ver').addEventListener('click', () => { $('sec-invitados').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+    $('av-inv-ver').addEventListener('click', () => { irVista('acceso'); $('sec-invitados').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
     $('av-inv-ocultar').addEventListener('click', () => { av.hidden = true; invAvisoOculto = true; });
   }
   async function accionInvitado(e, accion) {
