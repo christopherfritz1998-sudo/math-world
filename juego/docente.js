@@ -177,6 +177,7 @@
         <span class="chip">Derrotas: ${r.muertes}</span>
       </div>
       ${unidades || '<p class="muted">Todavía no responde desafíos.</p>'}
+      ${refuerzoHTML(e)}
       <h4>Equipo y recursos</h4>
       <div class="muted">Equipo: ${(p.mejoras || []).map((m) => esc(MEJORAS[m] || m)).join(', ') || 'Solo el hacha inicial'}</div>
       <div class="muted">Cofre: ${rec(p.cofre)}</div>
@@ -193,6 +194,7 @@
         ${e.aprobado === false ? '<button type="button" class="btn pri" id="det-aprobar">Aceptar</button>' : ''}<button type="button" class="btn peligro" id="det-eliminar">${e.aprobado === false ? 'Rechazar' : 'Eliminar perfil'}</button></div>` : ''}
       <div id="det-msg"></div>`;
     $('det-cerrar').addEventListener('click', () => $('detalle').close());
+    conectarRefuerzo(e);
     if ($('det-aprobar')) $('det-aprobar').addEventListener('click', () => accionInvitado(e, 'aprobar').then((ok) => { if (ok) $('detalle').close(); }));
     if ($('det-eliminar')) $('det-eliminar').addEventListener('click', () => accionInvitado(e, 'eliminar').then((ok) => { if (ok) $('detalle').close(); }));
     const rb = $('det-reset');
@@ -374,6 +376,157 @@
   $('btn-desafios').addEventListener('click', () => { pintarDesafios(); $('desafios-dlg').showModal(); });
   $('dd-cerrar').addEventListener('click', () => $('desafios-dlg').close());
 
+  // ---------- Tema de la clase ----------
+  let focos = {}, focoCurso = CURSOS_G[0].id, focoUnidad = 'u1', focoSel = new Set(), focoMin = 90, focoDif = 0;
+  async function cargarFocos() {
+    try { const r = await Nube.docenteFocos(token); if (r) { focos = r.cursos || {}; focoDif = r.ahora - Date.now(); } } catch (e) { /* aún sin la actualización de la base de datos */ }
+    pintarFoco();
+  }
+  function pintarFoco() {
+    const c = CURSOS_G.find((x) => x.id === focoCurso), nivel = c.nivel, F = focos[focoCurso];
+    const titulos = Preguntas.titulos(nivel, focoUnidad);
+    const quedan = F ? Math.max(0, Math.round((F.hasta - (Date.now() + focoDif)) / 60000)) : 0;
+    $('foco-cuerpo').innerHTML = `<div class="foco-fila"><span>Curso:</span>${CURSOS_G.map((x) => `<button type="button" class="chk" data-fc="${x.id}" aria-pressed="${x.id === focoCurso}">${x.nombre}${focos[x.id] ? ' <small>📚</small>' : ''}</button>`).join('')}</div>
+      ${F ? `<div class="foco-activo"><span>📚 Activo en ${c.nombre}: ${esc((F.titulos || []).join(', '))} · quedan ${quedan} min</span><button type="button" class="btn mini" id="foco-quitar">Quitar tema</button></div>` : `<p class="muted">${c.nombre} no tiene un tema fijado: las preguntas salen de toda la unidad del mundo donde juegan.</p>`}
+      <div class="foco-fila"><label>Unidad <select id="foco-u">${['u1', 'u2', 'u3', 'u4'].map((u) => `<option value="${u}" ${u === focoUnidad ? 'selected' : ''}>${ZONAS_BASE[u]}</option>`).join('')}</select></label>
+        <label>Duración <select id="foco-min">${[[45, '45 min'], [90, '90 min'], [180, '3 horas'], [600, 'Todo el día']].map(([m, t]) => `<option value="${m}" ${m === focoMin ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+      <div class="foco-temas">${Object.entries(titulos).map(([k, t]) => `<label><input type="checkbox" data-ft="${k}" ${focoSel.has(k) ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</div>
+      <div class="foco-fila"><button type="button" class="btn pri" id="foco-fijar" ${focoSel.size ? '' : 'disabled'}>📚 Fijar ${focoSel.size > 1 ? `${focoSel.size} temas` : 'tema'} en ${c.nombre}</button><span class="muted">Puedes elegir más de un tema.</span></div>`;
+    $('foco-cuerpo').querySelectorAll('[data-fc]').forEach((b) => b.addEventListener('click', () => { focoCurso = b.dataset.fc; focoSel = new Set(); pintarFoco(); }));
+    $('foco-u').addEventListener('change', (e) => { focoUnidad = e.target.value; focoSel = new Set(); pintarFoco(); });
+    $('foco-min').addEventListener('change', (e) => { focoMin = Number(e.target.value); });
+    $('foco-cuerpo').querySelectorAll('[data-ft]').forEach((x) => x.addEventListener('change', () => { if (x.checked) focoSel.add(x.dataset.ft); else focoSel.delete(x.dataset.ft); pintarFoco(); }));
+    const fijar = async (foco) => {
+      try { await Nube.docenteFoco(token, [focoCurso], foco); $('error').hidden = true; } catch (e) { $('error').textContent = 'No se pudo guardar el tema de la clase.'; $('error').hidden = false; }
+      cargarFocos();
+    };
+    $('foco-fijar').addEventListener('click', () => fijar({ unidad: focoUnidad, temas: [...focoSel], titulos: [...focoSel].map((k) => titulos[k]), min: focoMin }));
+    const q = $('foco-quitar'); if (q) q.addEventListener('click', () => fijar(null));
+  }
+  cargarFocos();
+  setInterval(cargarFocos, 60000);
+
+  // ---------- Refuerzo personalizado (desde el detalle de cada estudiante) ----------
+  let refuerzos = {};
+  async function cargarRefuerzos() {
+    try { const r = await Nube.docenteRefuerzos(token); if (r) refuerzos = r; } catch (e) { /* aún sin la actualización */ }
+  }
+  cargarRefuerzos(); setInterval(cargarRefuerzos, 60000);
+  function refuerzoHTML(e) {
+    if (e.curso === 'INV') return '';
+    const nivel = nivelDe(e), R = refuerzos[e.id];
+    const stats = Object.entries((e.progreso || {}).stats || {}).filter(([, s]) => s.i > 0).map(([k, s]) => ({ k, t: nombreTema(nivel, k).titulo, pct: Math.round((s.a / s.i) * 100), i: s.i })).sort((a, b) => a.pct - b.pct);
+    const todos = [];
+    for (const u of ['u1', 'u2', 'u3', 'u4']) for (const [k, t] of Object.entries(Preguntas.titulos(nivel, u))) if (!stats.some((s) => s.k === k)) todos.push({ k, t });
+    const opciones = stats.map((s) => `<option value="${s.k}">${esc(s.t)} · ${s.pct} % (${s.i} resp.)</option>`).join('') + (todos.length ? `<optgroup label="Temas que aún no practica">${todos.map((s) => `<option value="${s.k}">${esc(s.t)}</option>`).join('')}</optgroup>` : '');
+    return `<div class="refuerzo-caja"><h4 style="margin:0 0 6px">🎯 Refuerzo personalizado</h4>
+      ${R && !R.completado ? `<p><b>Asignado:</b> ${esc(R.titulo)} · ${R.meta} respuestas correctas · <span class="muted">pendiente</span> <button type="button" class="btn mini" id="ref-quitar">Quitar</button></p>`
+        : R && R.completado ? `<p>✅ Completó su último refuerzo: <b>${esc(R.titulo)}</b> (${esc(hace(R.completado))}).</p>` : '<p class="muted">El estudiante verá una misión con premio extra, y las preguntas de ese tema le aparecerán más seguido en todo el juego.</p>'}
+      <div class="foco-fila"><select id="ref-tema">${opciones}</select><select id="ref-meta">${[5, 8, 12, 20].map((n) => `<option value="${n}" ${n === 8 ? 'selected' : ''}>${n} correctas</option>`).join('')}</select>
+        <button type="button" class="btn pri" id="ref-asignar">Asignar refuerzo</button></div></div>`;
+  }
+  function conectarRefuerzo(e) {
+    const asignar = $('ref-asignar'); if (!asignar) return;
+    const titulo = () => { const s = $('ref-tema'); return s.options[s.selectedIndex] ? s.options[s.selectedIndex].text.replace(/ · \d+ %.*$/, '') : s.value; };
+    asignar.addEventListener('click', async () => {
+      try { const r = await Nube.docenteRefuerzo(token, e.id, $('ref-tema').value, titulo(), Number($('ref-meta').value), 'asignar'); if (r) refuerzos = r; } catch (err) { alert('No se pudo asignar el refuerzo. ¿Está aplicada la actualización de la base de datos?'); }
+      detalle(e.id); pintarAnalisis();
+    });
+    const q = $('ref-quitar');
+    if (q) q.addEventListener('click', async () => { try { const r = await Nube.docenteRefuerzo(token, e.id, '', '', 0, 'quitar'); if (r) refuerzos = r; } catch (err) { /* */ } detalle(e.id); pintarAnalisis(); });
+  }
+
+  // ---------- Informe del curso (para imprimir o guardar como PDF) ----------
+  function informeCurso() {
+    const c = CURSOS.find((x) => x.id === curso), lista = datos.filter((e) => e.curso === curso), rs = lista.map(resumen);
+    const hoy = new Date(), semana = Date.now() - 7 * 86400000;
+    const activos = lista.filter((e) => e.ultimo && new Date(e.ultimo).getTime() > semana);
+    const sinEntrar = lista.filter((e) => !e.ultimo || new Date(e.ultimo).getTime() <= semana);
+    const conAcierto = rs.filter((r) => r.acierto !== null);
+    const prom = conAcierto.length ? Math.round(conAcierto.reduce((s, r) => s + r.acierto, 0) / conAcierto.length) : null;
+    const jugando = rs.filter((r) => r.nivel > 0);
+    const promNivel = jugando.length ? (jugando.reduce((s, r) => s + r.nivel, 0) / jugando.length).toFixed(1).replace('.', ',') : '–';
+    const temas = c.nivel ? temasDe(lista, c.nivel) : [];
+    const apoyo = c.nivel ? apoyoDe(lista, c.nivel) : [];
+    const top = lista.map((e, i) => ({ e, r: rs[i] })).sort((a, b) => b.r.nivel - a.r.nivel).slice(0, 5);
+    const fila = (a) => `<tr>${a.map((x) => `<td>${x}</td>`).join('')}</tr>`;
+    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe ${esc(c.nombre)} · Math World</title>
+      <style>body{font-family:system-ui,sans-serif;color:#1d2b25;margin:28px;max-width:900px} h1{margin:0 0 4px} h2{margin:22px 0 8px;font-size:18px;border-bottom:2px solid #2a9d8f;padding-bottom:4px}
+      .cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} .cifras div{border:1px solid #cfe3dc;border-radius:10px;padding:10px} .cifras b{display:block;font-size:24px}
+      table{width:100%;border-collapse:collapse;font-size:14px} td,th{border-bottom:1px solid #e3ece8;padding:5px 6px;text-align:left} .muted{color:#667} @media print{button{display:none}}</style></head><body>
+      <button onclick="print()" style="float:right;padding:8px 14px">🖨️ Imprimir o guardar como PDF</button>
+      <h1>Informe de ${esc(c.nombre)}</h1><div class="muted">Math World · ${hoy.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+      <h2>Resumen</h2><div class="cifras"><div><span>Estudiantes</span><b>${lista.length}</b></div><div><span>Jugaron esta semana</span><b>${activos.length}</b></div><div><span>Nivel promedio</span><b>${promNivel}</b></div><div><span>Acierto promedio</span><b>${prom === null ? '–' : prom + ' %'}</b></div></div>
+      <h2>Temas más difíciles para el curso</h2>${temas.length ? `<table><tr><th>Tema</th><th>Acierto</th><th>Respuestas</th><th>Con dificultad</th></tr>${temas.slice(0, 8).map((t) => fila([esc(t.titulo), `${t.pct} %`, t.i, t.dif])).join('')}</table>` : '<p class="muted">Aún no hay respuestas.</p>'}
+      <h2>Estudiantes que necesitan apoyo</h2>${apoyo.length ? `<table><tr><th>Estudiante</th><th>Acierto</th><th>Temas bajos</th><th>Refuerzo</th></tr>${apoyo.map(({ e, r, debil }) => fila([esc(e.nombre), `${r.acierto ?? '–'} %`, esc(debil.slice(0, 3).map((d) => `${d.t} (${d.pct} %)`).join(', ') || `${r.intentos} respuestas`), refuerzos[e.id] ? (refuerzos[e.id].completado ? '✅ Completado' : `🎯 ${esc(refuerzos[e.id].titulo)}`) : '—'])).join('')}</table>` : '<p class="muted">Nadie bajo los umbrales. 🎉</p>'}
+      <h2>Mayor avance</h2><table><tr><th>Estudiante</th><th>Nivel</th><th>Acierto</th><th>Respuestas</th></tr>${top.map(({ e, r }) => fila([esc(e.nombre), r.nivel || '–', `${r.acierto ?? '–'} %`, r.intentos])).join('')}</table>
+      <h2>No han jugado en los últimos 7 días (${sinEntrar.length})</h2><p>${sinEntrar.length ? sinEntrar.map((e) => `${esc(e.nombre)}${e.ultimo ? ` <span class="muted">(${esc(hace(e.ultimo))})</span>` : ' <span class="muted">(nunca)</span>'}`).join(' · ') : 'Todos jugaron esta semana. 🎉'}</p>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('El navegador bloqueó la ventana del informe. Permite las ventanas emergentes para este sitio.'); return; }
+    w.document.write(html); w.document.close();
+  }
+  $('btn-informe').addEventListener('click', informeCurso);
+  // ---------- Torneo PvP del curso (llaves de eliminación entre los campeones de cada clan) ----------
+  const tKey = (c) => `mw_torneo_${c}`;
+  const leerTorneo = (c) => { try { return JSON.parse(localStorage.getItem(tKey(c)) || 'null'); } catch (e) { return null; } };
+  const guardarTorneo = (c, t) => { try { if (t) localStorage.setItem(tKey(c), JSON.stringify(t)); else localStorage.removeItem(tKey(c)); } catch (e) { /* */ } };
+  function crearTorneo(grupos) {
+    const g = [...grupos].sort(() => Math.random() - 0.5);
+    let n = 1; while (n < g.length) n *= 2;
+    const r1 = [];
+    for (let i = 0; i < n / 2; i++) r1.push({ a: g[i] || null, b: g[n - 1 - i] || null, gan: null, duelo: null });
+    r1.forEach((p) => { if (!p.a || !p.b) p.gan = p.a || p.b; });   // pase directo cuando no hay rival
+    const rondas = [r1]; let k = r1.length;
+    while (k > 1) { k /= 2; rondas.push(Array.from({ length: k }, () => ({ a: null, b: null, gan: null, duelo: null }))); }
+    const t = { rondas, campeon: null }; avanzarTorneo(t); return t;
+  }
+  function avanzarTorneo(t) {
+    for (let r = 0; r < t.rondas.length - 1; r++) t.rondas[r].forEach((p, i) => { if (p.gan) { const s = t.rondas[r + 1][Math.floor(i / 2)]; if (i % 2 === 0) s.a = p.gan; else s.b = p.gan; } });
+    for (let r = 1; r < t.rondas.length; r++) t.rondas[r].forEach((p) => { if (!p.gan && ((p.a && !p.b && t.rondas[r - 1].every((x) => x.gan)) || (p.b && !p.a && t.rondas[r - 1].every((x) => x.gan)))) p.gan = p.a || p.b; });
+    const final = t.rondas[t.rondas.length - 1][0]; t.campeon = final.gan || null;
+  }
+  const siguientePartido = (t) => { for (let r = 0; r < t.rondas.length; r++) for (let i = 0; i < t.rondas[r].length; i++) { const p = t.rondas[r][i]; if (!p.gan && p.a && p.b) return [r, i, p]; } return null; };
+  function revisarTorneo(W) {
+    const t = leerTorneo(gCurso); if (!t || !W || !W.duelo) return;
+    const D = W.duelo, sp = siguientePartido(t); if (!sp) return;
+    const [, , p] = sp;
+    if (p.duelo === D.id && D.fase === 'fin' && D.ganador) { p.gan = String(D.ganador) === String(p.a) ? p.a : p.b; avanzarTorneo(t); guardarTorneo(gCurso, t); }
+  }
+  function torneoHTML(W, clanes) {
+    const t = leerTorneo(gCurso);
+    const nom = (g) => (g ? nomClan(W, g) : '—');
+    if (!t) return `<div class="gd-bloque"><h4>🏆 Torneo PvP del curso</h4><p class="muted">Elige los clanes que participan: se arman llaves de eliminación y lanzas cada duelo con un botón. El ganador de cada duelo pasa a la siguiente ronda.</p>
+      <div class="gd-fila" style="justify-content:flex-start">${clanes.map((k) => `<label class="chk"><input type="checkbox" data-tclan="${k.grupo}" ${k.conectados ? 'checked' : ''}> ${esc(k.nombre || `Grupo ${k.grupo}`)} <small>(${k.conectados} en línea)</small></label>`).join('')}</div>
+      <button type="button" class="btn pri" id="t-crear">Crear torneo</button></div>`;
+    const sp = siguientePartido(t), D = W.duelo, enCurso = D && ['eligiendo', 'lucha'].includes(D.fase);
+    return `<div class="gd-bloque"><div class="gd-fila"><h4 style="margin:0">🏆 Torneo PvP del curso</h4><button type="button" class="btn mini" id="t-borrar">Borrar torneo</button></div>
+      <div class="torneo">${t.rondas.map((ronda, r) => `<div class="ronda"><small class="muted">${r === t.rondas.length - 1 ? 'Final' : r === t.rondas.length - 2 ? 'Semifinal' : `Ronda ${r + 1}`}</small>${ronda.map((p) => `<div class="partido ${sp && sp[2] === p ? 'actual' : ''}"><div class="${p.gan ? (p.gan === p.a ? 'gana' : 'pierde') : ''}">${esc(nom(p.a))}</div><div class="${p.gan ? (p.gan === p.b ? 'gana' : 'pierde') : ''}">${esc(nom(p.b))}</div></div>`).join('')}</div>`).join('')}</div>
+      ${t.campeon ? `<p><b>🏆 Campeón del torneo: ${esc(nom(t.campeon))}</b> <button type="button" class="btn mini" id="t-bono">+50 puntos de bono</button></p>`
+        : sp ? `<div class="gd-fila"><span>Siguiente: <b>${esc(nom(sp[2].a))}</b> vs <b>${esc(nom(sp[2].b))}</b></span><span>${enCurso ? '<span class="muted">Hay un duelo en curso…</span>' : `<button type="button" class="btn pri" id="t-lanzar">⚔️ Lanzar duelo del torneo</button>`}
+          <button type="button" class="btn mini" data-tgan="a">Gana ${esc(nom(sp[2].a))}</button><button type="button" class="btn mini" data-tgan="b">Gana ${esc(nom(sp[2].b))}</button></span></div><span class="muted">Si un duelo se cancela o termina sin ganador, puedes repetirlo o marcar al ganador a mano.</span>` : ''}</div>`;
+  }
+  function conectarTorneo(W) {
+    const crear = $('t-crear');
+    if (crear) crear.addEventListener('click', () => {
+      const g = [...document.querySelectorAll('[data-tclan]')].filter((x) => x.checked).map((x) => x.dataset.tclan);
+      if (g.length < 2) { alert('Elige al menos dos clanes.'); return; }
+      guardarTorneo(gCurso, crearTorneo(g)); pintarGuerra();
+    });
+    const borrar = $('t-borrar'); if (borrar) borrar.addEventListener('click', () => { if (confirm('¿Borrar el torneo?')) { guardarTorneo(gCurso, null); pintarGuerra(); } });
+    const t = leerTorneo(gCurso); if (!t) return;
+    const sp = siguientePartido(t);
+    const lanzar = $('t-lanzar');
+    if (lanzar && sp) lanzar.addEventListener('click', async () => {
+      const [r, , p] = sp;
+      await opGuerra([gCurso], { op: 'duelo', a: String(p.a), b: String(p.b), gana: Number(gSel.gana) || 0, pierde: Number(gSel.pierde) || 0, torneo: { ronda: r + 1 } });
+      const D = gEstado[gCurso] && gEstado[gCurso].guerra && gEstado[gCurso].guerra.duelo;
+      if (D) { p.duelo = D.id; guardarTorneo(gCurso, t); }
+      pintarGuerra();
+    });
+    document.querySelectorAll('[data-tgan]').forEach((b) => b.addEventListener('click', () => { const [, , p] = sp; p.gan = b.dataset.tgan === 'a' ? p.a : p.b; avanzarTorneo(t); guardarTorneo(gCurso, t); pintarGuerra(); }));
+    const bono = $('t-bono'); if (bono) bono.addEventListener('click', () => { opGuerra([gCurso], { op: 'puntos', grupo: t.campeon, delta: 50 }); bono.disabled = true; });
+  }
   // ---------- Guerra de clanes ----------
   let gEstado = {}, gDif = 0, gCurso = CURSOS_G[0].id, gT = null, gOcupado = false;
   const gSel = { a: '', b: '', gana: 30, pierde: 15, dur: {} };
@@ -383,6 +536,7 @@
   async function cargarGuerras() {
     clearTimeout(gT);
     try { const r = await Nube.docenteGuerras(token); if (r) { gDif = r.ahora - Date.now(); gEstado = r.cursos || {}; } } catch (e) { /* se reintenta */ }
+    revisarTorneo(gEstado[gCurso] && gEstado[gCurso].guerra);
     pintarGuerraResumen();
     if ($('guerra-dlg').open) pintarGuerra();
     const activa = Object.values(gEstado).some((c) => c && c.guerra && c.guerra.activa);
@@ -445,10 +599,12 @@
       h += `<div class="gd-bloque"><h4>Ranking en vivo</h4><table class="gd-tabla"><thead><tr><th>Lugar</th><th>Clan</th><th>Puntos</th><th>Ajustar</th></tr></thead><tbody>${(W.ranking || []).map((r, i) => `<tr><td>${['🥇', '🥈', '🥉'][i] || i + 1}</td><td>${esc(r.nombre)}</td><td class="num">${r.puntos}</td>
         <td class="acc"><button type="button" class="btn mini" data-gpts="${r.grupo}" data-d="10" ${dis}>+10</button><button type="button" class="btn mini" data-gpts="${r.grupo}" data-d="-10" ${dis}>−10</button></td></tr>`).join('')}</tbody></table></div>`;
     }
+    if (activa) h += torneoHTML(W, clanes);
     h += `<div class="gd-bloque"><h4>Clanes del curso</h4><table class="gd-tabla"><thead><tr><th>Grupo</th><th>Nombre del clan</th><th>Líder</th><th>Votos</th><th>En línea</th><th></th></tr></thead><tbody>${clanes.map((k) => `<tr><td>${k.grupo}</td><td>${k.nombre ? esc(k.nombre) : '<span class="muted">Sin nombre</span>'}</td><td>${k.lider ? esc(k.lider) : '<span class="muted">Votando…</span>'}</td><td>${k.votos}/${k.miembros}</td><td>${k.conectados}</td>
       <td class="acc">${k.nombre ? `<button type="button" class="btn mini" data-gclan="${k.grupo}" data-acc="borrar_nombre" ${dis}>Borrar nombre</button>` : ''}${!k.lider && k.votos ? `<button type="button" class="btn mini" data-gclan="${k.grupo}" data-acc="cerrar_voto" ${dis}>Cerrar votación</button>` : ''}${k.lider || k.votos ? `<button type="button" class="btn peligro mini" data-gclan="${k.grupo}" data-acc="reiniciar" ${dis}>Reiniciar</button>` : ''}</td></tr>`).join('')}</tbody></table>
       <span class="muted">«Cerrar votación» nombra líder a quien tiene más votos. «Reiniciar» borra el líder, el nombre y los votos del clan.</span></div>`;
     $('gd-cuerpo').innerHTML = h;
+    if (activa) conectarTorneo(W);
     const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
     on('gd-iniciar', () => opGuerra([gCurso], { op: 'iniciar' }));
     on('gd-terminar', () => { if (confirm('¿Terminar la guerra de clanes? Se cerrará el ranking y cada clan recibirá su premio según su lugar.')) opGuerra([gCurso], { op: 'terminar' }); });
@@ -589,7 +745,7 @@
       <td><span class="barra"><i style="width:${t.pct}%"></i></span>${t.pct} %<br><small class="muted">${t.a} de ${t.i} respuestas</small></td>
       <td>${t.est}</td><td class="${t.dif ? 'dificil' : ''}">${t.dif}</td></tr>`).join('') : '<tr><td colspan="4" class="vacio">Todavía no hay respuestas en este curso.</td></tr>';
     const ap = apoyoDe(lista, c.nivel);
-    $('apoyo').innerHTML = ap.length ? ap.slice(0, 15).map(({ e, r, debil }) => `<button type="button" data-apoyo="${e.id}"><span><b>${esc(e.nombre)}</b><small>${debil.length ? `Bajo en: ${debil.slice(0, 2).map((d) => `${esc(d.t)} (${d.pct} %)`).join(', ')}` : `${r.intentos} respuestas`}</small></span><span class="dificil">${r.acierto ?? '–'} %</span></button>`).join('')
+    $('apoyo').innerHTML = ap.length ? ap.slice(0, 15).map(({ e, r, debil }) => `<button type="button" data-apoyo="${e.id}"><span><b>${esc(e.nombre)}${refuerzos[e.id] && !refuerzos[e.id].completado ? '<span class="etq-refuerzo">🎯 refuerzo</span>' : ''}</b><small>${debil.length ? `Bajo en: ${debil.slice(0, 2).map((d) => `${esc(d.t)} (${d.pct} %)`).join(', ')}` : `${r.intentos} respuestas`}</small></span><span class="dificil">${r.acierto ?? '–'} %</span></button>`).join('')
       + (ap.length > 15 ? `<span class="muted">y ${ap.length - 15} más (están en el Excel).</span>` : '')
       : '<span class="muted">Nadie bajo los umbrales por ahora. 🎉</span>';
     $('apoyo').querySelectorAll('[data-apoyo]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.apoyo)));
@@ -631,7 +787,7 @@
       hojas.push({ nombre: 'Grupos y obras', filas: fg, anchos: [7, 7, 14, 11, 12, 15, 12, 15, 90] });
     }
     hojas.splice(0, 0, { nombre: 'Resumen por tema', filas: resumenT, anchos: [8, 11, 44, 12, 11, 10, 14, 14] });
-    if (reportes.length) hojas.push({ nombre: 'Buzón', filas: [['Fecha', 'Curso', 'Estudiante', 'Tipo', 'Categoría', 'Mensaje', 'Zona', 'Leído'], ...reportes.map((r) => [fecha(r.creado), (CURSOS.find((c) => c.id === r.curso) || {}).nombre || r.curso, r.nombre, r.tipo === 'idea' ? 'Idea' : 'Problema', r.categoria || '', r.texto, r.zona || '', r.leido ? 'Sí' : 'No'])], anchos: [17, 7, 30, 10, 24, 70, 18, 7] });
+    if (reportes.length) hojas.push({ nombre: 'Buzón', filas: [['Fecha', 'Curso', 'Estudiante', 'Tipo', 'Categoría', 'Mensaje', 'Zona', 'Leído'], ...reportes.map((r) => [fecha(r.creado), (CURSOS.find((c) => c.id === r.curso) || {}).nombre || r.curso, r.nombre, r.tipo === 'idea' ? 'Idea' : r.tipo === 'error' ? 'Error automático' : 'Problema', r.categoria || '', r.texto, r.zona || '', r.leido ? 'Sí' : 'No'])], anchos: [17, 7, 30, 10, 24, 70, 18, 7] });
     const hoy = new Date();
     Planilla.descargar(`MathWorld_${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}.xlsx`, hojas);
   }
@@ -706,7 +862,7 @@
   function abrirBuzon(tab) { if (tab) buzonTab = tab; pintarBuzon(); if (!$('buzon').open) $('buzon').showModal(); }
   function pintarBuzon() {
     const n = (t) => reportes.filter((r) => r.tipo === t && !r.leido).length;
-    $('buzon-tabs').innerHTML = [['problema', '⚠️ Problemas'], ['idea', '💡 Ideas']].map(([t, nom]) => `<button type="button" class="tab" data-bt="${t}" aria-selected="${buzonTab === t}">${nom}${n(t) ? ` <span class="etq-r nuevo">${n(t)} sin leer</span>` : ''}</button>`).join('')
+    $('buzon-tabs').innerHTML = [['problema', '⚠️ Problemas'], ['idea', '💡 Ideas'], ['error', '🐞 Errores automáticos']].map(([t, nom]) => `<button type="button" class="tab" data-bt="${t}" aria-selected="${buzonTab === t}">${nom}${n(t) ? ` <span class="etq-r nuevo">${n(t)} sin leer</span>` : ''}</button>`).join('')
       + `<select id="buzon-curso" aria-label="Filtrar por curso" style="height:44px;border-radius:10px;border:1px solid #c9c0ae;font:inherit;font-weight:700;padding:0 8px"><option value="">Todos los cursos</option>${CURSOS.map((c) => `<option value="${c.id}" ${buzonCurso === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select>`
       + '<span style="flex:1"></span><button type="button" class="btn mini" id="buzon-todos">Marcar todo como leído</button>';
     const lista = reportes.filter((r) => r.tipo === buzonTab && (!buzonCurso || r.curso === buzonCurso));
@@ -715,7 +871,7 @@
         ${r.tipo === 'problema' && r.categoria ? `<span><span class="etq-r">${esc(r.categoria)}</span></span>` : ''}
         <p>${esc(r.texto)}</p>
         <div class="pie-r">${r.leido ? '<span class="muted" style="font-size:13px">Leído</span>' : '<span class="etq-r nuevo">Nuevo</span>'}<button type="button" class="btn mini" data-leer="${r.id}" data-v="${!r.leido}">${r.leido ? 'Marcar como no leído' : 'Marcar como leído'}</button></div>
-      </div>`).join('') : `<div class="vacio">${buzonTab === 'idea' ? 'Aún no llegan ideas.' : 'No hay problemas reportados. 👍'}</div>`;
+      </div>`).join('') : `<div class="vacio">${buzonTab === 'error' ? 'No hay errores automáticos registrados. 👍' : buzonTab === 'idea' ? 'Aún no llegan ideas.' : 'No hay problemas reportados. 👍'}</div>`;
     $('buzon-tabs').querySelectorAll('[data-bt]').forEach((b) => b.addEventListener('click', () => { buzonTab = b.dataset.bt; pintarBuzon(); }));
     $('buzon-curso').addEventListener('change', (e) => { buzonCurso = e.target.value; pintarBuzon(); });
     $('buzon-todos').addEventListener('click', () => marcarLeido(lista.filter((r) => !r.leido).map((r) => r.id), true));

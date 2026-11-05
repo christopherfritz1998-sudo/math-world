@@ -169,6 +169,10 @@
 
   function nuevo(curso, unidad, dif, stats) {
     const temas = BANCO[curso] && BANCO[curso][unidad];
+    if (foco && Math.random() < foco.prob) {
+      const d = deTema(curso, foco.temas[Math.floor(Math.random() * foco.temas.length)], dif);
+      if (d) return d;
+    }
     if (!temas) return null;
     const claves = Object.keys(temas);
     const M = memoria[curso + unidad] || (memoria[curso + unidad] = { bolsa: [], var: {}, ultVar: {}, vistos: [], ultimo: null });
@@ -202,11 +206,44 @@
     return ANTIGUOS[tema] || tema;
   }
 
+  // ---------------- tema de la clase y refuerzo ----------------
+  // El docente puede fijar uno o más temas para su curso (y a un estudiante, un tema de refuerzo):
+  // mientras estén activos, la mayoría de las preguntas de todo el juego salen de esos temas.
+  let foco = null;
+  function unidadDeTema(curso, tema) {
+    const c = BANCO[curso]; if (!c) return null;
+    for (const [u, t] of Object.entries(c)) if (t[tema]) return u;
+    return null;
+  }
+  function deTema(curso, tema, dif) {
+    const u = unidadDeTema(curso, tema); if (!u) return null;
+    const t = BANCO[curso][u][tema];
+    const M = memoria[curso + u] || (memoria[curso + u] = { bolsa: [], var: {}, ultVar: {}, vistos: [], ultimo: null });
+    const nivel = Math.max(1, Math.min(3, dif || 1));
+    let respaldo = null;
+    for (let j = 0; j < 8; j++) {
+      const i = sacarVariante(M, tema, t.variantes.length);
+      let d = null;
+      for (let r = 0; r < 4 && !valido(d); r++) d = t.variantes[i](r < 2 ? nivel : 1);
+      if (!valido(d)) continue;
+      d = { ...d, tema, titulo: t.titulo };
+      if (M.vistos.includes(firma(d))) { respaldo = respaldo || d; continue; }
+      M.vistos.push(firma(d)); if (M.vistos.length > RECIENTES) M.vistos.shift();
+      return d;
+    }
+    return respaldo;
+  }
+  function fijarFoco(temas, prob) {
+    foco = temas && temas.length ? { temas: [...new Set(temas)], prob: Math.max(0, Math.min(1, prob || 0.75)) } : null;
+  }
   P.BANCO_ANTERIOR = VIEJO;
   P.BANCO = BANCO;
   P.nuevo = nuevo;
   P.titulos = titulos;
   P.tituloDe = tituloDe;
+  P.deTema = deTema;
+  P.unidadDeTema = unidadDeTema;
+  P.fijarFoco = fijarFoco;
   P.antiguos = ANTIGUOS;
   P.valido = valido;
 })(typeof window !== 'undefined' ? window : globalThis);

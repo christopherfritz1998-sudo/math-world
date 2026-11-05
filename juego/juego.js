@@ -620,6 +620,7 @@
   function ganarXP(n) {
     if (desActivo('sabio')) n *= 2;
     S.xp += n;
+    sumarTemporada(n);
     let subio = false;
     while (S.xp >= xpPara(S.nivel)) {
       S.xp -= xpPara(S.nivel); S.nivel += 1; subio = true;
@@ -789,7 +790,7 @@
     const u = escena && MUNDOS[escena.zona] ? escena.zona : null;
     const Dd = diaria();
     const fila = (txt, p, n) => `<li class="${p >= n ? 'ok' : ''}"><span>${esc(txt)}</span><b>${Math.min(p, n)}/${n}</b></li>`;
-    let html = '';
+    let html = extraMisionesHTML();
     if (u) {
       const M = misionesDe(u);
       html += `<strong>${M.ok ? 'Jefe final desbloqueado' : 'Misiones para el jefe'}</strong><ul>${M.lista.map((m) => fila(textoMision(m), m.p, m.n)).join('')}</ul>`;
@@ -819,6 +820,7 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Misiones</span><h2 id="modal-titulo">Tus misiones</h2></div><button type="button" class="btn" id="mi-cerrar">Cerrar</button></div>
       ${(S.premiosNivel || 0) > 0 ? `<div class="mensaje pista" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><span>Tienes ${S.premiosNivel === 1 ? 'una recompensa' : `${S.premiosNivel} recompensas`} de nivel por elegir.</span><button type="button" class="btn pri" id="mi-nivel">Elegir</button></div>` : ''}
+      ${extraMisionesModal()}
       <section class="tarjeta-mision diaria">
         <div class="fila"><strong>Misión diaria</strong><small>Se renueva cada día</small></div>
         <div class="fila"><span>${esc(TIPOS_DIARIA[Dd.t].txt)}</span><b>${Math.min(Dd.p, Dd.n)}/${Dd.n}</b></div>${barra(Dd.p, Dd.n)}
@@ -1414,6 +1416,7 @@
     st.i += 1; if (acierto) st.a += 1;
     S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
     cargarHabilidad(acierto);
+    extraRegistrar(tema, acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
   }
@@ -3724,6 +3727,13 @@
     L('tesoro', 'explorar', '🗝️', 'Cazatesoros', 'Encuentra el tesoro escondido del desafío de tu profesor.', 1, () => CN('tesoro'), 'Cazatesoros'),
     L('racha5', 'aprender', '🔥', 'Imparable', 'Llega al multiplicador x5 en la racha imparable.', 1, () => CN('racha5'), 'Imparable'),
     L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
+    // ----- Constancia, temporada y refuerzo -----
+    L('racha_dias7', 'aprender', '🔥', 'Una semana de fuego', 'Juega 7 días seguidos.', 7, () => S.diasMax || 0, 'Constancia de Fuego'),
+    L('racha_dias30', 'aprender', '🌋', 'Un mes imparable', 'Juega 30 días seguidos.', 30, () => S.diasMax || 0, 'Voluntad de Hierro'),
+    L('temporada_oro', 'nivel', '🥇', 'Temporada de oro', 'Llega al nivel Oro en una temporada mensual.', 1, () => CN('temporada_oro'), 'Estrella del Mes'),
+    L('temporada_leyenda', 'nivel', '👑', 'Leyenda del mes', 'Llega al nivel Leyenda en una temporada mensual.', 1, () => CN('temporada_leyenda'), 'Leyenda del Mes'),
+    L('refuerzo1', 'aprender', '🎯', 'Misión cumplida', 'Completa un refuerzo que te dejó tu profesor.', 1, () => CN('refuerzo'), 'Aprendiz Aplicado'),
+    L('tutorial', 'explorar', '🧭', 'Primeros pasos', 'Completa los primeros pasos del juego.', 1, () => CN('tutorial'), 'Explorador Novato'),
     // ----- Clanes y guerra de clanes -----
     L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
     L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
@@ -4766,6 +4776,226 @@
   }
 
   // ===================================================================
+  // Mejoras: tema de la clase, refuerzo personalizado, reporte automático de errores, lectura en voz alta,
+  // primeros pasos (tutorial), racha de días y temporada mensual
+  // ===================================================================
+  const fechaLocal = (dias = 0) => { const d = new Date(Date.now() + dias * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  const mesActual = () => fechaLocal().slice(0, 7);
+  const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
+
+  // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
+  let erroresEnviados = 0;
+  const erroresVistos = new Set();
+  function reportarError(msg, origen) {
+    try {
+      if (!S || sesion.modo !== 'nube' || !sesion.token || !window.Nube || erroresEnviados >= 5) return;
+      const clave = String(msg).slice(0, 120);
+      if (erroresVistos.has(clave)) return;
+      erroresVistos.add(clave); erroresEnviados += 1;
+      const txt = `[auto] ${String(msg).slice(0, 300)}${origen ? ` · ${origen}` : ''} · ${tactil() ? 'celular/tablet' : 'computador'} · nivel ${S.nivel}`;
+      Nube.reporteEnviar(sesion.token, 'error', 'Error automático', txt, escena ? escena.zona : '').catch(() => {});
+    } catch (e) { /* nunca falla por reportar */ }
+  }
+  window.addEventListener('error', (ev) => {
+    if (!ev || !ev.message || /ResizeObserver loop|Script error\.?$/.test(ev.message)) return;
+    reportarError(ev.message, ev.filename ? `${String(ev.filename).split('/').pop()}:${ev.lineno}:${ev.colno}` : '');
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    const r = ev && ev.reason, m = r && (r.message || String(r));
+    if (!m || /error_\d+|sin_conexion|Failed to fetch|NetworkError|Load failed|AbortError/.test(m)) return;
+    reportarError(m, r && r.stack ? String(r.stack).split('\n')[1] || '' : '');
+  });
+
+  // ---------- Tema de la clase y refuerzo personalizado ----------
+  let extraE = null, extraIniciado = false;
+  async function cargarExtra() {
+    if (!S || sesion.modo !== 'nube' || !window.Nube || !Nube.extra) return;
+    try { const r = await Nube.extra(sesion.token); if (r && r.ok) aplicarExtra(r); } catch (e) { /* se reintenta */ }
+  }
+  setInterval(() => { if (S && escena && !extraIniciado) { extraIniciado = true; cargarExtra(); } }, 3000);
+  setInterval(() => { if (S && escena && !document.hidden) cargarExtra(); }, 60000);
+  const refuerzoActivo = () => (extraE && extraE.refuerzo && !(S.refuerzosHechos || []).includes(extraE.refuerzo.id) ? extraE.refuerzo : null);
+  function aplicarExtra(r) {
+    const antes = extraE; extraE = r;
+    const F = r.foco, temasF = (F && F.temas) || [], R = refuerzoActivo();
+    if (window.Preguntas && Preguntas.fijarFoco) Preguntas.fijarFoco([...temasF, ...(R ? [R.tema] : [])], temasF.length ? 0.75 : 0.5);
+    const clave = (x) => (x && x.foco ? JSON.stringify(x.foco.temas) : '');
+    if (F && clave(r) !== clave(antes)) toast(`📚 Tema de la clase: ${(F.titulos || []).join(', ') || 'elegido por tu profesor'}. La mayoría de las preguntas serán de este tema.`);
+    if (R && (!antes || !antes.refuerzo || antes.refuerzo.id !== R.id)) setTimeout(() => toast(`🎯 Tu profesor te dejó un refuerzo: ${R.titulo} (${R.meta} respuestas correctas). ¡Tiene premio extra!`), 3200);
+    pintarMisiones();
+  }
+  function extraRegistrar(tema, acierto) {
+    const R = refuerzoActivo(); if (!R || !acierto || tema !== R.tema) return;
+    S.refuerzos = S.refuerzos || {};
+    const p = (S.refuerzos[R.id] || 0) + 1; S.refuerzos[R.id] = p;
+    if (p >= R.meta) {
+      S.refuerzosHechos = [...(S.refuerzosHechos || []), R.id].slice(-30);
+      if (window.Nube && Nube.refuerzoCompletar) Nube.refuerzoCompletar(sesion.token, R.id).catch(() => {});
+      aplicarExtra({ ...extraE, refuerzo: null });
+      setTimeout(() => { const txt = darPremio(paquete(6, 3, true), 80); contar('refuerzo'); sfx('logro'); if (escena) escena.celebrar(); toast(`🎯 ¡Refuerzo completado: ${R.titulo}! Ganas ${txt} y 80 de experiencia.`); }, 400);
+    }
+    pintarMisiones();
+  }
+  function extraMisionesHTML() {
+    let h = '';
+    const F = extraE && extraE.foco, R = refuerzoActivo();
+    if (F) h += `<strong>📚 Tema de la clase</strong><ul><li><span>${esc((F.titulos || []).join(', '))}</span></li></ul>`;
+    if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<strong>🎯 Refuerzo de tu profesor</strong><ul><li class="${p >= R.meta ? 'ok' : ''}"><span>${esc(R.titulo)}</span><b>${p}/${R.meta}</b></li></ul>`; }
+    return h;
+  }
+
+  // ---------- Racha de días jugados ----------
+  let rachaRevisada = false;
+  setInterval(() => {
+    if (rachaRevisada || !S || !escena || !escena.jugador || esDocente()) return;
+    rachaRevisada = true;
+    const hoy = fechaLocal(), ayer = fechaLocal(-1);
+    if (S.diaUltimo === hoy) return;
+    S.diasSeguidos = S.diaUltimo === ayer ? (S.diasSeguidos || 0) + 1 : 1;
+    S.diaUltimo = hoy; S.diasMax = Math.max(S.diasMax || 0, S.diasSeguidos);
+    guardar(true); programarLogros();
+    const d = S.diasSeguidos;
+    esperarYAbrir(() => {
+      const k = Math.min(7, d), xp = 20 + 10 * k;
+      const txt = darPremio(paquete(2 + k, Math.min(4, 1 + Math.floor(k / 2)), true), xp);
+      sfx('logro');
+      ui.abrir(`<div class="rey-modal racha-modal"><div class="rey-brillo"></div>
+        <span class="etq">Racha de días jugados</span><h2 id="modal-titulo">🔥 ${d === 1 ? '¡Bienvenido de vuelta!' : `¡${d} días seguidos!`}</h2>
+        <div class="racha-dias">${Array.from({ length: 7 }, (_, i) => `<span class="${i < Math.min(7, d) ? 'on' : ''}">${i === 6 ? '🎁' : '🔥'}<small>Día ${i + 1}</small></span>`).join('')}</div>
+        <p class="enunciado">Tu premio de hoy: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.</p>
+        <p class="nota">${d >= 7 ? '¡Racha máxima! Sigue entrando cada día para mantener el premio mayor.' : `Vuelve mañana: el premio crece hasta el día 7. ${d === 1 && S.diasMax > 1 ? `Tu mejor racha: ${S.diasMax} días.` : ''}`}</p>
+        <div class="acciones"><span></span><button type="button" class="btn pri" id="ra-ok" data-foco>¡Genial!</button></div></div>`, 'rey');
+      $('ra-ok').addEventListener('click', () => ui.cerrar());
+    });
+  }, 2500);
+
+  // ---------- Temporada mensual: la experiencia del mes sube de nivel y da premios ----------
+  const NIVELES_TEMP = [[300, 'Bronce', '🥉'], [900, 'Plata', '🥈'], [1800, 'Oro', '🥇'], [3000, 'Diamante', '💎'], [5000, 'Leyenda', '👑']];
+  function temporadaActual() {
+    const mes = mesActual();
+    if (!S.temporada || S.temporada.mes !== mes) S.temporada = { mes, xp: 0, niv: 0 };
+    return S.temporada;
+  }
+  function sumarTemporada(n) {
+    if (!S || esDocente() || !(n > 0)) return;
+    const T = temporadaActual(); T.xp += n;
+    while (T.niv < NIVELES_TEMP.length && T.xp >= NIVELES_TEMP[T.niv][0]) {
+      const [, nom, ico] = NIVELES_TEMP[T.niv]; T.niv += 1; const niv = T.niv;
+      setTimeout(() => {
+        const txt = darPremio(paquete(3 + 2 * niv, Math.min(5, 1 + niv), true), 0);
+        if (niv >= 3) contar('temporada_oro');
+        if (niv >= 5) contar('temporada_leyenda');
+        sfx('logro'); toast(`${ico} ¡Temporada de ${nombreMes(T.mes)}: nivel ${nom}! Ganaste ${txt}.`);
+      }, 60);
+    }
+  }
+  function extraMisionesModal() {
+    const T = temporadaActual(), sig = NIVELES_TEMP[T.niv], ant = T.niv ? NIVELES_TEMP[T.niv - 1][0] : 0;
+    const pct = sig ? Math.round(((T.xp - ant) / (sig[0] - ant)) * 100) : 100;
+    const R = refuerzoActivo(), F = extraE && extraE.foco;
+    let h = '';
+    if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<section class="tarjeta-mision refuerzo"><div class="fila"><strong>🎯 Refuerzo de tu profesor</strong><small>Premio extra al completarlo</small></div><div class="fila"><span>Responde bien ${R.meta} preguntas de <b>${esc(R.titulo)}</b></span><b>${p}/${R.meta}</b></div><div class="barra"><i style="width:${Math.round((p / R.meta) * 100)}%"></i></div><span class="nota">Las preguntas de este tema aparecerán más seguido en todo el juego.</span></section>`; }
+    if (F) h += `<section class="tarjeta-mision"><div class="fila"><strong>📚 Tema de la clase</strong></div><span>${esc((F.titulos || []).join(', '))}</span><span class="nota">Tu profesor eligió este tema: la mayoría de las preguntas del juego serán de él.</span></section>`;
+    h += `<section class="tarjeta-mision temporada"><div class="fila"><strong>🗓️ Temporada de ${esc(nombreMes(T.mes))}</strong><small>${T.xp} XP este mes</small></div>
+      <div class="temp-niveles">${NIVELES_TEMP.map(([n, nom, ico], i) => `<span class="${i < T.niv ? 'ok' : ''}" title="${nom}: ${n} XP">${ico}<small>${n}</small></span>`).join('')}</div>
+      <div class="barra"><i style="width:${pct}%"></i></div>
+      <span class="nota">${sig ? `Te faltan ${sig[0] - T.xp} XP para el nivel ${sig[2]} ${sig[1]}. Cada nivel trae un cofre de premios.` : '¡Llegaste al nivel Leyenda de este mes!'} La temporada se reinicia el 1° de cada mes.</span>
+      ${S.diasSeguidos ? `<span class="nota">🔥 Racha actual: ${S.diasSeguidos} ${S.diasSeguidos === 1 ? 'día' : 'días'} seguidos (mejor: ${S.diasMax || S.diasSeguidos}).</span>` : ''}</section>`;
+    return h;
+  }
+
+  // ---------- Primeros pasos (tutorial para quienes recién empiezan) ----------
+  const PASOS_TUT = [
+    { txt: 'Tala un árbol: acércate y presiona E (o el botón Acción en el celular).', ok: (b) => CN('talar') > b.talar },
+    { txt: 'Vuelve a tu base y fabrica algo en la fogata (tecla B): por ejemplo, el pico.', ok: (b) => (S.mejoras || []).length > b.mejoras || CN('fabricar') > b.fabricar },
+    { txt: 'Entra al portal de tu base y viaja al Bosque de los Enteros.', ok: (b) => Boolean(S.visitados && S.visitados.u1) && (b.u1 || (escena && escena.zona === 'u1')) },
+    { txt: 'Vence a un enemigo respondiendo bien (si fallas, pierdes un corazón).', ok: (b) => (S.vencidos || 0) > b.vencidos },
+    { txt: 'Revisa tus misiones (tecla N) y tus logros (tecla L): ahí ganas premios y títulos.', ok: () => Boolean(S.tutorial && S.tutorial.vio) },
+  ];
+  function iniciarTutorial() {
+    if (!S || esDocente() || S.tutorial || (S.nivel || 1) > 3) return;
+    S.tutorial = { paso: 0, base: { talar: CN('talar'), mejoras: (S.mejoras || []).length, fabricar: CN('fabricar'), vencidos: S.vencidos || 0, u1: false } };
+    guardar(true);
+  }
+  function pintarTutorial() {
+    let el = $('tutorial');
+    const T = S && S.tutorial;
+    if (!T || T.fin || T.saltado || !escena || !escena.jugador) { if (el) el.remove(); return; }
+    if (!el) {
+      el = document.createElement('div'); el.id = 'tutorial'; el.className = 'tutorial'; el.setAttribute('role', 'status');
+      $('hud').appendChild(el);
+      el.addEventListener('click', (ev) => { if (ev.target.closest('[data-tsaltar]')) { S.tutorial.saltado = Date.now(); guardar(true); pintarTutorial(); } });
+    }
+    const P = PASOS_TUT[T.paso];
+    el.innerHTML = `<span class="tut-ico">🧭</span><div><small>Primeros pasos · ${T.paso + 1} de ${PASOS_TUT.length}</small><b>${esc(P.txt)}</b></div><button type="button" class="tut-saltar" data-tsaltar>Saltar</button>`;
+  }
+  ['btn-logros', 'btn-misiones'].forEach((id) => { const b = $(id); if (b) b.addEventListener('click', () => { if (S && S.tutorial) S.tutorial.vio = true; }); });
+  document.addEventListener('keydown', (e) => { if (S && S.tutorial && !ui.abierto && /^[lnLN]$/.test(e.key)) S.tutorial.vio = true; });
+  setInterval(() => {
+    if (!S || !escena || !escena.jugador) return;
+    iniciarTutorial();
+    const T = S.tutorial; if (!T || T.fin || T.saltado) { pintarTutorial(); return; }
+    if (escena.zona === 'u1') T.base.u1 = true;
+    if (PASOS_TUT[T.paso].ok(T.base)) {
+      T.paso += 1; sfx('logro'); ganarXP(15);
+      if (T.paso >= PASOS_TUT.length) {
+        T.fin = Date.now(); contar('tutorial');
+        const txt = darPremio(paquete(5, 3, true), 60);
+        toast(`🧭 ¡Completaste los primeros pasos! Ganas ${txt} y 60 de experiencia. ¡Ya sabes lo esencial de Math World!`);
+        if (escena) escena.celebrar();
+      } else toast(`✅ ¡Bien hecho! +15 de experiencia. Siguiente paso: ${PASOS_TUT[T.paso].txt}`);
+      guardar(true);
+    }
+    pintarTutorial();
+  }, 1000);
+
+  // ---------- Leer las preguntas en voz alta ----------
+  const vozOk = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+  let vozAuto = false, vozUltimo = '';
+  try { vozAuto = localStorage.getItem('mw_voz') === '1'; } catch (e) { /* */ }
+  function textoParaLeer(el) {
+    const c = el.cloneNode(true);
+    c.querySelectorAll('.btn-voz').forEach((x) => x.remove());
+    c.querySelectorAll('.frac').forEach((f) => { const [a, b] = f.children; f.replaceWith(` ${a ? a.textContent : ''} sobre ${b ? b.textContent : ''} `); });
+    c.querySelectorAll('sup').forEach((s) => s.replaceWith(s.textContent === '2' ? ' al cuadrado ' : s.textContent === '3' ? ' al cubo ' : ` elevado a ${s.textContent} `));
+    return c.textContent.replace(/\|([^|]+)\|/g, ' valor absoluto de $1 ').replace(/\+/g, ' m\u00e1s ').replace(/−/g, ' menos ').replace(/·/g, ' por ').replace(/÷/g, ' dividido por ').replace(/≠/g, ' distinto de ')
+      .replace(/≤/g, ' menor o igual que ').replace(/≥/g, ' mayor o igual que ').replace(/√/g, ' raíz de ').replace(/π/g, ' pi ').replace(/\s+/g, ' ').trim();
+  }
+  function leerPregunta(en, alts) {
+    if (!vozOk) return;
+    try {
+      speechSynthesis.cancel();
+      let t = textoParaLeer(en);
+      if (alts && alts.length) t += '. Alternativas: ' + [...alts].map((b, i) => `${i + 1}: ${textoParaLeer(b)}`).join('. ');
+      const u = new SpeechSynthesisUtterance(t);
+      const v = speechSynthesis.getVoices().find((x) => /^es[-_](CL|419|MX|US)/i.test(x.lang)) || speechSynthesis.getVoices().find((x) => /^es/i.test(x.lang));
+      if (v) u.voice = v;
+      u.lang = v ? v.lang : 'es-CL'; u.rate = 0.95;
+      speechSynthesis.speak(u);
+    } catch (e) { /* sin voz */ }
+  }
+  if (vozOk) {
+    new MutationObserver(() => {
+      const m = $('modal'), en = m && m.querySelector('.enunciado');
+      if (!en) { if (vozUltimo && !ui.abierto) { vozUltimo = ''; try { speechSynthesis.cancel(); } catch (e) { /* */ } } return; }
+      if (en.dataset.voz || !m.querySelector('.alternativas')) return;
+      en.dataset.voz = '1';
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'btn-voz'; b.textContent = '🔊'; b.title = 'Leer en voz alta'; b.setAttribute('aria-label', 'Leer la pregunta en voz alta');
+      b.addEventListener('click', (ev) => { ev.stopPropagation(); leerPregunta(en, m.querySelectorAll('.alternativas .alt')); });
+      en.prepend(b);
+      const t = textoParaLeer(en);
+      if (vozAuto && t !== vozUltimo) { vozUltimo = t; leerPregunta(en, m.querySelectorAll('.alternativas .alt')); }
+    }).observe($('modal'), { childList: true, subtree: true });
+    const sv = $('son-voz');
+    if (sv) {
+      const pintarV = () => sv.setAttribute('aria-checked', String(vozAuto));
+      pintarV();
+      sv.addEventListener('click', (ev) => { ev.stopPropagation(); vozAuto = !vozAuto; try { localStorage.setItem('mw_voz', vozAuto ? '1' : '0'); } catch (e) { /* */ } pintarV(); toast(vozAuto ? '🗣️ Las preguntas se leerán en voz alta. También puedes tocar 🔊 junto a cada pregunta.' : 'Lectura automática desactivada. Igual puedes tocar 🔊 junto a cada pregunta.'); });
+    }
+  } else { const sv = $('son-voz'); if (sv) sv.remove(); }
+  // ===================================================================
   // Clanes y Guerra de clanes
   // Cada grupo es un clan: en el letrero de la carpa común votan a su líder (mayoría del grupo) y el líder
   // le pone nombre, que aparece sobre la carpa. El docente lanza la guerra por curso: tareas en vivo (cada
@@ -4792,7 +5022,13 @@
   setInterval(() => { if (S && escena && escena.zona === 'base' && !document.hidden) cargarClan(); }, 45000);
   function pintarNombreClan() {
     const t = escena && escena.txtCarpa; if (!t || !t.active) return;
-    t.setText(clanE && clanE.nombre ? `🏕️ Clan «${clanE.nombre}»` : '🏕️ Carpa común del grupo');
+    const C = clanE, vic = (C && C.victorias) || 0, tro = (C && C.trofeos) || 0;
+    t.setAlign('center').setText(C && C.nombre ? `🏕️ Clan «${C.nombre}»${vic || tro ? `\n🏆 ${vic} ${vic === 1 ? 'victoria' : 'victorias'} · ⭐ ${tro} trofeos` : ''}` : '🏕️ Carpa común del grupo');
+    // la carpa del clan mejora con las victorias en la guerra de clanes: color y estandarte
+    const cc = escena.carpaComun;
+    if (cc && cc.active) cc.setTint(vic >= 5 ? 0xffb3f0 : vic >= 3 ? 0xffd24a : vic >= 1 ? 0xfff0b0 : 0xffe2a8);
+    if (escena.estandarte) { escena.estandarte.destroy(); escena.estandarte = null; }
+    if (cc && cc.active && vic > 0) escena.estandarte = escena.add.text(cc.x + 18, cc.y - 64, vic >= 5 ? '👑🚩' : vic >= 3 ? '⭐🚩' : '🚩', { fontSize: vic >= 3 ? '28px' : '24px' }).setOrigin(0.5, 1).setDepth(cc.y + 2);
   }
   async function abrirClan() {
     if (!conClanes()) return toast(sesion.modo === 'nube' ? 'Únete a un grupo para formar un clan.' : 'Los clanes funcionan con tu cuenta del curso.', 'alerta');
@@ -4810,7 +5046,7 @@
     }
     const votos = C.miembros.reduce((a, m) => a + (m.votos || 0), 0);
     ui.abrir(`<div class="modal-cab"><div><span class="etq">Letrero del clan · Grupo ${C.grupo}</span><h2 id="modal-titulo">🪧 ${C.nombre ? `Clan «${esc(C.nombre)}»` : 'Clan sin nombre'}</h2></div><button type="button" class="btn" id="cl-cerrar">Cerrar</button></div>
-      ${msg || ''}
+      ${msg || ''}${C.victorias || C.trofeos ? `<div class="clan-trofeos">🏆 ${C.victorias} ${C.victorias === 1 ? 'victoria' : 'victorias'} en guerras · ⭐ ${C.trofeos} trofeos${C.victorias >= 5 ? ' · 👑 Carpa legendaria' : C.victorias >= 3 ? ' · ⭐ Carpa dorada' : C.victorias >= 1 ? ' · 🚩 Estandarte del clan' : ''}</div>` : '<p class="nota">Ganen guerras de clanes para mejorar su carpa: estandarte con la 1ª victoria, carpa dorada con 3 y legendaria con 5.</p>'}
       <div class="clan-lider">${C.lider_nombre ? `👑 Líder del clan: <b>${esc(C.lider_nombre)}</b>` : `👑 Aún no hay líder: se necesitan <b>${C.necesarios}</b> votos (la mayoría de los ${C.miembros.length} integrantes) para la misma persona.`}</div>
       ${C.soy_lider ? `<div class="clan-nombre"><label for="cl-nom"><b>Eres el líder.</b> Elige el nombre del clan: aparecerá sobre la carpa común y en la guerra de clanes.</label>
         <div class="fila"><input id="cl-nom" type="text" maxlength="20" autocomplete="off" value="${esc(C.nombre || '')}" placeholder="Ej: Los Dragones"><button type="button" class="btn pri" id="cl-guardar">Guardar nombre</button></div>
@@ -8204,7 +8440,7 @@
       this.suelo(data);
       this.bordes();
       // plaza: carpa común (sobre la fogata), fogata, cofre, comercio
-      const cc = this.sprite('carpa_b', COMUN.x, COMUN.y, 0.75).setScale(3).setTint(0xffe2a8);
+      const cc = this.carpaComun = this.sprite('carpa_b', COMUN.x, COMUN.y, 0.75).setScale(3).setTint(0xffe2a8);
       this.solido(cc.x - 24, cc.y - 22, 84, 40);
       this.txtCarpa = this.add.text(cc.x - 24, cc.y - 112, '🏕️ Carpa común del grupo', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#fff3c4', stroke: '#3a2a08', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(9999);
       this.add.particles(cc.x - 24, cc.y - 70, 'p_brillo', { x: { min: -40, max: 40 }, lifespan: 1200, frequency: 420, speedY: { min: -20, max: -6 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(cc.y + 1);

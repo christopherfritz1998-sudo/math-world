@@ -29,6 +29,8 @@ const GALERIA = [
   ['g_esfinge', '🏛️ La Gran Esfinge', 'Entra al laberinto que cambia cada vez que lo visitas.'],
   ['g_excava', '🏺 Excavaciones', 'Descubre fósiles, tesoros y gemas en el Valle de la Esfinge.'],
   ['g_cima', '🏔️ La Cima del Glaciar', 'Escala, baja en rapel y encuentra el trono del dragón.'],
+  ['g_leyendas', '👑 Leyendas del nivel 100', 'Llega al nivel 100 y juega como una leyenda, con su aura dorada.'],
+  ['g_clanes', '🏕️ Clanes y guerras', 'Cada victoria en la guerra de clanes mejora la carpa: color, estandarte y trofeos.'],
 ];
 // Personajes: los 8 iniciales y los 10 especiales que se desbloquean por nivel, cada uno con su habilidad especial
 // [id, nombre, nivel, habilidad, daño, leyenda]
@@ -58,7 +60,7 @@ const ACCESOS = [
   { ico: '❓', titulo: 'Ayuda', texto: 'Preguntas frecuentes sobre el juego.', href: '#ayuda', activo: true },
   { ico: '📝', titulo: 'Evaluaciones', texto: 'Controles y pruebas en línea con sus fechas.', activo: false },
   { ico: '📅', titulo: 'Calendario', texto: 'Pruebas, entregas y actividades del curso.', activo: false },
-  { ico: '🏆', titulo: 'Salón de la fama', texto: 'Logros destacados y obras terminadas por grupo.', activo: false },
+  { ico: '🏆', titulo: 'Salón de la fama', texto: 'Clanes campeones y logros de cada curso.', href: '#salon', activo: true },
   { ico: '📣', titulo: 'Avisos del profesor', texto: 'Novedades del curso sin entrar al juego.', activo: false },
   { ico: '🧮', titulo: 'Herramientas', texto: 'Calculadora, graficador y conversor de fracciones.', activo: false },
   { ico: '👨‍👩‍👧', titulo: 'Para apoderados', texto: 'Qué es Math World y cómo apoyar en casa.', activo: false },
@@ -290,7 +292,33 @@ function router() {
 }
 
 // ------------------------------------------------------------------ inicio
-portada(); contadores(); mundos(); galeria(); elenco(); novedades(); accesos(); ayuda(); animarScroll();
+// ------------------------------------------------------------------ salón de la fama (datos públicos: solo clanes y cifras)
+async function salon() {
+  const el = $('lista-salon'); if (!el) return;
+  const cfg = window.MW_CONFIG || {};
+  const nombres = { '7A': '7° A', '7B': '7° B', '8A': '8° A', '8B': '8° B' };
+  try {
+    if (!cfg.supabaseUrl) throw new Error('sin_config');
+    const r = await fetch(`${cfg.supabaseUrl}/rest/v1/rpc/mw_salon`, { method: 'POST', headers: { apikey: cfg.supabaseKey, Authorization: `Bearer ${cfg.supabaseKey}`, 'Content-Type': 'application/json' }, body: '{}' });
+    if (!r.ok) throw new Error(`error_${r.status}`);
+    const d = await r.json(), C = (d && d.cursos) || {}, ids = Object.keys(C).sort();
+    if (!ids.length) throw new Error('vacio');
+    const fechaCorta = (ms) => new Date(ms).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
+    el.innerHTML = ids.map((c, i) => {
+      const x = C[c], camp = x.campeones || [], cl = x.clanes || [];
+      return `<article class="salon-curso aparece" style="--retraso:${i * 80}ms"><h3>${esc(nombres[c] || c)}</h3>
+        <div class="salon-cifras"><span><b>${x.leyendas || 0}</b>leyendas (nivel 100)</span><span><b>${x.nivel50 || 0}</b>sobre nivel 50</span><span><b>${x.obras || 0}</b>obras terminadas</span></div>
+        <h4>🏆 Campeones de la guerra de clanes</h4>
+        ${camp.length ? `<ol class="salon-lista">${camp.map((k, j) => `<li><span>${j === 0 ? '👑' : '🏆'}</span><b>${esc(k.clan)}</b><small>${k.puntos} pts · ${fechaCorta(k.fecha)}</small></li>`).join('')}</ol>` : '<p class="salon-vacio">Aún no hay guerras de clanes terminadas.</p>'}
+        ${cl.length ? `<h4>⭐ Clanes con más victorias</h4><ol class="salon-lista">${cl.map((k) => `<li><span>⭐</span><b>${esc(k.nombre)}</b><small>🏆 ${k.victorias} · ${k.trofeos} trofeos</small></li>`).join('')}</ol>` : ''}
+      </article>`;
+    }).join('');
+    el.querySelectorAll('.aparece').forEach((a) => a.classList.add('visible'));
+  } catch (e) {
+    el.innerHTML = '<p class="empty">El Salón de la fama se llenará con las primeras guerras de clanes. ¡Vuelve pronto!</p>';
+  }
+}
+portada(); contadores(); mundos(); galeria(); elenco(); novedades(); accesos(); ayuda(); animarScroll(); salon();
 window.addEventListener('hashchange', router);
 router();
 fetch('contenido.json', { cache: 'no-cache' }).then((r) => r.json()).then((d) => { data = d; router(); })

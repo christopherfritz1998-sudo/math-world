@@ -218,6 +218,21 @@
     .gd-tabla th, .gd-tabla td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
     .gd-tabla td.num { font-variant-numeric: tabular-nums; font-weight: 800; }
     .gd-tabla .acc { display: flex; gap: 4px; flex-wrap: wrap; }
+    .foco-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+    .foco-fila select { padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); font: inherit; }
+    .foco-temas { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; margin: 8px 0; }
+    .foco-temas label { display: flex; gap: 6px; align-items: flex-start; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; cursor: pointer; }
+    .foco-activo { padding: 8px 12px; border-radius: 12px; background: #e8f7f2; border: 1px solid #9fd8c6; font-weight: 700; margin: 6px 0; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .refuerzo-caja { margin: 12px 0; padding: 12px; border-radius: 12px; background: #fff6e0; border: 1px solid #f0d18a; }
+    .refuerzo-caja .foco-fila select { max-width: 100%; }
+    .etq-refuerzo { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 6px; background: #ffe2b0; font-size: 12px; font-weight: 800; }
+    .torneo { display: flex; gap: 16px; overflow-x: auto; padding: 6px 0; }
+    .torneo .ronda { min-width: 190px; display: flex; flex-direction: column; gap: 8px; justify-content: space-around; }
+    .torneo .partido { border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; background: #fff; font-size: 14px; }
+    .torneo .partido div { display: flex; justify-content: space-between; gap: 6px; }
+    .torneo .partido .gana { font-weight: 800; color: #1a7a4c; }
+    .torneo .partido .pierde { color: var(--muted); text-decoration: line-through; }
+    .torneo .partido.actual { box-shadow: 0 0 0 2px #e0a400; }
   </style>
 </head>
 <body>
@@ -285,6 +300,10 @@
       <div class="des-estado" id="des-estado"></div>
       <p class="muted des-nada" id="des-nada">No hay desafíos en curso. Presiona «Lanzar un desafío» para elegir uno.</p>
     </section>
+    <section class="panel acceso" aria-labelledby="foco-titulo">
+      <div class="acceso-cab"><div><h2 id="foco-titulo">📚 Tema de la clase</h2><span class="muted">Elige el tema que estás enseñando: mientras esté activo, la mayoría de las preguntas del juego (recolección, combates, desafíos y guerra de clanes) saldrán de ese tema para el curso elegido.</span></div></div>
+      <div id="foco-cuerpo"><p class="muted">Cargando…</p></div>
+    </section>
     <section class="panel acceso" aria-labelledby="guerra-titulo">
       <div class="acceso-cab">
         <div><h2 id="guerra-titulo">Guerra de clanes</h2><span class="muted">Cada grupo es un clan: en el letrero de su carpa común votan a su líder y el líder le pone nombre. Inicia una guerra en un curso y lanza tareas con tiempo (cada acción suma puntos a su clan), organiza duelos PvP entre clanes que todo el curso puede mirar y termínala cuando quieras: cada clan recibe premios según su lugar.</span></div>
@@ -307,6 +326,7 @@
         <input type="search" id="buscar" placeholder="Buscar por nombre o RUT" aria-label="Buscar estudiante">
         <label><input type="checkbox" id="solo-online"> Solo conectados</label>
         <span style="flex:1"></span>
+        <button type="button" class="btn" id="btn-informe">📄 Informe del curso</button>
         <button type="button" class="btn pri" id="btn-excel">⬇ Descargar Excel</button>
       </div>
       <div class="tabla"><table>
