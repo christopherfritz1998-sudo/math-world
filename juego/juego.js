@@ -9444,8 +9444,12 @@
       const ahora = this.time.now, todos = this.jugadoresCerca();
       for (const e of this.enemigos) {
         if (!e.activo || e.cayendo) continue;
-        if (e.aturdido > ahora) continue;
         const E = ENEMIGOS[e.clase];
+        if (e.aturdido > ahora) {
+          // aturdido: se queda quieto (sin seguir con la animacion de caminar)
+          if (E.anim && (!E.oculto || e.despierto) && e.s.anims && e.s.anims.isPlaying) { e.s.anims.stop(); e.s.setFrame(DIRS.down * 9); }
+          continue;
+        }
         // objetivo: si está luchando con un compañero, se queda con él; si no, persigue al jugador más cercano
         let obj = null, d = Infinity;
         const lista = e.soloYo ? [todos[0]] : todos;
@@ -9455,7 +9459,7 @@
         if (!obj) continue;
         if (E.oculto && !e.despierto) {
           if (e.clase === 'golem') { const marca = tiene('casco'); if (e.marcado !== marca) { e.marcado = marca; e.s.setTint(marca ? 0xc9a0ff : 0xffffff); } }
-          if (d < 80) { this.despertar(e); this.flotante(e.s.x, e.s.y - 40, { escorpion: '¡Sssh!', golem: '¡GRRUM!' }[e.clase] || '¡Je, je!', '#ffb4a3'); }
+          if (d < 80 && !(obj.yo && this.tregua > ahora) && !(e.escondidoHasta > ahora)) { this.despertar(e); this.flotante(e.s.x, e.s.y - 40, { escorpion: '¡Sssh!', golem: '¡GRRUM!' }[e.clase] || '¡Je, je!', '#ffb4a3'); }
           continue;
         }
         if (e.huye) { this.huir(e, obj, d, seg); continue; }
@@ -9470,7 +9474,7 @@
           else { e.s.anims.stop(); e.s.setFrame(DIRS.down * 9); }
         }
         if (!E.flota) e.s.setDepth(e.s.y);
-        if (!persigue && E.oculto && l < 6) this.esconder(e);
+        if (!persigue && E.oculto && l < 6 && !(e.despiertoHasta > ahora)) { this.esconder(e); e.escondidoHasta = ahora + 1500; }
         if (persigue && obj.yo && !e.ocupado && d < 30) this.empezarCombate(e);
       }
       // bichos que caen de los árboles cuando pasa cualquier jugador del grupo
@@ -9490,17 +9494,24 @@
     }
     soltarBicho(arbol) {
       if (!arbol.bicho) return;
+      const previo = this.enemigos.find((x) => x.k === `b${arbol.idx}`);
+      if (previo && previo.activo && (previo.ocupado || combateActual === previo)) return;   // el anterior sigue en combate
       arbol.bicho = false;
       const s = this.add.sprite(arbol.x, arbol.y - 4, 'jabali_hoja', DIRS.down * 9).setOrigin(0.5, 0.9).setDepth(arbol.y - 2);
       s.anims.play('jabali_down');
       const viejo = this.enemigos.findIndex((x) => x.k === `b${arbol.idx}`);
-      if (viejo >= 0) this.enemigos.splice(viejo, 1);
+      if (viejo >= 0) {
+        const v = this.enemigos[viejo]; this.enemigos.splice(viejo, 1);
+        if (v.s && v.s.active) { if (v.activo) this.tweens.add({ targets: v.s, alpha: 0, duration: 300, onComplete: () => v.s.destroy() }); else v.s.destroy(); }
+      }
       const e = this.nuevoEnemigo('bicho', s, { cayendo: true, k: `b${arbol.idx}` });
       this.enemigos.push(e);
       this.flotante(arbol.x, arbol.y - 90, '¡Cuidado!', '#ffb4a3');
       this.cameras.main.shake(120, 0.003);
       this.tweens.add({ targets: s, y: arbol.y + 40, duration: 380, ease: 'Quad.out', onUpdate: () => s.setDepth(s.y),
         onComplete: () => { e.cayendo = false; e.origen = { x: s.x, y: s.y }; } });
+      // respaldo: si la caida se interrumpe, el jabali no queda congelado en el aire
+      this.time.delayedCall(900, () => { if (e.cayendo) { e.cayendo = false; s.y = arbol.y + 40; e.origen = { x: s.x, y: s.y }; } });
       this.time.delayedCall(240000, () => { arbol.bicho = true; });
     }
     empezarCombate(e) {
@@ -9557,14 +9568,16 @@
     // Enemigos escondidos (arbusto o montículo): salen al acercarse y vuelven a esconderse
     despertar(e) {
       const E = ENEMIGOS[e.clase];
-      e.despierto = true;
+      e.despierto = true; e.despiertoHasta = this.time.now + 3000;
+      this.tweens.killTweensOf(e.s);   // nunca se acumulan saltos: si no, el enemigo queda clavado en su lugar
       if (e.marcado) { e.s.clearTint(); e.marcado = false; }
       if (E.anim) { e.s.setTexture(`${E.anim}_hoja`, DIRS.down * 9).setOrigin(0.5, 0.9).setScale(1); this.tweens.add({ targets: e.s, y: e.s.y + 4, duration: 90, yoyo: true }); }
-      else { e.s.setTexture(E.texVivo); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); }
+      else { e.s.setTexture(E.texVivo).setScale(2); this.tweens.add({ targets: e.s, scaleX: 2.3, scaleY: 1.8, duration: 120, yoyo: true }); }
     }
     esconder(e) {
       const E = ENEMIGOS[e.clase];
       e.despierto = false;
+      this.tweens.killTweensOf(e.s);
       if (E.anim) { e.s.anims.stop(); e.s.setTexture(E.tex).setOrigin(0.5, 1).setScale(2); } else e.s.setTexture(E.tex);
     }
     golpeEnemigo(e, n) {
