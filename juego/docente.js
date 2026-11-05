@@ -374,6 +374,115 @@
   $('btn-desafios').addEventListener('click', () => { pintarDesafios(); $('desafios-dlg').showModal(); });
   $('dd-cerrar').addEventListener('click', () => $('desafios-dlg').close());
 
+  // ---------- Guerra de clanes ----------
+  let gEstado = {}, gDif = 0, gCurso = CURSOS_G[0].id, gT = null, gOcupado = false;
+  const gSel = { a: '', b: '', gana: 30, pierde: 15, dur: {} };
+  const gAhora = () => Date.now() + gDif;
+  const nomClan = (W, g) => { const r = W && (W.ranking || []).find((x) => String(x.grupo) === String(g)); return r ? r.nombre : `Grupo ${g}`; };
+  const tareaViva = (W) => (W && W.activa && W.tarea && gAhora() < W.tarea.hasta ? W.tarea : null);
+  async function cargarGuerras() {
+    clearTimeout(gT);
+    try { const r = await Nube.docenteGuerras(token); if (r) { gDif = r.ahora - Date.now(); gEstado = r.cursos || {}; } } catch (e) { /* se reintenta */ }
+    pintarGuerraResumen();
+    if ($('guerra-dlg').open) pintarGuerra();
+    const activa = Object.values(gEstado).some((c) => c && c.guerra && c.guerra.activa);
+    gT = setTimeout(cargarGuerras, activa ? 3000 : 20000);
+  }
+  async function opGuerra(cursos, op) {
+    gOcupado = true; pintarGuerra();
+    try {
+      const r = await Nube.docenteGuerra(token, cursos, op);
+      if (r) { gDif = r.ahora - Date.now(); gEstado = r.cursos || {}; }
+      $('error').hidden = true;
+    } catch (e) { $('error').textContent = 'No se pudo actualizar la guerra de clanes. Revisa tu conexión e inténtalo otra vez.'; $('error').hidden = false; }
+    gOcupado = false; pintarGuerra(); pintarGuerraResumen(); cargarGuerras();
+  }
+  async function opClan(grupo, accion) {
+    gOcupado = true; pintarGuerra();
+    try { const r = await Nube.docenteClan(token, gCurso, grupo, accion); if (r) { gDif = r.ahora - Date.now(); gEstado = r.cursos || {}; } } catch (e) { $('error').textContent = 'No se pudo cambiar el clan.'; $('error').hidden = false; }
+    gOcupado = false; pintarGuerra();
+  }
+  function pintarGuerraResumen() {
+    const html = CURSOS_G.map((c) => {
+      const W = gEstado[c.id] && gEstado[c.id].guerra; if (!W || !W.activa) return '';
+      const T = tareaViva(W), top = (W.ranking || [])[0];
+      return `<div class="des-vivo activo"><div class="fila-d"><strong>${c.nombre} · ⚔️ Guerra en curso</strong><button type="button" class="btn mini" data-gabrir="${c.id}">Administrar</button></div>
+        <div class="fila-d"><span>${T ? `${T.icono} ${esc(T.nombre)} · <span class="reloj" data-greloj="${c.id}">${mmss(T.hasta - gAhora())}</span>` : '<span class="muted">Sin tarea en curso</span>'}</span>${top ? `<span>🥇 ${esc(top.nombre)} · ${top.puntos} pts</span>` : ''}</div></div>`;
+    }).join('');
+    $('guerra-estado').innerHTML = html; $('guerra-estado').hidden = !html; $('guerra-nada').hidden = Boolean(html);
+    $('guerra-estado').querySelectorAll('[data-gabrir]').forEach((b) => b.addEventListener('click', () => { gCurso = b.dataset.gabrir; pintarGuerra(); $('guerra-dlg').showModal(); }));
+  }
+  function pintarGuerra() {
+    $('gd-cursos').innerHTML = '<span class="lbl">Curso:</span>' + CURSOS_G.map((c) => {
+      const W = gEstado[c.id] && gEstado[c.id].guerra;
+      return `<button type="button" class="chk" data-gc="${c.id}" aria-pressed="${gCurso === c.id}">${c.nombre}${W && W.activa ? ' <small>⚔️ en guerra</small>' : ''}</button>`;
+    }).join('');
+    $('gd-cursos').querySelectorAll('[data-gc]').forEach((b) => b.addEventListener('click', () => { gCurso = b.dataset.gc; gSel.a = ''; gSel.b = ''; pintarGuerra(); }));
+    const C = gEstado[gCurso] || {}, W = C.guerra, activa = Boolean(W && W.activa), clanes = C.clanes || [];
+    const dis = gOcupado ? 'disabled' : '';
+    let h = '';
+    if (!activa) {
+      h += `<div class="gd-bloque"><div class="gd-fila"><span>No hay una guerra en curso en ${esc(CURSOS_G.find((c) => c.id === gCurso).nombre)}.</span><button type="button" class="btn pri" id="gd-iniciar" ${dis}>⚔️ Iniciar guerra de clanes</button></div></div>`;
+      if (W && W.resultado) h += `<div class="gd-bloque"><h4>Resultado de la última guerra</h4><ol>${W.resultado.map((r) => `<li><strong>${esc(r.nombre)}</strong> · ${r.puntos} pts</li>`).join('')}</ol><span class="muted">Cada integrante que participó recibe su premio al entrar al juego (mejor lugar, mejor premio).</span></div>`;
+    } else {
+      const T = tareaViva(W), D = W.duelo && ['eligiendo', 'lucha'].includes(W.duelo.fase) ? W.duelo : null;
+      h += `<div class="gd-bloque"><div class="gd-fila"><strong>⚔️ Guerra en curso</strong><button type="button" class="btn peligro" id="gd-terminar" ${dis}>🏁 Terminar guerra y repartir premios</button></div></div>`;
+      h += `<div class="gd-bloque"><h4>Tarea en vivo</h4>${T ? `<div class="gd-actual gd-fila"><span>${T.icono} ${esc(T.nombre)} · +${T.pts} por acción</span><span><span class="reloj" id="gd-reloj">${mmss(T.hasta - gAhora())}</span> <button type="button" class="btn mini" id="gd-detener" ${dis}>Detener</button></span></div>` : '<p class="muted">Ninguna tarea en curso. Lanza una del banco:</p>'}
+        <div class="gd-tareas" style="margin-top:10px">${TAREAS_GUERRA.map((t) => {
+          const dur = gSel.dur[t.id] || t.seg;
+          return `<div class="gd-tarea"><strong>${t.icono} ${esc(t.nombre)}</strong><p>${esc(t.desc)} <b>+${t.pts}</b> c/u.</p>
+            <div class="pie"><select data-gdur="${t.id}" aria-label="Duración">${[60, 120, 180, 300, 600].map((s) => `<option value="${s}" ${s === dur ? 'selected' : ''}>${s / 60} min</option>`).join('')}${[60, 120, 180, 300, 600].includes(dur) ? '' : `<option value="${dur}" selected>${mmss(dur * 1000)} min</option>`}</select>
+            <button type="button" class="btn pri mini" data-gtarea="${t.id}" ${dis}>Lanzar</button></div></div>`;
+        }).join('')}</div></div>`;
+      const opc = (sel) => `<option value="">Elegir…</option>` + clanes.map((k) => `<option value="${k.grupo}" ${String(sel) === String(k.grupo) ? 'selected' : ''}>${esc(k.nombre || `Grupo ${k.grupo}`)} (${k.conectados} en línea)</option>`).join('');
+      h += `<div class="gd-bloque gd-duelo"><h4>Duelo PvP entre clanes</h4>
+        ${D ? `<div class="gd-actual gd-fila"><span>⚔️ ${esc(nomClan(W, D.a))} vs ${esc(nomClan(W, D.b))} · ${D.fase === 'eligiendo' ? `los líderes eligen campeón (${mmss(D.hasta - gAhora())})` : 'luchando en la arena'}</span><button type="button" class="btn mini" id="gd-cduelo" ${dis}>Cancelar duelo</button></div>`
+          : `${W.duelo && W.duelo.fase === 'fin' ? `<p class="muted">Último duelo: ${W.duelo.ganador ? `ganó <b>${esc(nomClan(W, W.duelo.ganador))}</b>` : 'sin ganador'}.</p>` : ''}
+          <div class="gd-fila" style="justify-content:flex-start"><select id="gd-a">${opc(gSel.a)}</select><span>vs</span><select id="gd-b">${opc(gSel.b)}</select>
+          <label>Gana <input type="number" id="gd-gana" min="0" max="200" value="${gSel.gana}"></label><label>Pierde <input type="number" id="gd-pierde" min="0" max="200" value="${gSel.pierde}"></label>
+          <button type="button" class="btn pri" id="gd-lduelo" ${dis}>Lanzar duelo</button></div>
+          <p class="muted">El líder de cada clan tiene 35 segundos para elegir a su campeón (si no, se elige a alguien conectado al azar). Los campeones entran directo a la arena y el resto del curso puede mirar.</p>`}</div>`;
+      h += `<div class="gd-bloque"><h4>Ranking en vivo</h4><table class="gd-tabla"><thead><tr><th>Lugar</th><th>Clan</th><th>Puntos</th><th>Ajustar</th></tr></thead><tbody>${(W.ranking || []).map((r, i) => `<tr><td>${['🥇', '🥈', '🥉'][i] || i + 1}</td><td>${esc(r.nombre)}</td><td class="num">${r.puntos}</td>
+        <td class="acc"><button type="button" class="btn mini" data-gpts="${r.grupo}" data-d="10" ${dis}>+10</button><button type="button" class="btn mini" data-gpts="${r.grupo}" data-d="-10" ${dis}>−10</button></td></tr>`).join('')}</tbody></table></div>`;
+    }
+    h += `<div class="gd-bloque"><h4>Clanes del curso</h4><table class="gd-tabla"><thead><tr><th>Grupo</th><th>Nombre del clan</th><th>Líder</th><th>Votos</th><th>En línea</th><th></th></tr></thead><tbody>${clanes.map((k) => `<tr><td>${k.grupo}</td><td>${k.nombre ? esc(k.nombre) : '<span class="muted">Sin nombre</span>'}</td><td>${k.lider ? esc(k.lider) : '<span class="muted">Votando…</span>'}</td><td>${k.votos}/${k.miembros}</td><td>${k.conectados}</td>
+      <td class="acc">${k.nombre ? `<button type="button" class="btn mini" data-gclan="${k.grupo}" data-acc="borrar_nombre" ${dis}>Borrar nombre</button>` : ''}${!k.lider && k.votos ? `<button type="button" class="btn mini" data-gclan="${k.grupo}" data-acc="cerrar_voto" ${dis}>Cerrar votación</button>` : ''}${k.lider || k.votos ? `<button type="button" class="btn peligro mini" data-gclan="${k.grupo}" data-acc="reiniciar" ${dis}>Reiniciar</button>` : ''}</td></tr>`).join('')}</tbody></table>
+      <span class="muted">«Cerrar votación» nombra líder a quien tiene más votos. «Reiniciar» borra el líder, el nombre y los votos del clan.</span></div>`;
+    $('gd-cuerpo').innerHTML = h;
+    const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+    on('gd-iniciar', () => opGuerra([gCurso], { op: 'iniciar' }));
+    on('gd-terminar', () => { if (confirm('¿Terminar la guerra de clanes? Se cerrará el ranking y cada clan recibirá su premio según su lugar.')) opGuerra([gCurso], { op: 'terminar' }); });
+    on('gd-detener', () => opGuerra([gCurso], { op: 'detener_tarea' }));
+    on('gd-cduelo', () => opGuerra([gCurso], { op: 'cancelar_duelo' }));
+    on('gd-lduelo', () => {
+      if (!gSel.a || !gSel.b || gSel.a === gSel.b) { alert('Elige dos clanes distintos.'); return; }
+      opGuerra([gCurso], { op: 'duelo', a: String(gSel.a), b: String(gSel.b), gana: Number(gSel.gana) || 0, pierde: Number(gSel.pierde) || 0 });
+    });
+    const val = (id, k) => { const el = $(id); if (el) el.addEventListener('change', () => { gSel[k] = el.value; }); };
+    val('gd-a', 'a'); val('gd-b', 'b'); val('gd-gana', 'gana'); val('gd-pierde', 'pierde');
+    $('gd-cuerpo').querySelectorAll('[data-gdur]').forEach((s) => s.addEventListener('change', () => { gSel.dur[s.dataset.gdur] = Number(s.value); }));
+    $('gd-cuerpo').querySelectorAll('[data-gtarea]').forEach((b) => b.addEventListener('click', () => {
+      const t = TAREAS_GUERRA.find((x) => x.id === b.dataset.gtarea);
+      const W2 = gEstado[gCurso] && gEstado[gCurso].guerra;
+      if (tareaViva(W2) && !confirm(`Ya hay una tarea en curso. ¿Reemplazarla por «${t.nombre}»?`)) return;
+      opGuerra([gCurso], { op: 'tarea', seg: gSel.dur[t.id] || t.seg, tarea: { id: t.id, nombre: t.nombre, icono: t.icono, acciones: t.acciones, pts: t.pts, desc: t.desc } });
+    }));
+    $('gd-cuerpo').querySelectorAll('[data-gpts]').forEach((b) => b.addEventListener('click', () => opGuerra([gCurso], { op: 'puntos', grupo: b.dataset.gpts, delta: Number(b.dataset.d) })));
+    $('gd-cuerpo').querySelectorAll('[data-gclan]').forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.acc === 'reiniciar' && !confirm('¿Reiniciar este clan? Se borran su líder, su nombre y los votos.')) return;
+      opClan(Number(b.dataset.gclan), b.dataset.acc);
+    }));
+  }
+  setInterval(() => {
+    for (const c of CURSOS_G) {
+      const W = gEstado[c.id] && gEstado[c.id].guerra, T = tareaViva(W);
+      document.querySelectorAll(`[data-greloj="${c.id}"]`).forEach((el) => { el.textContent = T ? mmss(T.hasta - gAhora()) : '—'; });
+      if (c.id === gCurso) { const r = $('gd-reloj'); if (r) r.textContent = T ? mmss(T.hasta - gAhora()) : '—'; }
+    }
+  }, 1000);
+  $('btn-guerra').addEventListener('click', () => { pintarGuerra(); $('guerra-dlg').showModal(); cargarGuerras(); });
+  $('gd-cerrar').addEventListener('click', () => $('guerra-dlg').close());
+  cargarGuerras();
   // ---------- Obras cooperativas (puente al Bosque profundo) ----------
   // ---------- Grupos (códigos, integrantes) y obras por curso y grupo ----------
   let grupos = null, grupoCurso = null, grupoMsg = '';

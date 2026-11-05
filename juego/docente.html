@@ -203,6 +203,21 @@
     #desafios-dlg .des-cursos { position: sticky; top: -22px; z-index: 2; background: #fff; padding: 10px 0; border-bottom: 1px solid var(--line); }
     .des-card { transition: transform .15s, box-shadow .15s; }
     .des-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.12); }
+    .gd-bloque { margin: 14px 0; padding: 14px; border: 1px solid var(--line); border-radius: 14px; background: #fafcfb; }
+    .gd-bloque h4 { margin: 0 0 8px; }
+    .gd-fila { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+    .gd-tareas { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+    .gd-tarea { border: 1px solid var(--line); border-radius: 12px; padding: 10px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+    .gd-tarea strong { font-size: 15px; }
+    .gd-tarea p { margin: 0; font-size: 13px; color: var(--muted); flex: 1; }
+    .gd-tarea .pie { display: flex; gap: 6px; align-items: center; justify-content: space-between; }
+    .gd-tarea select, .gd-duelo select, .gd-duelo input { padding: 5px 8px; border-radius: 8px; border: 1px solid var(--line); font: inherit; }
+    .gd-duelo input { width: 70px; }
+    .gd-actual { padding: 10px 12px; border-radius: 12px; background: #fff6e0; border: 1px solid #f0d18a; font-weight: 700; }
+    .gd-tabla { width: 100%; border-collapse: collapse; }
+    .gd-tabla th, .gd-tabla td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: 14px; }
+    .gd-tabla td.num { font-variant-numeric: tabular-nums; font-weight: 800; }
+    .gd-tabla .acc { display: flex; gap: 4px; flex-wrap: wrap; }
   </style>
 </head>
 <body>
@@ -270,6 +285,14 @@
       <div class="des-estado" id="des-estado"></div>
       <p class="muted des-nada" id="des-nada">No hay desafíos en curso. Presiona «Lanzar un desafío» para elegir uno.</p>
     </section>
+    <section class="panel acceso" aria-labelledby="guerra-titulo">
+      <div class="acceso-cab">
+        <div><h2 id="guerra-titulo">Guerra de clanes</h2><span class="muted">Cada grupo es un clan: en el letrero de su carpa común votan a su líder y el líder le pone nombre. Inicia una guerra en un curso y lanza tareas con tiempo (cada acción suma puntos a su clan), organiza duelos PvP entre clanes que todo el curso puede mirar y termínala cuando quieras: cada clan recibe premios según su lugar.</span></div>
+        <button type="button" class="btn pri btn-desafio" id="btn-guerra"><span aria-hidden="true">⚔️</span> Guerra de clanes</button>
+      </div>
+      <div class="des-estado" id="guerra-estado"></div>
+      <p class="muted des-nada" id="guerra-nada">No hay guerras de clanes en curso.</p>
+    </section>
     <div class="tabs" role="tablist" id="tabs"></div>
     <div class="tarjetas" id="tarjetas"></div>
     <section class="panel analisis" aria-label="Análisis del curso">
@@ -301,6 +324,14 @@
     </div>
     <div class="des-cursos" id="des-cursos"></div>
     <div class="des-lista" id="des-lista"></div>
+  </div></dialog>
+  <dialog id="guerra-dlg" class="grande" aria-labelledby="gd-titulo"><div class="det">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
+      <div><h3 id="gd-titulo">⚔️ Guerra de clanes</h3><span class="muted">Elige un curso. Todo se actualiza en vivo.</span></div>
+      <button type="button" class="btn" id="gd-cerrar">Cerrar</button>
+    </div>
+    <div class="des-cursos" id="gd-cursos"></div>
+    <div id="gd-cuerpo"></div>
   </div></dialog>
   <dialog id="buzon" class="ancho" aria-labelledby="buzon-titulo"><div class="det">
     <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
@@ -335,6 +366,7 @@
   <script src="banco_8.js"></script>
   <script src="banco.js"></script>
   <script src="desafios.js"></script>
+  <script src="guerra.js"></script>
   <script src="xlsx.js"></script>
   <script src="docente.js"></script>
 </body>

@@ -803,6 +803,7 @@
       + (oculto ? '' : `<button type="button" class="hm-cuerpo" data-ver-misiones aria-label="Ver detalle de tus misiones">${html}</button>`);
     const pend = (Dd.p >= Dd.n && !Dd.cobrada) || (S.premiosNivel || 0) > 0;
     $('btn-misiones').classList.toggle('alerta', pend);
+    colocarGuerra();
   }
   const recHTML = (rec) => Object.entries(rec).map(([r, n]) => `<span class="pildora premio"><img class="px" src="${ICONO(r)}" alt="">+${n} ${nombreRec(r)}</span>`).join('');
   function sumarCofre(rec) { Object.entries(rec).forEach(([r, n]) => { S.cofre[r] = (S.cofre[r] || 0) + n; }); pintarHUD(); }
@@ -3723,6 +3724,10 @@
     L('tesoro', 'explorar', '🗝️', 'Cazatesoros', 'Encuentra el tesoro escondido del desafío de tu profesor.', 1, () => CN('tesoro'), 'Cazatesoros'),
     L('racha5', 'aprender', '🔥', 'Imparable', 'Llega al multiplicador x5 en la racha imparable.', 1, () => CN('racha5'), 'Imparable'),
     L('paseo', 'coleccion', '🦮', 'De paseo', 'Sal a explorar con una mascota equipada.', 1, () => CN('mascota'), 'Paseador'),
+    // ----- Clanes y guerra de clanes -----
+    L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
+    L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
+    L('duelo_clan', 'equipo', '🛡️', 'Campeón del clan', 'Gana un duelo de clanes como campeón de tu clan.', 1, () => CN('duelo_clan'), 'Campeón del Clan'),
     // ----- Héroes y habilidades (personajes especiales por nivel y su habilidad especial) -----
     L('pj_fenix', 'heroes', '🔥', 'Despertar del fuego', 'Desbloquea tu primer personaje especial: el Fénix Llameante (nivel 30).', 1, () => pjEspLibres(), 'Portador del Fuego'),
     L('pj_elem4', 'heroes', '🌪️', 'Los cuatro elementos', 'Desbloquea los 4 guerreros elementales: Fénix, Centinela, Sombras y Guardiana (nivel 60).', 4, () => pjEspLibres(60), 'Señor de los Elementos'),
@@ -3759,6 +3764,7 @@
     if (!S || !ev || !(n > 0)) return;
     S.cont = S.cont || {};
     S.cont[ev] = (S.cont[ev] || 0) + n;
+    guerraContar(ev, n);
     programarLogros();
   }
   let logrosPend = 0;
@@ -4384,12 +4390,20 @@
   const vidaPvp = () => 4 * vidaMax();
   const golpePvp = () => 2 + 2 * danio();
   const mochilaTotal = () => Object.values(S.mochila || {}).reduce((a, b) => a + (b || 0), 0);
-  function emitirPvp(d) { if (escena && escena.canal && pvp) escena.canal.emitir('pvp', { id: idJuego, ...d }); }
+  function emitirPvp(d) { const c = pvp && (pvp.canal || (escena && escena.canal)); if (c) c.emitir('pvp', { id: (pvp.clan && pvp.miId) || idJuego, ...d }); }
   function recibirPvp(d) {
-    if (!d || d.id === idJuego || !pvp) return;
+    const yoId = pvp && pvp.clan ? pvp.miId : idJuego;
+    if (!d || d.id === yoId || !pvp) return;
+    if (d.t === 'aqui' && pvp.clan) {
+      if (d.id === pvp.rivalId) {
+        if (pvp.fase === 'sala') arrancarDuelo(d);
+        else if (pvp.fase === 'duelo' && !pvp.terminado && performance.now() - (pvp.ecoAqui || 0) > 1000) { pvp.ecoAqui = performance.now(); emitirPvp({ t: 'aqui', a: d.id, ...datosYo() }); }
+      }
+      return;
+    }
     if (d.t === 'aqui') { if (pvp.fase === 'sala') { pvp.gente.set(d.id, { ...d, visto: Date.now() }); pintarSalaPvp(); } return; }
     if (d.t === 'salir') { pvp.gente.delete(d.id); if (pvp.fase === 'sala') pintarSalaPvp(); else if (pvp.rival && pvp.rival.id === d.id) rivalSeFue(); return; }
-    if (d.a !== idJuego) return;
+    if (d.a !== yoId) return;
     if (d.t === 'reto' && pvp.fase === 'sala') { pvp.retoDe = d; pintarSalaPvp(); sfx('alerta'); }
     else if (d.t === 'rechazo' && pvp.fase === 'sala' && pvp.reto === d.id) { pvp.reto = null; pvp.aviso = `${d.nombre || 'Tu compañero'} rechazó el duelo.`; pintarSalaPvp(); }
     else if (d.t === 'acepto' && pvp.fase === 'sala' && pvp.reto === d.id) arrancarDuelo(d);
@@ -4460,7 +4474,7 @@
   function arrancarDuelo(rival) {
     if (!pvp || pvp.fase !== 'sala') return;
     clearInterval(pvp.latido);
-    const bot = !rival, izq = bot || idJuego < rival.id;
+    const bot = !rival, izq = bot || (pvp.miId || idJuego) < rival.id;
     const yoD = datosYo();
     pvp.fase = 'duelo'; pvp.retoDe = null;
     pvp.yo = { x: izq ? 220 : 580, dir: izq ? 'right' : 'left', hp: yoD.vm, max: yoD.vm, dmg: yoD.dmg, bloq: false, atk: 0, atkN: 0, img: imgPj(S.pj, yoD.tex), nombre: yoD.nombre, golpeado: 0, arma: yoD.w };
@@ -4471,7 +4485,7 @@
     $('pv-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro zona-lienzo" id="mj-cuadro"><canvas id="pv-canvas" width="${PVP_W}" height="${PVP_H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
       <div class="mj-controles pv-controles"><div class="pv-mover"><button type="button" class="btn" data-pv="l">◀</button><button type="button" class="btn" data-pv="r">▶</button></div>
         <div class="pv-acciones"><button type="button" class="btn pv-bloq" id="pv-bloq">🛡️ Bloquear <kbd>K</kbd></button><button type="button" class="btn pri pv-atk" id="pv-atk">⚔️ Atacar <kbd>J</kbd></button></div></div></div>`;
-    document.querySelector('#modal .acciones').innerHTML = `<span class="nota" id="pv-nota">${bot ? 'Práctica: sin premio ni castigo' : '¡A luchar! El que pierde vuelve a su base sin su mochila'}</span><span class="pildora" id="pv-reloj"></span>`;
+    document.querySelector('#modal .acciones').innerHTML = `<span class="nota" id="pv-nota">${pvp.clan ? '⚔️ ¡Duelo de clanes! Todo el curso está mirando' : bot ? 'Práctica: sin premio ni castigo' : '¡A luchar! El que pierde vuelve a su base sin su mochila'}</span><span class="pildora" id="pv-reloj"></span>`;
     const cv = $('pv-canvas'); pvp.ctx = cv.getContext('2d'); pvp.ctx.imageSmoothingEnabled = false; encajar(cv, PVP_W / PVP_H);
     const K = { ArrowLeft: 'l', a: 'l', A: 'l', ArrowRight: 'r', d: 'r', D: 'r' };
     const suelta = (e) => { if (K[e.key]) pvp.mov[K[e.key]] = false; if (e.key === 'k' || e.key === 'K' || e.key === 'Shift') pvp.yo.bloq = false; };
@@ -4551,7 +4565,7 @@
     // posición al rival: solo cuando cambia (máx. ~7 por segundo) y un recordatorio cada 1 s
     if (!R.bot && ahora - pvp.ultPos > 140) {
       const firma = `${Math.round(Y.x / 3)}|${Y.dir}|${Y.bloq}|${Y.mueve}|${Y.atkN}`;
-      if (firma !== pvp.firma || ahora - pvp.ultPos > 1000) { pvp.firma = firma; pvp.ultPos = ahora; emitirPvp({ t: 'pos', a: R.id, x: Math.round(Y.x), dir: Y.dir, b: Y.bloq, m: Y.mueve, at: Y.atkN }); }
+      if (firma !== pvp.firma || ahora - pvp.ultPos > 1000) { pvp.firma = firma; pvp.ultPos = ahora; emitirPvp({ t: 'pos', a: R.id, x: Math.round(Y.x), dir: Y.dir, b: Y.bloq, m: Y.mueve, at: Y.atkN, vm: Y.max, hp: Y.hp, w: Y.arma || '' }); }
     }
     if (pvp.t >= PVP_SEG) finPorTiempo();
   }
@@ -4576,13 +4590,20 @@
     if (pvp.terminado) return;
     const Y = pvp.yo, R = pvp.rival, a = Y.hp / Y.max, b = R.hp / R.max;
     if (R.bot) return terminarPractica(a > b);
+    if (Math.abs(a - b) < 0.001 && pvp.clan) reportarDueloClan('empate');
     if (Math.abs(a - b) < 0.001) { pvp.terminado = true; mostrarFinPvp('🤝 ¡Empate!', 'Se acabó el tiempo con la misma vida: nadie pierde nada.'); return; }
     if (a < b) perderDuelo('Se acabó el tiempo y tu rival tenía más vida.');
-    else { pvp.esperandoFin = performance.now(); setTimeout(() => { if (pvp && !pvp.terminado) { pvp.terminado = true; mostrarFinPvp('⏱ Tiempo', 'Se acabó el tiempo. Tu rival no respondió: el duelo queda sin botín.'); } }, 6000); }
+    else { pvp.esperandoFin = performance.now(); setTimeout(() => { if (pvp && !pvp.terminado) { pvp.terminado = true; if (pvp.clan) reportarDueloClan('abandono'); mostrarFinPvp('⏱ Tiempo', 'Se acabó el tiempo. Tu rival no respondió: el duelo queda sin botín.'); } }, 6000); }
   }
   function perderDuelo(motivo) {
     if (!pvp || pvp.terminado) return;
     pvp.terminado = true;
+    if (pvp.clan) {
+      emitirPvp({ t: 'fin', a: pvp.rival.id, mochila: {} });
+      reportarDueloClan('perdi');
+      mostrarFinPvp('💥 Perdiste el duelo de clanes', `${motivo ? motivo + ' ' : ''}${pvp.rival.nombre} ganó para su clan. Tu mochila está a salvo: en los duelos de clanes no se pierde nada.`);
+      return;
+    }
     const mochila = {}; Object.entries(S.mochila).forEach(([r, n]) => { if (n > 0) mochila[r] = n; });
     emitirPvp({ t: 'fin', a: pvp.rival.id, mochila });
     RECURSOS.forEach((r) => { S.mochila[r.id] = 0; });
@@ -4594,6 +4615,12 @@
   function ganarDuelo(mochila) {
     if (!pvp || pvp.terminado) return;
     pvp.terminado = true;
+    if (pvp.clan) {
+      ganarXP(60); contar('duelo_clan'); guardar(true); sfx('victoria');
+      if (escena) escena.celebrar();
+      mostrarFinPvp('🏆 ¡Ganaste el duelo de clanes!', `Venciste a ${pvp.rival.nombre}: tu clan suma puntos en la guerra. +60 de experiencia.`);
+      return;
+    }
     let n = 0;
     Object.entries(mochila).forEach(([r, k]) => { const c = Math.max(0, Math.min(999, Math.floor(Number(k) || 0))); if (REC[r] && c) { S.mochila[r] = (S.mochila[r] || 0) + c; n += c; } });
     ganarXP(40); contar('pvp_victoria'); guardar(true); pintarHUD(); sfx('victoria');
@@ -4603,6 +4630,7 @@
   function rivalSeFue() {
     if (!pvp || pvp.terminado || pvp.fase !== 'duelo') return;
     pvp.terminado = true;
+    if (pvp.clan) { reportarDueloClan('abandono'); mostrarFinPvp('🏳️ Tu rival se fue', 'Tu rival abandonó el duelo o perdió la conexión: ¡tu clan gana el duelo!'); return; }
     mostrarFinPvp('🏳️ Tu rival se fue', 'Tu rival abandonó el duelo o perdió la conexión. Nadie pierde nada.');
   }
   function terminarPractica(gane) {
@@ -4735,6 +4763,323 @@
     c.font = 'bold 22px Fredoka, Nunito, sans-serif'; c.textAlign = 'center'; c.fillStyle = '#ffd27a'; c.fillText('VS', PVP_W / 2, 36);
     pvp.flot = (pvp.flot || []).filter((t) => ahora - t.t < 900);
     for (const t of pvp.flot) { const k = (ahora - t.t) / 900; c.globalAlpha = 1 - k; c.font = `bold ${t.txt.includes('🛡') ? 20 : 26}px Fredoka, Nunito, sans-serif`; c.lineWidth = 4; c.strokeStyle = '#1a1010'; c.strokeText(t.txt, t.x, t.y - k * 30); c.fillStyle = t.col; c.fillText(t.txt, t.x, t.y - k * 30); c.globalAlpha = 1; }
+  }
+
+  // ===================================================================
+  // Clanes y Guerra de clanes
+  // Cada grupo es un clan: en el letrero de la carpa común votan a su líder (mayoría del grupo) y el líder
+  // le pone nombre, que aparece sobre la carpa. El docente lanza la guerra por curso: tareas en vivo (cada
+  // acción suma puntos al clan), duelos PvP entre clanes que todo el curso puede mirar y premios por lugar.
+  // ===================================================================
+  const conClanes = () => Boolean(S && sesion.modo === 'nube' && S.grupo && cursoCanal() !== 'INV' && window.Nube && Nube.clan);
+  let clanE = null, guerraE = null, guerraDif = 0, guerraT = 0, guerraPend = 0, guerraEnvio = false, guerraAviso = '';
+  const duelosVistos = {};
+  let guerraOculta = false;
+  try { guerraOculta = localStorage.getItem('mw_guerra_oculta') === '1'; } catch (e) { /* sin almacenamiento */ }
+  const ahoraGuerra = () => Date.now() + guerraDif;
+  const tareaGuerra = () => (guerraE && guerraE.activa && guerraE.tarea && ahoraGuerra() < guerraE.tarea.hasta ? guerraE.tarea : null);
+  const nombreClan = (g) => { const r = guerraE && (guerraE.ranking || []).find((x) => Number(x.grupo) === Number(g)); return r ? r.nombre : `Grupo ${g}`; };
+  const mmssG = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
+
+  // ---------- Clan: líder (votación) y nombre ----------
+  async function cargarClan() {
+    if (!conClanes()) { clanE = null; pintarNombreClan(); return null; }
+    try { const r = await Nube.clan(sesion.token); if (r && r.ok && !r.sin_grupo) clanE = r; } catch (e) { /* se reintenta */ }
+    pintarNombreClan();
+    if (clanE && clanE.soy_lider && !S.fueLider) { S.fueLider = Date.now(); contar('lider'); guardar(true); }
+    return clanE;
+  }
+  setInterval(() => { if (S && escena && escena.zona === 'base' && !document.hidden) cargarClan(); }, 45000);
+  function pintarNombreClan() {
+    const t = escena && escena.txtCarpa; if (!t || !t.active) return;
+    t.setText(clanE && clanE.nombre ? `🏕️ Clan «${clanE.nombre}»` : '🏕️ Carpa común del grupo');
+  }
+  async function abrirClan() {
+    if (!conClanes()) return toast(sesion.modo === 'nube' ? 'Únete a un grupo para formar un clan.' : 'Los clanes funcionan con tu cuenta del curso.', 'alerta');
+    ui.abrir('<div class="modal-cab"><div><span class="etq">Letrero del clan</span><h2 id="modal-titulo">🪧 Tu clan</h2></div><button type="button" class="btn" id="cl-cerrar">Cerrar</button></div><p class="nota">Cargando…</p>', 'clan');
+    $('cl-cerrar').addEventListener('click', () => ui.cerrar());
+    await cargarClan();
+    pintarClan('');
+  }
+  function pintarClan(msg) {
+    if (!ui.abierto || !$('modal').classList.contains('clan')) return;
+    const C = clanE;
+    if (!C || !C.miembros) {
+      ui.abrir('<div class="modal-cab"><div><span class="etq">Letrero del clan</span><h2 id="modal-titulo">🪧 Tu clan</h2></div><button type="button" class="btn" id="cl-cerrar">Cerrar</button></div><div class="mensaje mal">No se pudo cargar el clan. Revisa tu conexión e inténtalo otra vez.</div>', 'clan');
+      $('cl-cerrar').addEventListener('click', () => ui.cerrar()); return;
+    }
+    const votos = C.miembros.reduce((a, m) => a + (m.votos || 0), 0);
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Letrero del clan · Grupo ${C.grupo}</span><h2 id="modal-titulo">🪧 ${C.nombre ? `Clan «${esc(C.nombre)}»` : 'Clan sin nombre'}</h2></div><button type="button" class="btn" id="cl-cerrar">Cerrar</button></div>
+      ${msg || ''}
+      <div class="clan-lider">${C.lider_nombre ? `👑 Líder del clan: <b>${esc(C.lider_nombre)}</b>` : `👑 Aún no hay líder: se necesitan <b>${C.necesarios}</b> votos (la mayoría de los ${C.miembros.length} integrantes) para la misma persona.`}</div>
+      ${C.soy_lider ? `<div class="clan-nombre"><label for="cl-nom"><b>Eres el líder.</b> Elige el nombre del clan: aparecerá sobre la carpa común y en la guerra de clanes.</label>
+        <div class="fila"><input id="cl-nom" type="text" maxlength="20" autocomplete="off" value="${esc(C.nombre || '')}" placeholder="Ej: Los Dragones"><button type="button" class="btn pri" id="cl-guardar">Guardar nombre</button></div>
+        <small class="nota">De 3 a 20 letras o números. Tu profesor puede borrarlo si no es adecuado.</small></div>` : C.lider_nombre ? '<p class="nota">El líder elige el nombre del clan y al campeón de los duelos de la guerra.</p>' : ''}
+      <h3>Vota por el líder</h3>
+      <p class="nota">Puedes cambiar tu voto cuando quieras. Llevan ${votos} ${votos === 1 ? 'voto' : 'votos'}.</p>
+      <ul class="clan-votos">${C.miembros.map((m) => `<li class="${m.id === C.lider ? 'lider' : ''}"><span class="punto ${m.online ? 'on' : ''}" title="${m.online ? 'Conectado' : 'Desconectado'}"></span>
+        <b>${esc(m.nombre)}${m.yo ? ' (tú)' : ''}</b>${m.id === C.lider ? '<span class="pildora">👑 Líder</span>' : ''}<span class="votos">🗳️ ${m.votos || 0}</span>
+        <button type="button" class="btn ${C.mi_voto === m.id ? '' : 'pri'} chico" data-votar="${esc(m.id)}" ${C.mi_voto === m.id ? 'disabled' : ''}>${C.mi_voto === m.id ? '✓ Tu voto' : 'Votar'}</button></li>`).join('')}</ul>`, 'clan');
+    $('cl-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('[data-votar]').forEach((b) => b.addEventListener('click', async () => {
+      b.disabled = true;
+      let r = null; try { r = await Nube.clanVotar(sesion.token, b.dataset.votar); } catch (e) { r = null; }
+      const eraLider = clanE && clanE.lider;
+      if (r && r.ok) clanE = r;
+      pintarNombreClan();
+      const nuevo = r && r.ok && r.lider && r.lider !== eraLider;
+      pintarClan(r && r.ok ? `<div class="mensaje bien" role="status">¡Voto registrado!${nuevo ? ` ${esc(r.lider_nombre)} es el nuevo líder del clan.` : ''}</div>` : '<div class="mensaje mal" role="status">No se pudo registrar tu voto. Inténtalo otra vez.</div>');
+      if (clanE && clanE.soy_lider && !S.fueLider) { S.fueLider = Date.now(); contar('lider'); guardar(true); }
+    }));
+    const g = $('cl-guardar');
+    if (g) {
+      const guardarNombre = async () => {
+        const v = $('cl-nom').value; g.disabled = true;
+        let r = null; try { r = await Nube.clanNombre(sesion.token, v); } catch (e) { r = null; }
+        if (r && r.ok) { clanE = r; pintarNombreClan(); sfx('logro'); if (escena) escena.celebrar(); pintarClan(`<div class="mensaje bien" role="status">¡Listo! Ahora son el clan «${esc(r.nombre)}».</div>`); }
+        else pintarClan(`<div class="mensaje mal" role="status">${r && r.error === 'nombre' ? 'Ese nombre no está permitido: usa de 3 a 20 letras o números, sin groserías.' : r && r.error === 'no_lider' ? 'Solo el líder puede elegir el nombre.' : 'No se pudo guardar el nombre. Inténtalo otra vez.'}</div>`);
+      };
+      g.addEventListener('click', guardarNombre);
+      ui.teclas = (e) => { if (e.key === 'Enter' && document.activeElement === $('cl-nom')) { e.preventDefault(); guardarNombre(); } };
+    }
+  }
+
+  // ---------- Guerra de clanes: estado, tareas y ranking ----------
+  async function cargarGuerra() {
+    clearTimeout(guerraT);
+    if (conClanes()) {
+      try { const r = await Nube.guerra(sesion.token); if (r && r.ok) recibirGuerra(r); } catch (e) { /* se reintenta */ }
+    } else guerraE = null;
+    pintarGuerra();
+    const D = guerraE && guerraE.activa && guerraE.duelo;
+    guerraT = setTimeout(cargarGuerra, guerraE && guerraE.activa ? (D && ['eligiendo', 'lucha'].includes(D.fase) ? 3000 : 6000) : 30000);
+  }
+  // arranca la consulta cuando el jugador ya está en el juego con su grupo
+  setInterval(() => { if (S && escena && !guerraT && conClanes()) cargarGuerra(); }, 4000);
+  function recibirGuerra(r) {
+    const antes = guerraE;
+    guerraDif = r.ahora - Date.now();
+    guerraE = r;
+    if (!r.activa) { revisarPremioGuerra(); return; }
+    if (!antes || !antes.activa || antes.n !== r.n) toast('⚔️ ¡Comenzó la guerra de clanes! Mira el ranking a la izquierda.');
+    const T = tareaGuerra();
+    const clave = T ? `${r.n}-${T.id}-${T.inicio}` : '';
+    if (T && clave !== guerraAviso) {
+      guerraAviso = clave; guerraPend = 0;
+      avisoGrande('⚔️ ¡Nueva tarea de la guerra!', `${T.icono} ${T.nombre}`, `${T.desc || ''} · ${mmssG(T.hasta - ahoraGuerra())} · +${T.pts} por cada una`, 'guerra');
+      sfx('alerta');
+    }
+    revisarDuelo();
+  }
+  // Cada acción del jugador que cuenta para la tarea actual se suma y se envía cada 3 s
+  function guerraContar(ev, n) {
+    const T = tareaGuerra();
+    if (T && (T.acciones || []).includes(ev)) guerraPend += n;
+  }
+  setInterval(async () => {
+    if (!guerraPend || guerraEnvio || !guerraE || !conClanes()) return;
+    const T = tareaGuerra(); if (!T) { guerraPend = 0; return; }
+    const cant = Math.min(30, guerraPend); guerraPend -= cant; guerraEnvio = true;
+    try {
+      const r = await Nube.guerraSumar(sesion.token, guerraE.n, T.id, cant);
+      if (r && r.ok) { if (!r.sumado) guerraPend += cant; recibirGuerra(r); pintarGuerra(); } else guerraPend += cant;
+    } catch (e) { guerraPend += cant; }
+    guerraEnvio = false;
+  }, 3000);
+  function pintarGuerra() {
+    const el = $('hud-guerra'); if (!el) return;
+    const G = guerraE;
+    if (!G || !G.activa || !S) { el.classList.add('oculto'); el.innerHTML = ''; return; }
+    el.classList.remove('oculto');
+    const T = tareaGuerra(), rk = G.ranking || [];
+    const D = G.duelo && ['eligiendo', 'lucha'].includes(G.duelo.fase) ? G.duelo : null;
+    const pos = rk.findIndex((x) => Number(x.grupo) === Number(G.grupo));
+    el.classList.toggle('plegado', guerraOculta);
+    el.innerHTML = `<div class="hm-cab"><span>⚔️ Guerra de clanes${guerraOculta && pos >= 0 ? ` · ${pos + 1}° lugar` : ''}</span><button type="button" class="hm-plegar" data-gplegar aria-expanded="${!guerraOculta}">${guerraOculta ? 'Mostrar' : 'Ocultar'}</button></div>`
+      + (guerraOculta ? '' : `<div class="hg-tarea">${T ? `<b>${T.icono} ${esc(T.nombre)}</b><span class="hg-reloj" id="hg-reloj">${mmssG(T.hasta - ahoraGuerra())}</span>` : '<span class="hg-espera">Esperando la próxima tarea del profesor…</span>'}</div>
+        ${T ? `<small class="hg-desc">${esc(T.desc || '')} (+${T.pts} c/u)</small>` : ''}
+        ${D ? `<div class="hg-duelo">⚔️ <b>${esc(nombreClan(D.a))}</b> vs <b>${esc(nombreClan(D.b))}</b>${D.fase === 'lucha' ? '<button type="button" class="hm-plegar" data-gver>👁️ Ver duelo</button>' : '<small> · eligiendo campeones…</small>'}</div>` : ''}
+        <ol class="hg-ranking">${rk.map((x, i) => `<li class="${Number(x.grupo) === Number(G.grupo) ? 'yo' : ''}"><span class="hg-lugar">${['🥇', '🥈', '🥉'][i] || `${i + 1}.`}</span><span class="hg-nom">${esc(x.nombre)}</span><b>${x.puntos}</b></li>`).join('')}</ol>`);
+    colocarGuerra();
+  }
+  function colocarGuerra() {
+    const el = $('hud-guerra'), m = $('hud-misiones'); if (!el || !m || el.classList.contains('oculto')) return;
+    const vis = m.offsetParent !== null && m.offsetHeight > 0 && getComputedStyle(m).display !== 'none';
+    el.style.top = `${vis ? m.offsetTop + m.offsetHeight + 8 : m.offsetTop}px`;
+  }
+  $('hud-guerra').addEventListener('click', (ev) => {
+    if (ev.target.closest('[data-gplegar]')) { guerraOculta = !guerraOculta; try { localStorage.setItem('mw_guerra_oculta', guerraOculta ? '1' : '0'); } catch (e) { /* */ } pintarGuerra(); }
+    else if (ev.target.closest('[data-gver]')) { if (!ui.abierto) abrirVerDuelo(); }
+  });
+  setInterval(() => {
+    const r = $('hg-reloj'), T = tareaGuerra();
+    if (r && T) r.textContent = mmssG(T.hasta - ahoraGuerra()); else if (r && !T) pintarGuerra();
+    colocarGuerra();
+  }, 1000);
+
+  // ---------- Duelo de clanes ----------
+  let canalGuerra = null, canalGuerraUsos = 0;
+  function abrirCanalGuerra() {
+    if (!coopActivo()) return null;
+    if (!canalGuerra) {
+      canalGuerra = new Coop.Canal(`mw-guerra-${cursoCanal()}`, idJuego, { nombre: S.nombre }, 0);
+      canalGuerra.on('pvp', (d) => { if (pvp && pvp.clan) recibirPvp(d); else if (pvp && pvp.fase === 'ver') verPvp(d); });
+    }
+    canalGuerraUsos += 1;
+    return canalGuerra;
+  }
+  function soltarCanalGuerra() {
+    canalGuerraUsos = Math.max(0, canalGuerraUsos - 1);
+    if (!canalGuerraUsos && canalGuerra) { canalGuerra.salir(); canalGuerra = null; }
+  }
+  function revisarDuelo() {
+    const G = guerraE, D = G && G.activa && G.duelo; if (!D || !G.grupo) return;
+    const mio = [String(D.a), String(D.b)].includes(String(G.grupo));
+    const camp = D.campeones || {}, soyCampeon = camp[String(G.grupo)] === G.yo;
+    const k = `${G.n}-${D.id}`;
+    if (D.fase === 'eligiendo' && mio && G.soy_lider && !camp[String(G.grupo)] && !duelosVistos[`${k}e`]) { duelosVistos[`${k}e`] = 1; esperarYAbrir(abrirElegirCampeon); }
+    if (D.fase === 'lucha' && soyCampeon && !duelosVistos[`${k}l`]) { duelosVistos[`${k}l`] = 1; sfx('alerta'); esperarYAbrir(() => entrarDueloClan(D)); }
+    if (D.fase === 'lucha' && !soyCampeon && !duelosVistos[`${k}v`]) { duelosVistos[`${k}v`] = 1; toast(`⚔️ ¡Duelo de clanes: ${nombreClan(D.a)} vs ${nombreClan(D.b)}! Míralo con «Ver duelo» en el panel de la guerra.`); }
+    if (D.fase === 'fin' && !duelosVistos[`${k}f`]) {
+      duelosVistos[`${k}f`] = 1;
+      if (D.ganador) toast(`🏆 ${nombreClan(D.ganador)} ganó el duelo de clanes (+${D.gana} puntos).`);
+      else toast('⚔️ El duelo de clanes terminó sin ganador.');
+      if (pvp && pvp.fase === 'ver' && pvp.dueloId === D.id) { const n = $('pv-nota'); if (n) n.textContent = D.ganador ? `🏆 Ganó ${nombreClan(D.ganador)}` : 'Terminó sin ganador'; }
+    }
+    if (D.fase === 'cancelado' && mio && !duelosVistos[`${k}c`]) {
+      duelosVistos[`${k}c`] = 1;
+      toast(D.motivo === 'sin_jugadores' ? `⚔️ Duelo cancelado: ${nombreClan(D.grupo_sin)} no tenía jugadores conectados.` : '⚔️ El duelo de clanes se canceló.');
+    }
+  }
+  function abrirElegirCampeon() {
+    const G = guerraE, D = G && G.duelo; if (!D || D.fase !== 'eligiendo') return;
+    const rival = String(D.a) === String(G.grupo) ? D.b : D.a;
+    const lista = (G.online || []).length ? G.online : [{ id: G.yo, nombre: S.nombre }];
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Duelo de clanes · eres el líder</span><h2 id="modal-titulo">⚔️ Elige al campeón de tu clan</h2></div><div class="des-reloj" id="dc-reloj">${mmssG(D.hasta - ahoraGuerra())}</div></div>
+      <p class="nota">Tu clan se enfrenta a <b>${esc(nombreClan(rival))}</b> en la arena. Elige quién luchará (puedes ser tú). Si no eliges a tiempo, se elegirá al azar a alguien conectado. El clan ganador suma <b>${D.gana}</b> puntos y el perdedor pierde <b>${D.pierde}</b>.</p>
+      <div class="objetos">${lista.map((m) => `<button type="button" class="obj" data-camp="${esc(m.id)}"><span class="camp-ico">${m.id === G.yo ? '🫵' : '🛡️'}</span><span>${esc(m.nombre)}${m.id === G.yo ? ' (tú)' : ''}</span></button>`).join('')}</div>`, 'duelo-clan');
+    const reloj = setInterval(() => {
+      const el = $('dc-reloj'); if (!el) { clearInterval(reloj); return; }
+      const resto = D.hasta - ahoraGuerra(); el.textContent = mmssG(resto);
+      if (resto <= 0) { clearInterval(reloj); ui.cerrar(); }
+    }, 500);
+    document.querySelectorAll('[data-camp]').forEach((b) => b.addEventListener('click', async () => {
+      document.querySelectorAll('[data-camp]').forEach((x) => { x.disabled = true; });
+      let r = null; try { r = await Nube.guerraCampeon(sesion.token, G.n, b.dataset.camp); } catch (e) { r = null; }
+      if (r && r.ok) recibirGuerra(r);
+      clearInterval(reloj); ui.cerrar(); toast('Campeón elegido. ¡Que gane el mejor!'); pintarGuerra();
+    }));
+  }
+  function reportarDueloClan(res) {
+    if (!pvp || !pvp.clan) return;
+    Nube.guerraDueloFin(sesion.token, pvp.n, res).then((r) => { if (r && r.ok) { recibirGuerra(r); pintarGuerra(); } }).catch(() => {});
+  }
+  // El campeón entra directo a la arena del curso y espera a su rival
+  function entrarDueloClan(D) {
+    const G = guerraE;
+    if (!G || !G.activa || !G.duelo || G.duelo.id !== D.id || G.duelo.fase !== 'lucha' || pvp) return;
+    const rivalG = String(D.a) === String(G.grupo) ? String(D.b) : String(D.a);
+    const rivalId = (G.duelo.campeones || {})[rivalG];
+    const canal = abrirCanalGuerra(); if (!canal || !rivalId) return;
+    pvp = { fase: 'sala', clan: true, canal, miId: G.yo, rivalId, n: G.n, dueloId: D.id, gente: new Map(), limpiar: [], aviso: '' };
+    if (S.arma && S.herramienta !== 'espada') equipar('espada');
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Guerra de clanes · ${esc(nombreClan(G.grupo))} vs ${esc(nombreClan(rivalG))}</span><h2 id="modal-titulo">⚔️ Duelo de clanes</h2></div></div>
+      <div class="carrera-sala" id="pv-cuerpo"><div><p class="enunciado">¡Eres el campeón de tu clan!</p>
+        <p class="nota">Esperando a tu rival en la arena… Muévete con <kbd>A</kbd> <kbd>D</kbd>, ataca con <kbd>J</kbd> o <kbd>Espacio</kbd> y bloquea manteniendo <kbd>K</kbd>. En este duelo <b>no se pierde la mochila</b>: el clan ganador suma ${D.gana} puntos y el perdedor pierde ${D.pierde}. Todo el curso puede mirar.</p></div></div>
+      <div class="acciones"><span class="nota" id="pv-nota">Conectando…</span><span></span></div>`, 'minijuego pvp', () => {
+      if (!pvp || !pvp.clan) return;
+      if (pvp.fase === 'duelo' && !pvp.terminado) perderDuelo('Abandonaste el duelo.');
+      emitirPvp({ t: 'salir' });
+      clearInterval(pvp.latido); cancelAnimationFrame(pvp.raf); pvp.limpiar.forEach((f) => f());
+      pvp = null; soltarCanalGuerra();
+    });
+    const latir = () => {
+      if (!pvp || !pvp.clan || pvp.fase !== 'sala') return;
+      emitirPvp({ t: 'aqui', a: rivalId, ...datosYo() });
+      const n = $('pv-nota'); if (n) n.textContent = canal.est === 'ok' ? 'Esperando a tu rival…' : 'Conectando…';
+    };
+    pvp.latido = setInterval(latir, 1200); latir();
+    // si el rival no llega en 1 minuto, el duelo lo gana tu clan
+    const yo = pvp;
+    setTimeout(() => {
+      if (pvp !== yo || pvp.fase !== 'sala') return;
+      pvp.terminado = true; reportarDueloClan('abandono');
+      ui.cerrar(); toast('🏳️ Tu rival no llegó a la arena: ¡tu clan gana el duelo!');
+    }, 60000);
+  }
+  // Espectador: dibuja el duelo con los mensajes de los dos campeones
+  function abrirVerDuelo() {
+    const G = guerraE, D = G && G.duelo;
+    if (!D || D.fase !== 'lucha') return toast('Ahora no hay un duelo de clanes en curso.');
+    if (pvp) return;
+    const pel = D.peleadores || []; if (pel.length < 2) return toast('El duelo aún no comienza.');
+    const canal = abrirCanalGuerra(); if (!canal) return toast('No hay conexión para ver el duelo.');
+    const [A, B] = [...pel].sort((x, y) => (String(x.id) < String(y.id) ? -1 : 1));
+    const F = (p, x, dir) => ({ id: p.id, grupo: p.grupo, nombre: `${p.nombre} · ${nombreClan(p.grupo)}`, x, tx: x, dir, hp: 1, max: 1,
+      img: imgPj(PERSONAJES.some((q) => q.id === p.pj) ? p.pj : 'zorro', texArmadura(p.armadura)), atk: 0, atkN: 0, bloq: false, mueve: false, arma: '' });
+    pvp = { fase: 'ver', dueloId: D.id, yo: F(A, 220, 'right'), rival: F(B, 580, 'left'), limpiar: [], flot: [] };
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Guerra de clanes · estás mirando</span><h2 id="modal-titulo">👁️ ${esc(nombreClan(A.grupo))} vs ${esc(nombreClan(B.grupo))}</h2></div><button type="button" class="btn" id="vd-salir">Salir</button></div>
+      <div class="minijuego-juego"><div class="mj-cuadro zona-lienzo" id="mj-cuadro"><canvas id="pv-canvas" width="${PVP_W}" height="${PVP_H}"></canvas></div></div>
+      <div class="acciones"><span class="nota" id="pv-nota">Mirando el duelo en vivo…</span><span></span></div>`, 'minijuego pvp', () => {
+      if (pvp && pvp.fase === 'ver') { cancelAnimationFrame(pvp.raf); pvp = null; soltarCanalGuerra(); }
+    });
+    $('vd-salir').addEventListener('click', () => ui.cerrar());
+    const cv = $('pv-canvas'); pvp.ctx = cv.getContext('2d'); pvp.ctx.imageSmoothingEnabled = false; encajar(cv, PVP_W / PVP_H);
+    let ultimo = performance.now();
+    const bucle = (ahora) => {
+      if (!pvp || pvp.fase !== 'ver') return;
+      const dt = Math.min(0.1, (ahora - ultimo) / 1000); ultimo = ahora;
+      for (const P of [pvp.yo, pvp.rival]) P.x += (P.tx - P.x) * Math.min(1, dt * 12);
+      dibujarPvp(ahora);
+      pvp.raf = requestAnimationFrame(bucle);
+    };
+    pvp.raf = requestAnimationFrame(bucle);
+  }
+  function verPvp(d) {
+    if (!pvp || pvp.fase !== 'ver' || !d) return;
+    const P = [pvp.yo, pvp.rival].find((x) => x.id === d.id); if (!P) return;
+    if (d.t === 'pos') {
+      P.tx = d.x; P.dir = d.dir; P.bloq = d.b; P.mueve = d.m;
+      if (d.at && d.at !== P.atkN) { P.atkN = d.at; P.atk = performance.now(); }
+      if (d.vm) P.max = d.vm;
+      if (typeof d.hp === 'number') P.hp = d.hp;
+      if (d.w !== undefined) P.arma = ARMAS[d.w] ? d.w : '';
+    } else if (d.t === 'hp') {
+      const dd = Math.max(0, Math.round(P.hp - d.hp)); P.hp = d.hp; P.golpeado = performance.now();
+      if (d.bloq) P.chispa = performance.now();
+      if (dd && P.max > 1) { impactoPvp(P, dd, d.bloq); flotPvp(P.x, PVP_SUELO - 118, d.bloq ? `🛡️ -${dd}` : `-${dd}`, d.bloq ? '#9fd8ff' : '#ffd27a'); sfx(d.bloq ? 'clic' : 'golpe'); }
+    } else if (d.t === 'fin') {
+      const gan = P === pvp.yo ? pvp.rival : pvp.yo;
+      const n = $('pv-nota'); if (n) n.textContent = `🏆 ¡Ganó ${gan.nombre}!`;
+      sfx('victoria');
+    }
+  }
+
+  // ---------- Fin de la guerra: premios según el lugar del clan ----------
+  function revisarPremioGuerra() {
+    const G = guerraE; if (!G || G.activa || !G.resultado || !G.participe) return;
+    S.guerrasCobradas = S.guerrasCobradas || [];
+    if (S.guerrasCobradas.includes(G.n)) return;
+    const R = G.resultado, mio = R.find((x) => Number(x.grupo) === Number(G.grupo)); if (!mio) return;
+    S.guerrasCobradas.push(G.n); if (S.guerrasCobradas.length > 30) S.guerrasCobradas.shift();
+    const L = Number(mio.lugar) || R.length;
+    const xp = Math.max(40, 220 - 40 * (L - 1));
+    const txt = darPremio(paquete(Math.max(2, 10 - 2 * (L - 1)), Math.max(1, 5 - (L - 1)), true), xp);
+    if (L === 1) contar('guerra_gana');
+    guardar(true);
+    esperarYAbrir(() => abrirFinGuerra(R, mio, txt, xp));
+  }
+  function abrirFinGuerra(R, mio, txt, xp) {
+    const L = Number(mio.lugar);
+    sfx(L === 1 ? 'victoria' : 'logro');
+    ui.abrir(`<div class="rey-modal guerra-fin"><div class="rey-brillo"></div>
+      <span class="etq">Guerra de clanes · resultado final</span>
+      <h2 id="modal-titulo">${L === 1 ? '🏆 ¡Tu clan ganó la guerra!' : L <= 3 ? `🥈 ¡Tu clan quedó en el ${L}° lugar!` : `⚔️ Tu clan quedó en el ${L}° lugar`}</h2>
+      <ol class="guerra-podio">${R.map((x) => `<li class="${Number(x.grupo) === Number(mio.grupo) ? 'yo' : ''}"><span>${['🥇', '🥈', '🥉'][x.lugar - 1] || `${x.lugar}.`}</span><b>${esc(x.nombre)}</b><small>${x.puntos} pts</small></li>`).join('')}</ol>
+      <p class="enunciado">Tu premio por el ${L}° lugar: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="gf-ok" data-foco>¡Genial!</button></div></div>`, 'rey');
+    $('gf-ok').addEventListener('click', () => ui.cerrar());
+    if (escena) escena.celebrar();
   }
 
   // ===================================================================
@@ -7861,9 +8206,15 @@
       // plaza: carpa común (sobre la fogata), fogata, cofre, comercio
       const cc = this.sprite('carpa_b', COMUN.x, COMUN.y, 0.75).setScale(3).setTint(0xffe2a8);
       this.solido(cc.x - 24, cc.y - 22, 84, 40);
-      this.add.text(cc.x - 24, cc.y - 112, '🏕️ Carpa común del grupo', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#fff3c4', stroke: '#3a2a08', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.txtCarpa = this.add.text(cc.x - 24, cc.y - 112, '🏕️ Carpa común del grupo', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#fff3c4', stroke: '#3a2a08', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(9999);
       this.add.particles(cc.x - 24, cc.y - 70, 'p_brillo', { x: { min: -40, max: 40 }, lifespan: 1200, frequency: 420, speedY: { min: -20, max: -6 }, scale: { start: 0.8, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(cc.y + 1);
       this.objetos.push({ tipo: 'comun', x: cc.x - 24, y: cc.y + 4, activo: true });
+      // letrero del clan junto a la entrada de la carpa común: votación del líder y nombre del clan
+      const lc = this.sprite('letrero', COMUN.x + 2, COMUN.y + 1);
+      this.solido(lc.x, lc.y - 8, 18, 10);
+      this.add.text(lc.x, lc.y - 30, '🪧 Clan', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#fff3c4', stroke: '#3a2a08', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.objetos.push({ tipo: 'letrero_clan', x: lc.x, y: lc.y - 8, activo: true });
+      setTimeout(() => { pintarNombreClan(); cargarClan(); }, 400);
       this.fogata = this.sprite('fogata', COMUN.x, 13);
       this.solido(this.fogata.x, this.fogata.y - 10, 24, 14);
       this.add.particles(this.fogata.x, this.fogata.y - 22, 'p_brillo', { speedY: { min: -40, max: -20 }, speedX: { min: -8, max: 8 }, lifespan: 700, frequency: 180, scale: { start: 1, end: 0 }, alpha: { start: 0.9, end: 0 } }).setDepth(this.fogata.y + 1);
@@ -9168,7 +9519,7 @@
         if (e.desafio && resultado !== 'victoria' && vivo.fase !== 'activo') this.time.delayedCall(4200, () => this.limpiarDesafio());
         if (resultado === 'victoria') {
           Object.entries(e.botin || E.botin).forEach(([r, n], i) => { sumar(r, n); this.time.delayedCall(i * 300, () => this.flotante(e.s.x, e.s.y - 40 - i * 18, `+${n} ${r}`)); });
-          S.vencidos = (S.vencidos || 0) + 1; if ((PERSONAJES.find((p) => p.id === S.pj) || {}).leyenda) contar('vence_leyenda');
+          S.vencidos = (S.vencidos || 0) + 1; contar('vencer'); if ((PERSONAJES.find((p) => p.id === S.pj) || {}).leyenda) contar('vence_leyenda');
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
@@ -9234,7 +9585,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -9293,6 +9644,7 @@
           if (this.compartida() && !this.esMio(o.c)) return `${o.nombre} · lo puso ${o.c.nom || 'un compañero'}`;
           return `Guardar ${o.nombre.toLowerCase()}`;
         case 'casa': return o.mia ? 'Entrar a tu casa (R: guardar tu carpa)' : `Visitar la casa de ${o.nombre}`;
+        case 'letrero_clan': return 'Leer el letrero del clan (líder y nombre)';
         case 'comun': return 'Entrar a la carpa común del grupo';
         case 'puerta': return 'Salir a tu base';
         case 'runa': return 'Activar la runa (responde su pregunta)';
@@ -9313,6 +9665,7 @@
       if (o.tipo === 'fogata') { if (S.vida < vidaMax()) { S.vida = vidaMax(); pintarHUD(); toast('Descansaste junto al fuego: recuperaste tu vida.'); } return abrirFabricar(); }
       if (o.tipo === 'cofre_base') return abrirCofre();
       if (o.tipo === 'comercio') return abrirComercio();
+      if (o.tipo === 'letrero_clan') return abrirClan();
       if (o.tipo === 'arena') return abrirArena();
       if (o.tipo === 'ladron') return desActivo('ladron') && abrirLadron(vivo.st);
       if (o.tipo === 'tesoro') return desActivo('tesoro') && cavarTesoro(vivo.st);

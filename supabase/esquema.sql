@@ -1199,3 +1199,5 @@ create or replace function public.mw_obra_meta(p_id text, p_curso text) returns 
   select case when p_id = 'puente_bosque' and coalesce(p_curso, '') <> '7B'
               then '{"madera": 1650, "piedra": 1050, "agua": 480, "cristal": 120}'::jsonb
               else mw_obra_meta(p_id) end $$;
+
+-- Clanes y Guerra de clanes (tablas clanes, guerras, guerra_puntos y guerra_aportes, y sus funciones mw_clan*, mw_guerra* y mw_docente_guerra*): ver supabase/guerra_clanes.sql
