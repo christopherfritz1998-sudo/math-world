@@ -406,6 +406,64 @@
   cargarFocos();
   setInterval(cargarFocos, 60000);
 
+  // ---------- Ticket de salida ----------
+  let tickets = {}, ticketCurso = CURSOS_G[0].id, ticketUnidad = 'u1', ticketSel = new Set(), ticketN = 3, ticketMin = 15, ticketDif = 0, ticketTick = 0, ticketTocado = false;
+  async function cargarTickets() {
+    try { const r = await Nube.docenteTickets(token); if (r) { tickets = r.cursos || {}; ticketDif = r.ahora - Date.now(); } } catch (e) { /* aún sin la actualización de la base de datos */ }
+    pintarTicket();
+  }
+  const ticketActivo = (T) => Boolean(T && T.activo && T.hasta > Date.now() + ticketDif);
+  function ticketResultadosHTML(T, c) {
+    const R = T.respuestas || [], activo = ticketActivo(T);
+    const perf = R.filter((r) => r.aciertos === r.total).length;
+    const prom = R.length ? Math.round((R.reduce((a, r) => a + r.aciertos / r.total, 0) / R.length) * 100) : null;
+    const quedan = activo ? Math.max(0, Math.ceil((T.hasta - (Date.now() + ticketDif)) / 60000)) : 0;
+    const falta = activo ? datos.filter((e) => e.curso === ticketCurso && e.conectado && !R.some((r) => r.id === e.id)) : [];
+    const temas = {};
+    R.forEach((r) => (r.detalle || []).forEach((x) => { const t = temas[x.tema] || (temas[x.tema] = { a: 0, i: 0 }); t.i += 1; if (x.ok) t.a += 1; }));
+    const hora = new Date(T.creado).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    return `<div class="foco-activo"><span>🎟️ ${activo ? `Ticket abierto en ${c.nombre} · se cierra en ${quedan} min` : `Último ticket de ${c.nombre} (${hora})`}: ${esc((T.titulos || []).join(', '))}</span>${activo ? '<button type="button" class="btn mini" id="ticket-cerrar">Cerrar ticket</button>' : ''}</div>
+      <div class="ticket-cifras"><span><b>${R.length}</b>respondieron</span><span><b>${perf}</b>todo correcto</span><span><b>${prom === null ? '–' : `${prom} %`}</b>acierto promedio</span></div>
+      ${Object.keys(temas).length > 1 ? `<div class="ticket-temas">${Object.entries(temas).map(([k, t]) => `<span>📘 ${esc(nombreTema(c.nivel, k).titulo)}: <b>${Math.round((t.a / t.i) * 100)} %</b></span>`).join('')}</div>` : ''}
+      ${R.length ? `<div class="ticket-lista">${[...R].sort((a, b) => a.aciertos / a.total - b.aciertos / b.total || a.nombre.localeCompare(b.nombre)).map((r) => `<span class="ticket-est ${r.aciertos === r.total ? 'ok' : r.aciertos === 0 ? 'mal' : 'medio'}">${esc(r.nombre)} <b>${r.aciertos}/${r.total}</b></span>`).join('')}</div>` : '<p class="muted">Aún no llegan respuestas.</p>'}
+      ${falta.length ? `<p class="muted">Conectados que aún no responden (${falta.length}): ${falta.map((e) => esc(e.nombre)).join(', ')}</p>` : ''}`;
+  }
+  function pintarTicket() {
+    const el = $('ticket-cuerpo'); if (!el) return;
+    const c = CURSOS_G.find((x) => x.id === ticketCurso), T = tickets[ticketCurso], F = focos[ticketCurso];
+    // por defecto, el ticket es del tema de la clase
+    if (!ticketTocado && !ticketSel.size && F && F.temas) { ticketSel = new Set(F.temas); ticketUnidad = F.unidad || ticketUnidad; }
+    const titulos = Preguntas.titulos(c.nivel, ticketUnidad);
+    el.innerHTML = `<div class="foco-fila"><span>Curso:</span>${CURSOS_G.map((x) => `<button type="button" class="chk" data-tc="${x.id}" aria-pressed="${x.id === ticketCurso}">${x.nombre}${ticketActivo(tickets[x.id]) ? ' <small>🎟️</small>' : ''}</button>`).join('')}</div>
+      ${T ? ticketResultadosHTML(T, c) : `<p class="muted">${c.nombre} todavía no tiene tickets de salida.</p>`}
+      <details ${T && ticketActivo(T) ? '' : 'open'}><summary><b>Lanzar un ticket nuevo</b></summary>
+        <div class="foco-fila"><label>Unidad <select id="ticket-u">${['u1', 'u2', 'u3', 'u4'].map((u) => `<option value="${u}" ${u === ticketUnidad ? 'selected' : ''}>${ZONAS_BASE[u]}</option>`).join('')}</select></label>
+          <label>Preguntas <select id="ticket-n">${[3, 4, 5].map((n) => `<option value="${n}" ${n === ticketN ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <label>Abierto por <select id="ticket-min">${[[10, '10 min'], [15, '15 min'], [30, '30 min']].map(([m, t]) => `<option value="${m}" ${m === ticketMin ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+        <div class="foco-temas">${Object.entries(titulos).map(([k, t]) => `<label><input type="checkbox" data-tt="${k}" ${ticketSel.has(k) ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</div>
+        <div class="foco-fila"><button type="button" class="btn pri" id="ticket-lanzar" ${ticketSel.size ? '' : 'disabled'}>🎟️ Lanzar ticket en ${c.nombre}</button><span class="muted">Le aparece a cada estudiante apenas esté libre en el juego (no interrumpe combates).</span></div>
+      </details>`;
+    el.querySelectorAll('[data-tc]').forEach((b) => b.addEventListener('click', () => { ticketCurso = b.dataset.tc; ticketSel = new Set(); ticketTocado = false; pintarTicket(); }));
+    $('ticket-u').addEventListener('change', (e) => { ticketUnidad = e.target.value; ticketSel = new Set(); ticketTocado = true; pintarTicket(); });
+    $('ticket-n').addEventListener('change', (e) => { ticketN = Number(e.target.value); });
+    $('ticket-min').addEventListener('change', (e) => { ticketMin = Number(e.target.value); });
+    el.querySelectorAll('[data-tt]').forEach((x) => x.addEventListener('change', () => { ticketTocado = true; if (x.checked) ticketSel.add(x.dataset.tt); else ticketSel.delete(x.dataset.tt); pintarTicket(); }));
+    const enviar = async (ticket) => {
+      try { const r = await Nube.docenteTicket(token, [ticketCurso], ticket); if (r) { tickets = r.cursos || {}; ticketDif = r.ahora - Date.now(); } $('error').hidden = true; }
+      catch (e) { $('error').textContent = 'No se pudo guardar el ticket de salida.'; $('error').hidden = false; }
+      pintarTicket();
+    };
+    $('ticket-lanzar').addEventListener('click', () => {
+      const sel = [...ticketSel];
+      if (ticketActivo(T) && !confirm('Ya hay un ticket abierto en este curso. ¿Cerrarlo y lanzar uno nuevo?')) return;
+      enviar({ temas: sel, titulos: sel.map((k) => titulos[k] || nombreTema(c.nivel, k).titulo), n: ticketN, min: ticketMin });
+    });
+    const q = $('ticket-cerrar'); if (q) q.addEventListener('click', () => enviar(null));
+  }
+  cargarTickets();
+  // mientras haya un ticket abierto se actualiza cada 5 segundos; si no, cada minuto
+  setInterval(() => { ticketTick += 1; if (Object.values(tickets).some(ticketActivo) || ticketTick % 12 === 0) cargarTickets(); }, 5000);
+
   // ---------- Refuerzo personalizado (desde el detalle de cada estudiante) ----------
   let refuerzos = {};
   async function cargarRefuerzos() {
@@ -749,6 +807,23 @@
       + (ap.length > 15 ? `<span class="muted">y ${ap.length - 15} más (están en el Excel).</span>` : '')
       : '<span class="muted">Nadie bajo los umbrales por ahora. 🎉</span>';
     $('apoyo').querySelectorAll('[data-apoyo]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.apoyo)));
+    pintarCalor(lista, temas, c);
+  }
+  // Mapa de calor: estudiantes × temas, con el porcentaje de acierto en cada celda
+  function pintarCalor(lista, temas, c) {
+    const el = $('mapa-calor'); if (!el) return;
+    if (!temas.length) { el.innerHTML = '<p class="muted" style="padding:12px">Todavía no hay respuestas en este curso.</p>'; return; }
+    const orden = [...temas].sort((a, b) => (a.unidad + a.titulo).localeCompare(b.unidad + b.titulo));
+    const ests = [...lista].filter((e) => Object.keys((e.progreso || {}).stats || {}).length).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    const clase = (p) => (p === null ? 'c-nada' : p >= 70 ? 'c-alto' : p >= 40 ? 'c-medio' : 'c-bajo');
+    const celda = (s, nombre, t) => {
+      const p = s && s.i ? Math.round((s.a / s.i) * 100) : null;
+      return `<td class="c ${clase(p)}" title="${esc(nombre)} · ${esc(t.titulo)}: ${p === null ? 'sin respuestas' : `${p} % (${s.a} de ${s.i})`}">${p === null ? '·' : p}</td>`;
+    };
+    el.innerHTML = `<table><thead><tr><th class="nom"><span style="writing-mode:horizontal-tb;transform:none">Estudiante (${ests.length})</span></th>${orden.map((t) => `<th title="${esc(`${ZONAS[t.unidad] || ''} · ${t.titulo}`)}"><span>${esc(t.titulo)}</span></th>`).join('')}</tr></thead>
+      <tbody>${ests.map((e) => { const st = (e.progreso || {}).stats || {}; return `<tr><td class="nom"><button type="button" data-calor="${e.id}">${esc(e.nombre)}</button></td>${orden.map((t) => celda(st[t.k], e.nombre, t)).join('')}</tr>`; }).join('')}</tbody>
+      <tfoot><tr><td class="nom" style="padding:5px 8px">Curso</td>${orden.map((t) => celda({ a: t.a, i: t.i }, c.nombre, t)).join('')}</tr></tfoot></table>`;
+    el.querySelectorAll('[data-calor]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.calor)));
   }
 
   // ---------- Exportar a Excel ----------

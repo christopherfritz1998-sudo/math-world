@@ -167,8 +167,15 @@
     return i;
   }
 
+  // Repaso de errores: el juego entrega una función que dice qué tema toca repasar (o null)
+  let repaso = null;
+  function fijarRepaso(fn) { repaso = typeof fn === 'function' ? fn : null; }
   function nuevo(curso, unidad, dif, stats) {
     const temas = BANCO[curso] && BANCO[curso][unidad];
+    if (repaso && Math.random() < 0.3) {
+      const t = repaso(curso), d = t ? deTema(curso, t, dif) : null;
+      if (d) return { ...d, repaso: true };
+    }
     if (foco && Math.random() < foco.prob) {
       const d = deTema(curso, foco.temas[Math.floor(Math.random() * foco.temas.length)], dif);
       if (d) return d;
@@ -244,6 +251,7 @@
   P.deTema = deTema;
   P.unidadDeTema = unidadDeTema;
   P.fijarFoco = fijarFoco;
+  P.fijarRepaso = fijarRepaso;
   P.antiguos = ANTIGUOS;
   P.valido = valido;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1417,11 +1417,12 @@
     S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
     cargarHabilidad(acierto);
     extraRegistrar(tema, acierto);
+    repasoRegistrar(tema, acierto); semanaRegistrar(acierto); mascotaRegistrar(acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
   }
   function alternativasHTML(d, elegida, fallidas, resuelto) {
-    return `<div class="alternativas">${d.opciones.map((o, i) => {
+    return `${d.repaso && !resuelto ? '<p class="repaso-etq">🔁 <b>Repaso:</b> este tema te costó antes. ¡Demuestra que ya lo dominas!</p>' : ''}<div class="alternativas">${d.opciones.map((o, i) => {
       const cls = resuelto && i === d.correcta ? 'bien' : fallidas.has(i) ? 'mal' : '';
       return `<button type="button" class="alt ${cls}" data-i="${i}" aria-pressed="${elegida === i}" ${resuelto || fallidas.has(i) ? 'disabled' : ''}>${mate(o)}</button>`;
     }).join('')}</div>`;
@@ -1467,8 +1468,8 @@
       else {
         // Error: no quita vida; se muestra la respuesta correcta y se cambia a otra pregunta
         fallos += 1; sfx('error');
-        aviso = `<div class="mensaje mal" role="status">No era esa: la respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)} Aquí tienes otra pregunta.</div>`;
-        d = nuevo(); elegida = null; fallidas = new Set(); pista = false;
+        aviso = pasoAPasoHTML(d, 'No era esa.', 'Ahora intenta con una parecida 👇');
+        d = (Preguntas.deTema && Preguntas.deTema(S.curso, d.tema, dif)) || nuevo(); elegida = null; fallidas = new Set(); pista = false;
       }
       guardar();
       pintar();
@@ -3734,6 +3735,10 @@
     L('temporada_leyenda', 'nivel', '👑', 'Leyenda del mes', 'Llega al nivel Leyenda en una temporada mensual.', 1, () => CN('temporada_leyenda'), 'Leyenda del Mes'),
     L('refuerzo1', 'aprender', '🎯', 'Misión cumplida', 'Completa un refuerzo que te dejó tu profesor.', 1, () => CN('refuerzo'), 'Aprendiz Aplicado'),
     L('tutorial', 'explorar', '🧭', 'Primeros pasos', 'Completa los primeros pasos del juego.', 1, () => CN('tutorial'), 'Explorador Novato'),
+    L('repaso10', 'aprender', '🔁', 'Aprendo de mis errores', 'Responde bien 10 preguntas de repaso de temas que te costaron.', 10, () => CN('repaso'), 'Perseverante'),
+    L('ticket3', 'aprender', '🎟️', 'Ticket en mano', 'Responde 3 tickets de salida de tu profesor.', 3, () => CN('ticket'), 'Estudiante Puntual'),
+    L('semana1', 'aprender', '👥', 'Todos a una', 'Ayuda a tu curso a cumplir una misión semanal.', 1, () => CN('semana'), 'Espíritu de Curso'),
+    L('mascota_adulta', 'coleccion', '🐾', 'Criador experto', 'Haz crecer una mascota hasta su forma adulta.', 1, () => CN('mascota_adulta'), 'Domador'),
     // ----- Clanes y guerra de clanes -----
     L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
     L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
@@ -3907,8 +3912,9 @@
       <div class="mascotas">${MASCOTAS.map((m) => {
         const ok = mascotaLibre(m.id), puesta = mascotaActual() === m.id;
         return `<button type="button" class="mascota ${ok ? '' : 'bloq'}" data-mascota="${m.id}" aria-pressed="${puesta}" ${ok && puedeMascota() ? '' : 'disabled'}
-          title="${esc(ok ? m.nombre : m.jefe ? `Vence al ${m.jefe} (${m.donde})` : `Exclusiva del nivel ${m.nivel}`)}"><img class="px" src="assets/mascotas/${m.id}.png" alt=""><span>${ok ? esc(m.nombre) : '???'}</span><small>${ok ? (puesta ? 'Contigo' : 'Equipar') : esc(m.jefe ? `Vence: ${m.jefe}` : `⭐ Exclusiva del nivel ${m.nivel}`)}</small></button>`;
+          title="${esc(ok ? m.nombre : m.jefe ? `Vence al ${m.jefe} (${m.donde})` : `Exclusiva del nivel ${m.nivel}`)}"><img class="px" src="assets/mascotas/${m.id}.png" alt=""><span>${ok ? esc(m.nombre) + (etapaMascota(m.id) ? ` ${ETAPAS_MASCOTA[etapaMascota(m.id)][2]}` : '') : '???'}</span><small>${ok ? (puesta ? 'Contigo' : 'Equipar') : esc(m.jefe ? `Vence: ${m.jefe}` : `⭐ Exclusiva del nivel ${m.nivel}`)}</small></button>`;
       }).join('')}</div>
+      <p class="nota">🐾 Tu mascota crece con cada respuesta correcta mientras te acompaña: a las 60 se vuelve <b>joven ⭐</b> y a las 200, <b>adulta ⭐⭐</b> (más grande y con brillo dorado).${mascotaActual() ? ` Tu ${esc(MASCOTA[mascotaActual()].nombre)} lleva <b>${(S.mascotaXP || {})[mascotaActual()] || 0}</b>.` : ''}</p>
       ${mascotaActual() ? '<button type="button" class="btn" data-mascota="">Guardar mascota</button>' : ''}`;
   }
 
@@ -4814,7 +4820,7 @@
     try { const r = await Nube.extra(sesion.token); if (r && r.ok) aplicarExtra(r); } catch (e) { /* se reintenta */ }
   }
   setInterval(() => { if (S && escena && !extraIniciado) { extraIniciado = true; cargarExtra(); } }, 3000);
-  setInterval(() => { if (S && escena && !document.hidden) cargarExtra(); }, 60000);
+  setInterval(() => { if (S && escena && !document.hidden) cargarExtra(); }, 20000);
   const refuerzoActivo = () => (extraE && extraE.refuerzo && !(S.refuerzosHechos || []).includes(extraE.refuerzo.id) ? extraE.refuerzo : null);
   function aplicarExtra(r) {
     const antes = extraE; extraE = r;
@@ -4823,6 +4829,7 @@
     const clave = (x) => (x && x.foco ? JSON.stringify(x.foco.temas) : '');
     if (F && clave(r) !== clave(antes)) toast(`📚 Tema de la clase: ${(F.titulos || []).join(', ') || 'elegido por tu profesor'}. La mayoría de las preguntas serán de este tema.`);
     if (R && (!antes || !antes.refuerzo || antes.refuerzo.id !== R.id)) setTimeout(() => toast(`🎯 Tu profesor te dejó un refuerzo: ${R.titulo} (${R.meta} respuestas correctas). ¡Tiene premio extra!`), 3200);
+    revisarTicket(); revisarSemana();
     pintarMisiones();
   }
   function extraRegistrar(tema, acierto) {
@@ -4842,7 +4849,157 @@
     const F = extraE && extraE.foco, R = refuerzoActivo();
     if (F) h += `<strong>📚 Tema de la clase</strong><ul><li><span>${esc((F.titulos || []).join(', '))}</span></li></ul>`;
     if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<strong>🎯 Refuerzo de tu profesor</strong><ul><li class="${p >= R.meta ? 'ok' : ''}"><span>${esc(R.titulo)}</span><b>${p}/${R.meta}</b></li></ul>`; }
+    const W = extraE && extraE.semana;
+    if (W && W.meta) h += `<strong>👥 Misión del curso (semana)</strong><ul><li class="${W.total >= W.meta ? 'ok' : ''}"><span>Respuestas correctas entre todos</span><b>${Math.min(W.total, W.meta)}/${W.meta}</b></li></ul>`;
     return h;
+  }
+
+  // ---------- Repaso de errores (repetición espaciada) ----------
+  // Un tema fallado vuelve como «repaso» a los 15 minutos, al día siguiente, a los 3 días y a la semana.
+  const PASOS_REPASO = [15 * 60000, 20 * 3600000, 3 * 86400000, 7 * 86400000];
+  function repasoRegistrar(tema, acierto) {
+    if (!S || !tema || esDocente()) return;
+    const R = S.repaso || (S.repaso = {}), r = R[tema], ahora = Date.now();
+    if (!acierto) {
+      R[tema] = { n: 0, d: ahora + PASOS_REPASO[0] };
+      const ks = Object.keys(R);
+      if (ks.length > 30) { ks.sort((a, b) => R[b].d - R[a].d); delete R[ks[0]]; }
+      return;
+    }
+    if (!r || r.d > ahora) return;
+    contar('repaso');
+    if (r.n + 1 >= PASOS_REPASO.length) { delete R[tema]; toast(`🔁 ¡Dominaste «${Preguntas.tituloDe(tema)}»! Ya no aparecerá como repaso.`); }
+    else { r.n += 1; r.d = ahora + PASOS_REPASO[r.n]; }
+  }
+  function repasosPendientes() { const ahora = Date.now(); return Object.entries((S && S.repaso) || {}).filter(([, r]) => r.d <= ahora).map(([t]) => t); }
+  if (window.Preguntas && Preguntas.fijarRepaso) {
+    Preguntas.fijarRepaso((curso) => { const ts = repasosPendientes().filter((t) => Preguntas.unidadDeTema(curso, t)); return ts.length ? ts[Math.floor(Math.random() * ts.length)] : null; });
+  }
+
+  // ---------- Pista paso a paso después de un error ----------
+  function pasosDe(d) {
+    const pasos = [];
+    if (d.pista) pasos.push(['💡', 'La idea', d.pista]);
+    String(d.explicacion || '').split(/(?<=[.;])\s+(?=[A-ZÁÉÍÓÚÑ¿¡(0-9−-])/).map((s) => s.trim()).filter(Boolean)
+      .forEach((s, i, a) => pasos.push(['✏️', a.length > 1 ? `Paso ${i + 1}` : 'Cómo se resuelve', s]));
+    pasos.push(['✅', 'Respuesta', d.opciones[d.correcta]]);
+    return pasos;
+  }
+  const pap = { id: '', n: 1 };
+  function pasoAPasoHTML(d, intro, cierre) {
+    const p = pasosDe(d);
+    pap.id = String(Math.random()).slice(2, 9); pap.n = 1;
+    return `<div class="mensaje mal paso-a-paso" role="status" data-pap="${pap.id}"><b>${esc(intro)}</b> Veámoslo paso a paso:
+      <ol>${p.map(([ico, t, x], i) => `<li data-i="${i}"><span>${ico} <b>${esc(t)}:</b> ${mate(x)}</span></li>`).join('')}</ol>
+      <div class="pap-botones"><button type="button" class="btn mini pap-sig">Siguiente paso ▶</button><button type="button" class="btn mini pap-todo">Ver todo</button></div>
+      ${cierre ? `<small class="pap-cierre">${esc(cierre)}</small>` : ''}</div>`;
+  }
+  function aplicarPap() {
+    const box = document.querySelector(`#modal .paso-a-paso[data-pap="${pap.id}"]`); if (!box) return;
+    const lis = box.querySelectorAll('li');
+    lis.forEach((li) => li.classList.toggle('oculto', Number(li.dataset.i) >= pap.n));
+    const b = box.querySelector('.pap-botones'); if (b) b.classList.toggle('oculto', pap.n >= lis.length);
+  }
+  document.addEventListener('click', (ev) => {
+    const b = ev.target && ev.target.closest && ev.target.closest('.pap-sig, .pap-todo'); if (!b) return;
+    const box = b.closest('.paso-a-paso'); if (!box || box.dataset.pap !== pap.id) return;
+    pap.n = b.classList.contains('pap-todo') ? 99 : pap.n + 1;
+    aplicarPap();
+  });
+  try { new MutationObserver(() => aplicarPap()).observe($('modal'), { childList: true }); } catch (e) { /* sin observador */ }
+
+  // ---------- Ticket de salida (el docente lo lanza al final de la clase) ----------
+  let ticketAbierto = false;
+  function revisarTicket() {
+    const T = extraE && extraE.ticket;
+    if (!S || !T || ticketAbierto || esDocente() || (S.ticketsHechos || []).includes(T.id)) return;
+    ticketAbierto = true;
+    esperarYAbrir(() => abrirTicket(T));
+  }
+  function abrirTicket(T) {
+    const temas = (T.temas || []).filter((t) => Preguntas.unidadDeTema(S.curso, t));
+    const n = Math.max(1, Math.min(5, Number(T.n) || 3));
+    const preguntas = Array.from({ length: n }, (_, i) => (temas.length ? Preguntas.deTema(S.curso, temas[i % temas.length], 2) : null)
+      || Preguntas.nuevo(S.curso, unidadActual() || 'u1', 2, S.stats)).filter(Boolean);
+    if (!preguntas.length) { ticketAbierto = false; return; }
+    let i = 0, elegida = null, aciertos = 0;
+    const det = [], total = preguntas.length;
+    const fin = () => {
+      S.ticketsHechos = [...(S.ticketsHechos || []), T.id].slice(-30); guardar(true);
+      if (window.Nube && Nube.ticketResponder && sesion.modo === 'nube') Nube.ticketResponder(sesion.token, T.id, aciertos, total, det).catch(() => {});
+      contar('ticket');
+      const xp = 15 + 10 * aciertos, txt = darPremio(paquete(2 + aciertos, 2, true), xp);
+      sfx(aciertos === total ? 'logro' : 'acierto');
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">🎟️ Ticket de salida</span><h2 id="modal-titulo">${aciertos === total ? '¡Perfecto!' : aciertos ? '¡Bien hecho!' : '¡Gracias por intentarlo!'}</h2></div></div>
+        <p class="enunciado">Respondiste bien <b>${aciertos} de ${total}</b>. Tu profesor ya recibió tu resultado.</p>
+        <p class="nota">Premio por completar el ticket: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.${aciertos < total ? ' Las preguntas que fallaste volverán como 🔁 repaso.' : ''}</p>
+        <div class="acciones"><span></span><button type="button" class="btn pri" id="tk-fin" data-foco>Cerrar</button></div>`, 'ticket');
+      $('tk-fin').addEventListener('click', () => ui.cerrar());
+    };
+    const responder = () => {
+      if (elegida === null) return;
+      const d = preguntas[i], ok = elegida === d.correcta;
+      registrar(d.tema, ok); if (ok) aciertos += 1;
+      det.push({ tema: d.tema, ok }); sfx(ok ? 'acierto' : 'error');
+      i += 1; elegida = null; guardar();
+      if (i >= total) fin(); else pintar();
+    };
+    const pintar = () => {
+      const d = preguntas[i];
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">🎟️ Ticket de salida · pregunta ${i + 1} de ${total}</span><h2 id="modal-titulo">${esc(d.titulo)}</h2></div><div class="pildoras"><span class="pildora">Un intento · sin pistas</span></div></div>
+        <p class="nota">Tu profesor quiere saber qué aprendiste hoy. Responde con calma: tu resultado le llega directo.</p>
+        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${alternativasHTML({ ...d, repaso: false }, elegida, new Set(), false)}
+        <div class="acciones"><button type="button" class="btn" id="tk-luego">Más tarde</button><button type="button" class="btn pri" id="tk-ok" ${elegida === null ? 'disabled' : ''}>${i + 1 < total ? 'Responder' : 'Terminar'}</button></div>`, 'ticket', () => { if (i < total) ticketAbierto = false; });
+      document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      $('tk-ok').addEventListener('click', responder);
+      $('tk-luego').addEventListener('click', () => ui.cerrar());
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key) && Number(e.key) <= d.opciones.length) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); responder(); } };
+    };
+    pintar();
+  }
+
+  // ---------- Misión semanal del curso: respuestas correctas de todos ----------
+  let aporteSemana = 0, aportando = false;
+  function semanaRegistrar(acierto) { if (acierto && S && !esDocente() && sesion.modo === 'nube') aporteSemana += 1; }
+  async function enviarAporte() {
+    if (aportando || !S || !aporteSemana || sesion.modo !== 'nube' || !window.Nube || !Nube.aportar) return;
+    const n = Math.min(aporteSemana, 20); aporteSemana -= n; aportando = true;
+    try {
+      const r = await Nube.aportar(sesion.token, n);
+      if (r && r.ok && r.semana) { extraE = { ...(extraE || {}), semana: r.semana }; revisarSemana(); pintarMisiones(); }
+    } catch (e) { aporteSemana += n; }
+    aportando = false;
+  }
+  setInterval(enviarAporte, 20000);
+  function revisarSemana() {
+    const W = extraE && extraE.semana;
+    if (!S || !W || !W.meta || W.total < W.meta || !W.mio || esDocente()) return;
+    if ((S.semanasCobradas || []).includes(W.semana)) return;
+    S.semanasCobradas = [...(S.semanasCobradas || []), W.semana].slice(-20); guardar(true);
+    setTimeout(() => {
+      const txt = darPremio(paquete(8, 4, true), 120); contar('semana'); sfx('logro'); if (escena) escena.celebrar();
+      avisoGrande('¡Misión del curso cumplida!', `Entre todos lograron ${W.meta} respuestas correctas`, `Tu premio: ${txt} y 120 de experiencia`);
+    }, 800);
+  }
+
+  // ---------- Mascotas que evolucionan con las respuestas correctas ----------
+  const ETAPAS_MASCOTA = [[0, 'Cría', ''], [60, 'Joven', '⭐'], [200, 'Adulta', '⭐⭐']];
+  function etapaMascota(id) {
+    const n = ((S && S.mascotaXP) || {})[id] || 0; let e = 0;
+    ETAPAS_MASCOTA.forEach(([m], i) => { if (n >= m) e = i; });
+    return e;
+  }
+  function mascotaRegistrar(acierto) {
+    const id = acierto && mascotaActual(); if (!id) return;
+    const X = S.mascotaXP || (S.mascotaXP = {}), antes = etapaMascota(id);
+    X[id] = (X[id] || 0) + 1;
+    const e = etapaMascota(id);
+    if (e > antes) {
+      sfx('logro'); if (e >= 2) contar('mascota_adulta');
+      toast(`🐾 ¡Tu ${MASCOTA[id].nombre} creció! Ahora es ${ETAPAS_MASCOTA[e][1].toLowerCase()} ${ETAPAS_MASCOTA[e][2]}`);
+      if (escena && escena.mascotaS) { escena.mascotaS.destroy(); escena.mascotaS = null; escena.pintarMascota(); }
+    }
   }
 
   // ---------- Racha de días jugados ----------
@@ -4897,6 +5054,10 @@
     let h = '';
     if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<section class="tarjeta-mision refuerzo"><div class="fila"><strong>🎯 Refuerzo de tu profesor</strong><small>Premio extra al completarlo</small></div><div class="fila"><span>Responde bien ${R.meta} preguntas de <b>${esc(R.titulo)}</b></span><b>${p}/${R.meta}</b></div><div class="barra"><i style="width:${Math.round((p / R.meta) * 100)}%"></i></div><span class="nota">Las preguntas de este tema aparecerán más seguido en todo el juego.</span></section>`; }
     if (F) h += `<section class="tarjeta-mision"><div class="fila"><strong>📚 Tema de la clase</strong></div><span>${esc((F.titulos || []).join(', '))}</span><span class="nota">Tu profesor eligió este tema: la mayoría de las preguntas del juego serán de él.</span></section>`;
+    const W = extraE && extraE.semana;
+    if (W && W.meta) h += `<section class="tarjeta-mision"><div class="fila"><strong>👥 Misión semanal del curso</strong><small>${W.total >= W.meta ? '¡Cumplida!' : 'Se renueva cada lunes'}</small></div><div class="fila"><span>Entre todo el curso: <b>${W.meta}</b> respuestas correctas</span><b>${Math.min(W.total, W.meta)}/${W.meta}</b></div><div class="barra"><i style="width:${Math.min(100, Math.round((W.total / W.meta) * 100))}%"></i></div><span class="nota">Tu aporte esta semana: <b>${W.mio || 0}</b>. Al cumplirla, todos los que aportaron reciben un cofre de premios.</span></section>`;
+    const rp = Object.keys(S.repaso || {}), rpHoy = repasosPendientes().length;
+    if (rp.length) h += `<section class="tarjeta-mision"><div class="fila"><strong>🔁 Repaso de errores</strong><small>${rp.length} ${rp.length === 1 ? 'tema' : 'temas'}</small></div><span>${esc(rp.slice(0, 6).map((t) => Preguntas.tituloDe(t)).join(', '))}${rp.length > 6 ? '…' : ''}</span><span class="nota">${rpHoy ? `Hoy te tocan ${rpHoy} ${rpHoy === 1 ? 'repaso' : 'repasos'}: aparecerán marcados con 🔁 entre tus preguntas.` : 'Volverán a aparecer más adelante (primero en minutos y luego en días) para que no se te olviden.'} Cada tema sale de la lista cuando lo respondes bien 4 veces en días distintos.</span></section>`;
     h += `<section class="tarjeta-mision temporada"><div class="fila"><strong>🗓️ Temporada de ${esc(nombreMes(T.mes))}</strong><small>${T.xp} XP este mes</small></div>
       <div class="temp-niveles">${NIVELES_TEMP.map(([n, nom, ico], i) => `<span class="${i < T.niv ? 'ok' : ''}" title="${nom}: ${n} XP">${ico}<small>${n}</small></span>`).join('')}</div>
       <div class="barra"><i style="width:${pct}%"></i></div>
@@ -5514,7 +5675,7 @@
         S.vida -= 1; sfx('dano');
         escena.dolor();
         pintarHUD();
-        ultimo = `<div class="mensaje mal" role="status">¡Te golpeó! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        ultimo = pasoAPasoHTML(d, '¡Te golpeó!', '');
         if (S.vida <= 0) fase = 'derrota';
       }
       guardar();
@@ -9552,15 +9713,18 @@
     }
     moverAura(a) { if (!a) return; const v = a.spr.alpha > 0.1 && a.spr.visible; a.glow.setPosition(a.spr.x, a.spr.y - 4).setDepth(a.spr.depth - 0.5).setVisible(v); a.em.setDepth(a.spr.depth + 0.5).setVisible(v); }
     // Mascota que sigue al jugador (también se crea para los compañeros)
-    crearMascotaSpr(id, x, y) {
+    crearMascotaSpr(id, x, y, etapa = 0) {
       const s = this.add.sprite(x, y, 'mascotas', MASCOTA[id].fila * 2).setOrigin(0.5, 0.95);
       s.play(`masc_${id}`); s.mid = id;
+      // las mascotas crecen con los aciertos: joven (más grande) y adulta (más grande y con brillo dorado)
+      if (etapa >= 1) s.setScale(etapa >= 2 ? 1.3 : 1.15);
+      if (etapa >= 2 && s.preFX) { try { s.preFX.addGlow(0xffd24a, 3, 0, false, 0.1, 10); } catch (e) { /* sin efectos */ } }
       return s;
     }
     pintarMascota() {
       const id = mascotaActual(), j = this.jugador;
       if (this.mascotaS && this.mascotaS.mid !== id) { this.mascotaS.destroy(); this.mascotaS = null; }
-      if (id && !this.mascotaS && j) this.mascotaS = this.crearMascotaSpr(id, j.x - 26, j.y + 4);
+      if (id && !this.mascotaS && j) this.mascotaS = this.crearMascotaSpr(id, j.x - 26, j.y + 4, etapaMascota(id));
       if (this.ultimoMov) this.ultimoMov.t = 0;
     }
     seguirMascota(s, x, y, dir, seg) {
@@ -10111,7 +10275,7 @@
     }
     // ---------- modo cooperativo ----------
     iniciarCoop() {
-      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual() };
+      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual(), pv: mascotaActual() ? etapaMascota(mascotaActual()) : 0 };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
       this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
@@ -10195,6 +10359,7 @@
       const tagT = this.add.text(spr.x, spr.y - 76, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99991).setAlpha(0);
       this.otros.set(id, { spr, tag, tagT, ti: '', capas, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', a: null, w: null, m: false, visto: false });
       this.ponerTituloOtro(this.otros.get(id), meta.ti);
+      this.otros.get(id).pv = Number(meta.pv) || 0;
       this.ponerMascotaOtro(this.otros.get(id), meta.pe);
       this.vestir(spr, capas, pj, null, 'hacha', null);
     }
@@ -10209,6 +10374,7 @@
       if (h !== o.h || a !== o.a || w !== o.w) { o.h = h; o.a = a; o.w = w; this.vestir(o.spr, o.capas, o.pj, a, h, w); }
       o.obj = { x: Number(d.x) || 0, y: Number(d.y) || 0 }; o.dir = DIRS[d.d] !== undefined ? d.d : 'down'; o.m = Boolean(d.m);
       if (d.ti !== undefined && d.ti !== o.ti) this.ponerTituloOtro(o, d.ti);
+      if (d.pv !== undefined) o.pv = Number(d.pv) || 0;
       if (d.pe !== undefined && d.pe !== o.pe) this.ponerMascotaOtro(o, d.pe);
       if (d.pj && d.pj !== o.pj && PERSONAJES.some((x) => x.id === d.pj)) { o.pj = d.pj; this.vestir(o.spr, o.capas, o.pj, o.a, o.h, o.w); }
       if (Boolean(d.au) !== Boolean(o.aura)) { if (d.au) o.aura = this.crearAura(o.spr); else { this.quitarAura(o.aura); o.aura = null; } }
@@ -10242,13 +10408,13 @@
       if (u.t && !moviendo && !u.m && dist < 2) return;
       if (u.t && moviendo && dist < 4) return;
       u.t = ahora; u.x = j.x; u.y = j.y; u.m = moviendo;
-      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '', pe: mascotaActual(), pj: S.pj, au: auraActiva() ? 1 : 0 });
+      c.emitir('mov', { id: idJuego, x: Math.round(j.x), y: Math.round(j.y), d: this.dir, h: S.herramienta, a: S.armadura || '', w: S.arma || '', m: moviendo, ti: tituloActual() ? S.titulo : '', pe: mascotaActual(), pv: mascotaActual() ? etapaMascota(mascotaActual()) : 0, pj: S.pj, au: auraActiva() ? 1 : 0 });
     }
     ponerMascotaOtro(o, id) {
       if (!o) return;
       o.pe = MASCOTA[id] ? id : '';
       if (o.masc && o.masc.mid !== o.pe) { o.masc.destroy(); o.masc = null; }
-      if (o.pe && !o.masc) o.masc = this.crearMascotaSpr(o.pe, o.spr.x - 24, o.spr.y).setAlpha(o.spr.alpha);
+      if (o.pe && !o.masc) o.masc = this.crearMascotaSpr(o.pe, o.spr.x - 24, o.spr.y, o.pv || 0).setAlpha(o.spr.alpha);
     }
     // Título equipado de un compañero (solo se aceptan títulos que existen)
     ponerTituloOtro(o, id) {

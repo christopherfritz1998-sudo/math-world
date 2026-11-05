@@ -233,6 +233,28 @@
     .torneo .partido .gana { font-weight: 800; color: #1a7a4c; }
     .torneo .partido .pierde { color: var(--muted); text-decoration: line-through; }
     .torneo .partido.actual { box-shadow: 0 0 0 2px #e0a400; }
+    .ticket-cifras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+    .ticket-cifras span { display: flex; flex-direction: column; align-items: center; padding: 8px; border-radius: 12px; background: #f3efe4; border: 1px solid var(--line); font-size: 13px; font-weight: 700; color: var(--muted); }
+    .ticket-cifras b { font-size: 24px; color: var(--text); }
+    .ticket-lista { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    .ticket-est { padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 700; border: 1px solid var(--line); }
+    .ticket-est.ok { background: #e3f4e7; border-color: #9cd3a9; }
+    .ticket-est.medio { background: #fff3d6; border-color: #e8c36a; }
+    .ticket-est.mal { background: #fbe3dd; border-color: #e6a090; }
+    .ticket-temas { display: flex; flex-wrap: wrap; gap: 8px; font-size: 13px; }
+    .calor { overflow: auto; max-height: 70vh; margin-top: 10px; border: 1px solid var(--line); border-radius: 12px; }
+    .calor table { border-collapse: separate; border-spacing: 0; font-size: 12px; width: auto; min-width: 0; }
+    .calor th, .calor td { padding: 0; border-bottom: 1px solid #eee7d8; border-right: 1px solid #eee7d8; }
+    .calor thead th { position: sticky; top: 0; background: #fbf8f0; z-index: 2; height: 130px; vertical-align: bottom; }
+    .calor thead th span { display: block; writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; max-height: 124px; overflow: hidden; text-overflow: ellipsis; padding: 6px 4px; font-weight: 800; }
+    .calor .nom { position: sticky; left: 0; background: #fff; z-index: 1; text-align: left; min-width: 170px; }
+    .calor thead .nom { z-index: 3; }
+    .calor .nom button { all: unset; cursor: pointer; padding: 5px 8px; display: block; font-weight: 700; }
+    .calor .nom button:hover, .calor .nom button:focus-visible { text-decoration: underline; }
+    .calor td.c { width: 38px; min-width: 38px; height: 28px; text-align: center; font-weight: 800; }
+    .c-alto { background: #b9e4c4; } .c-medio { background: #f7df94; } .c-bajo { background: #f2a993; } .c-nada { background: #f1eee6; color: #b3ad9f; }
+    .calor tfoot td { position: sticky; bottom: 0; background: #fbf8f0; font-weight: 800; }
+    .leyenda-calor { padding: 1px 8px; border-radius: 6px; font-weight: 700; }
   </style>
 </head>
 <body>
@@ -304,6 +326,10 @@
       <div class="acceso-cab"><div><h2 id="foco-titulo">📚 Tema de la clase</h2><span class="muted">Elige el tema que estás enseñando: mientras esté activo, la mayoría de las preguntas del juego (recolección, combates, desafíos y guerra de clanes) saldrán de ese tema para el curso elegido.</span></div></div>
       <div id="foco-cuerpo"><p class="muted">Cargando…</p></div>
     </section>
+    <section class="panel acceso" aria-labelledby="ticket-titulo">
+      <div class="acceso-cab"><div><h2 id="ticket-titulo">🎟️ Ticket de salida</h2><span class="muted">Al final de la clase, lanza unas preguntas del tema del día: a cada estudiante le aparecen en el juego (un intento, sin pistas) y aquí ves al instante cuántos lo lograron.</span></div></div>
+      <div id="ticket-cuerpo"><p class="muted">Cargando…</p></div>
+    </section>
     <section class="panel acceso" aria-labelledby="guerra-titulo">
       <div class="acceso-cab">
         <div><h2 id="guerra-titulo">Guerra de clanes</h2><span class="muted">Cada grupo es un clan: en el letrero de su carpa común votan a su líder y el líder le pone nombre. Inicia una guerra en un curso y lanza tareas con tiempo (cada acción suma puntos a su clan), organiza duelos PvP entre clanes que todo el curso puede mirar y termínala cuando quieras: cada clan recibe premios según su lugar.</span></div>
@@ -319,6 +345,11 @@
         <div class="tabla"><table><thead><tr><th>Tema</th><th>Acierto del curso</th><th>Practicaron</th><th>Con dificultad</th></tr></thead><tbody id="temas-curso"></tbody></table></div></div>
       <div><h2>Necesitan apoyo</h2><span class="muted">Estudiantes con acierto bajo 60 % (con al menos 10 respuestas) o con un tema bajo 40 %. Haz clic para ver el detalle.</span>
         <div class="apoyo" id="apoyo" style="margin-top:10px"></div></div>
+    </section>
+    <section class="panel" aria-labelledby="calor-titulo">
+      <h2 id="calor-titulo">🗺️ Mapa de calor por tema</h2>
+      <span class="muted">Cada fila es un estudiante y cada columna un tema: <b class="leyenda-calor c-alto">70 % o más</b> <b class="leyenda-calor c-medio">40 a 69 %</b> <b class="leyenda-calor c-bajo">bajo 40 %</b> <b class="leyenda-calor c-nada">sin respuestas</b>. Pasa el mouse sobre una celda para ver el detalle y haz clic en un nombre para abrir su ficha.</span>
+      <div class="calor" id="mapa-calor"></div>
     </section>
     <section class="panel">
       <h2 id="titulo-lista">Estudiantes</h2>

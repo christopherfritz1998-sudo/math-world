@@ -1233,3 +1233,15 @@ body.movil .tutorial { top: auto; bottom: 150px; max-width: calc(100vw - 24px); 
 .temp-niveles small { font-size: 10px; font-weight: 800; color: var(--muted); }
 .tarjeta-mision.refuerzo { border-color: rgba(255, 140, 60, .6); }
 .clan-trofeos { margin: 0 0 10px; padding: 8px 12px; border-radius: 12px; background: rgba(255, 210, 74, .16); font-weight: 800; }
+
+/* Repaso de errores y pista paso a paso */
+.repaso-etq { margin: 0 0 8px; padding: 6px 10px; border-radius: 10px; background: rgba(120, 90, 255, .16); border: 1px solid rgba(160, 140, 255, .5); font-size: 14px; }
+.mensaje.paso-a-paso { display: block; }
+.paso-a-paso ol { margin: 8px 0 6px; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; }
+.paso-a-paso li { animation: pap-entra .25s ease-out; }
+@keyframes pap-entra { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.pap-botones { display: flex; gap: 8px; flex-wrap: wrap; }
+.pap-botones .btn { min-height: 32px; padding: 0 12px; font-size: 13px; }
+.pap-cierre { display: block; margin-top: 6px; font-weight: 800; }
+/* Ticket de salida */
+.modal.ticket { border-color: #b98cff; }
