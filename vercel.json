@@ -1,4 +1,7 @@
 {
+  "framework": null,
+  "buildCommand": "npx --yes terser@5.31.0 juego/juego.js --ecma 2020 --compress --mangle --keep-classnames --output juego/juego.min.tmp && mv juego/juego.min.tmp juego/juego.js",
+  "outputDirectory": ".",
   "headers": [
     {
       "source": "/juego/assets/(.*)",
