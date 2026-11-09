@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Informe del estudiante · Math World</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style id="estilo">body{font-family:system-ui,sans-serif;color:#1d2b25;margin:28px auto;padding:0 16px;max-width:900px} .muted{color:#667}</style>
+</head>
+<body>
+  <div id="informe"><p class="muted">Cargando el informe…</p></div>
+  <script src="config.js"></script>
+  <script src="nube.js"></script>
+  <script src="preguntas.js"></script>
+  <script src="preguntas_u234.js"></script>
+  <script src="preguntas_ext.js"></script>
+  <script src="preguntas_mas.js"></script>
+  <script src="banco_7.js"></script>
+  <script src="banco_8.js"></script>
+  <script src="banco.js"></script>
+  <script src="informe.js"></script>
+  <script>
+    (async function () {
+      const el = document.getElementById('informe');
+      const error = (t) => { el.innerHTML = `<h1>Math World</h1><p>${t}</p>`; };
+      const c = new URLSearchParams(location.search).get('c') || '';
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(c)) return error('Este enlace no es válido. Pídele al profesor o profesora un enlace nuevo.');
+      let r = null;
+      try { r = await Nube.informe(c); } catch (e) { return error('No se pudo cargar el informe. Revisa tu conexión a internet e inténtalo otra vez.'); }
+      if (!r || !r.ok) return error('Este enlace ya no está activo. Pídele al profesor o profesora un enlace nuevo.');
+      const nivel = String(r.curso) === 'INV' ? (r.nivel === '8' ? '8basico' : '7basico') : (String(r.curso).charAt(0) === '8' ? '8basico' : '7basico');
+      const titulos = {};
+      for (const u of ['u1', 'u2', 'u3', 'u4']) titulos[u] = Preguntas.titulos(nivel, u) || {};
+      const nombreTema = (k) => { for (const u of ['u1', 'u2', 'u3', 'u4']) if (titulos[u][k]) return { unidad: u, titulo: titulos[u][k] }; return { unidad: '', titulo: Preguntas.tituloDe ? Preguntas.tituloDe(k) : k }; };
+      document.getElementById('estilo').textContent = InformeMW.ESTILO;
+      const cursoNombre = String(r.curso) === 'INV' ? 'Invitado' : `${String(r.curso).charAt(0)}° ${String(r.curso).slice(1)}`;
+      el.innerHTML = '<button onclick="print()" style="float:right;padding:8px 14px">🖨️ Imprimir</button>'
+        + InformeMW.cuerpo({ nombre: r.nombre, cursoNombre, p: r.progreso || {}, nombreTema, zonas: { u1: 'Unidad 1', u2: 'Unidad 2', u3: 'Unidad 3', u4: 'Unidad 4' }, apoderado: true })
+        + '<p class="muted" style="margin-top:24px">Este informe se actualiza solo cada vez que el estudiante juega. Es de solo lectura: no permite entrar al juego ni ver datos de otros estudiantes.</p>';
+      document.title = `Informe de ${r.nombre} · Math World`;
+    })();
+  </script>
+</body>
+</html>

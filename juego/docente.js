@@ -203,10 +203,15 @@
         <span class="chip">Acierto ${r.acierto === null ? '–' : r.acierto + ' %'} (${r.intentos} intentos)</span>
         <span class="chip">Enemigos vencidos: ${r.vencidos}</span>
         <span class="chip">Derrotas: ${r.muertes}</span>
+        ${p.diagnostico && p.diagnostico.n ? `<span class="chip">🧭 Diagnóstico: ${p.diagnostico.a} de ${p.diagnostico.n}</span>` : '<span class="chip">🧭 Sin diagnóstico</span>'}
+        ${alertas[e.id] ? '<span class="chip" style="background:#fde2dc">⚠️ Posible alteración</span>' : ''}
       </div>
+      ${alertasHTML(e)}
       ${unidades || '<p class="muted">Todavía no responde desafíos.</p>'}
       ${profundidadHTML(e)}
+      ${erroresAltHTML(e)}
       ${refuerzoHTML(e)}
+      ${enlaceHTML(e)}
       <h4>Equipo y recursos</h4>
       <div class="muted">Equipo: ${(p.mejoras || []).map((m) => esc(MEJORAS[m] || m)).join(', ') || 'Solo el hacha inicial'}</div>
       <div class="muted">Cofre: ${rec(p.cofre)}</div>
@@ -224,6 +229,7 @@
       <div id="det-msg"></div>`;
     $('det-cerrar').addEventListener('click', () => $('detalle').close());
     $('det-informe').addEventListener('click', () => informeEstudiante(e));
+    conectarEnlace(e);
     conectarRefuerzo(e);
     if ($('det-aprobar')) $('det-aprobar').addEventListener('click', () => accionInvitado(e, 'aprobar').then((ok) => { if (ok) $('detalle').close(); }));
     if ($('det-eliminar')) $('det-eliminar').addEventListener('click', () => accionInvitado(e, 'eliminar').then((ok) => { if (ok) $('detalle').close(); }));
@@ -489,6 +495,7 @@
       <div class="ticket-cifras"><span><b>${R.length}</b>respondieron</span><span><b>${perf}</b>todo correcto</span><span><b>${prom === null ? '–' : `${prom} %`}</b>acierto promedio</span>${T.examen && R.length ? `<span><b>${fmtNota(R.reduce((a, r) => a + notaDe(r.aciertos, r.total), 0) / R.length)}</b>nota promedio</span><span><b>${R.filter((r) => notaDe(r.aciertos, r.total) >= 4).length} de ${R.length}</b>aprobados (nota 4,0 o más)</span>` : ''}</div>
       ${Object.keys(temas).length > 1 ? `<div class="ticket-temas">${Object.entries(temas).map(([k, t]) => `<span>📘 ${esc(nombreTema(c.nivel, k).titulo)}: <b>${Math.round((t.a / t.i) * 100)} %</b></span>`).join('')}</div>` : ''}
       ${R.length ? `<div class="ticket-lista">${[...R].sort((a, b) => a.aciertos / a.total - b.aciertos / b.total || a.nombre.localeCompare(b.nombre)).map((r) => `<span class="ticket-est ${r.aciertos === r.total ? 'ok' : r.aciertos === 0 ? 'mal' : 'medio'}">${esc(r.nombre)} <b>${r.aciertos}/${r.total}${T.examen ? ` · ${fmtNota(notaDe(r.aciertos, r.total))}` : ''}</b></span>`).join('')}</div>` : '<p class="muted">Aún no llegan respuestas.</p>'}
+      ${T.examen && R.length ? auditoriaHTML(R) : ''}
       ${T.examen && R.length ? '<p><button type="button" class="btn mini" id="ticket-csv">⬇️ Descargar notas (CSV para Excel)</button> <span class="muted">Incluye a todo el curso; quienes no respondieron aparecen como «No rindió».</span></p>' : ''}
       ${falta.length ? `<p class="muted">Conectados que aún no responden (${falta.length}): ${falta.map((e) => esc(e.nombre)).join(', ')}</p>` : ''}`;
   }
@@ -537,6 +544,79 @@
     try { const r = await Nube.docenteRefuerzos(token); if (r) refuerzos = r; } catch (e) { /* aún sin la actualización */ }
   }
   cargarRefuerzos(); setInterval(cargarRefuerzos, 60000);
+
+  // ---------- Guardados sospechosos (el servidor no los guarda y deja el aviso) ----------
+  let alertas = {};
+  async function cargarAlertas() {
+    try { const r = await Nube.docenteAlertas(token); if (r) { alertas = r; if (vista === 'analisis') pintarAnalisis(); } } catch (e) { /* aún sin la actualización */ }
+  }
+  cargarAlertas(); setInterval(cargarAlertas, 120000);
+  const textoAlerta = (a) => {
+    const d = a.detalle || {}, f = new Date(a.t).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return a.tipo === 'nivel' ? `${f}: intentó pasar del nivel ${d.antes} al ${d.ahora} en ${d.seg} s`
+      : a.tipo === 'respuestas' ? `${f}: intentó sumar ${d.ahora - d.antes} respuestas en ${d.seg} s`
+      : `${f}: envió más aciertos que intentos en un tema`;
+  };
+  function alertasHTML(e) {
+    const l = alertas[e.id]; if (!l || !l.length) return '';
+    return `<div class="refuerzo-caja" style="border-color:#e76f51"><h4 style="margin:0 0 6px">⚠️ Posible alteración del progreso</h4>
+      <p class="muted">El juego recibió un avance que no es posible jugando y <b>no lo guardó</b> (su progreso real sigue intacto). Puede ser un intento de trampa o, rara vez, dos pestañas abiertas a la vez.</p>
+      <ul class="errores-escritos">${l.slice(0, 5).map((a) => `<li>${esc(textoAlerta(a))}</li>`).join('')}</ul></div>`;
+  }
+  // ---------- Errores típicos: qué alternativa incorrecta eligen ----------
+  function erroresAltHTML(e) {
+    const E = (e.progreso || {}).errAlt || {}, nivel = nivelDe(e);
+    const filas = Object.entries(E).filter(([, l]) => l && l.length).map(([k, l]) => `<li><b>${esc(nombreTema(nivel, k).titulo)}:</b> ${l.map((x) => `«${esc(x.e)}» → eligió <code>${esc(x.r)}</code>`).join(' · ')}</li>`);
+    return filas.length ? `<h4>Alternativas incorrectas que eligió</h4><p class="muted">Últimos errores por tema: muestran el razonamiento equivocado detrás de la respuesta.</p><ul class="errores-escritos">${filas.join('')}</ul>` : '';
+  }
+  function erroresCursoHTML(lista, temas, nivel) {
+    const dificiles = temas.filter((t) => t.i >= 5).slice(0, 6);
+    const bloques = dificiles.map((t) => {
+      const ej = [];
+      for (const e of lista) for (const x of (((e.progreso || {}).errAlt || {})[t.k] || [])) ej.push(x);
+      for (const e of lista) for (const x of (((e.progreso || {}).escritas || {})[t.k] || []).slice(-2)) ej.push({ e: `(respuesta escrita; lo correcto era ${x.c})`, r: x.r });
+      if (!ej.length) return '';
+      // las respuestas equivocadas más repetidas primero
+      const cuenta = {}; ej.forEach((x) => { cuenta[x.r] = (cuenta[x.r] || 0) + 1; });
+      const rep = Object.entries(cuenta).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      return `<li><b>${esc(t.titulo)}</b> <span class="muted">(${t.pct} % de acierto)</span>${rep.length ? `<br><span class="muted">Respuestas equivocadas que más se repiten:</span> ${rep.map(([r, n]) => `<code>${esc(r)}</code> ×${n}`).join(' · ')}` : ''}
+        <ul>${ej.slice(-5).map((x) => `<li>«${esc(x.e)}» → <code>${esc(x.r)}</code></li>`).join('')}</ul></li>`;
+    }).filter(Boolean);
+    return `<h2>🔎 Errores típicos del curso</h2><span class="muted">En los temas con menor acierto, qué preguntaron y qué respondieron mal: sirve para ver el error conceptual y retomarlo en la pizarra.</span>
+      ${bloques.length ? `<ul class="errores-escritos">${bloques.join('')}</ul>` : '<p class="muted">Aún no hay errores registrados: se empiezan a guardar desde esta actualización, a medida que los estudiantes jueguen.</p>'}`;
+  }
+  // ---------- Enlace de solo lectura para apoderados ----------
+  const urlInforme = (k) => `${location.origin}/juego/informe.html?c=${k}`;
+  function enlaceHTML(e) {
+    if (e.curso === 'INV') return '';
+    return `<h4>Informe para apoderados</h4>
+      ${e.enlace ? `<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="text" readonly id="enl-url" value="${esc(urlInforme(e.enlace))}" style="flex:1;min-width:220px;padding:6px 8px">
+          <button type="button" class="btn pri" id="enl-copiar">Copiar enlace</button><button type="button" class="btn" data-enl="renovar">Cambiar enlace</button><button type="button" class="btn peligro" data-enl="quitar">Desactivar</button></div>
+          <span class="muted">Quien tenga este enlace ve solo el informe de este estudiante (sin RUT ni clave) y no puede entrar al juego. Si lo cambias o lo desactivas, el enlace anterior deja de funcionar.</span>`
+        : '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">Crea un enlace de solo lectura para enviarle al apoderado: verá el informe del estudiante siempre actualizado, sin clave.</span><button type="button" class="btn" data-enl="crear">🔗 Crear enlace</button></div>'}`;
+  }
+  function conectarEnlace(e) {
+    document.querySelectorAll('#det [data-enl]').forEach((b) => b.addEventListener('click', async () => {
+      if (b.dataset.enl === 'quitar' && !confirm('¿Desactivar el enlace? El apoderado ya no podrá ver el informe.')) return;
+      try { const r = await Nube.docenteEnlace(token, e.id, b.dataset.enl); if (r && r.ok) e.enlace = r.enlace; } catch (err) { alert('No se pudo cambiar el enlace. Inténtalo otra vez.'); }
+      detalle(e.id);
+    }));
+    const c = $('enl-copiar');
+    if (c) c.addEventListener('click', async () => {
+      const u = $('enl-url'); u.select();
+      try { await navigator.clipboard.writeText(u.value); c.textContent = '¡Copiado!'; } catch (err) { document.execCommand('copy'); c.textContent = '¡Copiado!'; }
+    });
+  }
+  // ---------- Evaluación: respuestas pregunta por pregunta ----------
+  function auditoriaHTML(R) {
+    const conDet = R.filter((r) => (r.detalle || []).some((x) => x.e));
+    if (!conDet.length) return '';
+    return `<details><summary><b>🔎 Revisar respuestas pregunta por pregunta</b></summary>${conDet.map((r) => {
+      const D = r.detalle || [], seg = D.reduce((n, x) => n + (x.s || 0), 0), prom = D.length ? seg / D.length : 0;
+      return `<details style="margin:6px 0 6px 12px"><summary>${esc(r.nombre)} · ${r.aciertos}/${r.total} · ${Math.round(seg / 60)} min${prom < 4 ? ' · ⚡ <b>respondió muy rápido</b> (menos de 4 s por pregunta)' : ''}</summary>
+        <ol class="errores-escritos">${D.map((x) => `<li>${x.ok ? '✅' : '❌'} ${esc(x.e || '(sin responder)')}${x.e ? ` → respondió <code>${esc(x.r)}</code>${x.ok ? '' : ` (correcta: <code>${esc(x.c)}</code>)`} <span class="muted">${x.s || 0} s</span>` : ''}</li>`).join('')}</ol></details>`;
+    }).join('')}</details>`;
+  }
   function refuerzoHTML(e) {
     if (e.curso === 'INV') return '';
     const nivel = nivelDe(e), R = refuerzos[e.id];
@@ -562,55 +642,11 @@
   }
 
   // ---------- Informe de cada estudiante (para imprimir, guardar como PDF o mostrar a apoderados) ----------
+  const datosInforme = (e) => ({ nombre: e.nombre, cursoNombre: (CURSOS.find((c) => c.id === e.curso) || {}).nombre || e.curso, p: e.progreso || {}, nombreTema: (k) => nombreTema(nivelDe(e), k), zonas: ZONAS_BASE });
   function informeEstudiante(e) {
-    const p = e.progreso || {}, r = resumen(e), nivel = nivelDe(e);
-    const temas = Object.entries(p.stats || {}).filter(([, s]) => s && s.i > 0).map(([k, s]) => ({ k, t: nombreTema(nivel, k), pct: Math.round((s.a / s.i) * 100), i: s.i, a: s.a }));
-    const fuertes = temas.filter((x) => x.i >= 5).sort((a, b) => b.pct - a.pct || b.i - a.i).slice(0, 5);
-    const debiles = temas.filter((x) => x.i >= 3).sort((a, b) => a.pct - b.pct || b.i - a.i).slice(0, 5);
-    const sem = Object.entries(p.semanal || {}).sort(([a], [b]) => a.localeCompare(b)).slice(-10);
-    const maxI = Math.max(1, ...sem.map(([, s]) => s.i));
-    const porU = {};
-    temas.forEach((x) => (porU[x.t.unidad] = porU[x.t.unidad] || []).push(x));
-    const M = p.maestria || {}, medallas = [0, 0, 0];
-    Object.values(M).forEach((m) => { if (!m) return; if (m.g) medallas[0] += 1; else if (m.p >= 25) medallas[1] += 1; else if (m.p >= 8) medallas[2] += 1; });
-    const repasos = Object.keys(p.repaso || {}).map((k) => nombreTema(nivel, k).titulo);
-    const pct = (s) => (s.i ? Math.round((s.a / s.i) * 100) : 0);
-    // recomendaciones automáticas
-    const rec = [];
-    const hoy = new Date(), dia = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())); dia.setUTCDate(dia.getUTCDate() + 4 - (dia.getUTCDay() || 7));
-    const semActual = `${dia.getUTCFullYear()}-S${String(Math.ceil(((dia - new Date(Date.UTC(dia.getUTCFullYear(), 0, 1))) / 86400000 + 1) / 7)).padStart(2, '0')}`;
-    if (debiles[0] && debiles[0].pct < 60) rec.push(`Reforzar <b>${esc(debiles[0].t.titulo)}</b> (${debiles[0].pct} % de acierto). Desde el panel puedes asignarle un refuerzo personalizado de ese tema.`);
-    if (sem.length >= 2) {
-      const a = sem[sem.length - 2][1], b = sem[sem.length - 1][1];
-      if (pct(b) >= pct(a) + 10) rec.push(`Va mejorando: su acierto subió de ${pct(a)} % a ${pct(b)} % entre las dos últimas semanas registradas.`);
-      else if (pct(b) <= pct(a) - 10) rec.push(`Su acierto bajó de ${pct(a)} % a ${pct(b)} % entre las dos últimas semanas registradas: conviene conversar con el estudiante.`);
-    }
-    if (!sem.length || sem[sem.length - 1][0] !== semActual) rec.push('No registra práctica esta semana.');
-    if (r.acierto !== null && r.acierto >= 80 && r.intentos >= 40) rec.push('Muestra buen dominio general: puede avanzar a temas o unidades nuevas.');
-    if (repasos.length >= 4) rec.push(`Tiene ${repasos.length} temas en repaso pendiente: le conviene jugar unos minutos al día para cerrarlos.`);
-    if (!rec.length) rec.push('Sin alertas: sigue practicando de forma regular.');
-    const fila = (a) => `<tr>${a.map((x) => `<td>${x}</td>`).join('')}</tr>`;
-    const barra = (v, max, color) => `<span class="b"><i style="width:${Math.round((100 * v) / max)}%;background:${color}"></i></span>`;
-    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe ${esc(e.nombre)} · Math World</title>
-      <style>body{font-family:system-ui,sans-serif;color:#1d2b25;margin:28px;max-width:900px} h1{margin:0 0 4px} h2{margin:22px 0 8px;font-size:18px;border-bottom:2px solid #2a9d8f;padding-bottom:4px} h3{margin:12px 0 4px;font-size:15px}
-      .cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} .cifras div{border:1px solid #cfe3dc;border-radius:10px;padding:10px} .cifras b{display:block;font-size:24px}
-      table{width:100%;border-collapse:collapse;font-size:14px} td,th{border-bottom:1px solid #e3ece8;padding:5px 6px;text-align:left} .muted{color:#667}
-      .b{display:inline-block;width:140px;height:10px;background:#e6efeb;border-radius:5px;overflow:hidden;vertical-align:middle} .b i{display:block;height:100%}
-      ul{margin:6px 0;padding-left:20px} li{margin:3px 0} .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px} @media print{button{display:none}}</style></head><body>
-      <button onclick="print()" style="float:right;padding:8px 14px">🖨️ Imprimir o guardar como PDF</button>
-      <h1>${esc(e.nombre)}</h1><div class="muted">${esc((CURSOS.find((c) => c.id === e.curso) || {}).nombre || e.curso)} · Math World · ${hoy.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-      <h2>Resumen</h2><div class="cifras"><div><span>Nivel en el juego</span><b>${r.nivel || '–'}</b></div><div><span>Acierto general</span><b>${r.acierto === null ? '–' : `${r.acierto} %`}</b></div><div><span>Ejercicios respondidos</span><b>${r.intentos}</b></div><div><span>Racha de días</span><b>${p.diasSeguidos || 0}</b></div></div>
-      <h2>Recomendaciones</h2><ul>${rec.map((x) => `<li>${x}</li>`).join('')}</ul>
-      <div class="cols"><div><h2>Temas que domina</h2>${fuertes.length ? `<table><tr><th>Tema</th><th>Acierto</th></tr>${fuertes.map((x) => fila([esc(x.t.titulo), `${x.pct} % <span class="muted">(${x.i})</span>`])).join('')}</table>` : '<p class="muted">Aún no hay suficientes respuestas.</p>'}</div>
-      <div><h2>Temas que le cuestan</h2>${debiles.length ? `<table><tr><th>Tema</th><th>Acierto</th></tr>${debiles.map((x) => fila([esc(x.t.titulo), `${x.pct} % <span class="muted">(${x.i})</span>`])).join('')}</table>` : '<p class="muted">Aún no hay suficientes respuestas.</p>'}</div></div>
-      <h2>Evolución semana a semana</h2>${sem.length ? `<table><tr><th>Semana</th><th>Ejercicios</th><th></th><th>Acierto</th><th></th></tr>${sem.map(([k, s]) => fila([`Semana ${esc(k.split('-S')[1] || k)}`, s.i, barra(s.i, maxI, '#2a9d8f'), `${pct(s)} %`, barra(pct(s), 100, pct(s) >= 70 ? '#3bb273' : pct(s) >= 50 ? '#f2b544' : '#e76f51')])).join('')}</table>` : '<p class="muted">El registro semanal comenzó con la última actualización del juego: aparecerá apenas el estudiante vuelva a practicar.</p>'}
-      <h2>Acierto por unidad y tema</h2>${Object.keys(porU).sort().map((u) => `<h3>${esc(ZONAS[u] || 'Otros')}</h3><table>${porU[u].sort((a, b) => a.pct - b.pct).map((x) => fila([esc(x.t.titulo), barra(x.pct, 100, x.pct >= 70 ? '#3bb273' : x.pct >= 50 ? '#f2b544' : '#e76f51'), `${x.pct} %`, `<span class="muted">${x.a} de ${x.i}</span>`])).join('')}</table>`).join('') || '<p class="muted">Todavía no responde desafíos.</p>'}
-      <h2>Maestría y repaso</h2><p>🥇 ${medallas[0]} temas en oro · 🥈 ${medallas[1]} en plata · 🥉 ${medallas[2]} en bronce</p>
-      <p>${repasos.length ? `Temas en repaso (los falló y el juego se los vuelve a preguntar): ${esc(repasos.slice(0, 10).join(', '))}.` : 'No tiene temas pendientes de repaso.'}</p>
-      </body></html>`;
     const w = window.open('', '_blank');
     if (!w) { alert('El navegador bloqueó la ventana del informe. Permite las ventanas emergentes para este sitio.'); return; }
-    w.document.write(html); w.document.close();
+    w.document.write(InformeMW.pagina(datosInforme(e))); w.document.close();
   }
 
   // ---------- Informe del curso (para imprimir o guardar como PDF) ----------
@@ -927,6 +963,16 @@
       : '<span class="muted">Nadie bajo los umbrales por ahora. 🎉</span>';
     $('apoyo').querySelectorAll('[data-apoyo]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.apoyo)));
     pintarCalor(lista, temas, c);
+    // errores típicos del curso y avisos de guardados sospechosos, bajo el mapa de calor
+    const mc = $('mapa-calor');
+    if (mc && mc.parentNode) {
+      let ec = $('errores-curso');
+      if (!ec) { ec = document.createElement('div'); ec.id = 'errores-curso'; ec.style.marginTop = '18px'; mc.parentNode.appendChild(ec); }
+      const sosp = lista.filter((e) => alertas[e.id]);
+      ec.innerHTML = erroresCursoHTML(lista, temas, c.nivel)
+        + (sosp.length ? `<h2 style="margin-top:18px">⚠️ Posibles alteraciones del progreso</h2><span class="muted">El servidor recibió avances imposibles y no los guardó. Haz clic para ver el detalle.</span><div class="apoyo-lista">${sosp.map((e) => `<button type="button" class="btn mini" data-sosp="${e.id}">${esc(e.nombre)} (${alertas[e.id].length})</button>`).join(' ')}</div>` : '');
+      ec.querySelectorAll('[data-sosp]').forEach((b) => b.addEventListener('click', () => detalle(b.dataset.sosp)));
+    }
   }
   // Mapa de calor: estudiantes × temas, con el porcentaje de acierto en cada celda
   function pintarCalor(lista, temas, c) {

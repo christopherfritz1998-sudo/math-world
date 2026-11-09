@@ -1632,7 +1632,31 @@
     const ro = new ResizeObserver(ajustar); ro.observe(zona); ajustar();
   }
   const unaVez = (f) => { let hecho = false; return (...a) => { if (!hecho) { hecho = true; f(...a); } }; };
+  // ---------- Errores típicos: se anota qué alternativa incorrecta eligió (lo ve el docente por tema) ----------
+  let ultAlt = null;
+  const textoMate = (el) => {
+    if (!el) return '';
+    const c = el.cloneNode(true);
+    c.querySelectorAll('button').forEach((x) => x.remove());
+    c.querySelectorAll('.frac').forEach((f) => { const s = f.querySelectorAll('span'); f.replaceWith(document.createTextNode(s.length === 2 ? `${s[0].textContent}/${s[1].textContent}` : f.textContent)); });
+    c.querySelectorAll('sup').forEach((s) => s.replaceWith(document.createTextNode(`^${s.textContent}`)));
+    return c.textContent.replace(/\s+/g, ' ').trim();
+  };
+  document.addEventListener('click', (ev) => {
+    const b = ev.target.closest && ev.target.closest('#modal .alt'); if (!b) return;
+    const m = b.closest('#modal');
+    ultAlt = { r: textoMate(b).slice(0, 40), e: textoMate(m && m.querySelector('.enunciado')).slice(0, 120), t: Date.now() };
+  }, true);
+  function anotarErrorAlt(tema) {
+    if (!S || !tema || esDocente() || !ultAlt || !ultAlt.e || Date.now() - ultAlt.t > 120000) return;
+    const E = S.errAlt || (S.errAlt = {}), l = E[tema] || (E[tema] = []);
+    l.push({ e: ultAlt.e, r: ultAlt.r });
+    if (l.length > 2) l.shift();
+    const ks = Object.keys(E); if (ks.length > 30) delete E[ks[0]];
+  }
   function registrar(tema, acierto) {
+    if (!acierto) anotarErrorAlt(tema);
+    ultAlt = null;
     const st = S.stats[tema] || (S.stats[tema] = { a: 0, i: 0 });
     st.i += 1; if (acierto) st.a += 1;
     S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
@@ -3959,6 +3983,7 @@
     L('meta_grupo5', 'equipo', '🏆', 'Grupo imparable', 'Cumple la meta semanal de tu grupo 5 veces.', 5, () => CN('meta_grupo'), 'Grupo Imparable'),
     L('evaluacion1', 'aprender', '📝', 'Evaluado', 'Completa una evaluación de tu profesor.', 1, () => CN('evaluacion'), 'Estudiante Responsable'),
     L('nota7', 'aprender', '🌟', 'Nota máxima', 'Obtén un 7,0 en una evaluación de tu profesor.', 1, () => CN('nota7'), 'Excelencia'),
+    L('diagnostico', 'aprender', '🧭', 'Punto de partida', 'Completa tu diagnóstico inicial.', 1, () => CN('diagnostico'), 'Punto de Partida'),
     L('comercio10', 'equipo', '💼', 'Gran mercader', 'Haz 10 intercambios con tus compañeros.', 10, () => CN('comercio'), 'Gran Mercader'),
     L('pvp1', 'combate', '⚔️', 'Gladiador', 'Gana un duelo en la arena PvP.', 1, () => CN('pvp_victoria'), 'Gladiador'),
     L('pvp5', 'combate', '🏟️', 'Campeón de la arena', 'Gana 5 duelos en la arena PvP.', 5, () => CN('pvp_victoria'), 'Campeón de la Arena'),
@@ -5206,7 +5231,7 @@
     const preguntas = Array.from({ length: n }, (_, i) => (temas.length ? Preguntas.deTema(S.curso, temas[i % temas.length], 2) : null)
       || Preguntas.nuevo(S.curso, unidadActual() || 'u1', 2, S.stats)).filter(Boolean);
     if (!preguntas.length) { ticketAbierto = false; return; }
-    let i = 0, elegida = null, aciertos = 0;
+    let i = 0, elegida = null, aciertos = 0, tq = Date.now();
     const det = [], total = preguntas.length;
     // la evaluación se puede pausar: al volver sigue desde la misma pregunta
     const prog = T.examen && S.examenProg && S.examenProg.id === T.id ? S.examenProg : null;
@@ -5229,7 +5254,9 @@
       if (elegida === null) return;
       const d = preguntas[i], ok = elegida === d.correcta;
       registrar(d.tema, ok); if (ok) aciertos += 1;
-      det.push({ tema: d.tema, ok }); sfx(ok ? 'acierto' : 'error');
+      // en la evaluación queda el detalle de cada pregunta para que el docente pueda revisarla
+      det.push(T.examen ? { tema: d.tema, ok, e: String(d.enunciado).slice(0, 160), r: String(d.opciones[elegida]).slice(0, 40), c: String(d.opciones[d.correcta]).slice(0, 40), s: Math.min(999, Math.round((Date.now() - tq) / 1000)) } : { tema: d.tema, ok });
+      sfx(ok ? 'acierto' : 'error'); tq = Date.now();
       i += 1; elegida = null;
       if (T.examen) S.examenProg = { id: T.id, i, aciertos, det: det.slice() };
       guardar();
@@ -5657,7 +5684,7 @@
   }, 1000);
 
   // ---------- Accesibilidad: texto grande, colores para daltonismo y modo liviano ----------
-  const OPCIONES_ACC = [['op-texto', 'mw_texto', 'texto-grande'], ['op-dalto', 'mw_dalto', 'daltonico'], ['op-liviano', 'mw_liviano', 'liviano']];
+  const OPCIONES_ACC = [['op-texto', 'mw_texto', 'texto-grande'], ['op-dalto', 'mw_dalto', 'daltonico'], ['op-contraste', 'mw_contraste', 'alto-contraste'], ['op-lectura', 'mw_lectura', 'letra-lectura'], ['op-liviano', 'mw_liviano', 'liviano']];
   function aplicarLiviano(on) {
     try {
       const L = escena && escena.game && escena.game.loop; if (!L || L.hasFpsLimit === Boolean(on)) return;
@@ -6262,6 +6289,55 @@
   }
 
   // ---------- Racha de días jugados ----------
+  // ---------- Diagnóstico inicial: 12 preguntas (sin nota) para saber desde dónde parte cada estudiante ----------
+  function preguntasDiagnostico() {
+    const us = ['u1', 'u2', 'u3', 'u4'].filter((u) => u === 'u1' || !sesion.mundos || sesion.mundos.includes(u));
+    const porU = us.map((u) => Object.keys(Preguntas.titulos(S.curso, u) || {}).sort(() => Math.random() - 0.5));
+    const temas = [];
+    for (let k = 0; temas.length < 12 && porU.some((l) => l.length); k++) { const l = porU[k % porU.length]; if (l.length) temas.push(l.shift()); }
+    const base = temas.slice();
+    for (let k = 0; temas.length < 12 && base.length; k++) temas.push(base[k % base.length]);
+    return temas.map((t) => Preguntas.deTema(S.curso, t, 1)).filter(Boolean);
+  }
+  function ofrecerDiagnostico() {
+    if (!S || esDocente() || S.diagnostico) return;
+    S.diagOfertas = (S.diagOfertas || 0) + 1; guardar();
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Para empezar bien</span><h2 id="modal-titulo">🧭 Diagnóstico inicial</h2></div></div>
+      <p class="enunciado" style="font-size:18px">Son <b>12 preguntas</b> de los temas de tu curso. <b>No lleva nota</b>: sirve para que el juego sepa qué reforzar contigo y para que tu profesor vea cuánto avanzas.</p>
+      <p class="nota">Premio por completarlo: 150 de experiencia y un cofre de recursos, respondas como respondas. Si no sabes una, elige la que creas: también ayuda.</p>
+      <div class="acciones"><button type="button" class="btn" id="dg-luego">Más tarde</button><button type="button" class="btn pri" id="dg-ya" data-foco>Empezar</button></div>`);
+    $('dg-luego').addEventListener('click', () => { ui.cerrar(); toast('Puedes hacer el diagnóstico cuando quieras desde tus Misiones.'); });
+    $('dg-ya').addEventListener('click', iniciarDiagnostico);
+  }
+  function iniciarDiagnostico() {
+    if (!S || esDocente() || S.diagnostico) return;
+    const ps = preguntasDiagnostico();
+    if (ps.length < 6) { ui.cerrar(); toast('No se pudo preparar el diagnóstico. Inténtalo más tarde.', 'alerta'); return; }
+    abrirSerie({ etq: '🧭 Diagnóstico inicial', titulo: 'Responde con calma: no lleva nota', preguntas: ps, registrarStats: false,
+      alFin: (a, det) => {
+        S.diagnostico = { t: Date.now(), a, n: det.length, det: det.map((x) => [x.tema, x.ok ? 1 : 0]) };
+        det.forEach((x) => { if (!x.ok) repasoRegistrar(x.tema, false); });
+        contar('diagnostico');
+        const txt = darPremio(paquete(8, 3, true), 150); sfx('logro'); if (escena) escena.celebrar();
+        const fall = [...new Set(det.filter((x) => !x.ok).map((x) => Preguntas.tituloDe(x.tema)))];
+        ui.abrir(resultadoHTML('🧭 Diagnóstico inicial', '¡Diagnóstico completado!', `<p class="enunciado">Respondiste bien <b>${a} de ${det.length}</b>.</p>
+          <p>${fall.length ? `El juego te ayudará a reforzar: <b>${esc(fall.slice(0, 6).join(', '))}</b>. Esos temas volverán como 🔁 repaso.` : '¡No fallaste ninguna! Sigue así.'}</p>
+          <p class="nota">Tu premio: <b>${esc(txt)}</b> y <b>150</b> de experiencia.</p>`, ''), 'serie');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+        pintarMisiones();
+      } });
+  }
+  document.addEventListener('click', (ev) => { if (ev.target.closest && ev.target.closest('[data-diag]')) iniciarDiagnostico(); });
+  // se ofrece una vez por sesión (hasta 3 veces en total), cuando el jugador lleva un rato en su base
+  let diagOfrecido = false, diagDesde = 0;
+  setInterval(() => {
+    if (diagOfrecido || !S || !escena || !escena.jugador || esDocente() || S.diagnostico || (S.diagOfertas || 0) >= 3) return;
+    if (!diagDesde) { diagDesde = Date.now(); return; }
+    if (Date.now() - diagDesde < 25000 || escena.zona !== 'base' || ui.abierto) return;
+    diagOfrecido = true;
+    esperarYAbrir(() => ofrecerDiagnostico());
+  }, 5000);
+
   let rachaRevisada = false;
   setInterval(() => {
     if (rachaRevisada || !S || !escena || !escena.jugador || esDocente()) return;
@@ -6325,6 +6401,7 @@
       <div class="barra"><i style="width:${pct}%"></i></div>
       <span class="nota">${sig ? `Te faltan ${sig[0] - T.xp} XP para el nivel ${sig[2]} ${sig[1]}. Cada nivel trae un cofre de premios.` : '¡Llegaste al nivel Leyenda de este mes!'} La temporada se reinicia el 1° de cada mes.</span>
       ${S.diasSeguidos ? `<span class="nota">🔥 Racha actual: ${S.diasSeguidos} ${S.diasSeguidos === 1 ? 'día' : 'días'} seguidos (mejor: ${S.diasMax || S.diasSeguidos}).</span>` : ''}</section>`;
+    if (!S.diagnostico && !esDocente()) h += '<section class="tarjeta-mision"><div class="fila"><strong>🧭 Diagnóstico inicial</strong><small>12 preguntas · sin nota</small></div><span class="nota">Ayuda al juego a saber qué reforzar contigo. Premio: 150 de experiencia y un cofre de recursos.</span><button type="button" class="btn pri chico" data-diag>Hacer el diagnóstico</button></section>';
     h += grupoSemanaModalHTML();
     if (cofreComunitario() && (cofreCom.pedidos || []).some((p) => !p.cerrado)) h += `<section class="tarjeta-mision"><div class="fila"><strong>📣 Pedidos del grupo</strong><small>Deposita en el cofre de la base</small></div>${(cofreCom.pedidos || []).filter((p) => !p.cerrado).map((p) => `<div class="fila"><span>${p.mio ? 'Tú pides' : `${esc(p.nombre)} pide`} ${p.cantidad} ${esc(nombreRec(p.recurso))}</span><b>${p.entregado}/${p.cantidad}</b></div>`).join('')}<span class="nota">Cada recurso que lleves al cofre completa estos pedidos y te da experiencia. Para pedir algo, abre tu Equipo en la base.</span></section>`;
     return h;
@@ -6381,6 +6458,7 @@
   try { vozAuto = localStorage.getItem('mw_voz') === '1'; } catch (e) { /* */ }
   function textoParaLeer(el) {
     const c = el.cloneNode(true);
+    c.querySelectorAll('button').forEach((x) => x.remove());
     c.querySelectorAll('.btn-voz').forEach((x) => x.remove());
     c.querySelectorAll('.frac').forEach((f) => { const [a, b] = f.children; f.replaceWith(` ${a ? a.textContent : ''} sobre ${b ? b.textContent : ''} `); });
     c.querySelectorAll('sup').forEach((s) => s.replaceWith(s.textContent === '2' ? ' al cuadrado ' : s.textContent === '3' ? ' al cubo ' : ` elevado a ${s.textContent} `));

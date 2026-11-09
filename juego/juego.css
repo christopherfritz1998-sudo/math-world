@@ -1504,3 +1504,20 @@ body.movil .desafio-cuenta small { font-size: 15px; }
 .nota-final { font-size: 1.3em; }
 .nota-final.ok { color: var(--ok); }
 .nota-final.mal { color: #ff8a7a; }
+
+/* ---------- Accesibilidad: alto contraste y letra de lectura fácil ---------- */
+body.alto-contraste { --bg: #000; --panel: #000; --panel-2: #0a0a0a; --line: #fff; --text: #fff; --muted: #f2f2f2; }
+body.alto-contraste :is(.modal, .tarjeta-pj, .hud-misiones, .herramientas, .minimapa, .aviso, #toast, .tutorial, .desafio, .panel-sonido, .panel-chat, .menu-movil, .recursos, .tarjeta-mision, .evento-mundo) { background: #000 !important; border-color: #fff !important; color: #fff !important; }
+body.alto-contraste :is(.nota, .etq, small, .modal p, .modal span, .modal li) { color: #fff !important; }
+body.alto-contraste .alt { background: #000; color: #fff; border: 3px solid #fff; }
+body.alto-contraste .alt[aria-pressed="true"] { background: #ffe600; color: #000 !important; border-color: #ffe600; }
+body.alto-contraste .alt[aria-pressed="true"] * { color: #000 !important; }
+body.alto-contraste .alt.bien { background: #003d1f; border-color: #5dff9a; }
+body.alto-contraste .alt.mal { background: #4a0000; border-color: #ff8a7a; }
+body.alto-contraste .btn { border: 2px solid #fff; }
+body.alto-contraste .btn.pri { background: #ffe600; color: #000 !important; border-color: #ffe600; }
+body.alto-contraste .btn.pri * { color: #000 !important; }
+body.alto-contraste :focus-visible { outline: 3px solid #ffe600; outline-offset: 2px; }
+body.letra-lectura, body.letra-lectura :is(button, input, select, textarea, h1, h2, h3, h4, b, strong, .enunciado, .alt, .nota, .mensaje) { font-family: "Lexend", "Nunito", sans-serif !important; }
+body.letra-lectura :is(.modal, .hud-misiones, #toast, .aviso, .tutorial) { letter-spacing: .03em; word-spacing: .14em; }
+body.letra-lectura :is(.enunciado, .nota, .mensaje, .modal p, .modal li) { line-height: 1.65; }
