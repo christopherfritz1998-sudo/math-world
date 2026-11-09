@@ -194,7 +194,7 @@
     $('det').innerHTML = `
       <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start">
         <div><h3 id="det-nombre">${esc(e.nombre)}</h3><span class="muted">${e.curso === 'INV' ? `Invitado · usuario ${esc(usuarioInv(e))} · ejercicios de ${e.nivel === '8' ? '8°' : '7°'} básico` : `RUT ${esc(e.rut)} · ${esc(CURSOS.find((c) => c.id === e.curso).nombre)}`}</span></div>
-        <button type="button" class="btn" id="det-cerrar">Cerrar</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="det-informe">📄 Informe del estudiante</button><button type="button" class="btn" id="det-cerrar">Cerrar</button></div>
       </div>
       <div class="chips">
         <span class="chip">${e.conectado ? 'En línea · ' + esc(ZONAS[e.zona] || '') : 'Última vez: ' + esc(hace(e.ultimo))}</span>
@@ -223,6 +223,7 @@
         ${e.aprobado === false ? '<button type="button" class="btn pri" id="det-aprobar">Aceptar</button>' : ''}<button type="button" class="btn peligro" id="det-eliminar">${e.aprobado === false ? 'Rechazar' : 'Eliminar perfil'}</button></div>` : ''}
       <div id="det-msg"></div>`;
     $('det-cerrar').addEventListener('click', () => $('detalle').close());
+    $('det-informe').addEventListener('click', () => informeEstudiante(e));
     conectarRefuerzo(e);
     if ($('det-aprobar')) $('det-aprobar').addEventListener('click', () => accionInvitado(e, 'aprobar').then((ok) => { if (ok) $('detalle').close(); }));
     if ($('det-eliminar')) $('det-eliminar').addEventListener('click', () => accionInvitado(e, 'eliminar').then((ok) => { if (ok) $('detalle').close(); }));
@@ -453,7 +454,23 @@
   }
 
   // ---------- Ticket de salida ----------
-  let tickets = {}, ticketCurso = CURSOS_G[0].id, ticketUnidad = 'u1', ticketSel = new Set(), ticketN = 3, ticketMin = 15, ticketDif = 0, ticketTick = 0, ticketTocado = false;
+  let tickets = {}, ticketCurso = CURSOS_G[0].id, ticketUnidad = 'u1', ticketSel = new Set(), ticketN = 3, ticketMin = 15, ticketDif = 0, ticketTick = 0, ticketTocado = false, ticketEx = false;
+  // Nota chilena (1,0 a 7,0) con 60 % de exigencia
+  const notaDe = (a, t) => { const p = t ? a / t : 0; return Math.round((p >= 0.6 ? 4 + (3 * (p - 0.6)) / 0.4 : 1 + (3 * p) / 0.6) * 10) / 10; };
+  const fmtNota = (n) => n.toFixed(1).replace('.', ',');
+  function descargarNotas(T, c) {
+    const R = T.respuestas || [];
+    const filas = [['Estudiante', 'Correctas', 'Preguntas', 'Nota']];
+    datos.filter((e) => e.curso === ticketCurso).sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach((e) => {
+      const r = R.find((x) => x.id === e.id);
+      filas.push(r ? [e.nombre, r.aciertos, r.total, fmtNota(notaDe(r.aciertos, r.total))] : [e.nombre, '', '', 'No rindió']);
+    });
+    const csv = '﻿' + filas.map((f) => f.map((x) => `"${String(x).replace(/"/g, '""')}"`).join(';')).join('\r\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = `Evaluacion ${c.nombre} ${new Date(T.creado).toLocaleDateString('es-CL').replace(/\//g, '-')}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
   async function cargarTickets() {
     try { const r = await Nube.docenteTickets(token); if (r) { tickets = r.cursos || {}; ticketDif = r.ahora - Date.now(); } } catch (e) { /* aún sin la actualización de la base de datos */ }
     pintarTicket();
@@ -468,10 +485,11 @@
     const temas = {};
     R.forEach((r) => (r.detalle || []).forEach((x) => { const t = temas[x.tema] || (temas[x.tema] = { a: 0, i: 0 }); t.i += 1; if (x.ok) t.a += 1; }));
     const hora = new Date(T.creado).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
-    return `<div class="foco-activo"><span>🎟️ ${activo ? `Ticket abierto en ${c.nombre} · se cierra en ${quedan} min` : `Último ticket de ${c.nombre} (${hora})`}: ${esc((T.titulos || []).join(', '))}</span>${activo ? '<button type="button" class="btn mini" id="ticket-cerrar">Cerrar ticket</button>' : ''}</div>
-      <div class="ticket-cifras"><span><b>${R.length}</b>respondieron</span><span><b>${perf}</b>todo correcto</span><span><b>${prom === null ? '–' : `${prom} %`}</b>acierto promedio</span></div>
+    return `<div class="foco-activo"><span>${T.examen ? '📝' : '🎟️'} ${activo ? `${T.examen ? 'Evaluación abierta' : 'Ticket abierto'} en ${c.nombre} · se cierra en ${quedan} min` : `${T.examen ? 'Última evaluación' : 'Último ticket'} de ${c.nombre} (${hora})`}: ${esc((T.titulos || []).join(', '))}</span>${activo ? '<button type="button" class="btn mini" id="ticket-cerrar">Cerrar ticket</button>' : ''}</div>
+      <div class="ticket-cifras"><span><b>${R.length}</b>respondieron</span><span><b>${perf}</b>todo correcto</span><span><b>${prom === null ? '–' : `${prom} %`}</b>acierto promedio</span>${T.examen && R.length ? `<span><b>${fmtNota(R.reduce((a, r) => a + notaDe(r.aciertos, r.total), 0) / R.length)}</b>nota promedio</span><span><b>${R.filter((r) => notaDe(r.aciertos, r.total) >= 4).length} de ${R.length}</b>aprobados (nota 4,0 o más)</span>` : ''}</div>
       ${Object.keys(temas).length > 1 ? `<div class="ticket-temas">${Object.entries(temas).map(([k, t]) => `<span>📘 ${esc(nombreTema(c.nivel, k).titulo)}: <b>${Math.round((t.a / t.i) * 100)} %</b></span>`).join('')}</div>` : ''}
-      ${R.length ? `<div class="ticket-lista">${[...R].sort((a, b) => a.aciertos / a.total - b.aciertos / b.total || a.nombre.localeCompare(b.nombre)).map((r) => `<span class="ticket-est ${r.aciertos === r.total ? 'ok' : r.aciertos === 0 ? 'mal' : 'medio'}">${esc(r.nombre)} <b>${r.aciertos}/${r.total}</b></span>`).join('')}</div>` : '<p class="muted">Aún no llegan respuestas.</p>'}
+      ${R.length ? `<div class="ticket-lista">${[...R].sort((a, b) => a.aciertos / a.total - b.aciertos / b.total || a.nombre.localeCompare(b.nombre)).map((r) => `<span class="ticket-est ${r.aciertos === r.total ? 'ok' : r.aciertos === 0 ? 'mal' : 'medio'}">${esc(r.nombre)} <b>${r.aciertos}/${r.total}${T.examen ? ` · ${fmtNota(notaDe(r.aciertos, r.total))}` : ''}</b></span>`).join('')}</div>` : '<p class="muted">Aún no llegan respuestas.</p>'}
+      ${T.examen && R.length ? '<p><button type="button" class="btn mini" id="ticket-csv">⬇️ Descargar notas (CSV para Excel)</button> <span class="muted">Incluye a todo el curso; quienes no respondieron aparecen como «No rindió».</span></p>' : ''}
       ${falta.length ? `<p class="muted">Conectados que aún no responden (${falta.length}): ${falta.map((e) => esc(e.nombre)).join(', ')}</p>` : ''}`;
   }
   function pintarTicket() {
@@ -482,17 +500,19 @@
     const titulos = Preguntas.titulos(c.nivel, ticketUnidad);
     el.innerHTML = `<div class="foco-fila"><span>Curso:</span>${CURSOS_G.map((x) => `<button type="button" class="chk" data-tc="${x.id}" aria-pressed="${x.id === ticketCurso}">${x.nombre}${ticketActivo(tickets[x.id]) ? ' <small>🎟️</small>' : ''}</button>`).join('')}</div>
       ${T ? ticketResultadosHTML(T, c) : `<p class="muted">${c.nombre} todavía no tiene tickets de salida.</p>`}
-      <details ${T && ticketActivo(T) ? '' : 'open'}><summary><b>Lanzar un ticket nuevo</b></summary>
+      <details ${T && ticketActivo(T) ? '' : 'open'}><summary><b>Lanzar un ticket o una evaluación</b></summary>
+        <div class="foco-fila"><label><input type="checkbox" id="ticket-ex" ${ticketEx ? 'checked' : ''}> 📝 <b>Modo evaluación</b>: hasta 20 preguntas, sin pistas, con tiempo y nota (60 % de exigencia). El estudiante puede pausar y seguir donde quedó.</label></div>
         <div class="foco-fila"><label>Unidad <select id="ticket-u">${['u1', 'u2', 'u3', 'u4'].map((u) => `<option value="${u}" ${u === ticketUnidad ? 'selected' : ''}>${ZONAS_BASE[u]}</option>`).join('')}</select></label>
-          <label>Preguntas <select id="ticket-n">${[3, 4, 5].map((n) => `<option value="${n}" ${n === ticketN ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <label>Abierto por <select id="ticket-min">${[[10, '10 min'], [15, '15 min'], [30, '30 min']].map(([m, t]) => `<option value="${m}" ${m === ticketMin ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
+          <label>Preguntas <select id="ticket-n">${(ticketEx ? [5, 8, 10, 12, 15, 20] : [3, 4, 5]).map((n) => `<option value="${n}" ${n === ticketN ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
+          <label>Abierto por <select id="ticket-min">${(ticketEx ? [[20, '20 min'], [30, '30 min'], [45, '45 min'], [60, '60 min'], [90, '90 min']] : [[10, '10 min'], [15, '15 min'], [30, '30 min']]).map(([m, t]) => `<option value="${m}" ${m === ticketMin ? 'selected' : ''}>${t}</option>`).join('')}</select></label></div>
         <div class="foco-temas">${Object.entries(titulos).map(([k, t]) => `<label><input type="checkbox" data-tt="${k}" ${ticketSel.has(k) ? 'checked' : ''}> ${esc(t)}</label>`).join('')}</div>
-        <div class="foco-fila"><button type="button" class="btn pri" id="ticket-lanzar" ${ticketSel.size ? '' : 'disabled'}>🎟️ Lanzar ticket en ${c.nombre}</button><span class="muted">Le aparece a cada estudiante apenas esté libre en el juego (no interrumpe combates).</span></div>
+        <div class="foco-fila"><button type="button" class="btn pri" id="ticket-lanzar" ${ticketSel.size ? '' : 'disabled'}>${ticketEx ? '📝 Lanzar evaluación' : '🎟️ Lanzar ticket'} en ${c.nombre}</button><span class="muted">Le aparece a cada estudiante apenas esté libre en el juego (no interrumpe combates).</span></div>
       </details>`;
     el.querySelectorAll('[data-tc]').forEach((b) => b.addEventListener('click', () => { ticketCurso = b.dataset.tc; ticketSel = new Set(); ticketTocado = false; pintarTicket(); }));
     $('ticket-u').addEventListener('change', (e) => { ticketUnidad = e.target.value; ticketSel = new Set(); ticketTocado = true; pintarTicket(); });
     $('ticket-n').addEventListener('change', (e) => { ticketN = Number(e.target.value); });
     $('ticket-min').addEventListener('change', (e) => { ticketMin = Number(e.target.value); });
+    $('ticket-ex').addEventListener('change', (e) => { ticketEx = e.target.checked; ticketN = ticketEx ? 10 : 3; ticketMin = ticketEx ? 45 : 15; pintarTicket(); });
     el.querySelectorAll('[data-tt]').forEach((x) => x.addEventListener('change', () => { ticketTocado = true; if (x.checked) ticketSel.add(x.dataset.tt); else ticketSel.delete(x.dataset.tt); pintarTicket(); }));
     const enviar = async (ticket) => {
       try { const r = await Nube.docenteTicket(token, [ticketCurso], ticket); if (r) { tickets = r.cursos || {}; ticketDif = r.ahora - Date.now(); } $('error').hidden = true; }
@@ -502,9 +522,10 @@
     $('ticket-lanzar').addEventListener('click', () => {
       const sel = [...ticketSel];
       if (ticketActivo(T) && !confirm('Ya hay un ticket abierto en este curso. ¿Cerrarlo y lanzar uno nuevo?')) return;
-      enviar({ temas: sel, titulos: sel.map((k) => titulos[k] || nombreTema(c.nivel, k).titulo), n: ticketN, min: ticketMin });
+      enviar({ temas: sel, titulos: sel.map((k) => titulos[k] || nombreTema(c.nivel, k).titulo), n: ticketN, min: ticketMin, examen: ticketEx });
     });
     const q = $('ticket-cerrar'); if (q) q.addEventListener('click', () => enviar(null));
+    const csv = $('ticket-csv'); if (csv && T) csv.addEventListener('click', () => descargarNotas(T, c));
   }
   cargarTickets();
   // mientras haya un ticket abierto se actualiza cada 5 segundos; si no, cada minuto
@@ -538,6 +559,58 @@
     });
     const q = $('ref-quitar');
     if (q) q.addEventListener('click', async () => { try { const r = await Nube.docenteRefuerzo(token, e.id, '', '', 0, 'quitar'); if (r) refuerzos = r; } catch (err) { /* */ } detalle(e.id); pintarAnalisis(); });
+  }
+
+  // ---------- Informe de cada estudiante (para imprimir, guardar como PDF o mostrar a apoderados) ----------
+  function informeEstudiante(e) {
+    const p = e.progreso || {}, r = resumen(e), nivel = nivelDe(e);
+    const temas = Object.entries(p.stats || {}).filter(([, s]) => s && s.i > 0).map(([k, s]) => ({ k, t: nombreTema(nivel, k), pct: Math.round((s.a / s.i) * 100), i: s.i, a: s.a }));
+    const fuertes = temas.filter((x) => x.i >= 5).sort((a, b) => b.pct - a.pct || b.i - a.i).slice(0, 5);
+    const debiles = temas.filter((x) => x.i >= 3).sort((a, b) => a.pct - b.pct || b.i - a.i).slice(0, 5);
+    const sem = Object.entries(p.semanal || {}).sort(([a], [b]) => a.localeCompare(b)).slice(-10);
+    const maxI = Math.max(1, ...sem.map(([, s]) => s.i));
+    const porU = {};
+    temas.forEach((x) => (porU[x.t.unidad] = porU[x.t.unidad] || []).push(x));
+    const M = p.maestria || {}, medallas = [0, 0, 0];
+    Object.values(M).forEach((m) => { if (!m) return; if (m.g) medallas[0] += 1; else if (m.p >= 25) medallas[1] += 1; else if (m.p >= 8) medallas[2] += 1; });
+    const repasos = Object.keys(p.repaso || {}).map((k) => nombreTema(nivel, k).titulo);
+    const pct = (s) => (s.i ? Math.round((s.a / s.i) * 100) : 0);
+    // recomendaciones automáticas
+    const rec = [];
+    const hoy = new Date(), dia = new Date(Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())); dia.setUTCDate(dia.getUTCDate() + 4 - (dia.getUTCDay() || 7));
+    const semActual = `${dia.getUTCFullYear()}-S${String(Math.ceil(((dia - new Date(Date.UTC(dia.getUTCFullYear(), 0, 1))) / 86400000 + 1) / 7)).padStart(2, '0')}`;
+    if (debiles[0] && debiles[0].pct < 60) rec.push(`Reforzar <b>${esc(debiles[0].t.titulo)}</b> (${debiles[0].pct} % de acierto). Desde el panel puedes asignarle un refuerzo personalizado de ese tema.`);
+    if (sem.length >= 2) {
+      const a = sem[sem.length - 2][1], b = sem[sem.length - 1][1];
+      if (pct(b) >= pct(a) + 10) rec.push(`Va mejorando: su acierto subió de ${pct(a)} % a ${pct(b)} % entre las dos últimas semanas registradas.`);
+      else if (pct(b) <= pct(a) - 10) rec.push(`Su acierto bajó de ${pct(a)} % a ${pct(b)} % entre las dos últimas semanas registradas: conviene conversar con el estudiante.`);
+    }
+    if (!sem.length || sem[sem.length - 1][0] !== semActual) rec.push('No registra práctica esta semana.');
+    if (r.acierto !== null && r.acierto >= 80 && r.intentos >= 40) rec.push('Muestra buen dominio general: puede avanzar a temas o unidades nuevas.');
+    if (repasos.length >= 4) rec.push(`Tiene ${repasos.length} temas en repaso pendiente: le conviene jugar unos minutos al día para cerrarlos.`);
+    if (!rec.length) rec.push('Sin alertas: sigue practicando de forma regular.');
+    const fila = (a) => `<tr>${a.map((x) => `<td>${x}</td>`).join('')}</tr>`;
+    const barra = (v, max, color) => `<span class="b"><i style="width:${Math.round((100 * v) / max)}%;background:${color}"></i></span>`;
+    const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Informe ${esc(e.nombre)} · Math World</title>
+      <style>body{font-family:system-ui,sans-serif;color:#1d2b25;margin:28px;max-width:900px} h1{margin:0 0 4px} h2{margin:22px 0 8px;font-size:18px;border-bottom:2px solid #2a9d8f;padding-bottom:4px} h3{margin:12px 0 4px;font-size:15px}
+      .cifras{display:grid;grid-template-columns:repeat(4,1fr);gap:10px} .cifras div{border:1px solid #cfe3dc;border-radius:10px;padding:10px} .cifras b{display:block;font-size:24px}
+      table{width:100%;border-collapse:collapse;font-size:14px} td,th{border-bottom:1px solid #e3ece8;padding:5px 6px;text-align:left} .muted{color:#667}
+      .b{display:inline-block;width:140px;height:10px;background:#e6efeb;border-radius:5px;overflow:hidden;vertical-align:middle} .b i{display:block;height:100%}
+      ul{margin:6px 0;padding-left:20px} li{margin:3px 0} .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px} @media print{button{display:none}}</style></head><body>
+      <button onclick="print()" style="float:right;padding:8px 14px">🖨️ Imprimir o guardar como PDF</button>
+      <h1>${esc(e.nombre)}</h1><div class="muted">${esc((CURSOS.find((c) => c.id === e.curso) || {}).nombre || e.curso)} · Math World · ${hoy.toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+      <h2>Resumen</h2><div class="cifras"><div><span>Nivel en el juego</span><b>${r.nivel || '–'}</b></div><div><span>Acierto general</span><b>${r.acierto === null ? '–' : `${r.acierto} %`}</b></div><div><span>Ejercicios respondidos</span><b>${r.intentos}</b></div><div><span>Racha de días</span><b>${p.diasSeguidos || 0}</b></div></div>
+      <h2>Recomendaciones</h2><ul>${rec.map((x) => `<li>${x}</li>`).join('')}</ul>
+      <div class="cols"><div><h2>Temas que domina</h2>${fuertes.length ? `<table><tr><th>Tema</th><th>Acierto</th></tr>${fuertes.map((x) => fila([esc(x.t.titulo), `${x.pct} % <span class="muted">(${x.i})</span>`])).join('')}</table>` : '<p class="muted">Aún no hay suficientes respuestas.</p>'}</div>
+      <div><h2>Temas que le cuestan</h2>${debiles.length ? `<table><tr><th>Tema</th><th>Acierto</th></tr>${debiles.map((x) => fila([esc(x.t.titulo), `${x.pct} % <span class="muted">(${x.i})</span>`])).join('')}</table>` : '<p class="muted">Aún no hay suficientes respuestas.</p>'}</div></div>
+      <h2>Evolución semana a semana</h2>${sem.length ? `<table><tr><th>Semana</th><th>Ejercicios</th><th></th><th>Acierto</th><th></th></tr>${sem.map(([k, s]) => fila([`Semana ${esc(k.split('-S')[1] || k)}`, s.i, barra(s.i, maxI, '#2a9d8f'), `${pct(s)} %`, barra(pct(s), 100, pct(s) >= 70 ? '#3bb273' : pct(s) >= 50 ? '#f2b544' : '#e76f51')])).join('')}</table>` : '<p class="muted">El registro semanal comenzó con la última actualización del juego: aparecerá apenas el estudiante vuelva a practicar.</p>'}
+      <h2>Acierto por unidad y tema</h2>${Object.keys(porU).sort().map((u) => `<h3>${esc(ZONAS[u] || 'Otros')}</h3><table>${porU[u].sort((a, b) => a.pct - b.pct).map((x) => fila([esc(x.t.titulo), barra(x.pct, 100, x.pct >= 70 ? '#3bb273' : x.pct >= 50 ? '#f2b544' : '#e76f51'), `${x.pct} %`, `<span class="muted">${x.a} de ${x.i}</span>`])).join('')}</table>`).join('') || '<p class="muted">Todavía no responde desafíos.</p>'}
+      <h2>Maestría y repaso</h2><p>🥇 ${medallas[0]} temas en oro · 🥈 ${medallas[1]} en plata · 🥉 ${medallas[2]} en bronce</p>
+      <p>${repasos.length ? `Temas en repaso (los falló y el juego se los vuelve a preguntar): ${esc(repasos.slice(0, 10).join(', '))}.` : 'No tiene temas pendientes de repaso.'}</p>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { alert('El navegador bloqueó la ventana del informe. Permite las ventanas emergentes para este sitio.'); return; }
+    w.document.write(html); w.document.close();
   }
 
   // ---------- Informe del curso (para imprimir o guardar como PDF) ----------

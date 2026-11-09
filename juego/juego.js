@@ -542,20 +542,24 @@
     if (S.cofreGrupo !== clave) {
       const primera = !S.cofreGrupo;
       if (!primera) S.cofre = { ...S.cofre, ...cerosCofre() };   // cambio de grupo: lo aportado queda en el cofre del grupo anterior
-      S.cofreGrupo = clave; S.cofreSnap = cerosCofre(); S.cofreEnv = null;   // primera vez: todo tu cofre se suma al del grupo
+      S.cofreGrupo = clave; S.cofreSnap = cerosCofre(); S.cofreEnv = null; S.cofreIni = true;   // primera vez: todo tu cofre se suma al del grupo (no cuenta para pedidos)
       if (primera) cofreCom.aviso = true;
     }
     if (!S.cofreSnap) S.cofreSnap = cerosCofre();
     if (!S.cofreEnv) {
       const d = {};
       for (const r of RECURSOS) { const x = Math.round((S.cofre[r.id] || 0) - (S.cofreSnap[r.id] || 0)); if (x) d[r.id] = x; }
-      if (Object.keys(d).length) { S.cofreSeq = (S.cofreSeq || 0) + 1; S.cofreEnv = { n: S.cofreSeq, d }; guardar(); }
+      if (Object.keys(d).length) { S.cofreSeq = (S.cofreSeq || 0) + 1; S.cofreEnv = { n: S.cofreSeq, d, ini: Boolean(S.cofreIni) }; guardar(); }
     }
     if (!S.cofreEnv && !forzar && Date.now() - cofreCom.ult < 15000) return;
     const env = S.cofreEnv;
     cofreCom.enviando = true;
     let r = null;
-    try { r = await Nube.cofreGrupo(sesion.token, env ? env.n : 0, env ? env.d : {}); } catch (e) { r = null; }
+    // mw_cofre_grupo2 además reparte lo depositado en los pedidos del grupo; si aún no existe se usa la versión anterior
+    // (ambas comparten el número de envío, así que un mismo envío nunca se aplica dos veces)
+    try { r = await Nube.cofreGrupo2(sesion.token, env ? env.n : 0, env ? env.d : {}, Boolean(env && env.ini)); } catch (e) {
+      try { r = await Nube.cofreGrupo(sesion.token, env ? env.n : 0, env ? env.d : {}); } catch (e2) { r = null; }
+    }
     cofreCom.enviando = false;
     if (!r || !r.ok || !S || S.cofreGrupo !== clave || S.cofreEnv !== env) return;
     cofreCom.ult = Date.now(); cofreCom.top = Array.isArray(r.top) ? r.top : [];
@@ -565,14 +569,123 @@
       const pend = (S.cofre[x.id] || 0) - (S.cofreSnap[x.id] || 0) - ((env && env.d[x.id]) || 0);   // lo que cambió mientras viajaba el envío
       S.cofre[x.id] = Math.max(0, t + pend); S.cofreSnap[x.id] = t;
     }
+    if (env && env.ini) S.cofreIni = false;
     S.cofreEnv = null;
     guardar(); pintarHUD();
+    if (Array.isArray(r.pedidos)) actualizarPedidos(r.pedidos);
+    if (r.ayude > 0) premioAyuda(r.ayude);
     if (cofreCom.aviso) {
       cofreCom.aviso = false;
       toast(`📦 ¡El cofre ahora es comunitario! Lo que tenías se sumó al cofre del Grupo ${sesion.grupo}: todos pueden usar los recursos que recolecta cada integrante. ¡Trabajen en equipo!`);
     }
   }
   setInterval(() => { if (S && escena && escena.jugador) sincronizarCofre(); }, 4000);
+
+  // ---------- Pedidos al grupo: lo que cada uno deposita en el cofre va completando los pedidos abiertos ----------
+  let pedidosVistos = null;
+  function actualizarPedidos(lista) {
+    const antes = cofreCom.pedidos || [];
+    cofreCom.pedidos = lista;
+    if (pedidosVistos) {
+      for (const p of lista) {
+        if (p.mio && p.cumplido && !pedidosVistos.has(p.id)) toast(`📣 ¡Tu pedido de ${p.cantidad} ${nombreRec(p.recurso)} se cumplió!${(p.ayudantes || []).length ? ` Ayudaron: ${p.ayudantes.join(', ')}.` : ''} Ya está en el cofre del grupo.`);
+        else if (!p.mio && !p.cerrado && !antes.some((a) => a.id === p.id)) toast(`📣 ${p.nombre} pide ${p.cantidad} ${nombreRec(p.recurso)} para el cofre del grupo. ¡Tráelos de los mundos y deposítalos en la base!`);
+      }
+    }
+    pedidosVistos = new Set(lista.filter((p) => p.cumplido).map((p) => p.id));
+    pintarMisiones();
+  }
+  function premioAyuda(n) {
+    contar('ayuda', n);
+    const xp = Math.min(80, 2 * n);
+    darPremio({}, xp, false);
+    toast(`🤝 ¡Buen compañero! Tus ${n} recursos completaron pedidos de tu grupo. Ganas ${xp} de experiencia.`);
+  }
+  const haceTxt = (ms) => { const m = Math.max(0, Math.round(ms / 60000)); return m < 1 ? 'recién' : m < 60 ? `hace ${m} min` : m < 1440 ? `hace ${Math.round(m / 60)} h` : `hace ${Math.round(m / 1440)} d`; };
+  function pedidosHTML() {
+    const abiertos = (cofreCom.pedidos || []).filter((p) => !p.cerrado);
+    const listos = (cofreCom.pedidos || []).filter((p) => p.cumplido).slice(0, 3);
+    return `<section class="pedidos-grupo"><h3>📣 Pedidos al grupo</h3>
+      ${abiertos.length ? `<ul class="ped-lista">${abiertos.map((p) => `<li><img class="px" src="${ICONO(p.recurso)}" alt=""><span><b>${p.mio ? 'Tú' : esc(p.nombre)}</b> ${p.mio ? 'pides' : 'pide'} ${p.cantidad} ${esc(nombreRec(p.recurso))}<i class="ped-barra"><i style="width:${Math.round((100 * p.entregado) / p.cantidad)}%"></i></i></span><small>${p.entregado}/${p.cantidad}</small>${p.mio ? `<button type="button" class="btn chico" data-ped-cancelar="${p.id}">Cancelar</button>` : ''}</li>`).join('')}</ul>`
+        : '<p class="nota">No hay pedidos abiertos. Si necesitas un recurso para fabricar algo, pídelo: lo que tus compañeros depositen en el cofre irá completando tu pedido.</p>'}
+      ${listos.length ? `<p class="nota">✅ Cumplidos: ${listos.map((p) => `${p.cantidad} ${esc(nombreRec(p.recurso))} para ${p.mio ? 'ti' : esc(p.nombre)}${(p.ayudantes || []).length ? ` (gracias a ${esc(p.ayudantes.slice(0, 3).join(', '))})` : ''}`).join(' · ')}</p>` : ''}
+      <div class="ped-form"><select id="ped-rec" aria-label="Recurso que pides">${recursosVisibles().map((r) => `<option value="${r.id}">${esc(r.nombre)}</option>`).join('')}</select>
+        <select id="ped-n" aria-label="Cantidad">${[10, 20, 40, 80].map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
+        <button type="button" class="btn pri chico" data-ped-crear>Pedir al grupo</button></div>
+      <details class="cofre-hist" data-cofre-hist><summary>🧾 Historial del cofre (quién depositó y quién usó)</summary><div id="cofre-hist" class="nota">Cargando…</div></details></section>`;
+  }
+  document.addEventListener('click', async (ev) => {
+    const b = ev.target.closest && ev.target.closest('[data-ped-crear], [data-ped-cancelar]');
+    if (!b || !cofreComunitario() || !Nube.pedido) return;
+    b.disabled = true;
+    const cancelar = b.dataset.pedCancelar;
+    let r = null;
+    try { r = cancelar ? await Nube.pedido(sesion.token, 'cancelar', null, 0, Number(cancelar)) : await Nube.pedido(sesion.token, 'crear', $('ped-rec').value, Number($('ped-n').value), null); } catch (e) { r = null; }
+    b.disabled = false;
+    if (!r || !r.ok) {
+      toast(r && r.error === 'limite' ? 'Puedes tener hasta 2 pedidos abiertos a la vez.' : r && r.error === 'lleno' ? 'Tu grupo ya tiene 6 pedidos abiertos: ayuden a completar alguno primero.' : 'No se pudo enviar el pedido. Inténtalo otra vez.', 'alerta');
+      return;
+    }
+    actualizarPedidos(r.pedidos || []);
+    if (!cancelar) { contar('pedido'); toast('📣 Pedido enviado: tus compañeros lo verán en sus misiones. Lo que depositen en el cofre irá completándolo.'); }
+    if (ui.abierto) abrirEquipo();
+  });
+  document.addEventListener('toggle', async (ev) => {
+    const d = ev.target;
+    if (!d || !d.matches || !d.matches('[data-cofre-hist]') || !d.open || !Nube.cofreHistorial) return;
+    let r = null;
+    try { r = await Nube.cofreHistorial(sesion.token); } catch (e) { r = null; }
+    const el = $('cofre-hist'); if (!el) return;
+    if (!r || !r.ok) { el.textContent = 'No se pudo cargar el historial.'; return; }
+    el.innerHTML = r.lista.length ? `<ul class="hist-lista">${r.lista.map((m) => `<li><b>${m.yo ? 'Tú' : esc(m.nombre)}</b> ${Object.entries(m.delta || {}).map(([k, n]) => `<span class="${n > 0 ? 'mas' : 'menos'}">${n > 0 ? '+' : ''}${n} ${esc(nombreRec(k))}</span>`).join(' ')} <small>${haceTxt(r.ahora - m.t)}</small></li>`).join('')}</ul>`
+      : 'Aún no hay movimientos en el cofre del grupo.';
+  }, true);
+
+  // ---------- Meta semanal de cada grupo y ranking de grupos del curso ----------
+  let grupoSem = null, grupoSemIni = false;
+  async function cargarGruposSemana() {
+    if (!S || esDocente() || sesion.modo !== 'nube' || !sesion.grupo || cursoCanal() === 'INV' || !window.Nube || !Nube.gruposSemana) return;
+    try { const r = await Nube.gruposSemana(sesion.token); if (r && r.ok) { grupoSem = r; revisarMetaGrupo(); pintarMisiones(); } } catch (e) { /* se reintenta */ }
+  }
+  setInterval(() => { if (S && escena && escena.jugador && !grupoSemIni) { grupoSemIni = true; cargarGruposSemana(); } }, 3000);
+  setInterval(() => { if (S && escena && !document.hidden) cargarGruposSemana(); }, 60000);
+  const miGrupoSem = () => (grupoSem && (grupoSem.ranking || []).find((x) => x.yo)) || null;
+  const lugarGrupo = () => { const R = (grupoSem && grupoSem.ranking) || []; return R.findIndex((x) => x.yo) + 1; };
+  function revisarMetaGrupo() {
+    const G = miGrupoSem(), W = extraE && extraE.semana;
+    if (!S || !G || !G.meta || G.total < G.meta || !(W && W.mio > 0) || esDocente()) return;
+    if ((S.metasGrupo || []).includes(grupoSem.semana)) return;
+    S.metasGrupo = [...(S.metasGrupo || []), grupoSem.semana].slice(-20); guardar(true);
+    setTimeout(() => {
+      const txt = darPremio(paquete(10, 5, true), 150); contar('meta_grupo'); sfx('logro'); if (escena) escena.celebrar();
+      avisoGrande('¡Meta del grupo cumplida!', `Tu grupo logró ${G.meta} respuestas correctas esta semana`, `Tu premio: ${txt} y 150 de experiencia`);
+    }, 900);
+  }
+  function grupoSemanaModalHTML() {
+    const G = miGrupoSem(); if (!G) return '';
+    const R = grupoSem.ranking || [], pct = Math.min(100, Math.round((100 * G.total) / G.meta));
+    return `<section class="tarjeta-mision"><div class="fila"><strong>🏆 Meta semanal de tu grupo</strong><small>${G.total >= G.meta ? '¡Cumplida!' : 'Se renueva cada lunes'}</small></div>
+      <div class="fila"><span>Respuestas correctas de tu grupo: <b>${Math.min(G.total, G.meta)} de ${G.meta}</b> (50 por integrante)</span></div>
+      <div class="barra"><i style="width:${pct}%"></i></div>
+      <span class="nota">Premio para cada integrante que haya aportado: 150 de experiencia y un cofre de recursos.</span>
+      <h4 class="rk-tit">Ranking de grupos del curso (promedio por integrante)</h4>
+      <ol class="ranking-torre">${R.map((x, i) => `<li class="${x.yo ? 'yo' : ''}"><span>${['🥇', '🥈', '🥉'][i] || `${i + 1}.`}</span><b>${esc(x.nombre)}</b><small>${String(x.prom).replace('.', ',')} por integrante · ${x.total} en total</small></li>`).join('')}</ol>
+      <span class="nota">Se ordena por promedio para que los grupos pequeños compitan en igualdad.</span></section>`;
+  }
+
+  // ---------- Avance de cada semana (lo ve tu profesor en tu informe) ----------
+  function semanaISO() {
+    const d = new Date(), t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const dia = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dia);
+    const w = Math.ceil(((t - new Date(Date.UTC(t.getUTCFullYear(), 0, 1))) / 86400000 + 1) / 7);
+    return `${t.getUTCFullYear()}-S${String(w).padStart(2, '0')}`;
+  }
+  function semanalRegistrar(acierto) {
+    if (!S || esDocente()) return;
+    const H = S.semanal || (S.semanal = {}), k = semanaISO(), s = H[k] || (H[k] = { i: 0, a: 0 });
+    s.i += 1; if (acierto) s.a += 1;
+    const ks = Object.keys(H).sort(); while (ks.length > 16) delete H[ks.shift()];
+  }
 
   function guardar(inmediato = false) {
     if (!S) return;
@@ -1304,6 +1417,10 @@
   ['btn-pantalla', 'btn-pantalla-m'].forEach((id) => { const b = $(id); if (b) b.addEventListener('click', (e) => { e.stopPropagation(); alternarPantalla(); }); });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => document.addEventListener(ev, () => { pintarPantalla(); setTimeout(() => window.dispatchEvent(new Event('resize')), 250); }));
   pintarPantalla();
+  // Copia local de imágenes y sonidos (abre más rápido la segunda vez y aguanta la mala señal)
+  if ('serviceWorker' in navigator && location.protocol === 'https:') {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => { /* sin copia local */ }); });
+  }
   window.addEventListener('resize', () => { if (S && !$('hud').classList.contains('oculto')) prepararMovil(); });
 
   function empezar() {
@@ -1445,6 +1562,7 @@
     const topCofre = comun && cofreCom.top.length ? `<p class="nota cofre-top">🤝 Más aportes al cofre: ${cofreCom.top.map((x) => `${x.yo ? '<b>' : ''}${esc(x.nombre)} (${x.aportado})${x.yo ? '</b>' : ''}`).join(' · ')}</p>` : '';
     const recursosEq = `<section class="equipo-recursos"><h3>${comun ? `📦 Cofre comunitario del Grupo ${sesion.grupo}` : enBase ? '📦 Recursos en tu cofre' : '🎒 Recursos en tu mochila'}</h3>
       ${comun ? '<p class="nota">Todo el grupo comparte este cofre: lo que cada uno trae de los mundos lo pueden usar todos para fabricar y construir.</p>' : ''}${topCofre}
+      ${comun && Nube.pedido ? pedidosHTML() : ''}
       ${esDocente() ? '<p class="nota">Docente: recursos ilimitados.</p>'
         : recs.length ? `<div class="objetos">${recs.map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${fuente[r.id]}</small></div>`).join('')}</div>`
         : `<p class="nota">${enBase ? 'Tu cofre está vacío: lo que recolectes en los mundos se guarda aquí al volver a la base.' : 'Aún no llevas recursos: tala, pica o recolecta en este mundo.'}</p>`}</section>`;
@@ -1520,7 +1638,7 @@
     S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
     cargarHabilidad(acierto);
     extraRegistrar(tema, acierto);
-    repasoRegistrar(tema, acierto); semanaRegistrar(acierto); mascotaRegistrar(acierto);
+    repasoRegistrar(tema, acierto); semanaRegistrar(acierto); semanalRegistrar(acierto); mascotaRegistrar(acierto);
     maestriaRegistrar(tema, acierto, Preguntas.difDe ? Preguntas.difDe(tema) : 1); bonoRespuesta(acierto); reliquiaRegistrar(acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
@@ -3834,6 +3952,13 @@
     L('gato', 'coleccion', '🐈‍⬛', 'Bendición del faraón', 'Desbloquea al gato sagrado venciendo al Faraón de las Arenas Eternas.', 1, () => S.faraonVencido || 0, 'Amigo del Gato Sagrado'),
     L('mascota8', 'coleccion', '🦁', 'Arca completa', 'Desbloquea las 8 mascotas de los jefes finales.', 8, () => MASCOTAS.filter((m) => m.jefe && m.v() > 0).length, 'Domador de Leyendas'),
     L('comercio1', 'equipo', '🤝', 'Comerciante', 'Haz un intercambio con un compañero en el cofre de comercio.', 1, () => CN('comercio'), 'Comerciante'),
+    L('ayuda50', 'equipo', '🫶', 'Buen compañero', 'Entrega 50 recursos que completen pedidos de tus compañeros de grupo.', 50, () => CN('ayuda'), 'Buen Compañero'),
+    L('ayuda500', 'equipo', '🏛️', 'Pilar del grupo', 'Entrega 500 recursos que completen pedidos de tus compañeros de grupo.', 500, () => CN('ayuda'), 'Pilar del Grupo'),
+    L('pedido1', 'equipo', '📣', 'Trabajo en equipo', 'Haz tu primer pedido al grupo desde el cofre comunitario.', 1, () => CN('pedido'), 'Organizador'),
+    L('meta_grupo1', 'equipo', '🎯', 'Meta cumplida', 'Cumple la meta semanal de tu grupo.', 1, () => CN('meta_grupo'), 'Equipo Cumplidor'),
+    L('meta_grupo5', 'equipo', '🏆', 'Grupo imparable', 'Cumple la meta semanal de tu grupo 5 veces.', 5, () => CN('meta_grupo'), 'Grupo Imparable'),
+    L('evaluacion1', 'aprender', '📝', 'Evaluado', 'Completa una evaluación de tu profesor.', 1, () => CN('evaluacion'), 'Estudiante Responsable'),
+    L('nota7', 'aprender', '🌟', 'Nota máxima', 'Obtén un 7,0 en una evaluación de tu profesor.', 1, () => CN('nota7'), 'Excelencia'),
     L('comercio10', 'equipo', '💼', 'Gran mercader', 'Haz 10 intercambios con tus compañeros.', 10, () => CN('comercio'), 'Gran Mercader'),
     L('pvp1', 'combate', '⚔️', 'Gladiador', 'Gana un duelo en la arena PvP.', 1, () => CN('pvp_victoria'), 'Gladiador'),
     L('pvp5', 'combate', '🏟️', 'Campeón de la arena', 'Gana 5 duelos en la arena PvP.', 5, () => CN('pvp_victoria'), 'Campeón de la Arena'),
@@ -5003,6 +5128,10 @@
     if (Hc) h += `<strong>📖 ${esc(Hc.c.titulo.split(' · ')[0])}</strong><ul>${Hc.activo ? Hc.c.obj.map(([k, n, txt]) => `<li class="${Hc.p[k] >= n ? 'ok' : ''}"><span>${esc(txt)}</span><b>${Math.min(n, Hc.p[k])}/${n}</b></li>`).join('') : `<li><span>Viaja a ${esc(nombreMundo(Hc.c.u))} para comenzar</span></li>`}</ul>`;
     const W = extraE && extraE.semana;
     if (W && W.meta) h += `<strong>👥 Misión del curso (semana)</strong><ul><li class="${W.total >= W.meta ? 'ok' : ''}"><span>Respuestas correctas entre todos</span><b>${Math.min(W.total, W.meta)}/${W.meta}</b></li></ul>`;
+    const Gs = miGrupoSem();
+    if (Gs && Gs.meta) h += `<strong>🏆 Meta del grupo (semana)${lugarGrupo() ? ` · ${lugarGrupo()}° lugar` : ''}</strong><ul><li class="${Gs.total >= Gs.meta ? 'ok' : ''}"><span>Correctas de tu grupo</span><b>${Math.min(Gs.total, Gs.meta)}/${Gs.meta}</b></li></ul>`;
+    const Pd = (cofreCom.pedidos || []).filter((p) => !p.cerrado);
+    if (Pd.length) h += `<strong>📣 Pedidos del grupo</strong><ul>${Pd.slice(0, 3).map((p) => `<li><span>${p.mio ? 'Tú' : esc(p.nombre)}: ${esc(nombreRec(p.recurso))}</span><b>${p.entregado}/${p.cantidad}</b></li>`).join('')}</ul>`;
     return h;
   }
 
@@ -5068,22 +5197,30 @@
     ticketAbierto = true;
     esperarYAbrir(() => abrirTicket(T));
   }
+  // Nota chilena (1,0 a 7,0) con 60 % de exigencia
+  const notaDe = (a, t) => { const p = t ? a / t : 0; return Math.round((p >= 0.6 ? 4 + (3 * (p - 0.6)) / 0.4 : 1 + (3 * p) / 0.6) * 10) / 10; };
   function abrirTicket(T) {
     const temas = (T.temas || []).filter((t) => Preguntas.unidadDeTema(S.curso, t));
-    const n = Math.max(1, Math.min(5, Number(T.n) || 3));
+    const n = Math.max(1, Math.min(T.examen ? 20 : 5, Number(T.n) || 3));
+    const nomT = T.examen ? '📝 Evaluación' : '🎟️ Ticket de salida';
     const preguntas = Array.from({ length: n }, (_, i) => (temas.length ? Preguntas.deTema(S.curso, temas[i % temas.length], 2) : null)
       || Preguntas.nuevo(S.curso, unidadActual() || 'u1', 2, S.stats)).filter(Boolean);
     if (!preguntas.length) { ticketAbierto = false; return; }
     let i = 0, elegida = null, aciertos = 0;
     const det = [], total = preguntas.length;
+    // la evaluación se puede pausar: al volver sigue desde la misma pregunta
+    const prog = T.examen && S.examenProg && S.examenProg.id === T.id ? S.examenProg : null;
+    if (prog) { i = Math.min(total - 1, prog.i); aciertos = prog.aciertos; det.push(...(prog.det || []).slice(0, i)); }
     const fin = () => {
-      S.ticketsHechos = [...(S.ticketsHechos || []), T.id].slice(-30); guardar(true);
+      S.ticketsHechos = [...(S.ticketsHechos || []), T.id].slice(-30); S.examenProg = null; guardar(true);
+      const nota = notaDe(aciertos, total);
+      if (T.examen) { contar('evaluacion'); if (nota >= 7) contar('nota7'); }
       if (window.Nube && Nube.ticketResponder && sesion.modo === 'nube') Nube.ticketResponder(sesion.token, T.id, aciertos, total, det).catch(() => {});
       contar('ticket');
-      const xp = 15 + 10 * aciertos, txt = darPremio(paquete(2 + aciertos, 2, true), xp);
+      const xp = T.examen ? 30 + 8 * aciertos : 15 + 10 * aciertos, txt = darPremio(paquete(2 + Math.min(aciertos, 8), 2, true), xp);
       sfx(aciertos === total ? 'logro' : 'acierto');
-      ui.abrir(`<div class="modal-cab"><div><span class="etq">🎟️ Ticket de salida</span><h2 id="modal-titulo">${aciertos === total ? '¡Perfecto!' : aciertos ? '¡Bien hecho!' : '¡Gracias por intentarlo!'}</h2></div></div>
-        <p class="enunciado">Respondiste bien <b>${aciertos} de ${total}</b>. Tu profesor ya recibió tu resultado.</p>
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">${nomT}</span><h2 id="modal-titulo">${aciertos === total ? '¡Perfecto!' : aciertos ? '¡Bien hecho!' : '¡Gracias por intentarlo!'}</h2></div></div>
+        <p class="enunciado">Respondiste bien <b>${aciertos} de ${total}</b>.${T.examen ? ` Tu nota: <b class="nota-final ${nota >= 4 ? 'ok' : 'mal'}">${nota.toFixed(1).replace('.', ',')}</b>.` : ''} Tu profesor ya recibió tu resultado.</p>
         <p class="nota">Premio por completar el ticket: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.${aciertos < total ? ' Las preguntas que fallaste volverán como 🔁 repaso.' : ''}</p>
         <div class="acciones"><span></span><button type="button" class="btn pri" id="tk-fin" data-foco>Cerrar</button></div>`, 'ticket');
       $('tk-fin').addEventListener('click', () => ui.cerrar());
@@ -5093,13 +5230,18 @@
       const d = preguntas[i], ok = elegida === d.correcta;
       registrar(d.tema, ok); if (ok) aciertos += 1;
       det.push({ tema: d.tema, ok }); sfx(ok ? 'acierto' : 'error');
-      i += 1; elegida = null; guardar();
+      i += 1; elegida = null;
+      if (T.examen) S.examenProg = { id: T.id, i, aciertos, det: det.slice() };
+      guardar();
       if (i >= total) fin(); else pintar();
     };
     const pintar = () => {
+      // evaluación con el tiempo cumplido: lo que no alcanzó a responder cuenta como incorrecto
+      if (T.examen && Date.now() > T.hasta) { while (det.length < total) det.push({ tema: preguntas[det.length].tema, ok: false }); i = total; fin(); return; }
       const d = preguntas[i];
-      ui.abrir(`<div class="modal-cab"><div><span class="etq">🎟️ Ticket de salida · pregunta ${i + 1} de ${total}</span><h2 id="modal-titulo">${esc(d.titulo)}</h2></div><div class="pildoras"><span class="pildora">Un intento · sin pistas</span></div></div>
-        <p class="nota">Tu profesor quiere saber qué aprendiste hoy. Responde con calma: tu resultado le llega directo.</p>
+      const quedan = T.examen ? Math.max(1, Math.ceil((T.hasta - Date.now()) / 60000)) : 0;
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">${nomT} · pregunta ${i + 1} de ${total}${T.examen ? ` · ⏱️ quedan ${quedan} min` : ''}</span><h2 id="modal-titulo">${esc(d.titulo)}</h2></div><div class="pildoras"><span class="pildora">Un intento · sin pistas</span></div></div>
+        <p class="nota">${T.examen ? 'Evaluación de tu profesor: sin pistas y con nota. Si tienes que salir, presiona «Más tarde»: seguirás desde esta pregunta mientras esté abierta.' : 'Tu profesor quiere saber qué aprendiste hoy. Responde con calma: tu resultado le llega directo.'}</p>
         <p class="enunciado">${mate(d.enunciado)}</p>
         ${alternativasHTML({ ...d, repaso: false }, elegida, new Set(), false)}
         <div class="acciones"><button type="button" class="btn" id="tk-luego">Más tarde</button><button type="button" class="btn pri" id="tk-ok" ${elegida === null ? 'disabled' : ''}>${i + 1 < total ? 'Responder' : 'Terminar'}</button></div>`, 'ticket', () => { if (i < total) ticketAbierto = false; });
@@ -6183,6 +6325,8 @@
       <div class="barra"><i style="width:${pct}%"></i></div>
       <span class="nota">${sig ? `Te faltan ${sig[0] - T.xp} XP para el nivel ${sig[2]} ${sig[1]}. Cada nivel trae un cofre de premios.` : '¡Llegaste al nivel Leyenda de este mes!'} La temporada se reinicia el 1° de cada mes.</span>
       ${S.diasSeguidos ? `<span class="nota">🔥 Racha actual: ${S.diasSeguidos} ${S.diasSeguidos === 1 ? 'día' : 'días'} seguidos (mejor: ${S.diasMax || S.diasSeguidos}).</span>` : ''}</section>`;
+    h += grupoSemanaModalHTML();
+    if (cofreComunitario() && (cofreCom.pedidos || []).some((p) => !p.cerrado)) h += `<section class="tarjeta-mision"><div class="fila"><strong>📣 Pedidos del grupo</strong><small>Deposita en el cofre de la base</small></div>${(cofreCom.pedidos || []).filter((p) => !p.cerrado).map((p) => `<div class="fila"><span>${p.mio ? 'Tú pides' : `${esc(p.nombre)} pide`} ${p.cantidad} ${esc(nombreRec(p.recurso))}</span><b>${p.entregado}/${p.cantidad}</b></div>`).join('')}<span class="nota">Cada recurso que lleves al cofre completa estos pedidos y te da experiencia. Para pedir algo, abre tu Equipo en la base.</span></section>`;
     return h;
   }
 

@@ -4,6 +4,10 @@
   "outputDirectory": ".",
   "headers": [
     {
+      "source": "/juego/sw.js",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+    },
+    {
       "source": "/juego/assets/(.*)",
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=3600, stale-while-revalidate=604800" }]
     },
