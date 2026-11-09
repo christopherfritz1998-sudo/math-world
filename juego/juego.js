@@ -413,7 +413,29 @@
     momia: { nombre: 'Momia del valle', vida: 7, dif: 3, botin: { fosil: 1, fibra: 2 }, xp: 34, vel: 54, oculto: true, tex: 'v_sarcofago', anim: 'momia', retrato: 'momia_retrato', radio: 190 },
     esqueleto: { nombre: 'Esqueleto del desierto', vida: 6, dif: 3, botin: { cobre: 2, oro: 1 }, xp: 32, vel: 62, anim: 'esqueleto', retrato: 'esqueleto_retrato', radio: 210 },
   };
-  const xpPara = (nivel) => 60 + 40 * nivel;
+  // Curva de experiencia: crece hasta el nivel 14 y desde ahí cada nivel cuesta lo mismo (620 XP),
+  // para que el nivel 100 sea alcanzable dentro de un año escolar.
+  const XP_TOPE = 620;
+  const xpPara = (nivel) => Math.min(XP_TOPE, 60 + 40 * nivel);
+  // Una sola vez por partida: quien jugó con la curva anterior conserva toda su experiencia y sube de nivel
+  function migrarCurva() {
+    if (!S || S.curva2 || esDocente()) return;
+    S.curva2 = Date.now();
+    const L = Math.max(1, S.nivel || 1);
+    if (L <= 14) { guardar(true); return; }
+    let total = (S.xp || 0);
+    for (let n = 1; n < L; n++) total += 60 + 40 * n;   // experiencia acumulada con la curva anterior
+    let nivel = 1;
+    while (total >= xpPara(nivel)) { total -= xpPara(nivel); nivel += 1; }
+    const ganados = nivel - L;
+    S.nivel = nivel; S.xp = total;
+    if (ganados > 0) {
+      S.premiosNivel = (S.premiosNivel || 0) + ganados;
+      setTimeout(() => { sfx('nivel'); avisoGrande(`¡Subiste al nivel ${nivel}!`, `Ajustamos la experiencia del juego: con lo que ya tenías ganaste ${ganados} ${ganados === 1 ? 'nivel' : 'niveles'}`, 'Elige tus recompensas de nivel'); }, 1800);
+    }
+    guardar(true); pintarHUD(); revisarPendientes();
+  }
+  setInterval(() => { if (S && escena && escena.jugador && !S.curva2) migrarCurva(); }, 1500);
   const JEFES = {
     u1: { nombre: 'Troll Guardián del Bosque', color: '#7d8a7a', lpc: true, retrato: 'jefe_u1_retrato' },
     u2: { nombre: 'Rey Lagarto de las Dunas', color: '#c9a46b', lpc: true, retrato: 'jefe_u2_retrato', vida: 14, fases: true, premio: { oro: 6, cobre: 8, arenisca: 10 },
@@ -1185,7 +1207,7 @@
 
   // ---------- Modo celular: interfaz compacta con un menú ☰ ----------
   const MENU_MOVIL = [['btn-base', '🔥', 'Fabricar'], ['btn-decorar', '🧰', 'Decorar'], ['btn-equipo', '⚔️', 'Equipo'], ['btn-misiones', '📜', 'Misiones'], ['btn-logros', '🏆', 'Logros'],
-    ['btn-mapa', '🗺️', 'Avance'], ['btn-progreso', '📈', 'Mi progreso'], ['btn-chat', '💬', 'Chat'], ['btn-novedades', '💡', 'Novedades'], ['btn-reportar', '⚠️', 'Reportar'], ['btn-sonido', '🔊', 'Sonido'], ['btn-portal', '🏫', 'Portal docente']];
+    ['btn-mapa', '🗺️', 'Avance'], ['btn-progreso', '📈', 'Mi progreso'], ['btn-pantalla', '⛶', 'Pantalla completa'], ['btn-chat', '💬', 'Chat'], ['btn-novedades', '💡', 'Novedades'], ['btn-reportar', '⚠️', 'Reportar'], ['btn-sonido', '🔊', 'Sonido'], ['btn-portal', '🏫', 'Portal docente']];
   function prepararMovil() {
     const movil = tactil() || Math.min(window.innerWidth, window.innerHeight) < 500;
     document.body.classList.toggle('movil', movil);
@@ -1205,12 +1227,38 @@
     document.addEventListener('click', (e) => { if (!menu.classList.contains('oculto') && !e.target.closest('#menu-movil, #btn-menu')) cerrar(); });
     // punto rojo en ☰ si hay algo pendiente (misiones por cobrar, novedades)
     setInterval(() => { btn.classList.toggle('alerta', ['btn-misiones', 'btn-novedades'].some((id) => $(id) && ($(id).classList.contains('alerta') || $(id).classList.contains('nuevo')))); }, 1500);
-    // sugerencia de girar el celular (se puede cerrar)
-    const girar = document.createElement('div'); girar.className = 'girar-cel'; girar.innerHTML = '<span>📱↻</span><span>Gira tu celular para ver más mapa</span><button type="button" aria-label="Cerrar">✕</button>';
-    document.body.appendChild(girar);
-    girar.querySelector('button').addEventListener('click', () => { girar.remove(); try { sessionStorage.setItem('mw_girar', '1'); } catch (e) { /* */ } });
-    try { if (sessionStorage.getItem('mw_girar')) girar.remove(); } catch (e) { /* */ }
+    // el juego funciona igual en vertical y horizontal: se sugiere la pantalla completa una vez por sesión
+    try {
+      if (!sessionStorage.getItem('mw_pantalla') && !pantallaCompleta()) {
+        sessionStorage.setItem('mw_pantalla', '1');
+        setTimeout(() => toast('📱 Consejo: toca ⛶ (arriba a la derecha) para jugar en pantalla completa. Funciona en vertical y en horizontal.'), 3500);
+      }
+    } catch (e) { /* sin almacenamiento */ }
   }
+  // ---------- Pantalla completa (celular y computador) ----------
+  const esIOS = () => /iP(hone|od|ad)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const enStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  function pantallaCompleta() { return Boolean(document.fullscreenElement || document.webkitFullscreenElement) || enStandalone(); }
+  async function alternarPantalla() {
+    const d = document.documentElement;
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) { await (document.exitFullscreen ? document.exitFullscreen() : document.webkitExitFullscreen()); return; }
+      if (d.requestFullscreen) { await d.requestFullscreen({ navigationUI: 'hide' }); return; }
+      if (d.webkitRequestFullscreen) { d.webkitRequestFullscreen(); return; }
+    } catch (e) { /* el navegador no lo permitió */ }
+    if (enStandalone()) return toast('Ya estás jugando en pantalla completa. 🎉');
+    // iPhone: Safari no permite pantalla completa en páginas; se instala como app desde «Compartir»
+    if (ui.abierto) return;
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Pantalla completa</span><h2 id="modal-titulo">⛶ Juega en pantalla completa</h2></div><button type="button" class="btn" id="pc-cerrar">Cerrar</button></div>
+      ${esIOS() ? `<p>En iPhone, Safari no deja poner páginas en pantalla completa, pero puedes <b>instalar Math World como una app</b>:</p>
+        <ol class="pasos-ios"><li>Toca el botón <b>Compartir</b> <span aria-hidden="true">⬆️</span> de Safari.</li><li>Elige <b>«Agregar a pantalla de inicio»</b>.</li><li>Abre Math World desde el nuevo ícono: se verá a pantalla completa, en vertical u horizontal.</li></ol>`
+        : '<p>Tu navegador no permitió la pantalla completa. Prueba con Chrome, o usa la opción <b>«Agregar a pantalla de inicio»</b> del menú del navegador para abrir Math World como una app.</p>'}`, 'ancho');
+    $('pc-cerrar').addEventListener('click', () => ui.cerrar());
+  }
+  function pintarPantalla() { const on = pantallaCompleta(); ['btn-pantalla', 'btn-pantalla-m'].forEach((id) => { const b = $(id); if (b) { b.setAttribute('aria-pressed', String(on)); b.textContent = on ? '🗗' : '⛶'; b.title = on ? 'Salir de pantalla completa' : 'Pantalla completa'; } }); }
+  ['btn-pantalla', 'btn-pantalla-m'].forEach((id) => { const b = $(id); if (b) b.addEventListener('click', (e) => { e.stopPropagation(); alternarPantalla(); }); });
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => document.addEventListener(ev, () => { pintarPantalla(); setTimeout(() => window.dispatchEvent(new Event('resize')), 250); }));
+  pintarPantalla();
   window.addEventListener('resize', () => { if (S && !$('hud').classList.contains('oculto')) prepararMovil(); });
 
   function empezar() {

@@ -1354,3 +1354,75 @@ body.liviano *, body.liviano *::before, body.liviano *::after { animation-durati
 /* Duelos de fantasma */
 .codigo-duelo { font-family: "Fredoka", monospace; font-size: 26px; letter-spacing: .12em; color: #ffd27a; user-select: all; }
 .du-codigo { font-family: "Fredoka", monospace; font-size: 20px; letter-spacing: .1em; text-transform: uppercase; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--teal); background: var(--bg); color: var(--text); width: 100%; margin: 6px 0; }
+
+/* ===================================================================
+   Celular (vertical y horizontal): cada cosa en su zona, nada se topa
+   =================================================================== */
+.btn-pantalla-m { display: none; }
+body.movil .btn-pantalla-m { display: grid; place-items: center; position: absolute; right: 62px; top: 8px; width: 46px; height: 46px; border-radius: 12px; border: 2px solid var(--line); background: rgba(18, 32, 26, .92); color: var(--text); font-size: 22px; z-index: 7; padding: 0; }
+body.movil .btn-menu { top: 8px; right: 8px; }
+body.movil .girar-cel { display: none !important; }
+body.movil .tarjeta-pj { max-width: calc(100vw - 124px); }
+body.movil #hud-apodo { max-width: 120px; }
+/* vertical: herramientas en columna a la derecha y el minimapa debajo */
+body.movil .herramientas { top: 62px; right: 8px; flex-direction: column; }
+body.movil .minimapa { right: 8px; left: auto; top: 284px; width: 112px; padding: 4px 4px 3px; border-radius: 12px; }
+body.movil .minimapa canvas { width: 102px; border-radius: 7px; }
+body.movil .minimapa .mm-pie { font-size: 9px; gap: 2px; }
+body.movil .minimapa .mm-pie #mm-alerta { display: none; }
+body.movil .minimapa.grande { right: 50%; top: 50%; width: calc(100vw - 24px); padding: 8px; }
+body.movil .minimapa.grande canvas { width: 100%; }
+body.movil .minimapa.grande .mm-pie { font-size: 12px; }
+/* la zona ya aparece en el minimapa; el estado del grupo sí se muestra */
+body.movil .zona-actual:not(.coop) { display: none; }
+body.movil .zona-actual.coop { top: 64px; bottom: auto; }
+body.movil .hud-misiones { top: 64px; width: min(210px, calc(100vw - 150px)); max-height: calc(100dvh - 300px); overflow: auto; }
+body.movil:has(#hud-coop:not(.oculto)) .hud-misiones { top: 90px; }
+body.movil.con-evento .hud-misiones { top: 112px; }
+/* tutorial: barra compacta sobre los controles */
+body.movil .tutorial { left: 8px; right: 8px; top: auto; bottom: 150px; transform: none; max-width: none; padding: 6px 8px; gap: 8px; border-radius: 12px; }
+body.movil .tutorial .tut-ico { font-size: 20px; }
+body.movil .tutorial small { font-size: 10px; }
+body.movil .tutorial b { font-size: 12px; }
+body.movil .tutorial .tut-saltar { padding: 4px 8px; font-size: 12px; min-height: 0; }
+body.movil:has(#tutorial) .aviso { bottom: 216px; }
+/* evento del mundo: chip compacto arriba al centro */
+body.movil .evento-mundo { top: 62px; bottom: auto; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 150px); flex-wrap: wrap; justify-content: center; gap: 2px 8px; padding: 4px 10px; font-size: 11px; border-radius: 14px; }
+body.movil .evento-mundo span { display: none; }
+/* ventanas: que todo quepa y se pueda desplazar */
+body.movil .modal { width: calc(100vw - 12px); max-width: calc(100vw - 12px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+body.movil .alternativas { gap: 8px; }
+body.movil .alt { min-height: 52px; font-size: 20px; padding: 6px 8px; }
+body.movil .combate-cab { gap: 8px; }
+body.movil .combate-cab .luchador img { width: 56px; height: 56px; }
+body.movil .acciones { flex-wrap: wrap; gap: 8px; }
+body.movil .acciones .btn { min-height: 44px; }
+body.movil .pestanas { overflow-x: auto; flex-wrap: nowrap; }
+body.movil .pestanas button { flex: 0 0 auto; white-space: nowrap; }
+body.movil .resp-abierta input { font-size: 22px; max-width: 100%; }
+
+@media (orientation: landscape) {
+  /* horizontal: todo arriba en una fila y los controles abajo, el centro despejado */
+  body.movil .herramientas { top: 8px; right: 116px; flex-direction: row; }
+  body.movil .minimapa { top: 62px; right: 8px; }
+  body.movil .hud-misiones { top: 64px; width: min(220px, 32vw); max-height: calc(100dvh - 200px); }
+  body.movil.con-evento .hud-misiones { top: 64px; }
+  body.movil .zona-actual.coop { top: auto; bottom: 146px; }
+  body.movil .tutorial { left: 150px; right: 112px; bottom: 8px; }
+  body.movil:has(#tutorial) .aviso { bottom: 76px; }
+  body.movil .evento-mundo { top: 62px; max-width: calc(100vw - 400px); }
+  body.movil .desafio { top: 62px; left: 50%; transform: translateX(-50%); width: calc(100vw - 400px); }
+  body.movil #toast { top: 120px; max-width: calc(100vw - 380px); }
+  body.movil .menu-movil { top: 60px; right: 8px; }
+  /* ventanas más bajas: alternativas en 2 columnas compactas */
+  body.movil .modal { max-height: calc(100dvh - 8px); padding: 10px 12px; gap: 8px; }
+  body.movil .modal h2 { font-size: 18px; }
+  body.movil .enunciado { font-size: 16px; margin: 2px 0; }
+  body.movil .alt { min-height: 42px; font-size: 18px; }
+  body.movil .combate-cab .luchador img { width: 44px; height: 44px; }
+}
+@media (orientation: landscape) {
+  body.movil .alternativas { grid-template-columns: 1fr 1fr; gap: 6px; }
+  body.movil .alternativas .alt { min-height: 40px; }
+  body.movil .modal .nota { font-size: 12px; margin: 0; }
+}

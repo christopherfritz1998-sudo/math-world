@@ -8,7 +8,11 @@
   <link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png">
   <link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-  <link rel="manifest" href="/site.webmanifest">
+  <link rel="manifest" href="juego.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Math World">
   <meta name="theme-color" content="#0f1d17">
   <meta name="description" content="Juego de mundo abierto para aprender matemáticas de 7° y 8° básico: explora, recolecta recursos resolviendo desafíos y mejora a tu personaje.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -189,7 +193,9 @@
       <button type="button" class="btn-red" id="btn-chat" aria-label="Chat con emoticones y frases (tecla T)" aria-expanded="false" title="Chat (T)">💬</button>
       <button type="button" class="btn-red" id="btn-reportar" aria-label="Reportar un problema" title="Reportar un problema">⚠️</button>
       <button type="button" class="btn-red" id="btn-novedades" aria-label="Novedades e ideas" title="Novedades e ideas">💡</button>
+      <button type="button" class="btn-red" id="btn-pantalla" aria-label="Pantalla completa" aria-pressed="false" title="Pantalla completa">⛶</button>
     </div>
+    <button type="button" class="btn-pantalla-m" id="btn-pantalla-m" aria-label="Pantalla completa" aria-pressed="false">⛶</button>
     <div class="panel-chat oculto" id="panel-chat" role="dialog" aria-label="Chat del grupo"></div>
     <button type="button" class="btn-menu" id="btn-menu" aria-label="Menú del juego" aria-expanded="false">☰</button>
     <div class="menu-movil oculto" id="menu-movil" role="dialog" aria-label="Menú del juego"></div>
