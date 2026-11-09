@@ -378,7 +378,7 @@
   // Cada mundo puede tener una zona extra con recursos propios (Bosque profundo, Valle de la Esfinge)
   const SUBZONA = { u1: 'u1p', u2: 'u2v', u3: 'u3p', u4: 'u4c' };
   const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || r.grupo === SUBZONA[g]); };
-  const nombreZona = (z) => (z === 'base' ? 'Base del grupo' : z === 'pieza' ? (escena && escena.sala && escena.sala.tipo === 'comun' ? 'Carpa común' : escena && escena.sala && escena.sala.tipo === 'visita' ? `Casa de ${escena.sala.nombre}` : 'Tu casa') : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
+  const nombreZona = (z) => (z === 'altar' ? 'El Altar de los Dioses' : z === 'base' ? 'Base del grupo' : z === 'pieza' ? (escena && escena.sala && escena.sala.tipo === 'comun' ? 'Carpa común' : escena && escena.sala && escena.sala.tipo === 'visita' ? `Casa de ${escena.sala.nombre}` : 'Tu casa') : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
   // oculto: espera escondido y despierta al acercarse · flota: atraviesa obstáculos · anim: hoja animada (LPC)
   const ENEMIGOS = {
@@ -1570,6 +1570,7 @@
       if (o.desafio) { if (o.activo && o.tipo !== 'coord' && o.tipo !== 'tesoro') { punto(o.x, o.y, 3.5 + pulso, '#c08aff', '#2a1440'); } continue; }
       switch (o.tipo) {
         case 'portal': punto(o.x, o.y, 4.5, '#3ad6ff', '#0b3a48'); break;
+        case 'dios': { const A = estadoAltar(); icono(o.x, o.y - 30, o.i === 5 ? '👑' : o.i < A.v ? '☠️' : o.i === A.v ? '⚔️' : '💤', o.i === 5 ? 16 : 12, o.activo === false ? 0 : 1); break; }
         case 'cofre': if (o.activo) { g.fillStyle = '#ffcf4a'; g.fillRect(o.x * k - 2, o.y * k - 2, 4, 4); } break;
         case 'fogata': case 'cofre_base': case 'comercio': punto(o.x, o.y, 2.5, '#ff9a3a'); break;
         case 'casa': g.fillStyle = '#c89a62'; g.fillRect(o.x * k - 3, o.y * k - 3, 6, 6); break;
@@ -1967,11 +1968,12 @@
     return Object.values(S.jefes || {}).reduce((a, b) => a + (b || 0), 0) + (S.reyVencido || 0) + (S.faraonVencido || 0) + (S.colosoVencido || 0) + (S.dragonVencido || 0);
   }
   const quintoListo = () => gemasJefeTengo() >= GEMAS_JEFE.length;
+  const puedeAltar = () => Boolean(S) && (quintoListo() || esDocente());
   // Aviso (una sola vez) cuando se reúnen las 8 gemas
   function revisarQuinto() {
     if (!S || S.quintoVisto || !quintoListo()) return;
     S.quintoVisto = Date.now(); guardar(true);
-    setTimeout(() => { sfx('logro'); avisoGrande('¡Reuniste las 8 gemas!', 'El 5to Mundo ha despertado…', 'Míralo en el portal: muy pronto se abrirá', 'quinto'); }, 4200);
+    setTimeout(() => { sfx('logro'); avisoGrande('¡Reuniste las 8 gemas!', 'Se abrió El Altar de los Dioses…', 'Viaja desde el portal: el 5to Mundo te espera', 'quinto'); }, 4200);
   }
   function abrirAlbumJefes() {
     const tengo = gemasJefeTengo(), listo = quintoListo();
@@ -3756,6 +3758,10 @@
     L('investiga3', 'aprender', '🔍', 'Investigador', 'Resuelve 3 investigaciones del Taller del gremio.', 3, () => CN('investigacion'), 'Investigador'),
     L('historia4', 'explorar', '📖', 'Fin de la historia', 'Completa los 4 capítulos del modo historia.', 4, () => CN('capitulo'), 'Héroe de Math World'),
     L('evento5', 'explorar', '🌩️', 'Cazador de eventos', 'Responde bien durante 5 eventos del mundo distintos.', 5, () => CN('evento'), 'Cazatormentas'),
+    L('dios1', 'combate', '⚱️', 'Profanador de altares', 'Vence a tu primer dios en El Altar de los Dioses.', 1, () => (S.altar && S.altar.v) || 0, 'Despertador de Dioses'),
+    L('dios5', 'combate', '☠️', 'Los cinco altares', 'Vence a los 5 dioses del Altar de los Dioses.', 5, () => (S.altar && S.altar.v) || 0, 'Cazador de Dioses'),
+    L('hades', 'combate', '👑', 'Vencedor del Inframundo', 'Derrota a Hades, el jefe final de Math World.', 1, () => (S.altar && S.altar.hades) || 0, 'Dios del Inframundo'),
+    L('hades3', 'combate', '🔱', 'Señor de los dioses', 'Derrota a Hades 3 veces.', 3, () => (S.altar && S.altar.hades) || 0, 'Señor de los Dioses'),
     // ----- Clanes y guerra de clanes -----
     L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
     L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
@@ -5403,6 +5409,248 @@
   });
   setInterval(() => { if (document.body.classList.contains('liviano')) aplicarLiviano(true); }, 4000);
 
+  // ===================================================================
+  // Mundo 5: El Altar de los Dioses — 5 dioses en sus altares y Hades, el jefe final
+  // Las preguntas mezclan todas las unidades. Cada dios tiene su propia dinámica.
+  // ===================================================================
+  const DIOSES = [
+    { id: 'cerbero', nombre: 'Cerbero, Guardián de la Puerta', golpes: 14, dano: 2, tiempo: 20, dif: 2, color: 0xff4a3a, mec: 'cabezas', premio: 15, xp: 350,
+      desc: 'Tiene <b>tres cabezas</b> con su propia vida. Cada cabeza que cae enfurece a las demás: tendrás menos tiempo para responder.' },
+    { id: 'vampira', nombre: 'Lilith, Reina de la Noche', golpes: 16, dano: 2, tiempo: 18, dif: 2, color: 0xff3a8a, mec: 'drenaje', premio: 18, xp: 450,
+      desc: 'Cada error o pregunta sin responder <b>la cura</b>. Con <b>3 aciertos seguidos</b> la atraviesas con una estaca de luz (daño triple).' },
+    { id: 'ciclope', nombre: 'Polifemo, el Cíclope de Obsidiana', golpes: 18, dano: 3, tiempo: 17, dif: 3, color: 0xff8a1a, mec: 'escudo', premio: 21, xp: 550,
+      desc: 'Su <b>piel de obsidiana</b> (4) bloquea tus golpes hasta que la rompas con aciertos, y <b>cada error la vuelve a endurecer</b> (+2). Si fallas, su <b>mirada petrificante</b> te deja solo 7 segundos en la siguiente.' },
+    { id: 'segador', nombre: 'Tánatos, el Segador de Almas', golpes: 20, dano: 3, tiempo: 16, dif: 3, color: 0x4ae0d0, mec: 'reloj', premio: 24, xp: 650,
+      desc: 'Un <b>reloj de arena</b> de 4 minutos marca todo el combate: cada acierto suma 6 s y cada error resta 12 s. Si la arena se acaba, te cosecha.' },
+    { id: 'golem', nombre: 'El Gólem de las Almas Perdidas', golpes: 22, dano: 3, tiempo: 15, dif: 3, color: 0x5aff8a, mec: 'combo', premio: 27, xp: 750,
+      desc: 'Cada 2 errores <b>absorbe tus fallos y crece</b> (recupera vida). Encadena aciertos para multiplicar tu daño: ×1 → ×1,5 → ×2 → ×3.' },
+  ];
+  const HADES = { id: 'hades', nombre: 'Hades, Dios del Inframundo', golpes: 30, dano: 4, dif: 3, color: 0xaa4aff, premio: 40, xp: 2000,
+    desc: '<b>Fase 1 · El Juicio</b>: 18 s por pregunta. <b>Fase 2 · Las almas de los dioses</b>: un escudo de 5 almas y se cura con tus errores. <b>Fase 3 · Furia del Inframundo</b>: solo lo hieres con 2 aciertos seguidos (el segundo hace daño doble) y cada error te quita 5 corazones.' };
+  const OFRENDAS = [
+    { id: 'vida', ico: '❤️', nombre: 'Ofrenda de vida', desc: '+3 corazones de escudo solo para este combate.' },
+    { id: 'furia', ico: '⚔️', nombre: 'Ofrenda de furia', desc: 'Tus golpes hacen 50 % más de daño.' },
+    { id: 'tiempo', ico: '⏳', nombre: 'Ofrenda del tiempo', desc: '+6 segundos para cada pregunta.' },
+  ];
+  function estadoAltar() { if (!S) return { v: 0 }; if (!S.altar) S.altar = { v: 0, hades: 0, espera: {} }; return S.altar; }
+  function textoDios(i) {
+    const A = estadoAltar();
+    if (i === 5) return (A.hadesHasta || 0) > Date.now() ? 'Hades se recupera de la batalla' : `¡Desafiar a ${HADES.nombre}!`;
+    const D = DIOSES[i], espera = ((A.espera || {})[i] || 0) - Date.now();
+    if (i < A.v) return `${D.nombre} (derrotado)`;
+    if (i > A.v) return `${D.nombre} duerme…`;
+    return espera > 0 ? `${D.nombre} descansa (${Math.ceil(espera / 60000)} min)` : `¡Desafiar a ${D.nombre}!`;
+  }
+  function entrarAltar(sc) {
+    const A = estadoAltar();
+    if (!A.visto) {
+      A.visto = Date.now(); guardar(true);
+      avisoGrande('El Altar de los Dioses', 'Cinco dioses duermen en sus tronos…', '5to Mundo · el desafío final de Math World', 'quinto');
+      esperarYAbrir(() => {
+        ui.abrir(resultadoHTML('📖 El 5to Mundo', 'El Altar de los Dioses', `<div class="historia-dialogo"><span class="h-retrato">🧙‍♀️</span><p>Euclidia susurra en la oscuridad: «Las 8 gemas abrieron el inframundo. Aquí duermen cinco dioses: despierta al primero (a la izquierda) y véncelo para que se levante el siguiente. Cuando caigan los cinco, Hades aparecerá en el centro. Sus preguntas mezclan <b>todo</b> lo que aprendiste».</p></div>
+          <ul class="historia-obj"><li>Antes de cada combate elige una ofrenda (vida, furia o tiempo).</li><li>Cada dios tiene su propia dinámica: léela antes de luchar.</li><li>Tras cada victoria recuperas toda tu vida.</li></ul>`, ''), 'historia');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+      });
+    }
+    if (sc.actualizarAltar) sc.actualizarAltar(true);
+  }
+  function pedirDios(i) {
+    const A = estadoAltar(), esHades = i === 5;
+    if (!esHades && i < A.v) return toast(`${DIOSES[i].nombre} ya fue derrotado. Su alma descansa.`);
+    if (!esHades && i > A.v) { sfx('alerta'); return toast(`${DIOSES[i].nombre} sigue dormido. Primero vence a ${DIOSES[A.v].nombre}.`, 'alerta'); }
+    const hasta = esHades ? A.hadesHasta : (A.espera || {})[i];
+    if ((hasta || 0) > Date.now()) return toast(`Descansa: podrás volver a desafiarlo en ${Math.ceil((hasta - Date.now()) / 60000)} min.`, 'alerta');
+    const D = esHades ? HADES : DIOSES[i];
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">${esHades ? 'Jefe final' : `Altar ${i + 1} de 5`} · El Altar de los Dioses</span><h2 id="modal-titulo">${esc(D.nombre)}</h2></div><button type="button" class="btn" id="of-cerrar">Ahora no</button></div>
+      <div class="dios-intro"><img class="px" src="${escena.imagenTex(`altar_${D.id}_retrato`)}" alt=""><div><p>${D.desc}</p>
+        <p class="nota">Vida: <b>${D.golpes} golpes</b> de tu espada · Cada error te quita <b>${D.dano} ${D.dano === 1 ? 'corazón' : 'corazones'}</b> · Preguntas de todas las unidades mezcladas.</p></div></div>
+      <h3>Elige tu ofrenda para este combate</h3>
+      <div class="ofrendas">${OFRENDAS.map((o) => `<button type="button" class="ofrenda" data-of="${o.id}"><span>${o.ico}</span><b>${o.nombre}</b><small>${o.desc}</small></button>`).join('')}</div>`, 'ancho dios-modal');
+    $('of-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('#modal [data-of]').forEach((b) => b.addEventListener('click', () => abrirDios(i, b.dataset.of)));
+  }
+  function preguntaMezclada(dif) {
+    const us = ['u1', 'u2', 'u3', 'u4'].filter((u) => Object.keys(Preguntas.titulos(S.curso, u)).length);
+    return Preguntas.nuevo(S.curso, elige(us.length ? us : ['u1']), dif, S.stats);
+  }
+  function abrirDios(i, ofrenda) {
+    const sc = escena, esHades = i === 5, D = esHades ? HADES : DIOSES[i], A = estadoAltar();
+    const spr = esHades ? sc.hadesSpr : sc.altares && sc.altares[i] && sc.altares[i].spr;
+    if (!spr) return;
+    if (S.arma && S.herramienta !== 'espada') equipar('espada');
+    const golpe = () => Math.max(1, Math.round(danio() * (ofrenda === 'furia' ? 1.5 : 1)));
+    const max = D.golpes * Math.max(1, danio());
+    const J = { hp: max, max, fase: 1, escudo: D.mec === 'escudo' ? 4 : 0, racha: 0, combo: 0, errores: 0, cabezas: 3, petrificado: false, n: 0,
+      reloj: D.mec === 'reloj' ? 240000 : 0, extra: ofrenda === 'vida' ? 3 : 0, limite: 0, t0: 0 };
+    let d = null, elegida = null, escrito = '', abierta = false, fin = null, ultimo = '', reloj = 0, tUlt = performance.now();
+    const retrato = sc.imagenTex(`altar_${D.id}_retrato`);
+    sc.enCombate = true;
+    spr.clearTint(); spr.anims.play(`altar_${D.id}_down`, true); sc.cameras.main.shake(500, 0.012); sfx('rugido');
+    const tiempoBase = () => {
+      if (esHades) return J.fase === 1 ? 18000 : J.fase === 2 ? 14000 : 10000;
+      let t = D.tiempo * 1000;
+      if (D.mec === 'cabezas') t -= (3 - J.cabezas) * 4000;
+      return t;
+    };
+    const nueva = () => {
+      J.n += 1;
+      d = preguntaMezclada(esHades ? (J.fase === 1 ? 2 : 3) : D.dif); elegida = null; escrito = ''; abierta = usarAbierta(d);
+      J.limite = (J.petrificado ? 7000 : tiempoBase()) + (ofrenda === 'tiempo' ? 6000 : 0); J.petrificado = false; J.t0 = performance.now();
+    };
+    const faseDe = () => (J.hp <= J.max / 3 ? 3 : J.hp <= (2 * J.max) / 3 ? 2 : 1);
+    const cerrar = (res) => {
+      clearInterval(reloj); sc.enCombate = false;
+      spr.anims.stop(); spr.setFrame(DIRS.down * 9);
+      if (res === 'victoria') {
+        S.vida = vidaMax();
+        const txt = darPremio(paquete(D.premio, 5, true), D.xp);
+        if (esHades) {
+          const primera = !A.hades; A.hades = (A.hades || 0) + 1; A.hadesHasta = Date.now() + 10 * 60000; contar('hades');
+          if (primera) toast(`👑 ¡VENCISTE A HADES! Ganas ${txt} y ${D.xp} de experiencia. Eres leyenda de Math World.`);
+          else toast(`👑 Hades cayó otra vez. Ganas ${txt} y ${D.xp} de experiencia.`);
+        } else {
+          A.v = Math.max(A.v, i + 1); contar('dios');
+          toast(`☠️ ¡Venciste a ${D.nombre}! Ganas ${txt} y ${D.xp} de experiencia. Recuperas toda tu vida.`);
+        }
+        guardar(true); pintarHUD();
+        sc.celebrar(spr.x, spr.y - 90);
+        sc.time.delayedCall(1800, () => sc.actualizarAltar(true));
+      } else if (res === 'derrota') {
+        if (esHades) A.hadesHasta = Date.now() + 2 * 60000; else A.espera = { ...(A.espera || {}), [i]: Date.now() + 2 * 60000 };
+        guardar(true);
+      } else sc.actualizarAltar(false);
+      if (res === 'derrota') morir(D.nombre);
+    };
+    const pct = () => Math.max(0, J.hp) / J.max * 100;
+    const mecHTML = () => {
+      const p = [];
+      if (J.extra > 0) p.push(`<span class="rey-escudo">❤️ Escudo de ofrenda: ${J.extra}</span>`);
+      if (D.mec === 'cabezas') p.push(`<span class="rey-escudo">🐺 Cabezas en pie: ${J.cabezas} de 3</span>`);
+      if (D.mec === 'drenaje') p.push(`<span class="rey-escudo">🗡️ Estaca de luz: ${J.racha} de 3</span>`);
+      if (J.escudo > 0) p.push(`<span class="rey-escudo">${esHades ? '👻 Almas de los dioses' : '🪨 Piel de obsidiana'}: ${J.escudo}</span>`);
+      if (D.mec === 'combo') p.push(`<span class="rey-escudo">💥 Combo ×${[1, 1.5, 2, 3][Math.min(3, Math.max(0, J.combo - 1))].toString().replace('.', ',')}</span>`);
+      if (D.mec === 'reloj') { const s = Math.max(0, Math.ceil(J.reloj / 1000)); p.push(`<span class="rey-escudo reloj-arena" id="dz-arena">⏳ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</span>`); }
+      if (esHades && J.fase === 3) p.push(`<span class="rey-escudo">🔥 Racha: ${J.racha} de 2</span>`);
+      return p.join('');
+    };
+    const pintar = () => {
+      const banner = esHades ? (J.fase === 2 ? '<div class="mensaje pista rey-fase">👻 ¡Fase 2 · Las almas de los dioses! Rompe su escudo de almas. Cada error lo cura.</div>' : J.fase === 3 ? '<div class="mensaje mal rey-fase">🔥 ¡Fase 3 · Furia del Inframundo! Solo lo hieres con 2 aciertos seguidos. Cada error quita 5 corazones y lo cura.</div>' : '') : '';
+      let cuerpo;
+      if (fin === 'victoria') cuerpo = `<div class="mensaje bien" role="status" style="font-size:18px"><span>¡Venciste a ${esc(D.nombre)}!${esHades ? ' Has derrotado al dios más poderoso de Math World.' : ' El siguiente altar comienza a despertar…'}</span></div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>¡Celebrar!</button></div>`;
+      else if (fin === 'derrota') cuerpo = `<div class="mensaje mal" role="status">${J.reloj <= 0 && D.mec === 'reloj' ? '⏳ La arena se acabó: Tánatos cosechó tu alma.' : 'Te quedaste sin corazones.'} Vuelves a tu base y pierdes lo que llevabas en la mochila. ${esc(D.nombre)} descansará 2 minutos.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Volver a mi base</button></div>`;
+      else if (fin === 'huir') cuerpo = `<div class="mensaje pista" role="status">Te retiraste. ${esc(D.nombre)} recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>`;
+      else cuerpo = `${banner}${ultimo}
+          <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
+          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${abierta ? abiertaHTML(escrito) : alternativasHTML(d, elegida, new Set(), false)}
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${(abierta ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+      ui.abrir(`
+        <div class="combate-cab">
+          <div class="luchador"><img class="px" src="${retrato}" alt="" width="72" height="72">
+            <div><span class="etq" style="color: var(--coral)">${esHades ? `Jefe final · Fase ${J.fase} de 3` : `Altar ${i + 1} de 5`} · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${esc(D.nombre)}</h2>
+              <div class="barra enemigo" role="img" aria-label="Vida: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct()}%"></i></div>
+              <div class="dios-mec">${mecHTML()}</div></div></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${golpe()}</span></div>
+        </div>${cuerpo}`, `combate jefe rey dios-${D.id}`);
+      document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      conectarAbierta((v) => { escrito = v; const b = $('r-ok'); if (b) b.disabled = !v.trim(); });
+      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+      on('r-ok', atacar);
+      on('hab-usar', () => usarHabilidad(especial));
+      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
+      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
+      ui.teclas = (e) => {
+        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
+        if (!abierta && /^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
+      };
+    };
+    const herir = (n) => {
+      const antes = J.hp; J.hp -= n;
+      sc.flotante(spr.x, spr.y - 170, `−${n}`, '#ffd27a');
+      sc.tweens.add({ targets: spr, x: spr.x + 6, duration: 50, yoyo: true, repeat: 2 });
+      if (D.mec === 'cabezas') {
+        const quedan = Math.max(0, Math.ceil(J.hp / (J.max / 3)));
+        if (quedan < J.cabezas && J.hp > 0) { J.cabezas = quedan; sfx('rugido'); sc.cameras.main.shake(400, 0.012); ultimo += `<div class="mensaje pista rey-fase" role="status">🐺 ¡Cayó una cabeza! ${J.cabezas === 1 ? 'La que queda se enfurece' : `Las ${J.cabezas} que quedan se enfurecen`}: menos tiempo para responder.</div>`; }
+      }
+      return antes;
+    };
+    const ganar = () => { fin = 'victoria'; animacionKO({ nombre: D.nombre, retrato }); };
+    const golpeRecibido = (motivo) => {
+      sfx('dano'); J.racha = 0; J.combo = 0;
+      if (D.mec === 'reloj') J.reloj -= 12000;
+      if (D.mec === 'drenaje') { const c = Math.round(J.max * 0.06); J.hp = Math.min(J.max, J.hp + c); motivo += ` Lilith bebió tu energía y se curó ${c}.`; }
+      if (D.mec === 'escudo') { J.petrificado = true; J.escudo = Math.min(4, J.escudo + 2); motivo += ' 🪨 Su piel de obsidiana se endureció (+2). 👁️ ¡Su mirada te petrifica: la próxima pregunta tendrás solo 7 segundos!'; }
+      if (D.mec === 'combo') { J.errores += 1; if (J.errores % 2 === 0) { const c = golpe() * 2; J.max += c; J.hp += c; motivo += ` El Gólem absorbió tus errores y creció (+${c} de vida).`; } }
+      if (esHades && J.fase >= 2) { const c = Math.round(J.max * 0.05); J.hp = Math.min(J.max, J.hp + c); motivo += ` Hades se curó ${c}.`; }
+      if (escudoActivo()) { vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1; ultimo = `<div class="mensaje pista" role="status">${esc(motivo)} ¡Tu escudo de cristal bloqueó el golpe!</div>`; return; }
+      let n = esHades ? (J.fase === 3 ? 5 : D.dano) : D.dano;
+      const absorbe = Math.min(J.extra, n); J.extra -= absorbe; n -= absorbe;
+      S.vida = Math.max(0, S.vida - n); if (n) sc.dolor(); pintarHUD();
+      ultimo = pasoAPasoHTML(d, `${motivo} ${n ? `¡${D.nombre.split(',')[0]} te golpeó (−${n} ${n === 1 ? 'corazón' : 'corazones'})!` : '¡Tu escudo de ofrenda absorbió el golpe!'}`, '');
+      if (S.vida <= 0 || (D.mec === 'reloj' && J.reloj <= 0)) fin = 'derrota';
+    };
+    const especial = (n) => {
+      if (fin) return;
+      contar('hab_jefe'); J.escudo = 0; herir(n); J.t0 = performance.now();
+      ultimo = msgHab(n);
+      if (J.hp <= 0) { contar('hab_ko'); ganar(); }
+      pintar();
+    };
+    const atacar = () => {
+      if (fin) return;
+      let ok;
+      if (abierta) {
+        if (!escrito.trim()) return;
+        const r = compararAbierta(d, escrito);
+        if (r.motivo) { ultimo = avisoAbierta(r.motivo); return pintar(); }
+        ok = r.ok; if (!ok) anotarEscrita(d, escrito);
+      } else { if (elegida === null) return; ok = elegida === d.correcta; }
+      registrar(d.tema, ok);
+      ultimo = '';
+      if (ok) {
+        ganarXP(6 + 3 * (esHades ? 5 : i)); sfx('golpe');
+        if (D.mec === 'reloj') J.reloj += 6000;
+        if (J.escudo > 0) { J.escudo -= 1; ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.escudo ? `El escudo resiste: le quedan ${J.escudo}.` : '¡Rompiste su escudo!'}</div>`; }
+        else if (D.mec === 'drenaje') {
+          J.racha += 1;
+          if (J.racha >= 3) { herir(golpe() * 3); J.racha = 0; ultimo += `<div class="mensaje bien" role="status">🗡️ ¡Estaca de luz! Daño triple. ${mate(d.explicacion)}</div>`; }
+          else { herir(golpe()); ultimo += `<div class="mensaje bien" role="status">¡Golpe! ${J.racha === 2 ? 'Un acierto más seguido y la estaca de luz estará lista.' : ''}</div>`; }
+        } else if (D.mec === 'combo') {
+          J.combo += 1; const m = [1, 1.5, 2, 3][Math.min(3, J.combo - 1)];
+          herir(Math.round(golpe() * m)); ultimo += `<div class="mensaje bien" role="status">💥 ¡Golpe ×${String(m).replace('.', ',')}! ${mate(d.explicacion)}</div>`;
+        } else if (esHades && J.fase === 3) {
+          J.racha += 1;
+          if (J.racha >= 2) { herir(golpe() * 2); J.racha = 0; ultimo += `<div class="mensaje bien" role="status">⚡ ¡Doble golpe al dios! ${mate(d.explicacion)}</div>`; }
+          else ultimo += '<div class="mensaje bien" role="status">¡Bien! Un acierto más seguido y le darás un doble golpe.</div>';
+        } else { herir(golpe()); ultimo += `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
+        if (J.hp <= 0) ganar();
+      } else golpeRecibido(`La respuesta era ${d.opciones[d.correcta]}.`);
+      if (!fin) {
+        if (esHades) {
+          const f = faseDe();
+          if (f > J.fase) {
+            J.fase = f; sc.cameras.main.shake(700, 0.016); sc.cameras.main.flash(350, 170, 70, 255); sfx('rugido');
+            if (f === 2) { J.escudo = 5; spr.setTint(0xd9b3ff); }
+            if (f === 3) { J.racha = 0; spr.setTint(0xff6a6a); }
+          }
+        }
+        nueva();
+      }
+      pintar();
+    };
+    nueva();
+    pintar();
+    reloj = setInterval(() => {
+      if (fin || !J.limite) return;
+      const ahora = performance.now();
+      if (D.mec === 'reloj') { J.reloj -= ahora - tUlt; const a = $('dz-arena'); if (a) { const s = Math.max(0, Math.ceil(J.reloj / 1000)); a.textContent = `⏳ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; } if (J.reloj <= 0) { fin = 'derrota'; pintar(); return; } }
+      tUlt = ahora;
+      const resto = J.limite - (ahora - J.t0), barra = $('r-tiempo');
+      if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
+      if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
+    }, 200);
+  }
+
   // ---------- Racha de días jugados ----------
   let rachaRevisada = false;
   setInterval(() => {
@@ -6509,15 +6757,18 @@
       return `<button type="button" class="zona ${ok ? '' : 'cerrada'} ${aqui ? 'aqui' : ''}" data-z="${u.id}" ${ok && !aqui ? '' : 'disabled'}>
         <small>UNIDAD ${u.numero} · ${esc(u.titulo).toUpperCase()}</small><strong>${esc(MUNDOS[u.id] ? nombreZona(u.id) : 'Zona nueva')}</strong>
         <span>${aqui ? 'Estás aquí' : ok ? 'Viajar a este mundo' : desEnCurso('horda') && mundoAbierto(u) ? '⚔️ ¡La horda ataca la base! Vuelve a defenderla.' : `Se abre cuando tu profesor habilite la Unidad ${u.numero}.`}</span></button>`;
-    }).join('') + `<button type="button" class="zona quinto ${quintoListo() ? 'listo' : ''}" id="p-quinto" aria-disabled="true">
-        <small>${quintoListo() ? 'LAS 8 GEMAS BRILLAN' : `GEMAS DE LOS JEFES · ${gemasJefeTengo()} DE ${GEMAS_JEFE.length}`}</small><strong>5to Mundo</strong><span class="q-misterio">??????</span></button>`;
+    }).join('') + (puedeAltar()
+      ? `<button type="button" class="zona quinto listo abierto" id="p-quinto" ${escena.zona === 'altar' ? 'disabled' : ''}>
+        <small>5TO MUNDO · LAS 8 GEMAS BRILLAN</small><strong>El Altar de los Dioses</strong><span>${escena.zona === 'altar' ? 'Estás aquí' : `${estadoAltar().v >= DIOSES.length ? (estadoAltar().hades ? '👑 Hades fue vencido · revancha' : '👑 Hades te espera') : `☠️ Dioses vencidos: ${estadoAltar().v} de ${DIOSES.length}`} · Viajar (solo)`}</span></button>`
+      : `<button type="button" class="zona quinto" id="p-quinto" aria-disabled="true">
+        <small>GEMAS DE LOS JEFES · ${gemasJefeTengo()} DE ${GEMAS_JEFE.length}</small><strong>5to Mundo</strong><span class="q-misterio">??????</span></button>`);
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Portal</span><h2 id="modal-titulo">¿A dónde quieres ir?</h2></div><button type="button" class="btn" id="p-cerrar">Cerrar</button></div>
       ${enBase ? '' : `<button type="button" class="zona" id="p-base"><small>TU BASE</small><strong>Volver a tu base</strong><span>Lo que llevas en la mochila se guarda en tu cofre y recuperas toda tu vida.</span></button>`}
       <div class="zonas">${tarjetas}</div>
       ${enBase ? '' : '<p class="nota">En los mundos tu vida no se recupera sola: vuelve a tu base o abre los cofres con corazón. Huir de un enemigo te quita 1 corazón. Si pierdes un combate, vuelves a tu base sin lo que llevabas en la mochila.</p>'}`);
     $('p-cerrar').addEventListener('click', () => ui.cerrar());
-    $('p-quinto').addEventListener('click', () => { sfx('alerta'); toast(quintoListo() ? '🔒 El 5to Mundo despertó con tus 8 gemas… pero su portal aún no se abre. ¡Muy pronto!' : `🔒 El 5to Mundo está sellado. Reúne las ${GEMAS_JEFE.length} gemas de los jefes (llevas ${gemasJefeTengo()}). Míralas en Tu avance → Gemas de los jefes.`, 'alerta'); });
+    $('p-quinto').addEventListener('click', () => { if (puedeAltar()) { if (escena.zona === 'altar') return; ui.alCerrar = () => viajar('altar', 0); ui.cerrar(); return; } sfx('alerta'); toast(quintoListo() ? '' : `🔒 El 5to Mundo está sellado. Reúne las ${GEMAS_JEFE.length} gemas de los jefes (llevas ${gemasJefeTengo()}). Míralas en Tu avance → Gemas de los jefes.`, 'alerta'); });
     const pb = $('p-base');
     if (pb) pb.addEventListener('click', () => { ui.alCerrar = () => viajar('base'); ui.cerrar(); });
     document.querySelectorAll('[data-z]').forEach((b) => b.addEventListener('click', () => {
@@ -7858,7 +8109,7 @@
       if (!this.textures.exists('jefe_u1b_hoja')) this.load.spritesheet('jefe_u1b_hoja', 'assets/enemigos/jefe_u1b.png', { frameWidth: 64, frameHeight: 64 });
       if (!this.textures.exists('item_prisma')) this.load.image('item_prisma', 'assets/iconos/prisma.png');
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
-      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
+      for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron', 'altar_cerbero', 'altar_vampira', 'altar_ciclope', 'altar_segador', 'altar_golem', 'altar_hades']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
       for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
@@ -7876,16 +8127,17 @@
       this.ocupado = new Set();
       // la escena se reutiliza al viajar: se limpia todo lo propio de cada mundo
       for (const k of ['rio', 'valle', 'prof', 'cima', 'pisables', 'luz', 'jefeLuz', 'tormenta', 'granLago', 'santuario', 'estanque', 'rey', 'reyTag', 'sello', 'coloso', 'colosoTag', 'selloColoso', 'dragon', 'dragonTag', 'selloDragon', 'faraon', 'faraonTag', 'selloFaraon',
-        'puenteSpr', 'montaSpr', 'elevSpr', 'rutaSpr', 'huecoSpr', 'huecoMina', 'tramoPuente', 'tramoValle', 'tramoMina', 'objObra', 'obraTag', 'objEscalar', 'lavas', 'pozaValle', 'estacion', 'estBolas', 'estHielo', 'arenaP']) this[k] = null;
+        'puenteSpr', 'montaSpr', 'elevSpr', 'rutaSpr', 'huecoSpr', 'huecoMina', 'tramoPuente', 'tramoValle', 'tramoMina', 'objObra', 'obraTag', 'objEscalar', 'lavas', 'pozaValle', 'estacion', 'estBolas', 'estHielo', 'arenaP', 'altares', 'hadesSpr', 'hadesObj', 'hadesResp']) this[k] = null;
       this.muelles = []; this.yUtil = 0; this.altoUtil = 0; this.anchoUtil = 0; this.ventisca = false;
-      if (!MUNDOS[this.zona] && this.zona !== 'pieza') this.zona = 'base';
-      if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else this.crearMundo(MUNDOS[this.zona]);
+      if (this.zona === 'altar' && !puedeAltar()) this.zona = 'base';
+      if (!MUNDOS[this.zona] && this.zona !== 'pieza' && this.zona !== 'altar') this.zona = 'base';
+      if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else if (this.zona === 'altar') this.crearAltar(); else this.crearMundo(MUNDOS[this.zona]);
       this.crearJugador();
       this.physics.world.setBounds(0, 0, this.ancho * TILE, this.alto * TILE);
       this.cameras.main.setBounds(0, 0, this.ancho * TILE, this.alto * TILE);
       this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15);
       this.cameras.main.setRoundPixels(true);
-      this.cameras.main.setBackgroundColor(this.zona === 'base' ? '#2f6b47' : this.zona === 'pieza' ? '#140d09' : MUNDOS[this.zona].fondo);
+      this.cameras.main.setBackgroundColor(this.zona === 'base' ? '#2f6b47' : this.zona === 'pieza' ? '#140d09' : this.zona === 'altar' ? '#07030c' : MUNDOS[this.zona].fondo);
       this.cameras.main.fadeIn(350, 18, 32, 26);
       this.ajustarZoom();
       this.scale.on('resize', this.ajustarZoom, this);
@@ -7920,7 +8172,119 @@
       if (this.zona === 'pieza' && this.sala.tipo === 'visita') setTimeout(() => toast(`Estás de visita en la casa de ${this.sala.nombre}: puedes mirar, pero no cambiar nada.`), 700);
       if (this.zona === 'pieza' && this.sala.tipo === 'comun') setTimeout(() => toast('Carpa común: todo el grupo puede decorarla con G. Cada uno puede guardar solo lo que puso.'), 700);
       if (this.zona === 'base' || (this.zona === 'pieza' && this.sala.tipo === 'comun')) cargarBase();
+      if (this.zona === 'altar') this.time.delayedCall(600, () => entrarAltar(this));
       revisarPendientes();
+    }
+
+    // ---------- Mundo 5: El Altar de los Dioses ----------
+    crearAltar() {
+      this.hadesResp = null;
+      this.ancho = 42; this.alto = 30;
+      const fc = (c, r) => r * 29 + c, BASE = fc(9, 2);
+      this.pisables = [BASE];
+      const data = [];
+      for (let y = 0; y < this.alto; y++) { const fila = []; for (let x = 0; x < this.ancho; x++) fila.push(x >= 2 && x < this.ancho - 2 && y >= 4 && y < this.alto - 2 ? BASE : -1); data.push(fila); }
+      this.suelo(data, 'kenney_cueva');
+      const W = this.ancho * TILE, H = this.alto * TILE;
+      const luz = (x, y, col, esc = 0.8, a = 0.3) => this.add.image(x, y, 'luz').setScale(esc).setTint(col).setBlendMode(Phaser.BlendModes.ADD).setAlpha(a).setDepth(9501);
+      // suelo teñido de inframundo, grietas de lava y paredes de roca negra
+      this.add.rectangle(0, 0, W, H, 0x22062e, 0.55).setOrigin(0).setDepth(-9);
+      const g = this.add.graphics().setDepth(-8);
+      const rnd = azar(505);
+      for (let i = 0; i < 26; i++) {
+        let x = (3 + rnd() * (this.ancho - 6)) * TILE, y = (5 + rnd() * (this.alto - 8)) * TILE;
+        g.lineStyle(3, 0xff4a1a, 0.55); g.beginPath(); g.moveTo(x, y);
+        for (let k = 0; k < 4; k++) { x += (rnd() - 0.5) * 70; y += (rnd() - 0.2) * 40; g.lineTo(x, y); }
+        g.strokePath();
+      }
+      g.fillStyle(0x0b0610, 1);
+      g.fillRect(0, 0, W, 4 * TILE); g.fillRect(0, 0, 2 * TILE, H); g.fillRect(W - 2 * TILE, 0, 2 * TILE, H); g.fillRect(0, H - 2 * TILE, W, 2 * TILE);
+      g.fillStyle(0x3a1048, 1); g.fillRect(2 * TILE, 4 * TILE - 6, W - 4 * TILE, 6);
+      for (let x = 3; x < this.ancho - 3; x += 3) { const s = this.sprite('a_estalagmita_magma', x, 3); s.setDepth(-7); }
+      this.solido(W / 2, 2 * TILE, W, 4 * TILE); this.solido(TILE, H / 2, 2 * TILE, H); this.solido(W - TILE, H / 2, 2 * TILE, H); this.solido(W / 2, H - TILE, W, 2 * TILE);
+      this.add.text(W / 2, 2 * TILE + 8, '✦ EL ALTAR DE LOS DIOSES ✦', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '22px', fontStyle: 'bold', color: '#d9b3ff', stroke: '#12001c', strokeThickness: 6 }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      // brasas que suben por todo el mundo
+      this.add.particles(0, 0, 'p_rojo', { x: { min: 2 * TILE, max: W - 2 * TILE }, y: { min: 6 * TILE, max: H - 2 * TILE }, lifespan: 2600, frequency: 70, speedY: { min: -40, max: -14 }, scale: { start: 1, end: 0 }, alpha: { start: 0.8, end: 0 } }).setDepth(9502);
+      // los 5 altares en arco (de izquierda a derecha) y el círculo del jefe final al centro
+      const POS = [[6, 13], [13, 10], [21, 9], [29, 10], [36, 13]];
+      this.altares = POS.map(([tx, ty], i) => {
+        const D = DIOSES[i], cx = tx * TILE + 16, cy = ty * TILE + 24;
+        const p = this.add.graphics().setDepth(cy - 40);
+        p.fillStyle(0x140a1c, 1); p.fillRoundedRect(cx - 74, cy - 46, 148, 64, 10);
+        p.fillStyle(0x24122e, 1); p.fillRoundedRect(cx - 60, cy - 60, 120, 40, 8);
+        p.lineStyle(3, D.color, 0.85); p.strokeRoundedRect(cx - 74, cy - 46, 148, 64, 10);
+        p.lineStyle(2, D.color, 0.6); p.strokeEllipse(cx, cy - 4, 120, 30);
+        for (const dx of [-62, 62]) { const b = this.add.image(cx + dx, cy + 10, 'a_brasero_magma').setOrigin(0.5, 1).setScale(2).setDepth(cy + 10); luz(b.x, b.y - 20, D.color, 0.7, 0.4); this.solido(b.x, b.y - 8, 20, 14); }
+        const spr = this.add.sprite(cx, cy - 20, `altar_${D.id}_hoja`, DIRS.down * 9).setOrigin(0.5, 0.92).setScale(2.6).setDepth(9502);
+        const brillo = luz(cx, cy - 70, D.color, 1.5, 0.15);
+        const tag = this.add.text(cx, cy - 190, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#ffffff', stroke: '#12001c', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+        const zz = this.add.text(cx + 30, cy - 150, 'Z z z', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#b9a6ff' }).setOrigin(0.5).setDepth(9999);
+        this.tweens.add({ targets: zz, y: zz.y - 18, alpha: { from: 0.9, to: 0 }, duration: 1800, repeat: -1 });
+        const resp = this.tweens.add({ targets: spr, scaleY: 2.66, duration: 1600, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.solido(cx, cy - 20, 110, 40);
+        for (let y = ty - 4; y <= ty + 2; y++) for (let x = tx - 3; x <= tx + 3; x++) this.marcar(x, y);
+        const obj = { tipo: 'dios', i, x: cx, y: cy + 34, activo: true };
+        this.objetos.push(obj);
+        return { spr, tag, zz, brillo, resp, obj, cx, cy };
+      });
+      // círculo del juicio (centro): aquí aparece Hades
+      const HX = 21 * TILE + 16, HY = 18 * TILE + 16;
+      const c = this.add.graphics().setDepth(-6);
+      c.lineStyle(4, 0xaa4aff, 0.7); c.strokeCircle(HX, HY, 90); c.lineStyle(2, 0xaa4aff, 0.5); c.strokeCircle(HX, HY, 70);
+      for (let k = 0; k < 5; k++) { const a1 = -Math.PI / 2 + (k * 4 * Math.PI) / 5, a2 = -Math.PI / 2 + ((k + 1) * 4 * Math.PI) / 5; c.lineBetween(HX + Math.cos(a1) * 70, HY + Math.sin(a1) * 70, HX + Math.cos(a2) * 70, HY + Math.sin(a2) * 70); }
+      this.circuloHades = c;
+      this.hadesSpr = this.add.sprite(HX, HY + 10, 'altar_hades_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(3.4).setDepth(9502).setAlpha(0);
+      this.hadesTag = this.add.text(HX, HY - 210, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#e2c2ff', stroke: '#12001c', strokeThickness: 5, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.hadesLuz = luz(HX, HY - 60, 0xaa4aff, 2.4, 0);
+      this.hadesObj = { tipo: 'dios', i: 5, x: HX, y: HY + 40, activo: false };
+      this.objetos.push(this.hadesObj);
+      for (let y = 15; y <= 21; y++) for (let x = 18; x <= 24; x++) this.marcar(x, y);
+      // oscuridad del inframundo y luz del jugador
+      this.add.rectangle(0, 0, W, H, 0x05000a, 0.5).setOrigin(0).setDepth(9500);
+      this.luz = this.add.image(0, 0, 'luz').setScale(2.8).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.32).setDepth(9501);
+      // portal de regreso (abajo al centro)
+      this.portal(21, this.alto - 4);
+      this.inicio = { x: 22 * TILE + 16, y: (this.alto - 3) * TILE };
+      this.actualizarAltar(false);
+    }
+    actualizarAltar(animar) {
+      if (!this.altares) return;
+      const A = estadoAltar();
+      this.altares.forEach((a, i) => {
+        const D = DIOSES[i], vencido = i < A.v, despierto = i === A.v;
+        const espera = ((A.espera || {})[i] || 0) - Date.now();
+        a.spr.anims.stop(); a.spr.setFrame(DIRS.down * 9);
+        if (vencido) { a.spr.setTint(0x3a3240).setAlpha(0.6); a.zz.setVisible(false); a.brillo.setAlpha(0.05); a.resp.pause(); a.tag.setText(`${D.nombre}\n☠️ Derrotado`).setColor('#9d8fb0'); }
+        else if (despierto) {
+          a.spr.clearTint().setAlpha(1); a.zz.setVisible(false); a.brillo.setAlpha(0.2); a.resp.resume();
+          a.tag.setText(`${D.nombre}\n${espera > 0 ? `descansa: vuelve en ${Math.ceil(espera / 60000)} min` : '⚔️ ¡Despierto! E para desafiarlo'}`).setColor('#ffd27a');
+          if (animar) {
+            this.cameras.main.stopFollow(); this.cameras.main.pan(a.cx, a.cy - 60, 700, 'Sine.easeInOut');
+            this.time.delayedCall(700, () => { a.spr.y -= 14; this.tweens.add({ targets: a.spr, y: a.spr.y + 14, duration: 500, ease: 'Bounce.Out' }); this.cameras.main.shake(500, 0.012); this.cameras.main.flash(300, 160, 60, 220); sfx('rugido'); this.flotante(a.cx, a.cy - 160, '¡Despierta!', '#ffd27a'); });
+            this.time.delayedCall(2200, () => { if (this.jugador) this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15); });
+          }
+        } else { a.spr.setTint(0x4a4058).setAlpha(1); a.zz.setVisible(true); a.brillo.setAlpha(0.06); a.resp.resume(); a.tag.setText(`${D.nombre}\n💤 Dormido`).setColor('#b9a6ff'); }
+      });
+      // Hades aparece al vencer a los 5
+      const listo = A.v >= DIOSES.length;
+      this.hadesObj.activo = listo;
+      if (listo) {
+        const espera = (A.hadesHasta || 0) - Date.now();
+        this.hadesTag.setText(`${HADES.nombre}\n${espera > 0 ? `se recupera: vuelve en ${Math.ceil(espera / 60000)} min` : '👑 E para el combate final'}`);
+        if (animar && !A.hadesVisto) {
+          A.hadesVisto = true; guardar(true);
+          this.cameras.main.stopFollow(); this.cameras.main.pan(this.hadesSpr.x, this.hadesSpr.y - 80, 900, 'Sine.easeInOut');
+          [900, 1300, 1700].forEach((t) => this.time.delayedCall(t, () => { this.cameras.main.flash(180, 190, 110, 255); sfx('rugido'); }));
+          this.time.delayedCall(1000, () => {
+            this.cameras.main.shake(1600, 0.02);
+            this.add.particles(this.hadesSpr.x, this.hadesSpr.y - 60, 'p_morado', { speed: { min: 60, max: 200 }, lifespan: 1200, quantity: 4, frequency: 30, duration: 1600, scale: { start: 2, end: 0 }, alpha: { start: 1, end: 0 } }).setDepth(9999);
+            this.hadesSpr.setScale(1.6); this.tweens.add({ targets: this.hadesSpr, alpha: 1, scale: 3.4, duration: 1600, ease: 'Back.Out' });
+            this.tweens.add({ targets: this.hadesLuz, alpha: 0.45, duration: 1600 });
+          });
+          this.time.delayedCall(2900, () => { avisoGrande('¡Hades ha despertado!', 'El Dios del Inframundo te espera en el círculo del juicio', 'El combate más difícil de Math World', 'quinto'); if (this.jugador) this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15); });
+        } else { this.hadesSpr.setAlpha(1); this.hadesLuz.setAlpha(0.45); }
+        if (!this.hadesResp) this.hadesResp = this.tweens.add({ targets: this.hadesSpr, scaleY: 3.48, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: animar ? 2700 : 0 });
+      } else { this.hadesTag.setText(''); this.hadesSpr.setAlpha(0); }
     }
 
     // ---------- texturas ----------
@@ -8054,7 +8418,7 @@
         const t = this.textures.createCanvas(key, 64, 64);
         t.context.drawImage(src, col * 64, fila * 64, 64, 64, 0, 0, 64, 64); t.refresh();
       };
-      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron'];
+      const LPC = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u1b', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron', 'altar_cerbero', 'altar_vampira', 'altar_ciclope', 'altar_segador', 'altar_golem', 'altar_hades'];
       for (const n of LPC) cuadro(`${n}_retrato`, `${n}_hoja`, 0, 2);
       for (const [k, h] of LPC.map((n) => [n, `${n}_hoja`])) {
         for (const [d, fila] of Object.entries(DIRS)) {
@@ -10405,7 +10769,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' || o.tipo === 'dios' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -10443,6 +10807,7 @@
         case 'ladron': return '¡Atrapar al ladrón!';
         case 'tesoro': return 'Cavar el tesoro (responde 3 preguntas)';
         case 'portal': return 'Usar el portal';
+        case 'dios': return textoDios(o.i);
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
         case 'obra': return o.listo ? null : this.valle ? 'Ver y aportar al montacargas' : this.prof ? 'Ver y aportar al elevador' : this.cima ? 'Ver y aportar a la ruta de escalada' : 'Ver y aportar al puente';
@@ -10493,6 +10858,7 @@
       if (o.tipo === 'coord') return desActivo('cartesiano') && excavarCoord(o);
       if (o.tipo === 'mimico') return desActivo('mimicos') && abrirMimico(o);
       if (o.tipo === 'portal') return abrirPortal();
+      if (o.tipo === 'dios') return pedirDios(o.i);
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
       if (o.tipo === 'obra') return o.listo ? null : abrirObra();

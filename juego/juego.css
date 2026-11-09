@@ -1306,3 +1306,21 @@ body.daltonico .mensaje.bien { border-color: #2f7bff; background: #16294d; }
 body.daltonico .mensaje.mal { border-color: #ff9f1a; background: #4a3212; }
 body.liviano *, body.liviano *::before, body.liviano *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition: none !important; }
 .mensaje.prog-mejorar { background: var(--bg); border: 2px solid #f2b544; }
+
+/* Mundo 5: El Altar de los Dioses */
+.zona.quinto.abierto { background: linear-gradient(135deg, #2a0a3a, #4a1a5e); border-color: #b98cff; color: #f3e6ff; cursor: pointer; box-shadow: 0 0 18px rgba(170, 74, 255, .45); }
+.zona.quinto.abierto strong { color: #e2c2ff; }
+.zona.quinto.abierto:disabled { cursor: default; opacity: .85; }
+.dios-intro { display: flex; gap: 14px; align-items: flex-start; padding: 12px; border-radius: 14px; background: #1a0b22; border: 2px solid #7a3aa8; }
+.dios-intro img { width: 96px; height: 96px; image-rendering: pixelated; background: radial-gradient(#3a1a4e, #12051a); border-radius: 12px; }
+.dios-intro p { margin: 0 0 6px; line-height: 1.5; }
+.ofrendas { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.ofrenda { display: flex; flex-direction: column; gap: 4px; align-items: center; text-align: center; padding: 14px 10px; border-radius: 14px; border: 2px solid #7a3aa8; background: #1a0b22; color: #f3e6ff; cursor: pointer; font: inherit; }
+.ofrenda span { font-size: 32px; }
+.ofrenda small { color: #c9b3dc; }
+.ofrenda:hover, .ofrenda:focus-visible { border-color: #f2b544; transform: translateY(-2px); }
+.dios-mec { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.reloj-arena { background: #12333a !important; border-color: #4ae0d0 !important; }
+.modal[class*="dios-"] { border-color: #b98cff; box-shadow: 0 0 40px rgba(170, 74, 255, .35); }
+.modal.dios-hades { border-color: #d9b3ff; box-shadow: 0 0 60px rgba(170, 74, 255, .6); }
+.zona.quinto.abierto::after { content: "⛩️"; }
