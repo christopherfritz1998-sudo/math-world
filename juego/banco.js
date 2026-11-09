@@ -170,6 +170,11 @@
   // Repaso de errores: el juego entrega una función que dice qué tema toca repasar (o null)
   let repaso = null;
   function fijarRepaso(fn) { repaso = typeof fn === 'function' ? fn : null; }
+  // Maestría: el juego puede subir o bajar la dificultad de cada tema (+1 / −1) según el rango del estudiante
+  let ajuste = null;
+  const difServida = {};
+  function fijarAjuste(fn) { ajuste = typeof fn === 'function' ? fn : null; }
+  const nivelCon = (nivel, tema) => Math.max(1, Math.min(3, nivel + (ajuste ? (Number(ajuste(tema)) || 0) : 0)));
   function nuevo(curso, unidad, dif, stats) {
     const temas = BANCO[curso] && BANCO[curso][unidad];
     if (repaso && Math.random() < 0.3) {
@@ -191,9 +196,11 @@
       for (let j = 0; j < 6; j++) {
         const i = sacarVariante(M, k, t.variantes.length);
         let d = null;
-        for (let r = 0; r < 4 && !valido(d); r++) d = t.variantes[i](r < 2 ? nivel : 1);
+        const nv = nivelCon(nivel, k);
+        for (let r = 0; r < 4 && !valido(d); r++) d = t.variantes[i](r < 2 ? nv : 1);
         if (!valido(d)) continue;
         d = { ...d, tema: k, titulo: t.titulo };
+        difServida[k] = nv;
         if (M.vistos.includes(firma(d))) { respaldo = respaldo || d; continue; }
         M.ultimo = k;
         M.vistos.push(firma(d)); if (M.vistos.length > RECIENTES) M.vistos.shift();
@@ -231,9 +238,11 @@
     for (let j = 0; j < 8; j++) {
       const i = sacarVariante(M, tema, t.variantes.length);
       let d = null;
-      for (let r = 0; r < 4 && !valido(d); r++) d = t.variantes[i](r < 2 ? nivel : 1);
+      const nv = nivelCon(nivel, tema);
+      for (let r = 0; r < 4 && !valido(d); r++) d = t.variantes[i](r < 2 ? nv : 1);
       if (!valido(d)) continue;
       d = { ...d, tema, titulo: t.titulo };
+      difServida[tema] = nv;
       if (M.vistos.includes(firma(d))) { respaldo = respaldo || d; continue; }
       M.vistos.push(firma(d)); if (M.vistos.length > RECIENTES) M.vistos.shift();
       return d;
@@ -252,6 +261,8 @@
   P.unidadDeTema = unidadDeTema;
   P.fijarFoco = fijarFoco;
   P.fijarRepaso = fijarRepaso;
+  P.fijarAjuste = fijarAjuste;
+  P.difDe = (tema) => difServida[tema] || 1;
   P.antiguos = ANTIGUOS;
   P.valido = valido;
 })(typeof window !== 'undefined' ? window : globalThis);

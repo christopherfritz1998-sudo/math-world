@@ -493,8 +493,8 @@
 
   // El docente tiene todas las herramientas (para probar minijuegos y zonas); armas y armaduras las fabrica gratis
   const tiene = (id) => S.mejoras.includes(id) || (Boolean(S.docente) && !ARMAS[id] && !ARMADURAS[id]);
-  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0);
-  const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1);
+  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0) + talento('vitalidad');
+  const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1) + talento('fuerza');
   const esDocente = () => Boolean(S && S.docente);
   const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
   const alcanza = (costo) => Object.entries(costo).every(([r, n]) => total(r) >= n);
@@ -619,6 +619,8 @@
   }
   function ganarXP(n) {
     if (desActivo('sabio')) n *= 2;
+    if (talento('sabio')) n = Math.round(n * (1 + 0.1 * talento('sabio')));
+    const evX = eventoActual(); if (evX && evX.id === 'xp2') n *= 2;
     S.xp += n;
     sumarTemporada(n);
     let subio = false;
@@ -1180,7 +1182,7 @@
 
   // ---------- Modo celular: interfaz compacta con un menú ☰ ----------
   const MENU_MOVIL = [['btn-base', '🔥', 'Fabricar'], ['btn-decorar', '🧰', 'Decorar'], ['btn-equipo', '⚔️', 'Equipo'], ['btn-misiones', '📜', 'Misiones'], ['btn-logros', '🏆', 'Logros'],
-    ['btn-mapa', '🗺️', 'Avance'], ['btn-chat', '💬', 'Chat'], ['btn-novedades', '💡', 'Novedades'], ['btn-reportar', '⚠️', 'Reportar'], ['btn-sonido', '🔊', 'Sonido'], ['btn-portal', '🏫', 'Portal docente']];
+    ['btn-mapa', '🗺️', 'Avance'], ['btn-progreso', '📈', 'Mi progreso'], ['btn-chat', '💬', 'Chat'], ['btn-novedades', '💡', 'Novedades'], ['btn-reportar', '⚠️', 'Reportar'], ['btn-sonido', '🔊', 'Sonido'], ['btn-portal', '🏫', 'Portal docente']];
   function prepararMovil() {
     const movil = tactil() || Math.min(window.innerWidth, window.innerHeight) < 500;
     document.body.classList.toggle('movil', movil);
@@ -1418,6 +1420,7 @@
     cargarHabilidad(acierto);
     extraRegistrar(tema, acierto);
     repasoRegistrar(tema, acierto); semanaRegistrar(acierto); mascotaRegistrar(acierto);
+    maestriaRegistrar(tema, acierto, Preguntas.difDe ? Preguntas.difDe(tema) : 1); bonoRespuesta(acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
   }
@@ -1432,7 +1435,7 @@
   function abrirDesafio({ accion, dif, premio, unidad, onOk }) {
     const pagarUnaVez = unaVez(onOk);
     const nuevo = () => Preguntas.nuevo(S.curso, unidad || unidadActual(), dif, S.stats);
-    let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = false, fallidas = new Set(), aviso = '';
+    let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = false, fallidas = new Set(), aviso = '', escrito = '', abierta = usarAbierta(d, dif);
     const pintar = () => {
       let msg = '';
       if (resuelto) msg = `<div class="mensaje bien" role="status">¡Correcto! ${mate(d.explicacion)}</div>`;
@@ -1443,39 +1446,46 @@
           <div class="pildoras"><span class="pildora">Dificultad ${dif} de 3</span><span class="pildora premio">${premio}</span></div>
         </div>
         <p class="enunciado">${mate(d.enunciado)}</p>
-        ${alternativasHTML(d, elegida, fallidas, resuelto)}
+        ${abierta ? (resuelto ? `<p class="resp-ok">✍️ Escribiste <b>${esc(escrito)}</b> ✓</p>` : abiertaHTML(escrito)) : alternativasHTML(d, elegida, fallidas, resuelto)}
         ${msg}
         <div class="acciones">
           <div>${resuelto ? '' : `<button type="button" class="btn sec" id="d-pista">${pista ? 'Ocultar pista' : 'Ver pista'}</button>`}
                </div>
           <div>${resuelto ? '<button type="button" class="btn pri" id="d-seguir" data-foco>¡Seguir!</button>'
-            : `<button type="button" class="btn" id="d-salir">Salir</button><button type="button" class="btn pri" id="d-ok" ${elegida === null ? 'disabled' : ''}>Comprobar</button>`}</div>
+            : `<button type="button" class="btn" id="d-salir">Salir</button><button type="button" class="btn pri" id="d-ok" ${(abierta ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>Comprobar</button>`}</div>
         </div>`);
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('d-pista', () => { pista = !pista; pintar(); });
       on('d-salir', () => ui.cerrar());
-      on('d-otro', () => { d = nuevo(); elegida = null; fallos = 0; fallidas = new Set(); pista = false; pintar(); });
+      on('d-otro', () => { d = nuevo(); elegida = null; fallos = 0; fallidas = new Set(); pista = false; escrito = ''; abierta = usarAbierta(d, dif); pintar(); });
       on('d-ok', comprobar);
+      conectarAbierta((v) => { escrito = v; const b = $('d-ok'); if (b) b.disabled = !v.trim(); });
       on('d-seguir', () => { ui.alCerrar = pagarUnaVez; ui.cerrar(); });
       ui.teclas = teclas;
     };
     const comprobar = () => {
-      if (elegida === null || resuelto) return;
-      const ok = elegida === d.correcta;
+      if (resuelto) return;
+      let ok;
+      if (abierta) {
+        if (!escrito.trim()) return;
+        const r = compararAbierta(d, escrito);
+        if (r.motivo) { aviso = avisoAbierta(r.motivo); return pintar(); }
+        ok = r.ok; if (!ok) anotarEscrita(d, escrito);
+      } else { if (elegida === null) return; ok = elegida === d.correcta; }
       registrar(d.tema, ok);
-      if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4); if (fallos > 0) contar('recupera'); }
+      if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4 + (abierta ? 6 : 0)); if (fallos > 0) contar('recupera'); if (abierta) contar('escrita'); }
       else {
         // Error: no quita vida; se muestra la respuesta correcta y se cambia a otra pregunta
         fallos += 1; sfx('error');
         aviso = pasoAPasoHTML(d, 'No era esa.', 'Ahora intenta con una parecida 👇');
-        d = (Preguntas.deTema && Preguntas.deTema(S.curso, d.tema, dif)) || nuevo(); elegida = null; fallidas = new Set(); pista = false;
+        d = (Preguntas.deTema && Preguntas.deTema(S.curso, d.tema, dif)) || nuevo(); elegida = null; fallidas = new Set(); pista = false; escrito = ''; abierta = usarAbierta(d, dif);
       }
       guardar();
       pintar();
     };
     const teclas = (e) => {
-      if (/^[1-4]$/.test(e.key) && !resuelto) { const i = Number(e.key) - 1; if (!fallidas.has(i)) { elegida = i; pintar(); } }
+      if (/^[1-4]$/.test(e.key) && !resuelto && !abierta) { const i = Number(e.key) - 1; if (!fallidas.has(i)) { elegida = i; pintar(); } }
       else if (e.key === 'Enter') { e.preventDefault(); if (resuelto) { ui.alCerrar = pagarUnaVez; ui.cerrar(); } else comprobar(); }
     };
     pintar();
@@ -3739,6 +3749,13 @@
     L('ticket3', 'aprender', '🎟️', 'Ticket en mano', 'Responde 3 tickets de salida de tu profesor.', 3, () => CN('ticket'), 'Estudiante Puntual'),
     L('semana1', 'aprender', '👥', 'Todos a una', 'Ayuda a tu curso a cumplir una misión semanal.', 1, () => CN('semana'), 'Espíritu de Curso'),
     L('mascota_adulta', 'coleccion', '🐾', 'Criador experto', 'Haz crecer una mascota hasta su forma adulta.', 1, () => CN('mascota_adulta'), 'Domador'),
+    L('plata5', 'aprender', '🥈', 'Mente de plata', 'Llega al rango plata en 5 temas.', 5, () => CN('plata'), 'Estudioso'),
+    L('oro1', 'aprender', '🥇', 'Vencedor del guardián', 'Vence al guardián de un tema y llega al rango oro.', 1, () => CN('oro'), 'Maestro del Tema'),
+    L('escrita20', 'aprender', '✍️', 'Sin alternativas', 'Responde bien 20 preguntas escribiendo el resultado.', 20, () => CN('escrita'), 'Calculista'),
+    L('taller10', 'fabricar', '🧮', 'Aprendiz del gremio', 'Completa 10 encargos del Taller del gremio.', 10, () => CN('encargo'), 'Artesano Calculista'),
+    L('investiga3', 'aprender', '🔍', 'Investigador', 'Resuelve 3 investigaciones del Taller del gremio.', 3, () => CN('investigacion'), 'Investigador'),
+    L('historia4', 'explorar', '📖', 'Fin de la historia', 'Completa los 4 capítulos del modo historia.', 4, () => CN('capitulo'), 'Héroe de Math World'),
+    L('evento5', 'explorar', '🌩️', 'Cazador de eventos', 'Responde bien durante 5 eventos del mundo distintos.', 5, () => CN('evento'), 'Cazatormentas'),
     // ----- Clanes y guerra de clanes -----
     L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
     L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
@@ -4849,6 +4866,8 @@
     const F = extraE && extraE.foco, R = refuerzoActivo();
     if (F) h += `<strong>📚 Tema de la clase</strong><ul><li><span>${esc((F.titulos || []).join(', '))}</span></li></ul>`;
     if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<strong>🎯 Refuerzo de tu profesor</strong><ul><li class="${p >= R.meta ? 'ok' : ''}"><span>${esc(R.titulo)}</span><b>${p}/${R.meta}</b></li></ul>`; }
+    const Hc = capituloActual();
+    if (Hc) h += `<strong>📖 ${esc(Hc.c.titulo.split(' · ')[0])}</strong><ul>${Hc.activo ? Hc.c.obj.map(([k, n, txt]) => `<li class="${Hc.p[k] >= n ? 'ok' : ''}"><span>${esc(txt)}</span><b>${Math.min(n, Hc.p[k])}/${n}</b></li>`).join('') : `<li><span>Viaja a ${esc(nombreMundo(Hc.c.u))} para comenzar</span></li>`}</ul>`;
     const W = extraE && extraE.semana;
     if (W && W.meta) h += `<strong>👥 Misión del curso (semana)</strong><ul><li class="${W.total >= W.meta ? 'ok' : ''}"><span>Respuestas correctas entre todos</span><b>${Math.min(W.total, W.meta)}/${W.meta}</b></li></ul>`;
     return h;
@@ -5002,6 +5021,388 @@
     }
   }
 
+  // ===================================================================
+  // Profundidad: maestría por tema, respuestas abiertas, talentos, taller del gremio, historia, eventos y accesibilidad
+  // ===================================================================
+  // ---------- Maestría por tema (bronce → plata → oro con guardián) ----------
+  const RANGOS = [['▫️', 'Sin rango'], ['🥉', 'Bronce'], ['🥈', 'Plata'], ['🥇', 'Oro']];
+  const PTS_BRONCE = 8, PTS_PLATA = 25;
+  function maestriaDe(tema) { return ((S && S.maestria) || {})[tema] || { p: 0, g: false }; }
+  function rangoDe(tema) { const m = maestriaDe(tema); return m.g ? 3 : m.p >= PTS_PLATA ? 2 : m.p >= PTS_BRONCE ? 1 : 0; }
+  function maestriaRegistrar(tema, acierto, dif) {
+    if (!S || !tema || esDocente()) return;
+    const M = S.maestria || (S.maestria = {}), m = M[tema] || (M[tema] = { p: 0, g: false });
+    const antes = rangoDe(tema);
+    m.p = Math.max(0, Math.min(99, m.p + (acierto ? Math.max(1, Math.min(3, dif || 1)) : -1)));
+    const r = rangoDe(tema);
+    if (r > antes) {
+      sfx('logro'); contar(r >= 2 ? 'plata' : 'bronce');
+      toast(`${RANGOS[r][0]} ¡Rango ${RANGOS[r][1]} en «${Preguntas.tituloDe(tema)}»! ${r === 2 ? 'Las preguntas de este tema serán más difíciles y ya puedes desafiar a su guardián para llegar a oro (tecla P).' : 'Ahora a veces tendrás que escribir el resultado, sin alternativas.'}`);
+    }
+  }
+  // Dificultad adaptativa: plata u oro → preguntas más difíciles; si cuesta mucho → un poco más fáciles
+  if (window.Preguntas && Preguntas.fijarAjuste) {
+    Preguntas.fijarAjuste((tema) => {
+      if (!S) return 0;
+      const r = rangoDe(tema), st = (S.stats || {})[tema];
+      if (r >= 2) return 1;
+      if (r === 0 && st && st.i >= 6 && st.a / st.i < 0.4) return -1;
+      return 0;
+    });
+  }
+
+  // ---------- Respuesta abierta: escribir el resultado (entero, decimal o fracción) ----------
+  const mcd = (a, b) => (b ? mcd(b, a % b) : Math.abs(a));
+  function valorDe(s) {
+    let t = String(s ?? '').trim().replace(/[−–]/g, '-').replace(/\s+/g, '').replace(/^\+/, '').replace(/^\$/, '').replace(/(°C|°|cm²|m²|km²|cm³|m³|km|cm|mm|m|kg|g|ml|L|%|\$)$/i, '');
+    if (!t) return null;
+    const f = t.match(/^(-?\d+)\/(-?\d+)$/);
+    if (f) { const a = Number(f[1]), b = Number(f[2]); return b ? { v: a / b, frac: [a, b] } : null; }
+    if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+    else if (/^-?\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
+    return /^-?\d+(\.\d+)?$/.test(t) ? { v: Number(t), frac: null } : null;
+  }
+  function abiertaPosible(d) { return Boolean(d && d.opciones && d.opciones.length > 1 && d.opciones.every((o) => valorDe(o))); }
+  function usarAbierta(d) { return Boolean(S && d && rangoDe(d.tema) >= 1 && abiertaPosible(d) && Math.random() < 0.45); }
+  function compararAbierta(d, txt) {
+    const c = valorDe(d.opciones[d.correcta]), r = valorDe(txt);
+    if (!r) return { ok: false, motivo: 'formato' };
+    if (!c || Math.abs(c.v - r.v) > 1e-9 * Math.max(1, Math.abs(c.v))) return { ok: false };
+    if (r.frac && c.frac && mcd(r.frac[0], r.frac[1]) > 1) return { ok: false, motivo: 'simplificar' };
+    return { ok: true };
+  }
+  function avisoAbierta(motivo) {
+    return motivo === 'simplificar' ? '<div class="mensaje pista" role="status">¡Casi! Tu fracción vale lo mismo, pero simplifícala al máximo.</div>'
+      : '<div class="mensaje pista" role="status">No entendí tu respuesta: escribe solo un número, por ejemplo −12, 2,5 o 3/4.</div>';
+  }
+  function anotarEscrita(d, txt) {
+    if (!S || !d.tema) return;
+    const E = S.escritas || (S.escritas = {}), l = E[d.tema] || (E[d.tema] = []);
+    l.push({ r: String(txt).slice(0, 20), c: String(d.opciones[d.correcta]).slice(0, 20), t: Date.now() });
+    if (l.length > 5) l.shift();
+    const ks = Object.keys(E); if (ks.length > 25) delete E[ks[0]];
+  }
+  function abiertaHTML(valor) {
+    return `<div class="resp-abierta"><label for="resp-in">✍️ Sin alternativas: escribe el resultado</label>
+      <input id="resp-in" type="text" autocomplete="off" spellcheck="false" maxlength="20" value="${esc(valor)}" placeholder="Ej: −12 · 3/4 · 2,5">
+      <small>Puedes escribir enteros (−3), decimales con coma (2,5) o fracciones (3/4). ¡Vale más experiencia!</small></div>`;
+  }
+  function conectarAbierta(alCambiar) {
+    const i = $('resp-in'); if (!i) return;
+    i.addEventListener('input', () => alCambiar(i.value));
+    i.addEventListener('keydown', (e) => { if (e.key !== 'Enter' && e.key !== 'Escape') e.stopPropagation(); });
+    setTimeout(() => { i.focus(); const n = i.value.length; try { i.setSelectionRange(n, n); } catch (e) { /* */ } }, 30);
+  }
+
+  // ---------- Serie de preguntas (guardián, taller e investigaciones) ----------
+  function abrirSerie({ etq, titulo, nota, preguntas, abierta, alFin, registrarStats = true }) {
+    let i = 0, elegida = null, escrito = '', aciertos = 0, msg = '';
+    const det = [];
+    preguntas.forEach((d) => { d.ab = Boolean(d.forzarAbierta || (abierta && abiertaPosible(d) && Math.random() < 0.5)); });
+    const responder = () => {
+      const d = preguntas[i]; let ok;
+      if (d.ab) {
+        if (!escrito.trim()) return;
+        const r = compararAbierta(d, escrito);
+        if (r.motivo) { msg = avisoAbierta(r.motivo); return pintar(); }
+        ok = r.ok; if (!ok) anotarEscrita(d, escrito);
+      } else { if (elegida === null) return; ok = elegida === d.correcta; }
+      if (registrarStats && d.tema) registrar(d.tema, ok);
+      if (ok) { aciertos += 1; if (d.ab) contar('escrita'); }
+      det.push({ tema: d.tema, ok }); sfx(ok ? 'acierto' : 'error');
+      msg = ok ? `<div class="mensaje bien" role="status">✅ ¡Correcto! ${mate(d.explicacion || '')}</div>` : pasoAPasoHTML(d, 'No era esa.', '');
+      i += 1; elegida = null; escrito = ''; guardar();
+      if (i >= preguntas.length) { ui.cerrar(); alFin(aciertos, det, msg); } else pintar();
+    };
+    const pintar = () => {
+      const d = preguntas[i];
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">${etq} · ${i + 1} de ${preguntas.length}</span><h2 id="modal-titulo">${esc(titulo)}</h2></div><div class="pildoras"><span class="pildora">Aciertos: ${aciertos}</span></div></div>
+        ${nota ? `<p class="nota">${nota}</p>` : ''}${msg}
+        ${d.paso ? `<p class="paso-serie">${esc(d.paso)}</p>` : ''}
+        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${d.ab ? abiertaHTML(escrito) : alternativasHTML({ ...d, repaso: false }, elegida, new Set(), false)}
+        <div class="acciones"><button type="button" class="btn" id="se-salir">Salir</button><button type="button" class="btn pri" id="se-ok" ${(d.ab ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>Responder</button></div>`, 'serie');
+      document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      conectarAbierta((v) => { escrito = v; const b = $('se-ok'); if (b) b.disabled = !v.trim(); });
+      $('se-ok').addEventListener('click', responder);
+      $('se-salir').addEventListener('click', () => ui.cerrar());
+      ui.teclas = (e) => { if (!d.ab && /^[1-4]$/.test(e.key) && Number(e.key) <= d.opciones.length) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); responder(); } };
+    };
+    pintar();
+  }
+  function resultadoHTML(etq, titulo, cuerpo, volver) {
+    return `<div class="modal-cab"><div><span class="etq">${etq}</span><h2 id="modal-titulo">${titulo}</h2></div></div>${cuerpo}
+      <div class="acciones"><span></span><div>${volver ? `<button type="button" class="btn" id="res-volver">${volver}</button>` : ''}<button type="button" class="btn pri" id="res-ok" data-foco>Cerrar</button></div></div>`;
+  }
+
+  // ---------- Guardián del tema: 4 de 5 preguntas difíciles para llegar a oro ----------
+  function abrirGuardian(tema) {
+    if (rangoDe(tema) !== 2) return;
+    const ps = Array.from({ length: 5 }, () => Preguntas.deTema(S.curso, tema, 3)).filter(Boolean);
+    if (ps.length < 5) return toast('No se pudo preparar el desafío del guardián. Inténtalo otra vez.', 'alerta');
+    abrirSerie({ etq: '🛡️ Guardián del tema', titulo: Preguntas.tituloDe(tema), preguntas: ps, abierta: true,
+      nota: 'Responde bien <b>4 de 5</b> preguntas difíciles (algunas sin alternativas) para ganar el rango 🥇 <b>Oro</b>. Si no lo logras, podrás intentarlo de nuevo en 10 minutos.',
+      alFin: (a, det, ultimo) => {
+        const ok = a >= 4;
+        let txt = '';
+        if (ok) { S.maestria[tema].g = true; contar('oro'); txt = darPremio(paquete(8, 4, true), 150); sfx('logro'); if (escena) escena.celebrar(); }
+        else { S.guardianEspera = { ...(S.guardianEspera || {}), [tema]: Date.now() + 10 * 60000 }; }
+        guardar(true);
+        ui.abrir(resultadoHTML('🛡️ Guardián del tema', ok ? '🥇 ¡Rango Oro!' : 'El guardián resistió', `${ultimo}
+          <p class="enunciado">Respondiste bien <b>${a} de 5</b>.</p>
+          <p class="nota">${ok ? `Dominas «${esc(Preguntas.tituloDe(tema))}». Premio: <b>${esc(txt)}</b> y <b>150</b> de experiencia, y 2 puntos de talento.` : 'Repasa el paso a paso de tus errores y vuelve a intentarlo en 10 minutos.'}</p>`, '📈 Ver mi progreso'), 'serie');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+        $('res-volver').addEventListener('click', () => abrirProgreso());
+      } });
+  }
+
+  // ---------- Talentos: puntos por dominar temas (1 por plata, 2 por oro) ----------
+  const TALENTOS = [
+    { id: 'fuerza', ico: '⚔️', nombre: 'Fuerza', desc: '+1 de daño en cada golpe por punto.' },
+    { id: 'vitalidad', ico: '❤️', nombre: 'Vitalidad', desc: '+1 corazón máximo por punto.' },
+    { id: 'sabio', ico: '📖', nombre: 'Sabiduría', desc: '+10 % de experiencia por punto.' },
+    { id: 'suerte', ico: '🍀', nombre: 'Suerte', desc: '6 % de probabilidad por punto de ganar un recurso extra al acertar.' },
+  ];
+  const MAX_TALENTO = 3;
+  function talento(id) { return Math.max(0, Math.min(MAX_TALENTO, Number(((S && S.talentos) || {})[id]) || 0)); }
+  function puntosTalento() { let n = 0; for (const t of Object.keys((S && S.maestria) || {})) { const r = rangoDe(t); n += r >= 3 ? 2 : r >= 2 ? 1 : 0; } return n; }
+  function puntosUsados() { return TALENTOS.reduce((a, t) => a + talento(t.id), 0); }
+  // Bonos al responder: talento Suerte y eventos del mundo
+  function bonoRespuesta(acierto) {
+    if (!S || !acierto || esDocente()) return;
+    if (talento('suerte') && Math.random() < 0.06 * talento('suerte')) { const txt = darPremio(paquete(1, 1, true), 0, false); toast(`🍀 ¡Suerte! Ganas ${txt} extra.`); }
+    const ev = eventoActual(); if (!ev) return;
+    if (S.eventoVisto !== ev.clave) { S.eventoVisto = ev.clave; contar('evento'); }
+    if (ev.id === 'cristal') darPremio({ cristal: 1 }, 0, false);
+    if (ev.id === 'racha' && S.racha > 0 && S.racha % 3 === 0) { const txt = darPremio(paquete(3, 2, true), 0, false); toast(`🔥 ¡Racha relámpago! Cofre: ${txt}.`); }
+  }
+
+  // ---------- Mi progreso: maestría por tema y talentos (tecla P) ----------
+  function nombreMundo(u) { const m = MUNDOS[u]; return m ? (typeof m.nombre === 'string' ? m.nombre : m.nombre[S.curso] || Object.values(m.nombre)[0]) : u; }
+  function abrirProgreso(tab = 'maestria') {
+    if (!S) return;
+    const cuenta = [0, 0, 0, 0];
+    let total = 0;
+    const unidades = ['u1', 'u2', 'u3', 'u4'].map((u) => {
+      const filas = Object.entries(Preguntas.titulos(S.curso, u)).map(([k, t]) => {
+        const m = maestriaDe(k), r = rangoDe(k), st = (S.stats || {})[k];
+        cuenta[r] += 1; total += 1;
+        const meta = r === 0 ? PTS_BRONCE : r === 1 ? PTS_PLATA : 0;
+        const pct = meta ? Math.min(100, Math.round((m.p / meta) * 100)) : 100;
+        const espera = ((S.guardianEspera || {})[k] || 0) - Date.now();
+        const accion = r === 2 ? (espera > 0 ? `<small class="nota">Guardián en ${Math.ceil(espera / 60000)} min</small>` : `<button type="button" class="btn mini" data-guardian="${k}">🛡️ Guardián</button>`) : '';
+        const sub = r === 3 ? '¡Dominado!' : r === 2 ? 'Vence al guardián para llegar a oro' : `${m.p}/${meta} puntos para ${RANGOS[r + 1][1].toLowerCase()}`;
+        return `<li class="rango-${r}"><span class="r-ico" title="${RANGOS[r][1]}">${RANGOS[r][0]}</span><div class="r-info"><b>${esc(t)}</b><div class="barra"><i style="width:${pct}%"></i></div><small>${sub}${st && st.i ? ` · ${Math.round((st.a / st.i) * 100)} % de acierto (${st.i})` : ' · aún sin respuestas'}</small></div>${accion}</li>`;
+      }).join('');
+      return filas ? `<section class="prog-unidad"><h3>${esc(nombreMundo(u))}</h3><ul class="prog-temas">${filas}</ul></section>` : '';
+    }).join('');
+    const debiles = Object.entries(S.stats || {}).filter(([k, s]) => s.i >= 3 && Preguntas.unidadDeTema(S.curso, k)).map(([k, s]) => ({ k, pct: Math.round((s.a / s.i) * 100) })).filter((x) => x.pct < 70).sort((a, b) => a.pct - b.pct).slice(0, 3);
+    const libres = puntosTalento() - puntosUsados();
+    const cuerpoM = `<div class="prog-resumen"><span>🥇 <b>${cuenta[3]}</b> oro</span><span>🥈 <b>${cuenta[2]}</b> plata</span><span>🥉 <b>${cuenta[1]}</b> bronce</span><span>▫️ <b>${cuenta[0]}</b> sin rango</span></div>
+      ${debiles.length ? `<div class="mensaje prog-mejorar"><span>🎯 <b>Para mejorar:</b> ${debiles.map((x) => `${esc(Preguntas.tituloDe(x.k))} (${x.pct} %)`).join(' · ')}</span></div>` : ''}
+      <p class="nota">Cada respuesta correcta suma puntos al tema (+1 fácil, +2 media, +3 difícil; −1 por error). Con <b>${PTS_BRONCE}</b> llegas a bronce 🥉 (a veces tendrás que escribir el resultado) y con <b>${PTS_PLATA}</b> a plata 🥈 (preguntas más difíciles). Para oro 🥇 vence al guardián del tema.</p>
+      ${unidades}`;
+    const cuerpoT = `<p class="nota">Ganas <b>1 punto de talento</b> por cada tema en plata y <b>2</b> por cada tema en oro. Tienes <b>${libres}</b> ${libres === 1 ? 'punto libre' : 'puntos libres'} (de ${puntosTalento()}).</p>
+      <div class="talentos">${TALENTOS.map((t) => `<div class="talento"><span class="t-ico">${t.ico}</span><div><b>${t.nombre}</b><small>${t.desc}</small><div class="t-pips">${Array.from({ length: MAX_TALENTO }, (_, i) => `<i class="${i < talento(t.id) ? 'on' : ''}"></i>`).join('')}</div></div><button type="button" class="btn sec" data-talento="${t.id}" ${libres > 0 && talento(t.id) < MAX_TALENTO ? '' : 'disabled'}>+1</button></div>`).join('')}</div>
+      ${puntosUsados() ? '<button type="button" class="btn" id="t-reset">Reiniciar talentos</button>' : ''}`;
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Nivel ${S.nivel} · ${total} temas</span><h2 id="modal-titulo">📈 Mi progreso</h2></div><button type="button" class="btn" id="pg-cerrar">Cerrar</button></div>
+      <div class="pestanas" role="tablist"><button type="button" role="tab" data-pg="maestria" aria-selected="${tab === 'maestria'}">🥇 Maestría por tema</button><button type="button" role="tab" data-pg="talentos" aria-selected="${tab === 'talentos'}">🌳 Talentos${libres > 0 ? ` (${libres})` : ''}</button></div>
+      ${tab === 'maestria' ? cuerpoM : cuerpoT}`, 'ancho');
+    $('pg-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('#modal [data-pg]').forEach((b) => b.addEventListener('click', () => abrirProgreso(b.dataset.pg)));
+    document.querySelectorAll('#modal [data-guardian]').forEach((b) => b.addEventListener('click', () => abrirGuardian(b.dataset.guardian)));
+    document.querySelectorAll('#modal [data-talento]').forEach((b) => b.addEventListener('click', () => {
+      if (puntosTalento() - puntosUsados() <= 0) return;
+      S.talentos = { ...(S.talentos || {}), [b.dataset.talento]: talento(b.dataset.talento) + 1 };
+      guardar(true); pintarHUD(); sfx('logro'); abrirProgreso('talentos');
+    }));
+    const tr = $('t-reset'); if (tr) tr.addEventListener('click', () => { S.talentos = {}; S.vida = Math.min(S.vida, vidaMax()); guardar(true); pintarHUD(); abrirProgreso('talentos'); });
+  }
+
+  // ---------- Taller del gremio: matemática aplicada (encargos y una investigación al día) ----------
+  const ENCARGOS_DIA = 6;
+  const ent = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const elige = (l) => l[Math.floor(Math.random() * l.length)];
+  const numTxt = (n) => String(Math.round(n * 1000) / 1000).replace('-', '−').replace('.', ',');
+  function tallerHoy() { const hoy = fechaLocal(); if (!S.taller || S.taller.dia !== hoy) S.taller = { dia: hoy, encargos: 0, inv: false }; return S.taller; }
+  function preg(cat, enunciado, r, pista, explicacion, paso) { return { titulo: cat, enunciado, opciones: [numTxt(r)], correcta: 0, pista, explicacion, forzarAbierta: true, paso }; }
+  function nuevoEncargo() {
+    const ocho = S.curso === '8basico';
+    const tipos = [
+      () => { const p = ent(4, 30) * 10, d = elige([10, 20, 25, 50]), x = (p * d) / 100; return preg('🛒 Mercado', `Un mercader vende una espada a ${p} monedas con ${d} % de descuento. ¿Cuánto pagas?`, p - x, `Calcula el ${d} % de ${p} y réstalo al precio.`, `El ${d} % de ${p} es ${numTxt(x)}. ${p} − ${numTxt(x)} = ${numTxt(p - x)} monedas.`); },
+      () => { const a = ent(3, 15), b = ent(2, 12); return preg('🏗️ Construcción', `Vas a cercar un huerto rectangular de ${a} m por ${b} m. ¿Cuántos metros de cerca necesitas?`, 2 * (a + b), 'El perímetro es la suma de los cuatro lados.', `2 · (${a} + ${b}) = ${2 * (a + b)} m de cerca.`); },
+      () => { const a = ent(3, 12), b = ent(3, 12); return preg('🏗️ Construcción', `El piso de tu casa mide ${a} m por ${b} m y cada tablón cubre 1 m². ¿Cuántos tablones necesitas?`, a * b, 'El área de un rectángulo es largo por ancho.', `${a} · ${b} = ${a * b} tablones.`); },
+      () => { const a = ent(2, 5), m = ent(2, 5), c = ent(6, 12); return preg('🧪 Recetas', `Para ${a} pociones se usan ${a * m} hierbas. ¿Cuántas hierbas necesitas para ${c} pociones?`, c * m, 'Primero calcula cuántas hierbas lleva una sola poción.', `Una poción lleva ${a * m} : ${a} = ${m} hierbas. Para ${c} pociones: ${c} · ${m} = ${c * m}.`); },
+      () => { const u1 = ent(8, 20), u2 = u1 + elige([-2, -1, 1, 2]); return preg('🛒 Mercado', `Oferta A: 3 manzanas por ${3 * u1} monedas. Oferta B: 5 manzanas por ${5 * u2} monedas. ¿Cuánto cuesta UNA manzana en la oferta más barata?`, Math.min(u1, u2), 'Divide el precio de cada oferta por la cantidad de manzanas y compara.', `A: ${3 * u1} : 3 = ${u1}. B: ${5 * u2} : 5 = ${u2}. La más barata cuesta ${Math.min(u1, u2)} por manzana.`); },
+      () => { const q = ocho ? 3 : 4, n = ocho ? 2 : 3, tot = q * ent(3, 12); return preg('🏗️ Construcción', `Tienes ${tot} maderas y usas ${n}/${q} de ellas para un muro. ¿Cuántas maderas usas?`, (tot * n) / q, `Divide por ${q} y multiplica por ${n}.`, `${tot} : ${q} = ${tot / q}; ${tot / q} · ${n} = ${(tot * n) / q} maderas.`); },
+      () => { const t1 = -ent(3, 15), t2 = ent(2, 18); return preg('🧭 Expedición', `En la cima hace ${numTxt(t1)} °C y en el valle ${t2} °C. ¿Cuántos grados de diferencia hay?`, t2 - t1, 'Resta: temperatura mayor menos la menor (restar un negativo es sumar).', `${t2} − (${numTxt(t1)}) = ${t2} + ${-t1} = ${t2 - t1} °C.`); },
+    ];
+    if (ocho) tipos.push(
+      () => { const p = ent(5, 40) * 10, a = elige([10, 20, 50]); return preg('🛒 Mercado', `Un escudo costaba ${p} monedas y subió un ${a} %. ¿Cuánto cuesta ahora?`, (p * (100 + a)) / 100, `Calcula el ${a} % de ${p} y súmalo.`, `${a} % de ${p} = ${(p * a) / 100}. ${p} + ${(p * a) / 100} = ${(p * (100 + a)) / 100}.`); },
+      () => { const b = ent(2, 5), h = ent(2, 6); return preg('🧪 Laboratorio', `Una colonia de luciérnagas empieza con ${b} y se duplica cada hora. ¿Cuántas hay después de ${h} horas?`, b * 2 ** h, `Multiplica por 2 una vez por cada hora: ${b} · 2^${h}.`, `${b} · 2^${h} = ${b} · ${2 ** h} = ${b * 2 ** h} luciérnagas.`); },
+    );
+    return elige(tipos)();
+  }
+  function nuevaInvestigacion() {
+    const plantillas = [
+      () => { const t = elige([2, 3, 4]), n = ent(6, 15), c = ent(3, 6), p = elige([2, 3, 5]); return { titulo: '🌉 El puente del río', pasos: [
+        preg('🌉 Paso 1', `El puente mide ${t * n} m y cada tablón cubre ${t} m. ¿Cuántos tablones necesitas?`, n, 'Divide el largo del puente por lo que cubre cada tablón.', `${t * n} : ${t} = ${n} tablones.`, 'Paso 1 de 3'),
+        preg('🌉 Paso 2', `Cada tablón lleva ${c} clavos. ¿Cuántos clavos necesitas en total?`, n * c, 'Multiplica los tablones por los clavos de cada uno.', `${n} · ${c} = ${n * c} clavos.`, 'Paso 2 de 3'),
+        preg('🌉 Paso 3', `Cada clavo cuesta ${p} monedas. ¿Cuánto cuestan todos los clavos?`, n * c * p, 'Multiplica la cantidad de clavos por su precio.', `${n * c} · ${p} = ${n * c * p} monedas.`, 'Paso 3 de 3')] }; },
+      () => { const q = ent(2, 6), p = ent(2, 9) * 20, tot = q * p, desc = (tot * 3) / 4, billete = Math.ceil((desc + 1) / 100) * 100; return { titulo: '🛡️ Escudos para el clan', pasos: [
+        preg('🛡️ Paso 1', `Tu clan necesita ${q} escudos y cada uno cuesta ${p} monedas. ¿Cuánto cuestan todos?`, tot, 'Multiplica la cantidad por el precio.', `${q} · ${p} = ${tot} monedas.`, 'Paso 1 de 3'),
+        preg('🛡️ Paso 2', `El herrero les hace un 25 % de descuento sobre el total. ¿Cuánto pagan ahora?`, desc, 'El 25 % es la cuarta parte: réstala al total.', `25 % de ${tot} = ${tot / 4}. ${tot} − ${tot / 4} = ${desc}.`, 'Paso 2 de 3'),
+        preg('🛡️ Paso 3', `Pagan con ${billete} monedas. ¿Cuánto vuelto reciben?`, billete - desc, 'Resta lo que pagan al dinero entregado.', `${billete} − ${desc} = ${billete - desc} monedas de vuelto.`, 'Paso 3 de 3')] }; },
+      () => { const a = ent(2, 6) * 2, b = ent(2, 6) * 2, k = ent(3, 8), ar = a * b; return { titulo: '🥕 El huerto del gremio', pasos: [
+        preg('🥕 Paso 1', `El huerto mide ${a} m por ${b} m. ¿Cuál es su área en m²?`, ar, 'Área del rectángulo = largo · ancho.', `${a} · ${b} = ${ar} m².`, 'Paso 1 de 3'),
+        preg('🥕 Paso 2', `Un cuarto (1/4) del huerto será para zanahorias. ¿Cuántos m² son?`, ar / 4, 'Divide el área por 4.', `${ar} : 4 = ${ar / 4} m².`, 'Paso 2 de 3'),
+        preg('🥕 Paso 3', `Cada m² da ${k} zanahorias. ¿Cuántas zanahorias cosecharán?`, (ar / 4) * k, 'Multiplica los m² de zanahorias por lo que da cada uno.', `${ar / 4} · ${k} = ${(ar / 4) * k} zanahorias.`, 'Paso 3 de 3')] }; },
+      () => { const t0 = -ent(8, 20), s = ent(2, 5), h = ent(3, 6), tf = t0 + s * h, cima = -ent(15, 25), noche = ent(2, 6); return { titulo: '🏔️ La expedición al glaciar', pasos: [
+        preg('🏔️ Paso 1', `Al amanecer el campamento está a ${numTxt(t0)} °C y la temperatura sube ${s} °C cada hora. ¿Qué temperatura hay después de ${h} horas?`, tf, `Suma ${s} °C una vez por cada hora.`, `${numTxt(t0)} + ${s} · ${h} = ${numTxt(t0)} + ${s * h} = ${numTxt(tf)} °C.`, 'Paso 1 de 3'),
+        preg('🏔️ Paso 2', `En la cima hace ${numTxt(cima)} °C. ¿Cuántos grados de diferencia hay entre el campamento (${numTxt(tf)} °C) y la cima?`, tf - cima, 'Resta la temperatura menor a la mayor.', `${numTxt(tf)} − (${numTxt(cima)}) = ${numTxt(tf - cima)} °C.`, 'Paso 2 de 3'),
+        preg('🏔️ Paso 3', `En la noche la cima baja ${noche} °C más. ¿Qué temperatura habrá en la cima?`, cima - noche, 'Baja = resta.', `${numTxt(cima)} − ${noche} = ${numTxt(cima - noche)} °C.`, 'Paso 3 de 3')] }; },
+    ];
+    return elige(plantillas)();
+  }
+  function abrirTaller() {
+    if (!S) return;
+    const T = tallerHoy(), quedan = Math.max(0, ENCARGOS_DIA - T.encargos);
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Tu base · Matemática aplicada</span><h2 id="modal-titulo">🧮 Taller del gremio</h2></div><button type="button" class="btn" id="tl-cerrar">Cerrar</button></div>
+      <p class="nota">El gremio necesita ayuda con cálculos reales: compras, construcciones, recetas y expediciones. Aquí no hay alternativas: escribe el resultado.</p>
+      <div class="taller">
+        <section class="tarjeta-mision"><div class="fila"><strong>📦 Encargos rápidos</strong><small>${quedan} de ${ENCARGOS_DIA} disponibles hoy</small></div><span class="nota">Un problema de un paso. Premio: recursos y 25 de experiencia.</span>
+          <button type="button" class="btn pri" id="tl-encargo" ${quedan ? '' : 'disabled'}>${quedan ? 'Tomar un encargo' : 'Vuelve mañana'}</button></section>
+        <section class="tarjeta-mision"><div class="fila"><strong>🔍 Investigación del día</strong><small>${T.inv ? 'Completada' : '1 al día'}</small></div><span class="nota">Un problema de 3 pasos encadenados, como en una prueba. Premio grande según tus aciertos.</span>
+          <button type="button" class="btn pri" id="tl-inv" ${T.inv ? 'disabled' : ''}>${T.inv ? 'Vuelve mañana' : 'Comenzar investigación'}</button></section>
+      </div>`, 'ancho');
+    $('tl-cerrar').addEventListener('click', () => ui.cerrar());
+    $('tl-encargo').addEventListener('click', () => {
+      const d = nuevoEncargo();
+      tallerHoy().encargos += 1; guardar(true);
+      abrirSerie({ etq: '📦 Encargo del gremio', titulo: d.titulo, preguntas: [d], registrarStats: false, alFin: (a, det, ultimo) => {
+        let txt = '';
+        if (a) { contar('encargo'); txt = darPremio(paquete(3, 2, true), 25); }
+        guardar(true);
+        ui.abrir(resultadoHTML('📦 Encargo del gremio', a ? '¡Encargo cumplido!' : 'Encargo fallido', `${ultimo}<p class="nota">${a ? `Premio: <b>${esc(txt)}</b> y <b>25</b> de experiencia.` : 'Revisa el paso a paso y toma otro encargo.'}</p>`, '🧮 Volver al taller'), 'serie');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+        $('res-volver').addEventListener('click', () => abrirTaller());
+      } });
+    });
+    $('tl-inv').addEventListener('click', () => {
+      const I = nuevaInvestigacion();
+      tallerHoy().inv = true; guardar(true);
+      abrirSerie({ etq: '🔍 Investigación', titulo: I.titulo, preguntas: I.pasos, registrarStats: false,
+        nota: 'Cada paso usa el resultado del anterior. Si te equivocas, verás el paso a paso y la investigación sigue con el dato correcto.',
+        alFin: (a, det, ultimo) => {
+          let txt = '';
+          if (a >= 2) { contar('investigacion'); txt = darPremio(paquete(4 + 2 * a, 3, true), 40 * a); sfx('logro'); if (escena) escena.celebrar(); }
+          guardar(true);
+          ui.abrir(resultadoHTML('🔍 Investigación', a === 3 ? '¡Investigación perfecta!' : a >= 2 ? '¡Investigación resuelta!' : 'Investigación incompleta', `${ultimo}
+            <p class="enunciado">Resolviste <b>${a} de 3</b> pasos.</p><p class="nota">${a >= 2 ? `Premio: <b>${esc(txt)}</b> y <b>${40 * a}</b> de experiencia.` : 'Necesitabas al menos 2 pasos correctos. ¡Mañana habrá otra investigación!'}</p>`, '🧮 Volver al taller'), 'serie');
+          $('res-ok').addEventListener('click', () => ui.cerrar());
+          $('res-volver').addEventListener('click', () => abrirTaller());
+        } });
+    });
+  }
+
+  // ---------- Modo historia: un capítulo por mundo ----------
+  const CAPITULOS = [
+    { u: 'u1', titulo: 'Capítulo 1 · El bosque que olvidó contar', intro: 'La Sabia Euclidia te recibe en el bosque: «Desde que el Troll Guardián despertó, los árboles olvidaron sus números. Ayúdame a devolverle el orden al bosque».', fin: '«¡El bosque vuelve a contar! Pero escucho rumores extraños desde el desierto…»', obj: [['aciertos', 15, 'Responde bien 15 preguntas de esta unidad'], ['vencer', 5, 'Vence 5 enemigos'], ['recurso', 20, 'Recolecta 20 recursos']] },
+    { u: 'u2', titulo: 'Capítulo 2 · Las dunas de las proporciones', intro: 'Euclidia te alcanza en el desierto: «Las caravanas se pierden porque nadie sabe repartir el agua. Demuestra que los números pueden guiarlas».', fin: '«¡Las caravanas encontraron su camino! Bajo la arena, la mina empieza a temblar…»', obj: [['aciertos', 20, 'Responde bien 20 preguntas de esta unidad'], ['vencer', 8, 'Vence 8 enemigos'], ['recurso', 30, 'Recolecta 30 recursos']] },
+    { u: 'u3', titulo: 'Capítulo 3 · El eco de la mina', intro: 'En la oscuridad de la mina, Euclidia susurra: «Cada eco aquí es una ecuación sin resolver. Si las resolvemos, la mina dejará de derrumbarse».', fin: '«¡La mina está a salvo! Solo queda la cima helada… y lo que duerme allí».', obj: [['aciertos', 25, 'Responde bien 25 preguntas de esta unidad'], ['vencer', 10, 'Vence 10 enemigos'], ['recurso', 40, 'Recolecta 40 recursos']] },
+    { u: 'u4', titulo: 'Capítulo 4 · La cima helada', intro: 'El viento del glaciar apaga casi todo, pero Euclidia sonríe: «Has aprendido mucho. Esta última prueba es para quienes ya no le temen a ningún número».', fin: '«Lo lograste: Math World vuelve a estar en equilibrio. Ahora tú eres quien guía a los demás».', obj: [['aciertos', 30, 'Responde bien 30 preguntas de esta unidad'], ['vencer', 12, 'Vence 12 enemigos'], ['recurso', 50, 'Recolecta 50 recursos']] },
+  ];
+  function valoresHistoria(u) {
+    let a = 0; for (const k of Object.keys(Preguntas.titulos(S.curso, u))) a += ((S.stats || {})[k] || {}).a || 0;
+    return { aciertos: a, vencer: S.vencidos || 0, recurso: CN('recurso') };
+  }
+  function capituloActual() {
+    if (!S || esDocente()) return null;
+    const H = S.historia || { cap: 0 };
+    if (H.cap >= CAPITULOS.length) return null;
+    const c = CAPITULOS[H.cap], activo = Boolean(H.base);
+    const p = {}; if (activo) { const v = valoresHistoria(c.u); for (const [k] of c.obj) p[k] = Math.max(0, v[k] - (H.base[k] || 0)); }
+    return { c, i: H.cap, activo, p };
+  }
+  let historiaOcupada = false;
+  setInterval(() => {
+    if (!S || !escena || !escena.jugador || esDocente() || historiaOcupada) return;
+    const Hc = capituloActual(); if (!Hc) return;
+    const H = S.historia || (S.historia = { cap: 0 });
+    if (!Hc.activo && escena.zona === Hc.c.u) {
+      H.base = valoresHistoria(Hc.c.u); guardar(true); historiaOcupada = true;
+      esperarYAbrir(() => {
+        historiaOcupada = false;
+        ui.abrir(resultadoHTML('📖 Modo historia', esc(Hc.c.titulo), `<div class="historia-dialogo"><span class="h-retrato">🧙‍♀️</span><p>${esc(Hc.c.intro)}</p></div><ul class="historia-obj">${Hc.c.obj.map(([, , txt]) => `<li>${esc(txt)}</li>`).join('')}</ul><p class="nota">Verás tu avance en Misiones (tecla N).</p>`, ''), 'historia');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+      });
+      pintarMisiones(); return;
+    }
+    if (Hc.activo && Hc.c.obj.every(([k, n]) => Hc.p[k] >= n)) {
+      H.cap += 1; H.base = null; contar('capitulo'); guardar(true); historiaOcupada = true;
+      esperarYAbrir(() => {
+        historiaOcupada = false;
+        const txt = darPremio(paquete(10, 4, true), 200); sfx('logro'); if (escena) escena.celebrar();
+        const sig = CAPITULOS[H.cap];
+        ui.abrir(resultadoHTML('📖 Modo historia', `¡${esc(Hc.c.titulo.split(' · ')[0])} completado!`, `<div class="historia-dialogo"><span class="h-retrato">🧙‍♀️</span><p>${esc(Hc.c.fin)}</p></div><p class="nota">Premio: <b>${esc(txt)}</b> y <b>200</b> de experiencia.${sig ? ` Siguiente: <b>${esc(sig.titulo)}</b> (viaja a ${esc(nombreMundo(sig.u))}).` : ''}</p>`, ''), 'historia');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+      });
+      pintarMisiones();
+    }
+  }, 3000);
+
+  // ---------- Eventos del mundo: iguales para todo el curso (dependen de la hora) ----------
+  const EVENTOS = [
+    { id: 'xp2', ico: '⚡', nombre: 'Tormenta del saber', desc: 'Toda la experiencia vale el doble.' },
+    { id: 'cristal', ico: '💎', nombre: 'Lluvia de cristales', desc: 'Cada respuesta correcta te da 1 cristal.' },
+    { id: 'racha', ico: '🔥', nombre: 'Racha relámpago', desc: 'Cada 3 respuestas correctas seguidas ganas un cofre.' },
+  ];
+  const SLOT_EV = 8 * 60000, DUR_EV = 3 * 60000;
+  function eventoActual() {
+    if (!S || !escena || !MUNDOS[escena.zona]) return null;
+    const ahora = Date.now(), slot = Math.floor(ahora / SLOT_EV);
+    if (ahora - slot * SLOT_EV > DUR_EV) return null;
+    let h = (slot % 100003) * 7919 + 17;
+    for (const ch of escena.zona) h = (h * 31 + ch.charCodeAt(0)) % 1000003;
+    if (h % 10 >= 3) return null;
+    return { ...EVENTOS[h % 3], hasta: slot * SLOT_EV + DUR_EV, clave: `${slot}${escena.zona}` };
+  }
+  let eventoMostrado = '';
+  setInterval(() => {
+    const ev = S && !esDocente() ? eventoActual() : null;
+    let chip = $('evento-mundo');
+    if (!ev) { if (chip) chip.remove(); document.body.classList.remove('con-evento'); eventoMostrado = ''; return; }
+    if (!chip) { chip = document.createElement('div'); chip.id = 'evento-mundo'; chip.className = 'evento-mundo'; chip.setAttribute('role', 'status'); document.body.appendChild(chip); }
+    const s = Math.max(0, Math.ceil((ev.hasta - Date.now()) / 1000));
+    chip.innerHTML = `<b>${ev.ico} ${esc(ev.nombre)}</b><span>${esc(ev.desc)}</span><small>${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</small>`;
+    document.body.classList.add('con-evento');
+    if (eventoMostrado !== ev.clave) { eventoMostrado = ev.clave; sfx('logro'); avisoGrande(`${ev.ico} ${ev.nombre}`, ev.desc, 'Evento del mundo · 3 minutos para todo el curso'); }
+  }, 1000);
+
+  // ---------- Accesibilidad: texto grande, colores para daltonismo y modo liviano ----------
+  const OPCIONES_ACC = [['op-texto', 'mw_texto', 'texto-grande'], ['op-dalto', 'mw_dalto', 'daltonico'], ['op-liviano', 'mw_liviano', 'liviano']];
+  function aplicarLiviano(on) {
+    try {
+      const L = escena && escena.game && escena.game.loop; if (!L || L.hasFpsLimit === Boolean(on)) return;
+      L.fpsLimit = on ? 30 : 0; L.hasFpsLimit = Boolean(on); L._limitRate = on ? 1000 / 30 : 0;
+      L.sleep(); L.wake();
+    } catch (e) { /* sin cambio */ }
+  }
+  OPCIONES_ACC.forEach(([id, k, cls]) => {
+    const b = $(id); let on = false;
+    try { on = localStorage.getItem(k) === '1'; } catch (e) { /* sin almacenamiento */ }
+    document.body.classList.toggle(cls, on);
+    if (!b) return;
+    b.setAttribute('aria-checked', String(on));
+    b.addEventListener('click', (ev) => {
+      ev.stopPropagation(); on = !on;
+      try { localStorage.setItem(k, on ? '1' : '0'); } catch (e) { /* sin almacenamiento */ }
+      document.body.classList.toggle(cls, on); b.setAttribute('aria-checked', String(on));
+      if (cls === 'liviano') { aplicarLiviano(on); toast(on ? '🐢 Modo liviano: menos animaciones y 30 cuadros por segundo para computadores lentos.' : 'Modo liviano desactivado.'); }
+    });
+  });
+  setInterval(() => { if (document.body.classList.contains('liviano')) aplicarLiviano(true); }, 4000);
+
   // ---------- Racha de días jugados ----------
   let rachaRevisada = false;
   setInterval(() => {
@@ -5054,6 +5455,9 @@
     let h = '';
     if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<section class="tarjeta-mision refuerzo"><div class="fila"><strong>🎯 Refuerzo de tu profesor</strong><small>Premio extra al completarlo</small></div><div class="fila"><span>Responde bien ${R.meta} preguntas de <b>${esc(R.titulo)}</b></span><b>${p}/${R.meta}</b></div><div class="barra"><i style="width:${Math.round((p / R.meta) * 100)}%"></i></div><span class="nota">Las preguntas de este tema aparecerán más seguido en todo el juego.</span></section>`; }
     if (F) h += `<section class="tarjeta-mision"><div class="fila"><strong>📚 Tema de la clase</strong></div><span>${esc((F.titulos || []).join(', '))}</span><span class="nota">Tu profesor eligió este tema: la mayoría de las preguntas del juego serán de él.</span></section>`;
+    const Hm = capituloActual();
+    if (Hm) h += `<section class="tarjeta-mision historia"><div class="fila"><strong>📖 ${esc(Hm.c.titulo)}</strong><small>Modo historia · ${Hm.i + 1} de ${CAPITULOS.length}</small></div><span class="nota">${esc(Hm.c.intro)}</span>${Hm.activo ? Hm.c.obj.map(([k, n, txt]) => `<div class="fila"><span>${esc(txt)}</span><b>${Math.min(n, Hm.p[k])}/${n}</b></div><div class="barra"><i style="width:${Math.min(100, Math.round((Hm.p[k] / n) * 100))}%"></i></div>`).join('') : `<span><b>Viaja a ${esc(nombreMundo(Hm.c.u))}</b> para comenzar este capítulo.</span>`}</section>`;
+    else if (S.historia && S.historia.cap >= CAPITULOS.length) h += '<section class="tarjeta-mision historia"><div class="fila"><strong>📖 Modo historia</strong><small>¡Completado!</small></div><span class="nota">Terminaste todos los capítulos. La Sabia Euclidia está orgullosa de ti.</span></section>';
     const W = extraE && extraE.semana;
     if (W && W.meta) h += `<section class="tarjeta-mision"><div class="fila"><strong>👥 Misión semanal del curso</strong><small>${W.total >= W.meta ? '¡Cumplida!' : 'Se renueva cada lunes'}</small></div><div class="fila"><span>Entre todo el curso: <b>${W.meta}</b> respuestas correctas</span><b>${Math.min(W.total, W.meta)}/${W.meta}</b></div><div class="barra"><i style="width:${Math.min(100, Math.round((W.total / W.meta) * 100))}%"></i></div><span class="nota">Tu aporte esta semana: <b>${W.mio || 0}</b>. Al cumplirla, todos los que aportaron reciben un cofre de premios.</span></section>`;
     const rp = Object.keys(S.repaso || {}), rpHoy = repasosPendientes().length;
@@ -6010,7 +6414,7 @@
     ui.abrir(`
       <div class="modal-cab">
         <div><span class="etq">${escena.zona === 'pieza' ? 'Tu pieza' : 'Tu base'} · Los recursos se toman del cofre y la mochila</span><h2 id="modal-titulo">Fabricar</h2></div>
-        <button type="button" class="btn" id="f-cerrar">Cerrar</button>
+        <div class="f-acciones"><button type="button" class="btn sec" id="f-taller">🧮 Taller del gremio</button><button type="button" class="btn" id="f-cerrar">Cerrar</button></div>
       </div>
       ${desActivo('mercado') ? '<div class="mensaje bien" role="status">🛒 ¡Mercado relámpago! Todo cuesta la mitad mientras dure el desafío.</div>' : ''}
       ${recursosFabricarHTML()}
@@ -6021,6 +6425,7 @@
       </div>
       ${cuerpo}`, 'ancho');
     $('f-cerrar').addEventListener('click', () => ui.cerrar());
+    $('f-taller').addEventListener('click', () => abrirTaller());
     document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => abrirFabricar(b.dataset.p)));
     document.querySelectorAll('[data-eq]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.eq); abrirFabricar('equipo'); }));
     document.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
@@ -6266,6 +6671,7 @@
     else if (k === '3') equipar('espada');
     else if (k === 'q') abrirEquipo();
     else if (k === 'l') abrirLogros();
+    else if (k === 'p') abrirProgreso();
     else if (k === 't') alternarChat();
   });
   $('btn-chat').addEventListener('click', (e) => { e.stopPropagation(); alternarChat(); });
@@ -6278,6 +6684,7 @@
   $('btn-base').addEventListener('click', () => abrirFabricar());
   $('btn-decorar').addEventListener('click', abrirDecorar);
   $('btn-mapa').addEventListener('click', abrirMapa);
+  $('btn-progreso').addEventListener('click', () => abrirProgreso());
   $('btn-misiones').addEventListener('click', abrirMisiones);
   $('hud-misiones').addEventListener('click', (ev) => {
     if (ev.target.closest('[data-plegar]')) { try { localStorage.setItem(document.body.classList.contains('movil') ? 'mw_misiones_ocultas_m' : 'mw_misiones_ocultas', misionesOcultas() ? '0' : '1'); } catch (e) { misionesPlegadas = !misionesPlegadas; } pintarMisiones(); }

@@ -205,6 +205,7 @@
         <span class="chip">Derrotas: ${r.muertes}</span>
       </div>
       ${unidades || '<p class="muted">Todavía no responde desafíos.</p>'}
+      ${profundidadHTML(e)}
       ${refuerzoHTML(e)}
       <h4>Equipo y recursos</h4>
       <div class="muted">Equipo: ${(p.mejoras || []).map((m) => esc(MEJORAS[m] || m)).join(', ') || 'Solo el hacha inicial'}</div>
@@ -433,6 +434,23 @@
   }
   cargarFocos();
   setInterval(cargarFocos, 60000);
+
+  // ---------- Maestría, historia y errores escritos (detalle del estudiante) ----------
+  function profundidadHTML(e) {
+    const p = e.progreso || {}, nivel = nivelDe(e), M = p.maestria || {};
+    const rango = (m) => (m.g ? 3 : m.p >= 25 ? 2 : m.p >= 8 ? 1 : 0);
+    const c = [0, 0, 0, 0], porRango = { 3: [], 2: [] };
+    for (const [k, m] of Object.entries(M)) { const r = rango(m || {}); c[r] += 1; if (r >= 2) porRango[r].push(nombreTema(nivel, k).titulo); }
+    const E = p.escritas || {};
+    const errores = Object.entries(E).filter(([, l]) => l && l.length).map(([k, l]) => `<li><b>${esc(nombreTema(nivel, k).titulo)}:</b> ${l.slice(-3).map((x) => `escribió <code>${esc(x.r)}</code> (era <code>${esc(x.c)}</code>)`).join(' · ')}</li>`);
+    const H = p.historia || {}, T = p.talentos || {};
+    const tal = [['fuerza', '⚔️'], ['vitalidad', '❤️'], ['sabio', '📖'], ['suerte', '🍀']].filter(([id]) => T[id]).map(([id, ico]) => `${ico} ${T[id]}`).join(' · ');
+    if (!Object.keys(M).length && !errores.length) return '';
+    return `<h4>Maestría por tema</h4>
+      <p>🥇 ${c[3]} oro · 🥈 ${c[2]} plata · 🥉 ${c[1]} bronce${porRango[3].length ? `<br><small class="muted">Oro: ${esc(porRango[3].join(', '))}</small>` : ''}${porRango[2].length ? `<br><small class="muted">Plata: ${esc(porRango[2].join(', '))}</small>` : ''}</p>
+      <p class="muted">Modo historia: ${H.cap >= 4 ? 'completado 🎉' : `capítulo ${(H.cap || 0) + 1} de 4`}${tal ? ` · Talentos: ${tal}` : ''}</p>
+      ${errores.length ? `<h4>Errores al escribir el resultado</h4><p class="muted">Respuestas escritas incorrectas más recientes (sin alternativas): sirven para ver el error típico.</p><ul class="errores-escritos">${errores.join('')}</ul>` : ''}`;
+  }
 
   // ---------- Ticket de salida ----------
   let tickets = {}, ticketCurso = CURSOS_G[0].id, ticketUnidad = 'u1', ticketSel = new Set(), ticketN = 3, ticketMin = 15, ticketDif = 0, ticketTick = 0, ticketTocado = false;

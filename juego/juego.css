@@ -1245,3 +1245,64 @@ body.movil .tutorial { top: auto; bottom: 150px; max-width: calc(100vw - 24px); 
 .pap-cierre { display: block; margin-top: 6px; font-weight: 800; }
 /* Ticket de salida */
 .modal.ticket { border-color: #b98cff; }
+
+/* Respuesta abierta */
+.resp-abierta { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; }
+.resp-abierta label { font-weight: 800; }
+.resp-abierta input { font-family: "Fredoka", "Nunito", sans-serif; font-size: 28px; font-weight: 600; padding: 10px 14px; border-radius: 14px; border: 3px solid var(--teal); background: var(--bg); color: var(--text); width: 100%; max-width: 360px; }
+.resp-abierta input:focus { outline: 3px solid #f2b544; outline-offset: 2px; }
+.resp-abierta small { color: var(--muted); }
+.resp-ok { font-size: 18px; margin: 4px 0; }
+.paso-serie { margin: 0; font-weight: 800; color: #f2b544; text-transform: uppercase; font-size: 12px; letter-spacing: .06em; }
+/* Mi progreso */
+.prog-resumen { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.prog-resumen span { padding: 6px 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-weight: 700; }
+.prog-unidad h3 { margin: 14px 0 6px; font-size: 16px; }
+.prog-temas { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 6px; }
+.prog-temas li { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); }
+.prog-temas li.rango-3 { border-color: #f2b544; box-shadow: inset 0 0 0 1px rgba(242, 181, 68, .4); }
+.prog-temas .r-ico { font-size: 24px; }
+.prog-temas .r-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.prog-temas .r-info b { font-size: 14px; }
+.prog-temas .r-info small { color: var(--muted); font-size: 12px; }
+.prog-temas .barra { height: 6px; }
+.btn.mini { min-height: 32px; padding: 0 10px; font-size: 13px; }
+.talentos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; margin: 8px 0; }
+.talento { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); }
+.talento .t-ico { font-size: 28px; }
+.talento > div { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.talento small { color: var(--muted); }
+.t-pips { display: flex; gap: 4px; }
+.t-pips i { width: 18px; height: 8px; border-radius: 4px; background: #55615a; }
+.t-pips i.on { background: #f2b544; }
+/* Taller e historia */
+.taller { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; }
+.taller .btn { margin-top: 8px; }
+.f-acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.historia-dialogo { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 14px; background: var(--bg); border: 2px solid #b98cff; }
+.historia-dialogo .h-retrato { font-size: 40px; }
+.historia-dialogo p { margin: 0; font-size: 17px; line-height: 1.5; }
+.historia-obj { margin: 10px 0; padding-left: 22px; font-weight: 700; }
+.tarjeta-mision.historia { border-color: rgba(185, 140, 255, .6); }
+/* Eventos del mundo */
+.evento-mundo { position: fixed; left: 50%; top: 84px; transform: translateX(-50%); z-index: 30; display: flex; gap: 10px; align-items: center; padding: 6px 14px; border-radius: 999px; background: rgba(20, 30, 26, .92); border: 2px solid #f2b544; color: #fff; font-size: 13px; box-shadow: 0 0 18px rgba(242, 181, 68, .45); pointer-events: none; animation: ev-pulso 2s ease-in-out infinite; }
+.evento-mundo b { color: #ffd24a; }
+.evento-mundo small { font-weight: 800; }
+@keyframes ev-pulso { 50% { box-shadow: 0 0 28px rgba(242, 181, 68, .8); } }
+body.con-evento #juego canvas { filter: saturate(1.25); }
+body.movil .evento-mundo { top: auto; bottom: 120px; max-width: 92vw; flex-wrap: wrap; justify-content: center; }
+/* Accesibilidad */
+.son-sep { margin-top: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+body.texto-grande .modal { font-size: 1.15em; }
+body.texto-grande .enunciado { font-size: 1.35em; }
+body.texto-grande .alt { font-size: 30px; min-height: 76px; }
+body.texto-grande .mensaje { font-size: 18px; }
+body.texto-grande #hud-misiones, body.texto-grande .toast { font-size: 1.15em; }
+body.daltonico .alt.bien { border-color: #2f7bff; background: #16294d; }
+body.daltonico .alt.bien::after { content: " ✓"; }
+body.daltonico .alt.mal { border-color: #ff9f1a; background: #4a3212; }
+body.daltonico .alt.mal::after { content: " ✗"; }
+body.daltonico .mensaje.bien { border-color: #2f7bff; background: #16294d; }
+body.daltonico .mensaje.mal { border-color: #ff9f1a; background: #4a3212; }
+body.liviano *, body.liviano *::before, body.liviano *::after { animation-duration: 0s !important; animation-iteration-count: 1 !important; transition: none !important; }
+.mensaje.prog-mejorar { background: var(--bg); border: 2px solid #f2b544; }
