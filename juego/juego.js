@@ -493,8 +493,8 @@
 
   // El docente tiene todas las herramientas (para probar minijuegos y zonas); armas y armaduras las fabrica gratis
   const tiene = (id) => S.mejoras.includes(id) || (Boolean(S.docente) && !ARMAS[id] && !ARMADURAS[id]);
-  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0) + talento('vitalidad');
-  const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1) + talento('fuerza');
+  const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0) + talento('vitalidad') + (S.reliquia === 'corazon' ? 2 : 0) + (estrellasAsc() >= 3 ? 1 : 0);
+  const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1) + talento('fuerza') + (S.reliquia === 'ojo' ? 1 : 0) + (estrellasAsc() >= 6 ? 1 : 0);
   const esDocente = () => Boolean(S && S.docente);
   const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
   const alcanza = (costo) => Object.entries(costo).every(([r, n]) => total(r) >= n);
@@ -621,6 +621,9 @@
     if (desActivo('sabio')) n *= 2;
     if (talento('sabio')) n = Math.round(n * (1 + 0.1 * talento('sabio')));
     const evX = eventoActual(); if (evX && evX.id === 'xp2') n *= 2;
+    if (S.reliquia === 'reloj') n = Math.round(n * 1.15);
+    if (estrellasAsc()) n = Math.round(n * (1 + 0.02 * Math.min(10, estrellasAsc())));
+    sumarAscension(n);
     S.xp += n;
     sumarTemporada(n);
     let subio = false;
@@ -1263,7 +1266,8 @@
     if (!S) return;
     const enBase = enCasa();
     $('hud-foto').style.backgroundImage = `url('assets/pj/${S.pj}_${texArmadura(S.armadura)}.png')`;
-    $('hud-apodo').textContent = S.nombre;
+    $('hud-apodo').textContent = S.nombre + (estrellasAsc() ? ` ✦${estrellasAsc()}` : '');
+    aplicarEstilo();
     const tit = $('hud-titulo'); if (tit) { const t = tituloActual(); tit.textContent = t ? `«${t}»` : ''; tit.classList.toggle('oculto', !t); }
     $('hud-nivel').textContent = `Nivel ${S.nivel}`;
     $('hud-vida').innerHTML = corazones(S.vida, vidaMax());
@@ -1420,7 +1424,7 @@
     cargarHabilidad(acierto);
     extraRegistrar(tema, acierto);
     repasoRegistrar(tema, acierto); semanaRegistrar(acierto); mascotaRegistrar(acierto);
-    maestriaRegistrar(tema, acierto, Preguntas.difDe ? Preguntas.difDe(tema) : 1); bonoRespuesta(acierto);
+    maestriaRegistrar(tema, acierto, Preguntas.difDe ? Preguntas.difDe(tema) : 1); bonoRespuesta(acierto); reliquiaRegistrar(acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
   }
@@ -3777,6 +3781,15 @@
     L('escrita_altar', 'aprender', '✍️', 'Escriba del inframundo', 'Responde bien 15 preguntas escribiendo el resultado en El Altar de los Dioses.', 15, () => CN('escrita_altar'), 'Escriba Sagrado'),
     L('hades_furia', 'combate', '🔥', 'Furia desatada', 'Lleva a Hades hasta su fase 3: la Furia del Inframundo.', 1, () => CN('hades_furia'), 'Provocador de Dioses'),
     L('hades5', 'combate', '👑', 'Leyenda del inframundo', 'Derrota a Hades 5 veces.', 5, () => (S.altar && S.altar.hades) || 0, 'Leyenda del Inframundo'),
+    L('torre10', 'combate', '🗼', 'Escalador divino', 'Llega al piso 10 de la Torre de los Dioses.', 10, () => (S.torre && S.torre.mejor) || 0, 'Escalador Divino'),
+    L('torre30', 'combate', '🌌', 'Cima del cielo', 'Llega al piso 30 de la Torre de los Dioses.', 30, () => (S.torre && S.torre.mejor) || 0, 'Señor de la Torre'),
+    L('reliquia1', 'fabricar', '💠', 'Forjador de dioses', 'Forja tu primera reliquia divina.', 1, () => Object.keys(S.reliquias || {}).length, 'Forjador Divino'),
+    L('reliquia6', 'fabricar', '🔱', 'Arsenal del Olimpo', 'Forja las 6 reliquias divinas.', 6, () => Object.keys(S.reliquias || {}).length, 'Arsenal del Olimpo'),
+    L('ascension1', 'nivel', '✦', 'Más allá del 100', 'Gana tu primera estrella de ascensión.', 1, () => estrellasAsc(), 'Ascendido'),
+    L('ascension10', 'nivel', '🌠', 'Constelación', 'Gana 10 estrellas de ascensión.', 10, () => estrellasAsc(), 'Constelación Viviente'),
+    L('invasion1', 'aprender', '🛡️', 'Defensor del curso', 'Ayuda a tu curso a derrotar al titán de la invasión semanal.', 1, () => CN('invasion'), 'Defensor del Curso'),
+    L('liga_diamante', 'aprender', '💎', 'Liga diamante', 'Sube hasta la liga diamante.', 1, () => ((S.liga && S.liga.max) || 0) >= 3 ? 1 : 0, 'Diamante'),
+    L('fantasma3', 'aprender', '👻', 'Cazafantasmas', 'Gana 3 duelos de fantasma contra compañeros.', 3, () => CN('fantasma'), 'Cazafantasmas'),
     // ----- Clanes y guerra de clanes -----
     L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
     L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
@@ -4867,7 +4880,8 @@
     const clave = (x) => (x && x.foco ? JSON.stringify(x.foco.temas) : '');
     if (F && clave(r) !== clave(antes)) toast(`📚 Tema de la clase: ${(F.titulos || []).join(', ') || 'elegido por tu profesor'}. La mayoría de las preguntas serán de este tema.`);
     if (R && (!antes || !antes.refuerzo || antes.refuerzo.id !== R.id)) setTimeout(() => toast(`🎯 Tu profesor te dejó un refuerzo: ${R.titulo} (${R.meta} respuestas correctas). ¡Tiene premio extra!`), 3200);
-    revisarTicket(); revisarSemana();
+    revisarTicket(); revisarSemana(); revisarInvasion();
+    if (escena && escena.zona === 'base') pintarInvasion(escena);
     pintarMisiones();
   }
   function extraRegistrar(tema, acierto) {
@@ -5227,8 +5241,10 @@
       <div class="talentos">${TALENTOS.map((t) => `<div class="talento"><span class="t-ico">${t.ico}</span><div><b>${t.nombre}</b><small>${t.desc}</small><div class="t-pips">${Array.from({ length: MAX_TALENTO }, (_, i) => `<i class="${i < talento(t.id) ? 'on' : ''}"></i>`).join('')}</div></div><button type="button" class="btn sec" data-talento="${t.id}" ${libres > 0 && talento(t.id) < MAX_TALENTO ? '' : 'disabled'}>+1</button></div>`).join('')}</div>
       ${puntosUsados() ? '<button type="button" class="btn" id="t-reset">Reiniciar talentos</button>' : ''}`;
     ui.abrir(`<div class="modal-cab"><div><span class="etq">Nivel ${S.nivel} · ${total} temas</span><h2 id="modal-titulo">📈 Mi progreso</h2></div><button type="button" class="btn" id="pg-cerrar">Cerrar</button></div>
-      <div class="pestanas" role="tablist"><button type="button" role="tab" data-pg="maestria" aria-selected="${tab === 'maestria'}">🥇 Maestría por tema</button><button type="button" role="tab" data-pg="talentos" aria-selected="${tab === 'talentos'}">🌳 Talentos${libres > 0 ? ` (${libres})` : ''}</button></div>
-      ${tab === 'maestria' ? cuerpoM : cuerpoT}`, 'ancho');
+      <div class="pestanas" role="tablist"><button type="button" role="tab" data-pg="maestria" aria-selected="${tab === 'maestria'}">🥇 Maestría</button><button type="button" role="tab" data-pg="talentos" aria-selected="${tab === 'talentos'}">🌳 Talentos${libres > 0 ? ` (${libres})` : ''}</button><button type="button" role="tab" data-pg="liga" aria-selected="${tab === 'liga'}">🏆 Liga</button><button type="button" role="tab" data-pg="estilo" aria-selected="${tab === 'estilo'}">🎨 Estilo</button><button type="button" role="tab" data-pg="duelos" aria-selected="${tab === 'duelos'}">👻 Duelos</button></div>
+      ${ascensionHTML()}
+      ${tab === 'maestria' ? cuerpoM : tab === 'talentos' ? cuerpoT : '<div id="pg-extra"><p class="nota">Cargando…</p></div>'}`, 'ancho');
+      if (tab === 'liga') pintarLiga(); else if (tab === 'estilo') pintarEstilo(); else if (tab === 'duelos') pintarDuelos();
     $('pg-cerrar').addEventListener('click', () => ui.cerrar());
     document.querySelectorAll('#modal [data-pg]').forEach((b) => b.addEventListener('click', () => abrirProgreso(b.dataset.pg)));
     document.querySelectorAll('#modal [data-guardian]').forEach((b) => b.addEventListener('click', () => abrirGuardian(b.dataset.guardian)));
@@ -5452,7 +5468,7 @@
     const A = estadoAltar();
     if (i === 5) return (A.hadesHasta || 0) > Date.now() ? 'Hades se recupera de la batalla' : `¡Desafiar a ${HADES.nombre}!`;
     const D = DIOSES[i], espera = ((A.espera || {})[i] || 0) - Date.now();
-    if (i < A.v) return `${D.nombre} (derrotado)`;
+    if (i < A.v) return A.hades ? (espera > 0 ? `${D.nombre} descansa (${Math.ceil(espera / 60000)} min)` : `Revancha con ${D.nombre} (fragmentos divinos)`) : `${D.nombre} (derrotado)`;
     if (i > A.v) return `${D.nombre} duerme…`;
     return espera > 0 ? `${D.nombre} descansa (${Math.ceil(espera / 60000)} min)` : `¡Desafiar a ${D.nombre}!`;
   }
@@ -5471,7 +5487,7 @@
   }
   function pedirDios(i) {
     const A = estadoAltar(), esHades = i === 5;
-    if (!esHades && i < A.v) return toast(`${DIOSES[i].nombre} ya fue derrotado. Su alma descansa.`);
+    if (!esHades && i < A.v && !A.hades) return toast(`${DIOSES[i].nombre} ya fue derrotado. Su alma descansa hasta que caiga Hades.`);
     if (!esHades && i > A.v) { sfx('alerta'); return toast(`${DIOSES[i].nombre} sigue dormido. Primero vence a ${DIOSES[A.v].nombre}.`, 'alerta'); }
     const hasta = esHades ? A.hadesHasta : (A.espera || {})[i];
     if ((hasta || 0) > Date.now()) return toast(`Descansa: podrás volver a desafiarlo en ${Math.ceil((hasta - Date.now()) / 60000)} min.`, 'alerta');
@@ -5523,6 +5539,9 @@
         A.ofrendas = { ...(A.ofrendas || {}), [ofrenda]: ((A.ofrendas || {})[ofrenda] || 0) + 1 };
         if (!J.fallos) contar(esHades ? 'hades_perfecto' : 'dios_perfecto');
         if (D.mec === 'reloj' && J.reloj >= 180000) contar('arena_llena');
+        const frag = darFragmento(D.id, esHades || i >= A.v ? 1 : 1 + (Math.random() < 0.5 ? 1 : 0));
+        if (!esHades && i < A.v) A.espera = { ...(A.espera || {}), [i]: Date.now() + 5 * 60000 };
+        setTimeout(() => toast(`💠 Ganaste ${frag} de ${D.nombre.split(',')[0]}. Fórjalos en la Forja divina (fogata de tu base).`), 2600);
         if (esHades) {
           const primera = !A.hades; A.hades = (A.hades || 0) + 1; A.hadesHasta = Date.now() + 10 * 60000; contar('hades');
           if (primera) toast(`👑 ¡VENCISTE A HADES! Ganas ${txt} y ${D.xp} de experiencia. Eres leyenda de Math World.`);
@@ -5670,6 +5689,336 @@
       if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
       if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
     }, 200);
+  }
+
+  // ===================================================================
+  // Ambición: Torre de los Dioses, reliquias divinas, ascensión, invasión semanal, ligas, estilo y duelos de fantasma
+  // ===================================================================
+  // ---------- Fragmentos y reliquias divinas ----------
+  const RELIQUIAS = [
+    { id: 'collar', dios: 'cerbero', ico: '🐺', nombre: 'Collar de Cerbero', efecto: '10 % de probabilidad de ganar un recurso extra con cada acierto.', frag: 4 },
+    { id: 'capa', dios: 'vampira', ico: '🦇', nombre: 'Capa de Lilith', efecto: 'Bloquea un golpe que te iban a dar; se recarga con 5 aciertos.', frag: 4 },
+    { id: 'ojo', dios: 'ciclope', ico: '👁️', nombre: 'Ojo de Polifemo', efecto: '+1 de daño en todos tus golpes.', frag: 4 },
+    { id: 'reloj', dios: 'segador', ico: '⏳', nombre: 'Reloj de Tánatos', efecto: '+15 % de experiencia.', frag: 4 },
+    { id: 'corazon', dios: 'golem', ico: '🗿', nombre: 'Corazón del Gólem', efecto: '+2 corazones máximos.', frag: 4 },
+    { id: 'tridente', dios: 'hades', ico: '🔱', nombre: 'Tridente de Hades', efecto: 'Cada 3 aciertos seguidos recuperas 1 corazón.', frag: 3 },
+  ];
+  const NOMBRE_DIOS = { cerbero: 'Cerbero', vampira: 'Lilith', ciclope: 'Polifemo', segador: 'Tánatos', golem: 'el Gólem', hades: 'Hades' };
+  function darFragmento(dios, n = 1) { S.fragmentos = S.fragmentos || {}; S.fragmentos[dios] = (S.fragmentos[dios] || 0) + n; guardar(true); return `${n} ${n === 1 ? 'fragmento divino' : 'fragmentos divinos'}`; }
+  function forjaVisible() { return Boolean(S && (Object.keys(S.fragmentos || {}).length || Object.keys(S.reliquias || {}).length || esDocente())); }
+  function usarCapa() {
+    if (!S || S.reliquia !== 'capa' || (S.capaCarga ?? 5) < 5) return false;
+    S.capaCarga = 0; setTimeout(() => toast('🦇 ¡La Capa de Lilith bloqueó el golpe! Se recarga con 5 aciertos.'), 50);
+    return true;
+  }
+  function reliquiaRegistrar(acierto) {
+    if (!S || !acierto || !S.reliquia) return;
+    if (S.reliquia === 'capa') S.capaCarga = Math.min(5, (S.capaCarga ?? 5) + 1);
+    if (S.reliquia === 'collar' && Math.random() < 0.1) { const txt = darPremio(paquete(1, 1, true), 0, false); toast(`🐺 Collar de Cerbero: +${txt}`); }
+    if (S.reliquia === 'tridente' && S.racha > 0 && S.racha % 3 === 0 && S.vida < vidaMax()) { S.vida += 1; pintarHUD(); toast('🔱 El Tridente de Hades te devolvió 1 corazón.'); }
+  }
+  function abrirForja() {
+    if (!S) return;
+    const F = S.fragmentos || {}, R = S.reliquias || {};
+    const COSTO = { cristal: 10, oro: 6 };
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Tu base · Fragmentos de los dioses del Altar</span><h2 id="modal-titulo">⚒️ Forja divina</h2></div><button type="button" class="btn" id="fg-cerrar">Cerrar</button></div>
+      <p class="nota">Vence (o revancha) a los dioses de El Altar de los Dioses para ganar sus <b>fragmentos</b>. Con ellos forjas reliquias con poderes. Solo puedes llevar <b>una reliquia</b> a la vez.</p>
+      <div class="reliquias">${RELIQUIAS.map((r) => {
+        const tiene = Boolean(R[r.id]), puesta = S.reliquia === r.id, f = F[r.dios] || 0;
+        const puede = !tiene && f >= r.frag && alcanza(COSTO);
+        return `<div class="reliquia ${tiene ? 'tiene' : ''} ${puesta ? 'puesta' : ''}"><span class="rq-ico">${r.ico}</span><div><b>${r.nombre}</b><small>${r.efecto}</small>
+          <small class="rq-costo">${tiene ? (puesta ? '✅ Equipada' : 'Forjada') : `💠 ${f}/${r.frag} fragmentos de ${NOMBRE_DIOS[r.dios]} · ${costoHTML(COSTO)}`}</small></div>
+          ${tiene ? `<button type="button" class="btn ${puesta ? '' : 'pri'}" data-rq-eq="${r.id}">${puesta ? 'Quitar' : 'Equipar'}</button>` : `<button type="button" class="btn pri" data-rq="${r.id}" ${puede ? '' : 'disabled'}>Forjar</button>`}</div>`;
+      }).join('')}</div>`, 'ancho');
+    $('fg-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('#modal [data-rq]').forEach((b) => b.addEventListener('click', () => {
+      const r = RELIQUIAS.find((x) => x.id === b.dataset.rq); if (!r || !alcanza(COSTO) || (S.fragmentos[r.dios] || 0) < r.frag) return;
+      pagar(COSTO); S.fragmentos[r.dios] -= r.frag; S.reliquias = { ...(S.reliquias || {}), [r.id]: Date.now() };
+      if (!S.reliquia) S.reliquia = r.id;
+      guardar(true); pintarHUD(); sfx('logro'); if (escena) escena.celebrar(); toast(`⚒️ ¡Forjaste ${r.nombre}!`); abrirForja();
+    }));
+    document.querySelectorAll('#modal [data-rq-eq]').forEach((b) => b.addEventListener('click', () => {
+      S.reliquia = S.reliquia === b.dataset.rqEq ? '' : b.dataset.rqEq; if (S.reliquia === 'capa') S.capaCarga = 5;
+      S.vida = Math.min(S.vida, vidaMax()); guardar(true); pintarHUD(); abrirForja();
+    }));
+  }
+
+  // ---------- Ascensión: después del nivel 100 la experiencia da estrellas ----------
+  const XP_ESTRELLA = 4000;
+  function estrellasAsc() { return (S && S.asc && S.asc.e) || 0; }
+  function sumarAscension(n) {
+    if (!S || (S.nivel || 1) < 100 || esDocente() || !(n > 0)) return;
+    const A = S.asc || (S.asc = { xp: 0, e: 0 });
+    A.xp += n;
+    while (A.xp >= XP_ESTRELLA) {
+      A.xp -= XP_ESTRELLA; A.e += 1;
+      const e = A.e;
+      setTimeout(() => { sfx('logro'); if (escena) escena.celebrar(); avisoGrande(`✦ ¡Estrella de ascensión ${e}!`, e === 3 ? 'Ganaste +1 corazón máximo' : e === 6 ? 'Ganaste +1 de daño permanente' : 'Tu experiencia crece un 2 % más', 'Ascensión · más allá del nivel 100', 'quinto'); pintarHUD(); }, 300);
+    }
+  }
+  function ascensionHTML() {
+    if (!S || (S.nivel || 1) < 100) return `<p class="nota asc-nota">✦ <b>Ascensión</b>: al llegar al nivel 100, tu experiencia empieza a darte <b>estrellas de ascensión</b> (bonos permanentes y una marca ✦ junto a tu nombre). Vas en el nivel ${S ? S.nivel : 1}.</p>`;
+    const A = S.asc || { xp: 0, e: 0 };
+    return `<div class="asc-caja"><b>✦ Ascensión · ${A.e} ${A.e === 1 ? 'estrella' : 'estrellas'}</b><div class="barra"><i style="width:${Math.round((A.xp / XP_ESTRELLA) * 100)}%"></i></div>
+      <small>${A.xp}/${XP_ESTRELLA} XP para la siguiente. Bonos: +${2 * Math.min(10, A.e)} % de experiencia${A.e >= 3 ? ' · +1 corazón' : ' · ★3: +1 corazón'}${A.e >= 6 ? ' · +1 de daño' : ' · ★6: +1 de daño'}.</small></div>`;
+  }
+
+  // ---------- Torre de los Dioses: pisos infinitos y ranking semanal del curso ----------
+  const RIVALES_TORRE = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'momia', 'ladron', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4'];
+  const REGLAS_TORRE = [
+    { id: 'veloz', txt: '⚡ Solo 9 segundos por pregunta' },
+    { id: 'escrita', txt: '✍️ Todas las respuestas se escriben' },
+    { id: 'doble', txt: '💀 Cada error quita 2 corazones más' },
+    { id: 'tema', txt: '📘 Todas las preguntas son de un solo tema' },
+    { id: 'sinpista', txt: '🙈 Sin paso a paso: solo ves si acertaste' },
+  ];
+  function puedeTorre() { return Boolean(S) && (((S.altar && S.altar.hades) || 0) > 0 || esDocente()); }
+  async function abrirTorre() {
+    if (!puedeTorre()) { sfx('alerta'); return toast('🗼 La Torre de los Dioses está sellada. Vence a Hades para abrirla.', 'alerta'); }
+    const T = S.torre || (S.torre = { mejor: 0 });
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">El Altar de los Dioses · Pisos infinitos</span><h2 id="modal-titulo">🗼 Torre de los Dioses</h2></div><button type="button" class="btn" id="tr-cerrar">Cerrar</button></div>
+      <p>Sube piso por piso: cada uno es un combate más difícil (más vida y menos tiempo). Cada 5 pisos espera un <b>jefe con una regla especial</b> y suelta fragmentos divinos. Tus corazones son solo de la torre: al subir recuperas 1. Si caes, no pierdes nada: solo termina tu escalada.</p>
+      <div class="prog-resumen"><span>🏅 Tu récord: <b>piso ${T.mejor || 0}</b></span><span>🗓️ Esta semana: <b>piso ${T.semana === semanaClave() ? T.mejorSemana || 0 : 0}</b></span></div>
+      <h3>🏆 Ranking semanal del curso</h3><div id="tr-ranking"><p class="nota">${sesion.modo === 'nube' ? 'Cargando…' : 'El ranking se ve con tu cuenta del curso.'}</p></div>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="tr-subir" data-foco>🗼 Comenzar a subir</button></div>`, 'ancho dios-modal');
+    $('tr-cerrar').addEventListener('click', () => ui.cerrar());
+    $('tr-subir').addEventListener('click', () => escalarTorre());
+    if (sesion.modo === 'nube' && window.Nube && Nube.torreRanking) {
+      try {
+        const r = await Nube.torreRanking(sesion.token), el = $('tr-ranking');
+        if (el && r && r.ok) el.innerHTML = r.lista && r.lista.length ? `<ol class="ranking-torre">${r.lista.map((x, i) => `<li class="${x.yo ? 'yo' : ''}"><span>${['🥇', '🥈', '🥉'][i] || `${i + 1}.`}</span><b>${esc(x.nombre)}</b><small>piso ${x.piso}</small></li>`).join('')}</ol>` : '<p class="nota">Nadie ha subido esta semana. ¡Sé el primero!</p>';
+      } catch (e) { const el = $('tr-ranking'); if (el) el.innerHTML = '<p class="nota">No se pudo cargar el ranking.</p>'; }
+    }
+  }
+  function semanaClave() { const d = new Date(), j = new Date(d.getFullYear(), 0, 1); return `${d.getFullYear()}-${Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7)}`; }
+  function escalarTorre() {
+    const sc = escena, T = S.torre || (S.torre = { mejor: 0 });
+    const maxV = vidaMax();
+    const R = { piso: 1, vida: maxV, hp: 0, max: 0, regla: null, tema: null, limite: 0, t0: 0, rival: '' };
+    let d = null, elegida = null, escrito = '', abierta = false, fin = null, ultimo = '', reloj = 0;
+    sc.enCombate = true;
+    const esJefe = () => R.piso % 5 === 0;
+    const prepararPiso = () => {
+      R.max = 3 + Math.floor(R.piso * 0.8) + (esJefe() ? 4 : 0); R.hp = R.max;
+      R.rival = esJefe() ? elige(['jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4', 'jefe_u2b', 'jefe_u3b']) : elige(RIVALES_TORRE);
+      R.regla = esJefe() ? REGLAS_TORRE[(R.piso / 5 - 1) % REGLAS_TORRE.length] : null;
+      R.tema = null;
+      if (R.regla && R.regla.id === 'tema') { const us = ['u1', 'u2', 'u3', 'u4'].filter((u) => Object.keys(Preguntas.titulos(S.curso, u)).length); const u = elige(us); R.tema = elige(Object.keys(Preguntas.titulos(S.curso, u))); }
+    };
+    const nueva = () => {
+      const dif = R.piso < 4 ? 1 : R.piso < 10 ? 2 : 3;
+      d = (R.tema && Preguntas.deTema(S.curso, R.tema, dif)) || preguntaMezclada(dif);
+      elegida = null; escrito = ''; abierta = (R.regla && R.regla.id === 'escrita' && abiertaPosible(d)) || usarAbierta(d);
+      R.limite = R.regla && R.regla.id === 'veloz' ? 9000 : Math.max(8000, 22000 - R.piso * 500); R.t0 = performance.now();
+    };
+    const terminar = () => {
+      clearInterval(reloj); sc.enCombate = false;
+      const alcanzado = R.piso - 1;
+      if (alcanzado > (T.mejor || 0)) T.mejor = alcanzado;
+      const sem = semanaClave(); if (T.semana !== sem) { T.semana = sem; T.mejorSemana = 0; }
+      if (alcanzado > (T.mejorSemana || 0)) T.mejorSemana = alcanzado;
+      guardar(true);
+      if (sesion.modo === 'nube' && window.Nube && Nube.torreRegistrar && alcanzado > 0) Nube.torreRegistrar(sesion.token, alcanzado).catch(() => {});
+    };
+    const pintar = () => {
+      const retrato = sc.imagenTex(`${R.rival}_retrato`);
+      let cuerpo;
+      if (fin) cuerpo = `<div class="mensaje ${R.piso > 1 ? 'bien' : 'mal'}" role="status" style="font-size:17px"><span>🗼 Tu escalada terminó en el <b>piso ${R.piso}</b>. Superaste <b>${R.piso - 1}</b> ${R.piso - 1 === 1 ? 'piso' : 'pisos'}.${R.piso - 1 >= (T.mejor || 0) && R.piso > 1 ? ' ¡Nuevo récord!' : ''}</span></div>${ultimo}<div class="acciones"><button type="button" class="btn" id="tw-otra">🔁 Volver a subir</button><button type="button" class="btn pri" id="tw-fin" data-foco>Cerrar</button></div>`;
+      else cuerpo = `${R.regla ? `<div class="mensaje pista rey-fase">👑 Jefe del piso ${R.piso}: ${R.regla.txt}${R.tema ? ` (${esc(Preguntas.tituloDe(R.tema))})` : ''}</div>` : ''}${ultimo}
+        <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
+        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${abierta ? abiertaHTML(escrito) : alternativasHTML(d, elegida, new Set(), false)}
+        <div class="acciones"><div><button type="button" class="btn" id="tw-salir">Rendirse</button></div><div><button type="button" class="btn pri" id="r-ok" ${(abierta ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
+      ui.abrir(`<div class="combate-cab"><div class="luchador"><img class="px" src="${retrato}" alt="" width="72" height="72">
+          <div><span class="etq" style="color:#8fd8ff">🗼 Torre de los Dioses · Piso ${R.piso}${esJefe() ? ' · JEFE' : ''} · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${esJefe() ? 'Guardián del piso' : 'Rival del piso'} ${R.piso}</h2>
+            <div class="barra enemigo"><i style="width:${(Math.max(0, R.hp) / R.max) * 100}%"></i></div></div></div>
+          <div class="tu-vida"><span class="etq">Vida en la torre</span><div class="corazones">${corazones(Math.max(0, R.vida), maxV)}</div><span class="nota">Récord: piso ${T.mejor || 0}</span></div></div>${cuerpo}`, 'combate jefe rey dios-torre', () => { if (!fin) { fin = 'salir'; terminar(); } clearInterval(reloj); sc.enCombate = false; });
+      document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
+      conectarAbierta((v) => { escrito = v; const b = $('r-ok'); if (b) b.disabled = !v.trim(); });
+      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
+      on('r-ok', atacar);
+      on('tw-salir', () => { if (fin) return; fin = 'rendirse'; terminar(); pintar(); });
+      on('tw-fin', () => ui.cerrar());
+      on('tw-otra', () => escalarTorre());
+      ui.teclas = (e) => { if (fin) { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } return; } if (!abierta && /^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); } };
+    };
+    const fallo = (motivo) => {
+      sfx('dano');
+      if (escudoActivo()) { ultimo = `<div class="mensaje pista" role="status">${esc(motivo)} ¡Bloqueaste el golpe!</div>`; return; }
+      const n = (R.piso >= 15 ? 2 : 1) + (R.regla && R.regla.id === 'doble' ? 2 : 0);
+      R.vida -= n;
+      ultimo = R.regla && R.regla.id === 'sinpista' ? `<div class="mensaje mal" role="status">${esc(motivo)} (−${n} ❤)</div>` : pasoAPasoHTML(d, `${motivo} (−${n} ❤)`, '');
+      if (R.vida <= 0) { fin = 'derrota'; terminar(); }
+    };
+    const atacar = () => {
+      if (fin) return;
+      let ok;
+      if (abierta) { if (!escrito.trim()) return; const r = compararAbierta(d, escrito); if (r.motivo) { ultimo = avisoAbierta(r.motivo); return pintar(); } ok = r.ok; if (!ok) anotarEscrita(d, escrito); }
+      else { if (elegida === null) return; ok = elegida === d.correcta; }
+      registrar(d.tema, ok); ultimo = '';
+      if (ok) {
+        sfx('golpe'); R.hp -= 1; ganarXP(4 + Math.min(20, R.piso));
+        if (R.hp <= 0) {
+          const jefe = esJefe();
+          let premio = '';
+          if (jefe) { const dios = elige(Object.keys(NOMBRE_DIOS)); premio = ` ${darFragmento(dios)} de ${NOMBRE_DIOS[dios]} y ${darPremio(paquete(4 + R.piso / 5, 3, true), 30)}.`; contar('torre_jefe'); }
+          sfx(jefe ? 'victoria' : 'acierto');
+          R.piso += 1; R.vida = Math.min(maxV, R.vida + 1);
+          if (R.piso - 1 > (T.mejor || 0)) T.mejor = R.piso - 1;
+          prepararPiso();
+          ultimo = `<div class="mensaje bien" role="status">🗼 ¡Piso ${R.piso - 1} superado! Recuperas 1 ❤.${premio}</div>`;
+        } else ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
+      } else fallo(`La respuesta era ${d.opciones[d.correcta]}.`);
+      if (!fin) nueva();
+      pintar();
+    };
+    prepararPiso(); nueva(); pintar();
+    reloj = setInterval(() => {
+      if (fin || !R.limite) return;
+      const resto = R.limite - (performance.now() - R.t0), barra = $('r-tiempo');
+      if (barra) barra.style.width = `${Math.max(0, (resto / R.limite) * 100)}%`;
+      if (resto <= 0) { fallo('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
+    }, 200);
+  }
+
+  // ---------- Invasión semanal: un titán gigante en la base, lo derrota todo el curso ----------
+  const TITANES = [['altar_golem', 'Titán de las Almas', 0x9aff9a], ['jefe_u3b', 'Coloso Errante', 0xff9a6a], ['altar_ciclope', 'Cíclope del Eclipse', 0xc99aff], ['jefe_u4b', 'Gigante de Escarcha', 0x9adfff], ['altar_cerbero', 'Perro de la Tormenta', 0xff6a6a]];
+  function invasion() {
+    const W = extraE && extraE.semana; if (!W || !W.meta) return null;
+    const n = Number(String(W.semana).replace(/\D/g, '').slice(-2)) || 0;
+    const [tex, nombre, color] = TITANES[n % TITANES.length];
+    const vida = Math.round(W.meta * 1.75);
+    return { tex, nombre, color, vida, hecho: Math.min(vida, W.total), mio: W.mio || 0, semana: W.semana, caido: W.total >= vida };
+  }
+  function pintarInvasion(sc) {
+    const I = invasion();
+    if (sc.titan) { sc.titan.destroy(); sc.titan = null; } if (sc.titanTag) { sc.titanTag.destroy(); sc.titanTag = null; }
+    if (!I || !sc || sc.zona !== 'base' || !sc.textures.exists(`${I.tex}_hoja`)) return;
+    const x = 37 * TILE, y = 12 * TILE;
+    sc.titan = sc.add.sprite(x, y, `${I.tex}_hoja`, DIRS.left * 9).setOrigin(0.5, 0.92).setScale(4.4).setDepth(y).setTint(I.caido ? 0x555555 : I.color).setAlpha(I.caido ? 0.5 : 1);
+    if (!I.caido) sc.tweens.add({ targets: sc.titan, scaleY: 4.55, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+    sc.titanTag = sc.add.text(x, y - 300, `${I.caido ? '☠️' : '⚔️'} Invasión: ${I.nombre}\n${I.caido ? '¡Derrotado por el curso!' : `Vida: ${I.vida - I.hecho} de ${I.vida} · cada acierto del curso lo hiere`}`, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 5, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(99980);
+  }
+  function revisarInvasion() {
+    const I = invasion(); if (!S || !I || !I.caido || !I.mio || esDocente()) return;
+    if ((S.invasionesCobradas || []).includes(I.semana)) return;
+    S.invasionesCobradas = [...(S.invasionesCobradas || []), I.semana].slice(-20); guardar(true); contar('invasion');
+    setTimeout(() => { const txt = darPremio(paquete(14, 5, true), 250); sfx('logro'); if (escena) escena.celebrar(); avisoGrande(`☠️ ¡${I.nombre} cayó!`, 'Tu curso derrotó al titán de la invasión semanal', `Cofre épico: ${txt} y 250 de experiencia`, 'quinto'); if (escena && escena.zona === 'base') pintarInvasion(escena); }, 1500);
+  }
+  setInterval(() => { if (S && extraE && extraE.semana) { revisarInvasion(); if (escena && escena.zona === 'base' && escena.titanTag) pintarInvasion(escena); } }, 30000);
+
+  // ---------- Ligas semanales (Bronce → Plata → Oro → Diamante) ----------
+  const LIGAS = [['🥉', 'Bronce'], ['🥈', 'Plata'], ['🥇', 'Oro'], ['💎', 'Diamante']];
+  async function pintarLiga() {
+    const el = $('pg-extra'); if (!el) return;
+    if (sesion.modo !== 'nube' || !window.Nube || !Nube.liga) { el.innerHTML = '<p class="nota">Las ligas funcionan con tu cuenta del curso.</p>'; return; }
+    let r = null; try { r = await Nube.liga(sesion.token); } catch (e) { r = null; }
+    if (!$('pg-extra')) return;
+    if (!r || !r.ok) { el.innerHTML = '<p class="nota">No se pudo cargar tu liga. Inténtalo otra vez.</p>'; return; }
+    const L = S.liga || (S.liga = { tier: 0, semana: r.semana, max: 0 });
+    const grupo = (rows, campo, tier) => rows.filter((x) => (Number(x.tier) || 0) === tier).sort((a, b) => (b[campo] || 0) - (a[campo] || 0));
+    // al cambiar de semana: los 3 primeros de tu liga suben y los 3 últimos bajan (si hay al menos 6)
+    if (L.semana !== r.semana) {
+      const g = grupo(r.lista, 'anterior', L.tier), pos = g.findIndex((x) => x.yo);
+      let msg = '';
+      if (pos >= 0 && g.length >= 4 && (g[pos].anterior || 0) > 0) {
+        if (pos < 3 && L.tier < 3) { L.tier += 1; msg = `⬆️ ¡Subiste a la liga ${LIGAS[L.tier][1]}!`; }
+        else if (g.length >= 6 && pos >= g.length - 3 && L.tier > 0) { L.tier -= 1; msg = `⬇️ Bajaste a la liga ${LIGAS[L.tier][1]}. ¡Esta semana puedes recuperarla!`; }
+      }
+      L.semana = r.semana; L.max = Math.max(L.max || 0, L.tier); guardar(true);
+      if (msg) toast(msg);
+      const yo = r.lista.find((x) => x.yo); if (yo) yo.tier = L.tier;
+    }
+    const g = grupo(r.lista, 'n', L.tier);
+    el.innerHTML = `<div class="liga-cab"><span class="liga-ico">${LIGAS[L.tier][0]}</span><div><b>Liga ${LIGAS[L.tier][1]}</b><small>Compites con quienes están en tu misma liga según tus respuestas correctas de esta semana. El lunes, los 3 primeros suben y los 3 últimos bajan.</small></div></div>
+      ${g.length ? `<ol class="ranking-torre liga">${g.map((x, i) => `<li class="${x.yo ? 'yo' : ''} ${i < 3 ? 'sube' : g.length >= 6 && i >= g.length - 3 ? 'baja' : ''}"><span>${i + 1}.</span><b>${esc(x.nombre)}</b><small>${x.n || 0} aciertos</small></li>`).join('')}</ol>` : '<p class="nota">Aún no hay nadie en tu liga esta semana.</p>'}
+      <p class="nota">⬆️ Verde: zona de ascenso · ⬇️ Rojo: zona de descenso.</p>`;
+  }
+
+  // ---------- Estilo del héroe: marcos y color del nombre ----------
+  const MARCOS = [
+    ['normal', 'Clásico', '', () => true],
+    ['bronce', 'Bronce', 'Llega a rango oro en 1 tema', () => Object.keys(S.maestria || {}).filter((t) => rangoDe(t) === 3).length >= 1],
+    ['torre', 'Celeste', 'Llega al piso 10 de la Torre', () => ((S.torre && S.torre.mejor) || 0) >= 10],
+    ['divino', 'Divino', 'Vence a Hades', () => ((S.altar && S.altar.hades) || 0) >= 1],
+    ['estelar', 'Estelar', 'Gana una estrella de ascensión', () => estrellasAsc() >= 1],
+    ['diamante', 'Diamante', 'Llega a la liga Diamante', () => ((S.liga && S.liga.max) || 0) >= 3],
+  ];
+  const COLORES_NOMBRE = [
+    ['#ffffff', 'Blanco', '', () => true],
+    ['#ffd27a', 'Dorado', 'Consigue 30 logros', () => Object.keys(S.logros || {}).length >= 30],
+    ['#7ee0ff', 'Cian', 'Llega al piso 20 de la Torre', () => ((S.torre && S.torre.mejor) || 0) >= 20],
+    ['#c79bff', 'Violeta', 'Vence a Hades', () => ((S.altar && S.altar.hades) || 0) >= 1],
+    ['#ff9a7a', 'Coral', 'Llega a rango oro en 3 temas', () => Object.keys(S.maestria || {}).filter((t) => rangoDe(t) === 3).length >= 3],
+    ['#7dff9a', 'Esmeralda', 'Gana 3 duelos de fantasma', () => CN('fantasma') >= 3],
+  ];
+  function colorNombre() { const c = S && S.estilo && S.estilo.color; const ok = COLORES_NOMBRE.find((x) => x[0] === c); return ok && ok[3]() ? c : '#ffffff'; }
+  function aplicarEstilo() {
+    const f = $('hud-foto'); if (!f || !S) return;
+    const m = (S.estilo && S.estilo.marco) || 'normal', ok = MARCOS.find((x) => x[0] === m);
+    f.className = `foto marco-${ok && ok[3]() ? m : 'normal'}`;
+    const a = $('hud-apodo'); if (a) a.style.color = colorNombre();
+  }
+  function pintarEstilo() {
+    const el = $('pg-extra'); if (!el) return;
+    const E = S.estilo || (S.estilo = {});
+    el.innerHTML = `<h3>🖼️ Marco del retrato</h3><div class="estilos">${MARCOS.map(([id, nom, req, ok]) => `<button type="button" class="estilo-op ${ok() ? '' : 'bloq'}" data-marco="${id}" aria-pressed="${(E.marco || 'normal') === id}" ${ok() ? '' : 'disabled'}><span class="foto-mini marco-${id}"></span><b>${nom}</b><small>${ok() ? 'Disponible' : `🔒 ${req}`}</small></button>`).join('')}</div>
+      <h3>🔤 Color de tu nombre</h3><div class="estilos">${COLORES_NOMBRE.map(([c, nom, req, ok]) => `<button type="button" class="estilo-op ${ok() ? '' : 'bloq'}" data-color="${c}" aria-pressed="${colorNombre() === c}" ${ok() ? '' : 'disabled'}><b style="color:${c}">${esc(S.nombre || 'Tu nombre')}</b><small>${nom}${ok() ? '' : ` · 🔒 ${req}`}</small></button>`).join('')}</div>
+      <p class="nota">Tus compañeros ven el color de tu nombre y tus estrellas de ascensión ✦ en el juego.</p>`;
+    el.querySelectorAll('[data-marco]').forEach((b) => b.addEventListener('click', () => { E.marco = b.dataset.marco; guardar(true); aplicarEstilo(); pintarEstilo(); }));
+    el.querySelectorAll('[data-color]').forEach((b) => b.addEventListener('click', () => { E.color = b.dataset.color; guardar(true); aplicarEstilo(); if (escena && escena.tagYo) escena.pintarTituloYo(); if (escena && escena.ultimoMov) escena.ultimoMov.t = 0; pintarEstilo(); }));
+  }
+
+  // ---------- Duelos de fantasma: las mismas 10 preguntas, cada uno a su hora ----------
+  const B36 = (n, len) => n.toString(36).toUpperCase().padStart(len, '0');
+  function codigoDuelo(semilla, aciertos, seg) {
+    const curso = S.curso === '8basico' ? 1 : 0;
+    const v = ((semilla * 2 + curso) * 11 + aciertos) * 1000 + Math.min(999, seg);
+    const s = B36(v, 9), chk = B36([...s].reduce((a, c) => a + parseInt(c, 36), 0) % 36, 1);
+    return `${s.slice(0, 5)}-${s.slice(5)}${chk}`;
+  }
+  function leerCodigo(txt) {
+    const s = String(txt || '').toUpperCase().replace(/[^0-9A-Z]/g, '');
+    if (s.length !== 10) return null;
+    const cuerpo = s.slice(0, 9), chk = s[9];
+    if (B36([...cuerpo].reduce((a, c) => a + parseInt(c, 36), 0) % 36, 1) !== chk) return null;
+    let v = parseInt(cuerpo, 36); const seg = v % 1000; v = Math.floor(v / 1000);
+    const aciertos = v % 11; v = Math.floor(v / 11); const curso = v % 2 ? '8basico' : '7basico'; const semilla = Math.floor(v / 2);
+    return { semilla, aciertos, seg, curso };
+  }
+  function jugarDuelo(semilla, rival) {
+    const ps = Preguntas.generarFijo ? Preguntas.generarFijo(S.curso, semilla, 10) : [];
+    if (ps.length < 10) return toast('No se pudo preparar el duelo. Inténtalo otra vez.', 'alerta');
+    const t0 = performance.now();
+    abrirSerie({ etq: rival ? '👻 Duelo de fantasma' : '👻 Crear un duelo', titulo: rival ? `Supera ${rival.aciertos}/10 en ${rival.seg} s` : 'Responde rápido y bien', preguntas: ps, abierta: false,
+      nota: rival ? `Tu compañero hizo <b>${rival.aciertos} de 10</b> en <b>${rival.seg} s</b>. Gana quien tenga más aciertos; si empatan, gana el más rápido.` : 'Tus aciertos y tu tiempo quedarán en un código que puedes darle a un compañero para que intente superarte con las mismas preguntas.',
+      alFin: (a, det, ultimo) => {
+        const seg = Math.round((performance.now() - t0) / 1000);
+        let html;
+        if (rival) {
+          const gane = a > rival.aciertos || (a === rival.aciertos && seg < rival.seg), empate = a === rival.aciertos && seg === rival.seg;
+          if (gane) { contar('fantasma'); darPremio(paquete(4, 2, true), 40); sfx('logro'); }
+          html = `<p class="enunciado">${gane ? '🏆 ¡Ganaste el duelo!' : empate ? '🤝 ¡Empate exacto!' : '👻 El fantasma ganó esta vez.'}</p><p>Tú: <b>${a}/10</b> en <b>${seg} s</b> · Tu compañero: <b>${rival.aciertos}/10</b> en <b>${rival.seg} s</b>.</p>${gane ? '<p class="nota">Premio: recursos y 40 de experiencia.</p>' : ''}<p class="nota">¿Quieres devolverle el desafío? Dale este código: <b class="codigo-duelo">${codigoDuelo(semilla, a, seg)}</b></p>`;
+        } else html = `<p class="enunciado">Hiciste <b>${a}/10</b> en <b>${seg} s</b>.</p><p>Dale este código a un compañero (de tu mismo nivel) para que juegue las mismas preguntas e intente superarte:</p><p class="codigo-duelo">${codigoDuelo(semilla, a, seg)}</p>`;
+        ui.abrir(resultadoHTML('👻 Duelo de fantasma', rival ? 'Resultado del duelo' : '¡Tu fantasma está listo!', `${ultimo}${html}`, '📈 Volver'), 'serie');
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+        $('res-volver').addEventListener('click', () => abrirProgreso('duelos'));
+      } });
+  }
+  function pintarDuelos() {
+    const el = $('pg-extra'); if (!el) return;
+    el.innerHTML = `<p>Desafía a un compañero aunque no estén jugando al mismo tiempo: las <b>mismas 10 preguntas</b> para los dos.</p>
+      <div class="taller"><section class="tarjeta-mision"><strong>👻 Crear un duelo</strong><span class="nota">Juega 10 preguntas y recibe un código con tu resultado.</span><button type="button" class="btn pri" id="du-crear">Crear duelo</button></section>
+      <section class="tarjeta-mision"><strong>⚔️ Aceptar un duelo</strong><span class="nota">Escribe el código que te dio tu compañero.</span><input id="du-codigo" class="du-codigo" maxlength="12" placeholder="XXXXX-XXXXX" autocomplete="off"><button type="button" class="btn pri" id="du-aceptar">Jugar contra su fantasma</button><small id="du-error" class="nota"></small></section></div>
+      <p class="nota">Duelos ganados: <b>${CN('fantasma')}</b>.</p>`;
+    $('du-crear').addEventListener('click', () => jugarDuelo(1 + Math.floor(Math.random() * 16000000), null));
+    const inp = $('du-codigo'); inp.addEventListener('keydown', (e) => { if (e.key !== 'Escape') e.stopPropagation(); });
+    $('du-aceptar').addEventListener('click', () => {
+      const c = leerCodigo(inp.value);
+      if (!c) { $('du-error').textContent = 'Ese código no es válido. Revísalo.'; return; }
+      if (c.curso !== S.curso) { $('du-error').textContent = `Ese duelo es de ${c.curso === '8basico' ? '8°' : '7°'} básico: las preguntas no coinciden con las tuyas.`; return; }
+      jugarDuelo(c.semilla, c);
+    });
   }
 
   // ---------- Racha de días jugados ----------
@@ -6683,7 +7032,7 @@
     ui.abrir(`
       <div class="modal-cab">
         <div><span class="etq">${escena.zona === 'pieza' ? 'Tu pieza' : 'Tu base'} · Los recursos se toman del cofre y la mochila</span><h2 id="modal-titulo">Fabricar</h2></div>
-        <div class="f-acciones"><button type="button" class="btn sec" id="f-taller">🧮 Taller del gremio</button><button type="button" class="btn" id="f-cerrar">Cerrar</button></div>
+        <div class="f-acciones"><button type="button" class="btn sec" id="f-taller">🧮 Taller del gremio</button>${forjaVisible() ? '<button type="button" class="btn sec" id="f-forja">⚒️ Forja divina</button>' : ''}<button type="button" class="btn" id="f-cerrar">Cerrar</button></div>
       </div>
       ${desActivo('mercado') ? '<div class="mensaje bien" role="status">🛒 ¡Mercado relámpago! Todo cuesta la mitad mientras dure el desafío.</div>' : ''}
       ${recursosFabricarHTML()}
@@ -6695,6 +7044,7 @@
       ${cuerpo}`, 'ancho');
     $('f-cerrar').addEventListener('click', () => ui.cerrar());
     $('f-taller').addEventListener('click', () => abrirTaller());
+    const ff = $('f-forja'); if (ff) ff.addEventListener('click', () => abrirForja());
     document.querySelectorAll('[data-p]').forEach((b) => b.addEventListener('click', () => abrirFabricar(b.dataset.p)));
     document.querySelectorAll('[data-eq]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.eq); abrirFabricar('equipo'); }));
     document.querySelectorAll('[data-m]').forEach((b) => b.addEventListener('click', () => {
@@ -7475,7 +7825,7 @@
     arena: { estado: () => ({ mios: 0 }), progreso: () => `Tus aciertos: ${vivo.d.aciertos || 0}` },
     curso: { estado: () => ({ mios: 0 }), progreso: () => `Curso: ${vivo.d.total || 0} de ${vivo.d.meta} correctas` },
   };
-  const escudoActivo = () => desActivo('escudo');
+  const escudoActivo = () => desActivo('escudo') || usarCapa();
   const azarEnt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
   const elegir = (l) => l[Math.floor(Math.random() * l.length)];
   const nfmt = (x) => Preguntas._num(x);
@@ -8194,6 +8544,7 @@
       if (this.zona === 'pieza' && this.sala.tipo === 'comun') setTimeout(() => toast('Carpa común: todo el grupo puede decorarla con G. Cada uno puede guardar solo lo que puso.'), 700);
       if (this.zona === 'base' || (this.zona === 'pieza' && this.sala.tipo === 'comun')) cargarBase();
       if (this.zona === 'altar') this.time.delayedCall(600, () => entrarAltar(this));
+      if (this.zona === 'base') this.time.delayedCall(500, () => pintarInvasion(this));
       revisarPendientes();
     }
 
@@ -8263,8 +8614,15 @@
       // oscuridad del inframundo y luz del jugador
       this.add.rectangle(0, 0, W, H, 0x05000a, 0.5).setOrigin(0).setDepth(9500);
       this.luz = this.add.image(0, 0, 'luz').setScale(2.8).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.32).setDepth(9501);
-      // portal de regreso (abajo al centro)
+      // portal de regreso (abajo al centro) y la Torre de los Dioses (se abre al vencer a Hades)
       this.portal(21, this.alto - 4);
+      const TX = 33 * TILE + 16, TY = (this.alto - 4) * TILE + 20;
+      for (const [dx, k] of [[-22, 'a_columna_cristal'], [22, 'a_columna_cristal']]) this.add.image(TX + dx, TY, k).setOrigin(0.5, 1).setScale(2.4).setDepth(TY);
+      this.add.image(TX, TY - 30, 'luz').setScale(1.2).setTint(0x8fd8ff).setBlendMode(Phaser.BlendModes.ADD).setAlpha(0.35).setDepth(9501);
+      this.torreTag = this.add.text(TX, TY - 110, '🗼 Torre de los Dioses', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#bfe9ff', stroke: '#12001c', strokeThickness: 4, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(9999);
+      this.solido(TX, TY - 10, 70, 18);
+      this.objetos.push({ tipo: 'torre', x: TX, y: TY + 10, activo: true });
+      for (let y = this.alto - 6; y <= this.alto - 3; y++) for (let x = 31; x <= 35; x++) this.marcar(x, y);
       this.inicio = { x: 22 * TILE + 16, y: (this.alto - 3) * TILE };
       this.actualizarAltar(false);
     }
@@ -8275,7 +8633,8 @@
         const D = DIOSES[i], vencido = i < A.v, despierto = i === A.v;
         const espera = ((A.espera || {})[i] || 0) - Date.now();
         a.spr.anims.stop(); a.spr.setFrame(DIRS.down * 9);
-        if (vencido) { a.spr.setTint(0x3a3240).setAlpha(0.6); a.zz.setVisible(false); a.brillo.setAlpha(0.05); a.resp.pause(); a.tag.setText(`${D.nombre}\n☠️ Derrotado`).setColor('#9d8fb0'); }
+        if (vencido && A.hades) { a.spr.setTint(0x9a8ab0).setAlpha(0.9); a.zz.setVisible(false); a.brillo.setAlpha(0.12); a.resp.resume(); a.tag.setText(`${D.nombre}\n${espera > 0 ? `descansa: vuelve en ${Math.ceil(espera / 60000)} min` : '🔁 Revancha: suelta fragmentos'}`).setColor('#d9c2ff'); }
+        else if (vencido) { a.spr.setTint(0x3a3240).setAlpha(0.6); a.zz.setVisible(false); a.brillo.setAlpha(0.05); a.resp.pause(); a.tag.setText(`${D.nombre}\n☠️ Derrotado`).setColor('#9d8fb0'); }
         else if (despierto) {
           a.spr.clearTint().setAlpha(1); a.zz.setVisible(false); a.brillo.setAlpha(0.2); a.resp.resume();
           a.tag.setText(`${D.nombre}\n${espera > 0 ? `descansa: vuelve en ${Math.ceil(espera / 60000)} min` : '⚔️ ¡Despierto! E para desafiarlo'}`).setColor('#ffd27a');
@@ -10829,6 +11188,7 @@
         case 'tesoro': return 'Cavar el tesoro (responde 3 preguntas)';
         case 'portal': return 'Usar el portal';
         case 'dios': return textoDios(o.i);
+        case 'torre': return puedeTorre() ? '🗼 Entrar a la Torre de los Dioses' : '🗼 Torre sellada: vence a Hades para abrirla';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
         case 'obra': return o.listo ? null : this.valle ? 'Ver y aportar al montacargas' : this.prof ? 'Ver y aportar al elevador' : this.cima ? 'Ver y aportar a la ruta de escalada' : 'Ver y aportar al puente';
@@ -10880,6 +11240,7 @@
       if (o.tipo === 'mimico') return desActivo('mimicos') && abrirMimico(o);
       if (o.tipo === 'portal') return abrirPortal();
       if (o.tipo === 'dios') return pedirDios(o.i);
+      if (o.tipo === 'torre') return abrirTorre();
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
       if (o.tipo === 'obra') return o.listo ? null : abrirObra();
@@ -11069,7 +11430,7 @@
     }
     // ---------- modo cooperativo ----------
     iniciarCoop() {
-      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual(), pv: mascotaActual() ? etapaMascota(mascotaActual()) : 0 };
+      const meta = { id: idJuego, nombre: S.docente ? 'Profe' : `${S.nombre}${S.seccion === 'INV' ? ' · Invitado' : S.seccion ? ' · ' + S.seccion : ''}`, pj: S.pj, docente: Boolean(S.docente), ti: S.titulo || '', pe: mascotaActual(), pv: mascotaActual() ? etapaMascota(mascotaActual()) : 0, cn: colorNombre(), as: estrellasAsc() };
       this.jefe = { estado: 'libre', hp: 0, max: 0, part: [], lider: null, hasta: 0 };
       this.estadoJug = new Map(); this.yoEnGuarida = false; this.enJefe = false;
       this.ultimoMov = { t: 0, x: 0, y: 0, m: false };
@@ -11147,8 +11508,8 @@
       const pj = PERSONAJES.some((x) => x.id === meta.pj) ? meta.pj : 'zorro';
       const spr = this.add.sprite(this.inicio.x, this.inicio.y, `pj_${pj}_nada`, DIRS.down * 9).setOrigin(0.5, 0.9).setAlpha(0);
       const capas = this.crearCapas();
-      const tag = this.add.text(spr.x, spr.y - 60, String(meta.nombre || 'Compañero').slice(0, 28), {
-        fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: meta.docente ? '#ffd27a' : '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 },
+      const tag = this.add.text(spr.x, spr.y - 60, `${String(meta.nombre || 'Compañero').slice(0, 28)}${Number(meta.as) > 0 ? ` ✦${Math.min(99, Number(meta.as))}` : ''}`, {
+        fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: meta.docente ? '#ffd27a' : /^#[0-9a-f]{6}$/i.test(meta.cn || '') ? meta.cn : '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 },
       }).setOrigin(0.5).setResolution(3).setDepth(99990).setAlpha(0);
       const tagT = this.add.text(spr.x, spr.y - 76, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99991).setAlpha(0);
       this.otros.set(id, { spr, tag, tagT, ti: '', capas, meta, pj, obj: { x: spr.x, y: spr.y }, dir: 'down', h: 'hacha', a: null, w: null, m: false, visto: false });
@@ -11224,7 +11585,7 @@
         this.tagYo = this.add.text(0, 0, '', { fontFamily: 'Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffffff', backgroundColor: 'rgba(18,32,26,0.8)', padding: { x: 4, y: 1 } }).setOrigin(0.5).setResolution(3).setDepth(99990);
         this.tagYoT = this.add.text(0, 0, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#ffd27a', stroke: '#2a1a0c', strokeThickness: 3 }).setOrigin(0.5).setResolution(3).setDepth(99991);
       }
-      this.tagYo.setText(String(S.docente ? 'Profe' : S.nombre || '').split(' ')[0]).setVisible(Boolean(t));
+      this.tagYo.setText(`${String(S.docente ? 'Profe' : S.nombre || '').split(' ')[0]}${estrellasAsc() ? ` ✦${estrellasAsc()}` : ''}`).setColor(colorNombre()).setVisible(Boolean(t));
       this.tagYoT.setText(t ? `«${t}»` : '').setVisible(Boolean(t));
     }
     compartirNodo(o, n) {

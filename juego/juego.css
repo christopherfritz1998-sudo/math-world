@@ -1324,3 +1324,33 @@ body.liviano *, body.liviano *::before, body.liviano *::after { animation-durati
 .modal[class*="dios-"] { border-color: #b98cff; box-shadow: 0 0 40px rgba(170, 74, 255, .35); }
 .modal.dios-hades { border-color: #d9b3ff; box-shadow: 0 0 60px rgba(170, 74, 255, .6); }
 .zona.quinto.abierto::after { content: "⛩️"; }
+
+/* Forja divina */
+.reliquias { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px; }
+.reliquia { display: flex; gap: 10px; align-items: center; padding: 10px; border-radius: 14px; background: #1a0b22; border: 2px solid #4a2a5e; }
+.reliquia.tiene { border-color: #8a5ab8; } .reliquia.puesta { border-color: #f2b544; box-shadow: 0 0 14px rgba(242, 181, 68, .35); }
+.reliquia .rq-ico { font-size: 32px; }
+.reliquia > div { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+.reliquia small { color: #c9b3dc; } .reliquia .rq-costo { color: #ffd27a; }
+/* Torre, ligas y ascensión */
+.ranking-torre { list-style: none; margin: 6px 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ranking-torre li { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+.ranking-torre li b { flex: 1; } .ranking-torre li small { color: var(--muted); font-weight: 800; }
+.ranking-torre li.yo { border-color: #f2b544; background: #2c2510; }
+.ranking-torre.liga li.sube { box-shadow: inset 4px 0 0 #3fbf6a; } .ranking-torre.liga li.baja { box-shadow: inset 4px 0 0 #e0563c; }
+.liga-cab { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 14px; background: var(--bg); border: 1px solid var(--line); margin-bottom: 6px; }
+.liga-cab .liga-ico { font-size: 40px; } .liga-cab div { display: flex; flex-direction: column; gap: 3px; } .liga-cab small { color: var(--muted); }
+.asc-caja { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 12px; background: linear-gradient(90deg, #1f1840, #2c1f52); border: 1px solid #8a7aff; margin: 6px 0; }
+.asc-caja small { color: #cfc6ff; } .asc-nota { margin: 6px 0; }
+/* Estilo del héroe */
+.estilos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 10px; }
+.estilo-op { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border-radius: 12px; border: 2px solid var(--line); background: var(--bg); color: var(--text); font: inherit; cursor: pointer; text-align: center; }
+.estilo-op[aria-pressed="true"] { border-color: #f2b544; } .estilo-op.bloq { opacity: .55; cursor: default; }
+.estilo-op small { color: var(--muted); font-size: 12px; }
+.foto-mini { width: 40px; height: 40px; border-radius: 10px; background: #2a3a30; }
+.marco-bronce { box-shadow: 0 0 0 3px #c8823a !important; } .marco-torre { box-shadow: 0 0 0 3px #7ee0ff, 0 0 10px #7ee0ff !important; }
+.marco-divino { box-shadow: 0 0 0 3px #b98cff, 0 0 14px #aa4aff !important; } .marco-estelar { box-shadow: 0 0 0 3px #ffffff, 0 0 16px #ffe08a !important; }
+.marco-diamante { box-shadow: 0 0 0 3px #7af0ff, 0 0 0 6px #2a6aff !important; }
+/* Duelos de fantasma */
+.codigo-duelo { font-family: "Fredoka", monospace; font-size: 26px; letter-spacing: .12em; color: #ffd27a; user-select: all; }
+.du-codigo { font-family: "Fredoka", monospace; font-size: 20px; letter-spacing: .1em; text-transform: uppercase; padding: 8px 10px; border-radius: 10px; border: 2px solid var(--teal); background: var(--bg); color: var(--text); width: 100%; margin: 6px 0; }

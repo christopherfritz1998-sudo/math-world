@@ -252,6 +252,25 @@
   function fijarFoco(temas, prob) {
     foco = temas && temas.length ? { temas: [...new Set(temas)], prob: Math.max(0, Math.min(1, prob || 0.75)) } : null;
   }
+  // Duelos de fantasma: las mismas preguntas para todos a partir de una semilla (sin memoria del jugador)
+  function generarFijo(curso, semilla, n) {
+    const c = BANCO[curso]; if (!c) return [];
+    let s = (semilla >>> 0) || 1;
+    const rng = () => { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; };
+    const lista = [];
+    for (const u of Object.keys(c).sort()) for (const k of Object.keys(c[u]).sort()) lista.push([u, k]);
+    const out = [], orig = Math.random;
+    try {
+      Math.random = rng;
+      for (let q = 0; q < n * 6 && out.length < n; q++) {
+        const [u, k] = lista[Math.floor(rng() * lista.length)], t = c[u][k];
+        const d = t.variantes[Math.floor(rng() * t.variantes.length)](2);
+        if (valido(d)) out.push({ ...d, tema: k, titulo: t.titulo });
+      }
+    } finally { Math.random = orig; }
+    return out;
+  }
+  P.generarFijo = generarFijo;
   P.BANCO_ANTERIOR = VIEJO;
   P.BANCO = BANCO;
   P.nuevo = nuevo;
