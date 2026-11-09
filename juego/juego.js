@@ -3762,6 +3762,21 @@
     L('dios5', 'combate', '☠️', 'Los cinco altares', 'Vence a los 5 dioses del Altar de los Dioses.', 5, () => (S.altar && S.altar.v) || 0, 'Cazador de Dioses'),
     L('hades', 'combate', '👑', 'Vencedor del Inframundo', 'Derrota a Hades, el jefe final de Math World.', 1, () => (S.altar && S.altar.hades) || 0, 'Dios del Inframundo'),
     L('hades3', 'combate', '🔱', 'Señor de los dioses', 'Derrota a Hades 3 veces.', 3, () => (S.altar && S.altar.hades) || 0, 'Señor de los Dioses'),
+    L('altar_visita', 'explorar', '⛩️', 'Las puertas del inframundo', 'Entra a El Altar de los Dioses, el 5to Mundo.', 1, () => (S.altar && S.altar.visto ? 1 : 0), 'Viajero del Inframundo'),
+    L('dios2', 'combate', '🦇', 'Amanecer eterno', 'Vence a Lilith, Reina de la Noche.', 1, () => (S.altar && S.altar.v >= 2 ? 1 : 0), 'Cazavampiros'),
+    L('dios3', 'combate', '👁️', 'Ciego de furia', 'Vence a Polifemo, el Cíclope de Obsidiana.', 1, () => (S.altar && S.altar.v >= 3 ? 1 : 0), 'Rompeobsidiana'),
+    L('dios4', 'combate', '⏳', 'Burlar a la muerte', 'Vence a Tánatos, el Segador de Almas.', 1, () => (S.altar && S.altar.v >= 4 ? 1 : 0), 'Inmortal'),
+    L('dios_perfecto', 'combate', '💎', 'Ofrenda perfecta', 'Vence a un dios del Altar sin equivocarte ni una vez.', 1, () => CN('dios_perfecto'), 'Impecable'),
+    L('hades_perfecto', 'combate', '🌟', 'Juicio perfecto', 'Vence a Hades sin equivocarte ni una vez.', 1, () => CN('hades_perfecto'), 'Juez de los Dioses'),
+    L('ofrendas3', 'combate', '🕯️', 'Las tres ofrendas', 'Gana un combate del Altar con cada ofrenda: vida, furia y tiempo.', 3, () => Object.keys((S.altar && S.altar.ofrendas) || {}).length, 'Sacerdote del Altar'),
+    L('estaca5', 'combate', '🗡️', 'Portador de la luz', 'Lanza 5 estacas de luz contra Lilith.', 5, () => CN('estaca'), 'Portador de Luz'),
+    L('obsidiana5', 'combate', '🪨', 'Rompepiedras del inframundo', 'Rompe 5 veces la piel de obsidiana de Polifemo.', 5, () => CN('obsidiana'), 'Picapiedras Divino'),
+    L('arena_llena', 'combate', '⌛', 'Arena de sobra', 'Vence a Tánatos con más de 3 minutos en su reloj de arena.', 1, () => CN('arena_llena'), 'Señor del Tiempo'),
+    L('combo3', 'combate', '💥', 'Combo triple', 'Alcanza el combo ×3 contra el Gólem de las Almas Perdidas.', 1, () => CN('combo3'), 'Combo Divino'),
+    L('hab_dios', 'combate', '✨', 'Golpe divino', 'Derrota a un dios del Altar con tu habilidad especial.', 1, () => CN('hab_dios'), 'Mano de los Dioses'),
+    L('escrita_altar', 'aprender', '✍️', 'Escriba del inframundo', 'Responde bien 15 preguntas escribiendo el resultado en El Altar de los Dioses.', 15, () => CN('escrita_altar'), 'Escriba Sagrado'),
+    L('hades_furia', 'combate', '🔥', 'Furia desatada', 'Lleva a Hades hasta su fase 3: la Furia del Inframundo.', 1, () => CN('hades_furia'), 'Provocador de Dioses'),
+    L('hades5', 'combate', '👑', 'Leyenda del inframundo', 'Derrota a Hades 5 veces.', 5, () => (S.altar && S.altar.hades) || 0, 'Leyenda del Inframundo'),
     // ----- Clanes y guerra de clanes -----
     L('clan_lider', 'equipo', '👑', 'Líder del clan', 'Gana la votación de tu grupo y conviértete en líder del clan.', 1, () => CN('lider'), 'Líder Nato'),
     L('guerra_gana', 'equipo', '⚔️', 'Campeones de la guerra', 'Gana una guerra de clanes con tu clan.', 1, () => CN('guerra_gana'), 'Conquistador'),
@@ -5480,7 +5495,7 @@
     if (S.arma && S.herramienta !== 'espada') equipar('espada');
     const golpe = () => Math.max(1, Math.round(danio() * (ofrenda === 'furia' ? 1.5 : 1)));
     const max = D.golpes * Math.max(1, danio());
-    const J = { hp: max, max, fase: 1, escudo: D.mec === 'escudo' ? 4 : 0, racha: 0, combo: 0, errores: 0, cabezas: 3, petrificado: false, n: 0,
+    const J = { hp: max, max, fase: 1, escudo: D.mec === 'escudo' ? 4 : 0, racha: 0, combo: 0, errores: 0, cabezas: 3, fallos: 0, petrificado: false, n: 0,
       reloj: D.mec === 'reloj' ? 240000 : 0, extra: ofrenda === 'vida' ? 3 : 0, limite: 0, t0: 0 };
     let d = null, elegida = null, escrito = '', abierta = false, fin = null, ultimo = '', reloj = 0, tUlt = performance.now();
     const retrato = sc.imagenTex(`altar_${D.id}_retrato`);
@@ -5504,6 +5519,10 @@
       if (res === 'victoria') {
         S.vida = vidaMax();
         const txt = darPremio(paquete(D.premio, 5, true), D.xp);
+        // logros del Altar: ofrendas usadas, combates perfectos y reloj de arena
+        A.ofrendas = { ...(A.ofrendas || {}), [ofrenda]: ((A.ofrendas || {})[ofrenda] || 0) + 1 };
+        if (!J.fallos) contar(esHades ? 'hades_perfecto' : 'dios_perfecto');
+        if (D.mec === 'reloj' && J.reloj >= 180000) contar('arena_llena');
         if (esHades) {
           const primera = !A.hades; A.hades = (A.hades || 0) + 1; A.hadesHasta = Date.now() + 10 * 60000; contar('hades');
           if (primera) toast(`👑 ¡VENCISTE A HADES! Ganas ${txt} y ${D.xp} de experiencia. Eres leyenda de Math World.`);
@@ -5514,6 +5533,7 @@
         }
         guardar(true); pintarHUD();
         sc.celebrar(spr.x, spr.y - 90);
+        sc.actualizarAltar(false);
         sc.time.delayedCall(1800, () => sc.actualizarAltar(true));
       } else if (res === 'derrota') {
         if (esHades) A.hadesHasta = Date.now() + 2 * 60000; else A.espera = { ...(A.espera || {}), [i]: Date.now() + 2 * 60000 };
@@ -5576,7 +5596,7 @@
     };
     const ganar = () => { fin = 'victoria'; animacionKO({ nombre: D.nombre, retrato }); };
     const golpeRecibido = (motivo) => {
-      sfx('dano'); J.racha = 0; J.combo = 0;
+      sfx('dano'); J.racha = 0; J.combo = 0; J.fallos += 1;
       if (D.mec === 'reloj') J.reloj -= 12000;
       if (D.mec === 'drenaje') { const c = Math.round(J.max * 0.06); J.hp = Math.min(J.max, J.hp + c); motivo += ` Lilith bebió tu energía y se curó ${c}.`; }
       if (D.mec === 'escudo') { J.petrificado = true; J.escudo = Math.min(4, J.escudo + 2); motivo += ' 🪨 Su piel de obsidiana se endureció (+2). 👁️ ¡Su mirada te petrifica: la próxima pregunta tendrás solo 7 segundos!'; }
@@ -5593,7 +5613,7 @@
       if (fin) return;
       contar('hab_jefe'); J.escudo = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { contar('hab_ko'); ganar(); }
+      if (J.hp <= 0) { contar('hab_ko'); contar('hab_dios'); ganar(); }
       pintar();
     };
     const atacar = () => {
@@ -5606,17 +5626,18 @@
         ok = r.ok; if (!ok) anotarEscrita(d, escrito);
       } else { if (elegida === null) return; ok = elegida === d.correcta; }
       registrar(d.tema, ok);
+      if (ok && abierta) contar('escrita_altar');
       ultimo = '';
       if (ok) {
         ganarXP(6 + 3 * (esHades ? 5 : i)); sfx('golpe');
         if (D.mec === 'reloj') J.reloj += 6000;
-        if (J.escudo > 0) { J.escudo -= 1; ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.escudo ? `El escudo resiste: le quedan ${J.escudo}.` : '¡Rompiste su escudo!'}</div>`; }
+        if (J.escudo > 0) { J.escudo -= 1; if (!J.escudo && D.mec === 'escudo') contar('obsidiana'); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${J.escudo ? `El escudo resiste: le quedan ${J.escudo}.` : '¡Rompiste su escudo!'}</div>`; }
         else if (D.mec === 'drenaje') {
           J.racha += 1;
-          if (J.racha >= 3) { herir(golpe() * 3); J.racha = 0; ultimo += `<div class="mensaje bien" role="status">🗡️ ¡Estaca de luz! Daño triple. ${mate(d.explicacion)}</div>`; }
+          if (J.racha >= 3) { herir(golpe() * 3); J.racha = 0; contar('estaca'); ultimo += `<div class="mensaje bien" role="status">🗡️ ¡Estaca de luz! Daño triple. ${mate(d.explicacion)}</div>`; }
           else { herir(golpe()); ultimo += `<div class="mensaje bien" role="status">¡Golpe! ${J.racha === 2 ? 'Un acierto más seguido y la estaca de luz estará lista.' : ''}</div>`; }
         } else if (D.mec === 'combo') {
-          J.combo += 1; const m = [1, 1.5, 2, 3][Math.min(3, J.combo - 1)];
+          J.combo += 1; const m = [1, 1.5, 2, 3][Math.min(3, J.combo - 1)]; if (m === 3) contar('combo3');
           herir(Math.round(golpe() * m)); ultimo += `<div class="mensaje bien" role="status">💥 ¡Golpe ×${String(m).replace('.', ',')}! ${mate(d.explicacion)}</div>`;
         } else if (esHades && J.fase === 3) {
           J.racha += 1;
@@ -5631,7 +5652,7 @@
           if (f > J.fase) {
             J.fase = f; sc.cameras.main.shake(700, 0.016); sc.cameras.main.flash(350, 170, 70, 255); sfx('rugido');
             if (f === 2) { J.escudo = 5; spr.setTint(0xd9b3ff); }
-            if (f === 3) { J.racha = 0; spr.setTint(0xff6a6a); }
+            if (f === 3) { J.racha = 0; spr.setTint(0xff6a6a); contar('hades_furia'); }
           }
         }
         nueva();
@@ -8282,7 +8303,7 @@
             this.tweens.add({ targets: this.hadesLuz, alpha: 0.45, duration: 1600 });
           });
           this.time.delayedCall(2900, () => { avisoGrande('¡Hades ha despertado!', 'El Dios del Inframundo te espera en el círculo del juicio', 'El combate más difícil de Math World', 'quinto'); if (this.jugador) this.cameras.main.startFollow(this.jugador, true, 0.15, 0.15); });
-        } else { this.hadesSpr.setAlpha(1); this.hadesLuz.setAlpha(0.45); }
+        } else if (A.hadesVisto) { this.hadesSpr.setAlpha(1); this.hadesLuz.setAlpha(0.45); }
         if (!this.hadesResp) this.hadesResp = this.tweens.add({ targets: this.hadesSpr, scaleY: 3.48, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.inOut', delay: animar ? 2700 : 0 });
       } else { this.hadesTag.setText(''); this.hadesSpr.setAlpha(0); }
     }
