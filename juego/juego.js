@@ -529,6 +529,51 @@
     }
   }
 
+  // ---------- Cofre comunitario del grupo ----------
+  // S.cofre es la copia local del cofre que comparte todo el grupo. S.cofreSnap es el total que informó el servidor
+  // la última vez y S.cofreEnv el envío pendiente {n, d}: solo viaja la diferencia (lo depositado o gastado),
+  // así cualquier parte del juego sigue sumando o gastando del cofre como siempre y el grupo lo ve en segundos.
+  const cofreCom = { enviando: false, ult: 0, top: [], aviso: false };
+  const cofreComunitario = () => Boolean(S && !esDocente() && sesion.modo === 'nube' && sesion.grupo && cursoCanal() !== 'INV' && window.Nube && Nube.cofreGrupo);
+  const cerosCofre = () => Object.fromEntries(RECURSOS.map((r) => [r.id, 0]));
+  async function sincronizarCofre(forzar = false) {
+    if (!cofreComunitario() || cofreCom.enviando || juegoCerrado) return;
+    const clave = `${cursoCanal()}-${sesion.grupo}`;
+    if (S.cofreGrupo !== clave) {
+      const primera = !S.cofreGrupo;
+      if (!primera) S.cofre = { ...S.cofre, ...cerosCofre() };   // cambio de grupo: lo aportado queda en el cofre del grupo anterior
+      S.cofreGrupo = clave; S.cofreSnap = cerosCofre(); S.cofreEnv = null;   // primera vez: todo tu cofre se suma al del grupo
+      if (primera) cofreCom.aviso = true;
+    }
+    if (!S.cofreSnap) S.cofreSnap = cerosCofre();
+    if (!S.cofreEnv) {
+      const d = {};
+      for (const r of RECURSOS) { const x = Math.round((S.cofre[r.id] || 0) - (S.cofreSnap[r.id] || 0)); if (x) d[r.id] = x; }
+      if (Object.keys(d).length) { S.cofreSeq = (S.cofreSeq || 0) + 1; S.cofreEnv = { n: S.cofreSeq, d }; guardar(); }
+    }
+    if (!S.cofreEnv && !forzar && Date.now() - cofreCom.ult < 15000) return;
+    const env = S.cofreEnv;
+    cofreCom.enviando = true;
+    let r = null;
+    try { r = await Nube.cofreGrupo(sesion.token, env ? env.n : 0, env ? env.d : {}); } catch (e) { r = null; }
+    cofreCom.enviando = false;
+    if (!r || !r.ok || !S || S.cofreGrupo !== clave || S.cofreEnv !== env) return;
+    cofreCom.ult = Date.now(); cofreCom.top = Array.isArray(r.top) ? r.top : [];
+    const tot = r.recursos || {};
+    for (const x of RECURSOS) {
+      const t = Math.max(0, Math.floor(Number(tot[x.id]) || 0));
+      const pend = (S.cofre[x.id] || 0) - (S.cofreSnap[x.id] || 0) - ((env && env.d[x.id]) || 0);   // lo que cambió mientras viajaba el envío
+      S.cofre[x.id] = Math.max(0, t + pend); S.cofreSnap[x.id] = t;
+    }
+    S.cofreEnv = null;
+    guardar(); pintarHUD();
+    if (cofreCom.aviso) {
+      cofreCom.aviso = false;
+      toast(`📦 ¡El cofre ahora es comunitario! Lo que tenías se sumó al cofre del Grupo ${sesion.grupo}: todos pueden usar los recursos que recolecta cada integrante. ¡Trabajen en equipo!`);
+    }
+  }
+  setInterval(() => { if (S && escena && escena.jugador) sincronizarCofre(); }, 4000);
+
   function guardar(inmediato = false) {
     if (!S) return;
     S.zona = escena ? escena.zona : S.zona;
@@ -1325,7 +1370,7 @@
     const fuente = enBase ? S.cofre : S.mochila;
     const lista = recursosVisibles();
     $('hud-recursos').classList.toggle('muchos', lista.length > 4);
-    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? 'Cofre' : 'Mochila'}</span>` + lista.map((r) => `
+    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? (cofreComunitario() ? `Cofre del grupo ${sesion.grupo}` : 'Cofre') : 'Mochila'}</span>` + lista.map((r) => `
       <div class="recurso" data-r="${r.id}" title="${esc(r.nombre)}">
         <img class="px" src="${ICONO(r.id)}" alt="">
         <span><small>${r.corto || r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}</b></span>
@@ -1395,7 +1440,11 @@
     const manos = [['hacha', 'Hacha', 'axe', true], ['pico', 'Pico', 'pickaxe', tiene('pico')], ['espada', 'Espada', 'espada', Boolean(S.arma)]];
     const enBase = enCasa(), fuente = enBase ? S.cofre : S.mochila;
     const recs = recursosVisibles().filter((r) => (fuente[r.id] || 0) > 0);
-    const recursosEq = `<section class="equipo-recursos"><h3>${enBase ? '📦 Recursos en tu cofre' : '🎒 Recursos en tu mochila'}</h3>
+    const comun = enBase && cofreComunitario();
+    if (comun) sincronizarCofre(true);
+    const topCofre = comun && cofreCom.top.length ? `<p class="nota cofre-top">🤝 Más aportes al cofre: ${cofreCom.top.map((x) => `${x.yo ? '<b>' : ''}${esc(x.nombre)} (${x.aportado})${x.yo ? '</b>' : ''}`).join(' · ')}</p>` : '';
+    const recursosEq = `<section class="equipo-recursos"><h3>${comun ? `📦 Cofre comunitario del Grupo ${sesion.grupo}` : enBase ? '📦 Recursos en tu cofre' : '🎒 Recursos en tu mochila'}</h3>
+      ${comun ? '<p class="nota">Todo el grupo comparte este cofre: lo que cada uno trae de los mundos lo pueden usar todos para fabricar y construir.</p>' : ''}${topCofre}
       ${esDocente() ? '<p class="nota">Docente: recursos ilimitados.</p>'
         : recs.length ? `<div class="objetos">${recs.map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${fuente[r.id]}</small></div>`).join('')}</div>`
         : `<p class="nota">${enBase ? 'Tu cofre está vacío: lo que recolectes en los mundos se guarda aquí al volver a la base.' : 'Aún no llevas recursos: tala, pica o recolecta en este mundo.'}</p>`}</section>`;
@@ -4023,7 +4072,8 @@
   const CONSEJOS = [
     'Responde bien las preguntas para recolectar más rápido: ¡cada acierto suma!',
     'Si te equivocas, lee la pista: te explica el paso que falta.',
-    'Tu mochila se vacía al volver por el portal, pero todo queda guardado en tu cofre.',
+    'Tu mochila se vacía al volver por el portal, pero todo queda guardado en el cofre comunitario de tu grupo.',
+    'El cofre de la base es de todo tu grupo: lo que recolectas ayuda a tus compañeros, y lo que ellos traen te ayuda a ti.',
     'Las obras cooperativas (puente, montacargas, elevador, ruta del glaciar) se construyen entre todo el curso.',
     'Equipa una espada para quitarle más vida a los enemigos en cada acierto.',
     'Las armaduras te dan más corazones: fabrícalas en la fogata de tu base.',
@@ -6557,7 +6607,8 @@
     const quitado = {};
     for (const r of RECURSOS) {
       const n = S.cofre[r.id] || 0;
-      if (n >= 3) { const k = Math.min(80, Math.floor(n * 0.3)); if (k) { quitado[r.id] = k; S.cofre[r.id] = n - k; } }
+      // con el cofre comunitario el ladrón se lleva menos: el cofre es de todo el grupo
+      if (n >= 3) { const k = cofreComunitario() ? Math.min(25, Math.floor(n * 0.1)) : Math.min(80, Math.floor(n * 0.3)); if (k) { quitado[r.id] = k; S.cofre[r.id] = n - k; } }
     }
     // a veces también se lleva un adorno o mueble (nunca exclusivos, trofeos ni la carpa)
     let mueble = null;
@@ -11229,7 +11280,7 @@
         case 'agua': return tiene('balde') ? 'Sacar agua' : 'Lago: necesitas un balde';
         case 'cofre': return o.vida ? 'Abrir cofre (tiene vida)' : 'Abrir cofre';
         case 'fogata': return 'Fabricar y descansar';
-        case 'cofre_base': return 'Ver tu cofre';
+        case 'cofre_base': return cofreComunitario() ? 'Ver el cofre del grupo' : 'Ver tu cofre';
         case 'comercio': return 'Cofre de comercio: intercambiar con tu curso';
         case 'arena': return 'Entrar a la arena PvP (duelo 1 contra 1)';
         case 'ladron': return '¡Atrapar al ladrón!';

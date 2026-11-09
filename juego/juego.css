@@ -1426,3 +1426,59 @@ body.movil .resp-abierta input { font-size: 22px; max-width: 100%; }
   body.movil .alternativas .alt { min-height: 40px; }
   body.movil .modal .nota { font-size: 12px; margin: 0; }
 }
+
+/* ---------- Celular: ningún elemento del HUD se monta sobre otro ---------- */
+/* Vertical: el minimapa sube junto a la columna de herramientas, lejos de la barra del tutorial */
+body.movil .minimapa:not(.grande) { top: 62px; right: 62px; width: 96px; }
+body.movil .minimapa:not(.grande) canvas { width: 86px; }
+body.movil .hud-misiones { width: min(210px, calc(100vw - 172px)); max-width: calc(100vw - 172px); }
+body.movil .tutorial { max-height: 76px; overflow: hidden; }
+body.movil:has(#tutorial) .aviso { bottom: 236px; }
+body.movil .aviso { max-width: calc(100vw - 24px); }
+/* Desafío en vivo: ocupa el lugar de las misiones (que se esconden mientras dura) */
+body.movil .desafio { top: 62px; left: 8px; right: 166px; width: auto; min-width: 0; transform: none; padding: 6px 8px; gap: 6px; }
+body.movil .desafio .ico { font-size: 22px; }
+body.movil .desafio .nom { font-size: 14px; }
+body.movil .desafio .det { font-size: 11px; }
+body.movil .desafio .reloj { font-size: 17px; min-width: 34px; }
+@media (orientation: portrait) {
+  body.movil:has(#desafio:not(.oculto)) :is(.hud-misiones, .hud-guerra, .zona-actual.coop) { display: none; }
+  body.movil .evento-mundo { top: 62px; left: 8px; right: 166px; transform: none; max-width: none; }
+  body.movil:has(#desafio:not(.oculto)) .evento-mundo { top: 124px; }
+}
+/* Botón del cuaderno: encima del botón Acción, compacto */
+body.movil .btn-cuaderno { right: 8px; bottom: 124px; padding: 6px 10px; font-size: 13px; }
+body.movil .btn-cuaderno b { display: none; }
+body.movil:has(#tutorial) .btn-cuaderno { bottom: 232px; right: auto; left: 8px; }
+body.movil:has(#tutorial):has(#btn-cuaderno:not(.oculto)) .aviso { bottom: 278px; }
+/* Avisos grandes (jefes, guerra): más chicos y, mientras se ven, el HUD de debajo se aparta */
+body.movil .aviso-jefe { max-width: calc(100vw - 24px); padding: 12px 18px; text-align: center; }
+body.movil .aviso-jefe b { font-size: 26px; }
+body.movil .aviso-jefe span { font-size: 16px; }
+body.movil .aviso-jefe small { font-size: 12px; }
+body.movil:has(#aviso-jefe:not(.oculto)) :is(.minimapa:not(.grande), .herramientas, .hud-misiones, .hud-guerra, .tutorial, .evento-mundo, .desafio, .zona-actual.coop, .aviso) { visibility: hidden; }
+/* Paneles que se abren (menú, sonido, chat): quedan solos sobre el mapa */
+body.movil .panel-sonido { position: fixed; left: 50%; right: auto; top: 62px; transform: translateX(-50%); width: min(300px, calc(100vw - 24px)); max-height: calc(100dvh - 70px); overflow-y: auto; z-index: 40; }
+body.movil:has(#panel-sonido:not(.oculto)) :is(.minimapa:not(.grande), .herramientas, .hud-misiones, .hud-guerra, .tutorial, .aviso, .evento-mundo, .zona-actual.coop, .palanca, .btn-accion, .btn-cuaderno),
+body.movil:has(#menu-movil:not(.oculto)) :is(.minimapa:not(.grande), .herramientas, .hud-guerra, .evento-mundo, .zona-actual.coop),
+body.movil:has(#panel-chat:not(.oculto)) :is(.tutorial, .aviso, .btn-cuaderno) { visibility: hidden; }
+body.movil .desafio-cuenta b { font-size: 84px; -webkit-text-stroke: 4px #12201a; }
+body.movil .desafio-cuenta small { font-size: 15px; }
+
+@media (orientation: landscape) {
+  body.movil .minimapa:not(.grande) { top: 62px; right: 8px; width: 104px; }
+  body.movil .minimapa:not(.grande) canvas { width: 94px; }
+  body.movil .hud-misiones { width: min(220px, 30vw); }
+  body.movil:has(#tutorial) .aviso { bottom: 92px; }
+  body.movil .aviso { max-width: calc(100vw - 280px); }
+  body.movil .desafio { top: 62px; left: 50%; right: auto; transform: translateX(-50%); width: calc(100vw - 500px); min-width: 200px; }
+  body.movil .hud-misiones { max-width: 30vw; }
+  body.movil .btn-cuaderno, body.movil:has(#tutorial) .btn-cuaderno { right: 8px; left: auto; bottom: 106px; }
+  body.movil:has(#tutorial):has(#btn-cuaderno:not(.oculto)) .aviso { bottom: 92px; }
+  body.movil .aviso-jefe { top: 40%; }
+  body.movil .desafio-cuenta b { font-size: 72px; }
+}
+@media (orientation: landscape) and (max-height: 340px) {
+  body.movil .minimapa:not(.grande) { width: 92px; }
+  body.movil .minimapa:not(.grande) canvas { width: 82px; }
+}

@@ -51,6 +51,7 @@
     docenteMover: (token, id, grupo) => rpc('mw_docente_mover', { p_token: token, p_estudiante: id, p_grupo: grupo }),
     docenteCodigos: (token, curso) => rpc('mw_docente_codigos', { p_token: token, p_curso: curso }),
     obraAportar: (token, id, recursos) => rpc('mw_obra_aportar', { p_token: token, p_id: id, p_recursos: recursos }),
+    cofreGrupo: (token, envio, delta) => rpc('mw_cofre_grupo', { p_token: token, p_envio: envio, p_delta: delta }),
     docenteObras: (token) => rpc('mw_docente_obras', { p_token: token }),
     prismaReclamar: (token, n, grupo) => rpc('mw_prisma_reclamar', { p_token: token, p_n: n, p_grupo: grupo }),
     docenteDesafios: (token) => rpc('mw_docente_desafios', { p_token: token }),
