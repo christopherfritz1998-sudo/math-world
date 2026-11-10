@@ -43,6 +43,14 @@
   };
   const temaDe = (def) => def.tema[es8() ? 1 : 0] || null;
 
+  // ---------- Piezas visuales comunes (cabecera, escena por mundo, confeti) ----------
+  const ZFX = { u1: ['🍃', '🌿', '🍂', '✨'], u2: ['✨', '🌟', '☀️', '🌵'], u3: ['💎', '✨', '🔹', '🔸'], u4: ['❄️', '✨', '❄️', '🌟'], base: ['⭐', '✨', '🪙', '🎉'] };
+  const clase = (id, extra = '') => `minijuego mj-esc mjg-${id} mz-${MJ[id].zona} ${extra}`;
+  const cab = (def, etq, titulo, estado = '') => `<div class="modal-cab mjx-cab"><span class="mjx-insignia" aria-hidden="true">${def.ico}</span><div class="mjx-tit"><span class="etq">${etq}</span><h2 id="modal-titulo">${titulo}</h2></div>${estado}</div>`;
+  const confeti = (n, zona) => `<div class="mjx-confeti" aria-hidden="true">${Array.from({ length: n }, () => `<i style="--x:${R(-44, 44)}vw;--y:${R(-38, 42)}vh;--g:${R(-540, 540)}deg;--t:${R(9, 17) / 10}s;--e:${R(0, 20) / 100}s">${pick(ZFX[zona] || ZFX.base)}</i>`).join('')}</div>`;
+  // separa el emoji inicial de un texto («🧥 abrigo» → ['🧥', 'abrigo'])
+  const partir = (t) => { const i = String(t).indexOf(' '); return i < 0 ? ['', String(t)] : [t.slice(0, i), t.slice(i + 1)]; };
+
   // ===================================================================
   // Motor común: rondas, corazones, premio
   // ===================================================================
@@ -52,10 +60,12 @@
     if (id === 'cerradura') return cerradura();
     const D = dia();
     const veces = D.n[id] || 0;
-    J().ui.abrir(`<div class="modal-cab"><div><span class="etq">${def.ico} Minijuego · ${E(J().nombreZona(def.zona))}</span><h2 id="modal-titulo">${E(def.nombre)}</h2></div></div>
-      <p class="enunciado" style="font-size:18px">${E(def.desc[es8() ? 1 : 0])}</p>
-      <p class="nota">${def.rondas} rondas · 3 corazones: cada error quita uno.${veces >= 3 ? ' Hoy ya jugaste 3 veces: el premio ahora es menor, pero sigue sumando a tus estadísticas.' : ` Premio completo en tus primeras 3 partidas del día (llevas ${veces}).`}</p>
-      <div class="acciones"><button type="button" class="btn" id="mj-no">Ahora no</button><button type="button" class="btn pri" id="mj-si" data-foco>¡Jugar!</button></div>`, 'minijuego');
+    J().ui.abrir(`${cab(def, `Minijuego · ${E(J().nombreZona(def.zona))}`, E(def.nombre))}
+      <div class="mjx-portada"><div class="mjx-portada-ico" aria-hidden="true">${def.ico}</div>
+        <p class="enunciado">${E(def.desc[es8() ? 1 : 0])}</p>
+        <ul class="mjx-fichas"><li><b>🎯 ${def.rondas}</b> rondas</li><li><b>❤️ 3</b> corazones</li><li><b>🎁 ${veces >= 3 ? 'Premio menor' : `${veces} de 3`}</b> ${veces >= 3 ? 'por hoy' : 'partidas de hoy'}</li></ul>
+        <p class="nota">Cada error quita un corazón.${veces >= 3 ? ' Hoy ya jugaste 3 veces: el premio ahora es menor, pero sigue sumando a tus estadísticas.' : ` Premio completo en tus primeras 3 partidas del día (llevas ${veces}).`}</p></div>
+      <div class="acciones"><button type="button" class="btn" id="mj-no">Ahora no</button><button type="button" class="btn pri mjx-jugar" id="mj-si" data-foco>▶ ¡Jugar!</button></div>`, clase(id, 'mjx-inicio'));
     J().$('mj-no').addEventListener('click', () => J().ui.cerrar());
     J().$('mj-si').addEventListener('click', () => empezar(id));
     J().ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); empezar(id); } };
@@ -66,7 +76,7 @@
     return S.mjDia;
   }
   function empezar(id) {
-    P = { id, def: MJ[id], g: JUEGOS[id], ronda: 0, vidas: 3, buenas: 0, msg: '', r: null, ronErr: false };
+    P = { id, def: MJ[id], g: JUEGOS[id], ronda: 0, vidas: 3, buenas: 0, msg: '', r: null, ronErr: false, hist: [], fx: '' };
     P.r = P.g.generar(P.ronda);
     pintar();
   }
@@ -75,7 +85,7 @@
     // error dentro de la ronda: pierde un corazón y sigue en la misma ronda
     error(txt) {
       if (!P) return;
-      J().sfx('error'); P.vidas -= 1; P.ronErr = true;
+      J().sfx('error'); P.vidas -= 1; P.ronErr = true; P.fx = 'mal';
       if (temaDe(P.def)) J().registrar(temaDe(P.def), false);
       P.msg = `<div class="mensaje mal" role="status">${txt}</div>`;
       if (P.vidas <= 0) return terminar(false);
@@ -87,6 +97,7 @@
       J().sfx(ok ? 'acierto' : 'error');
       if (temaDe(P.def) && (ok || !P.ronErr)) J().registrar(temaDe(P.def), ok);
       if (ok) P.buenas += 1; else P.vidas -= 1;
+      P.hist.push(ok); P.fx = ok ? 'bien' : 'mal';
       P.msg = `<div class="mensaje ${ok ? 'bien' : 'mal'}" role="status">${txt}</div>`;
       P.ronda += 1; P.ronErr = false;
       if (P.vidas <= 0 || P.ronda >= P.def.rondas) return terminar(P.vidas > 0);
@@ -97,13 +108,16 @@
   function pintar() {
     if (!P) return;
     const { def, g, r } = P;
-    const v = g.vista(r);
-    J().ui.abrir(`<div class="modal-cab"><div><span class="etq">${def.ico} ${E(def.nombre)} · ronda ${P.ronda + 1} de ${def.rondas}</span><h2 id="modal-titulo">${v.titulo}</h2></div>
-        <div class="pildoras"><span class="pildora mj-vidas" aria-label="${P.vidas} corazones">${'❤️'.repeat(P.vidas)}${'🖤'.repeat(3 - P.vidas)}</span><span class="pildora">✅ ${P.buenas}</span></div></div>
+    const v = g.vista(r), fx = P.fx; P.fx = '';
+    const puntos = Array.from({ length: def.rondas }, (_, i) => (i < P.hist.length ? `<li class="${P.hist[i] ? 'ok' : 'no'}">${P.hist[i] ? '✓' : '✕'}</li>` : `<li class="${i === P.ronda ? 'ahora' : ''}">${i + 1}</li>`)).join('');
+    const vidas = Array.from({ length: 3 }, (_, i) => `<i class="${i < P.vidas ? '' : 'perdido'}${fx === 'mal' && i === P.vidas ? ' rompe' : ''}">${i < P.vidas ? '❤️' : '🖤'}</i>`).join('');
+    const estado = `<div class="mjx-estado"><ol class="mjx-rondas" aria-label="Ronda ${P.ronda + 1} de ${def.rondas}">${puntos}</ol><span class="mjx-vidas" role="img" aria-label="${P.vidas} corazones">${vidas}</span></div>`;
+    J().ui.abrir(`${cab(def, `${E(def.nombre)} · ronda ${P.ronda + 1} de ${def.rondas}`, v.titulo, estado)}
       ${P.msg}
-      ${v.instr ? `<p class="nota mj-instr">${v.instr}</p>` : ''}
+      ${v.instr ? `<p class="nota mj-instr"><span aria-hidden="true">💡</span><span>${v.instr}</span></p>` : ''}
       <div class="mj-area" id="mj-area">${v.cuerpo}</div>
-      <div class="acciones"><button type="button" class="btn" id="mj-salir">Salir</button><div class="mj-botones">${v.botones || ''}</div></div>`, `minijuego mj-${P.id}`, () => { /* al cerrar no se pierde nada */ });
+      <div class="acciones"><button type="button" class="btn" id="mj-salir">Salir</button><div class="mj-botones">${v.botones || ''}</div></div>
+      ${fx === 'bien' ? confeti(14, def.zona) : ''}`, clase(P.id, fx ? `fx-${fx}` : ''), () => { /* al cerrar no se pierde nada */ });
     P.msg = '';
     J().$('mj-salir').addEventListener('click', () => { P = null; J().ui.cerrar(); });
     J().ui.teclas = null;
@@ -121,11 +135,15 @@
     J().contar('minijuego'); J().contar(`mj_${p.id}`); if (perfecto) J().contar('mj_perfecto');
     J().sfx(perfecto ? 'logro' : p.buenas ? 'acierto' : 'error');
     if (perfecto && J().escena()) J().escena().celebrar();
-    J().ui.abrir(`<div class="modal-cab"><div><span class="etq">${p.def.ico} ${E(p.def.nombre)}</span><h2 id="modal-titulo">${perfecto ? '¡Perfecto!' : completo ? '¡Lo lograste!' : 'Se acabaron los corazones'}</h2></div></div>
-      ${p.msg}
-      <p class="enunciado" style="font-size:18px">Rondas superadas: <b>${p.buenas} de ${p.def.rondas}</b>.</p>
-      <p class="nota">Premio: ${txt ? `<b>${E(txt)}</b> y ` : ''}<b>${xp}</b> de experiencia.${mult < 1 ? ' (Premio reducido: ya jugaste 3 veces hoy).' : ''}</p>
-      <div class="acciones"><button type="button" class="btn" id="mj-fin">Cerrar</button><button type="button" class="btn pri" id="mj-otra" data-foco>Jugar otra vez</button></div>`, 'minijuego');
+    const est = perfecto ? 3 : completo ? 2 : p.buenas ? 1 : 0;
+    J().ui.abrir(`${cab(p.def, E(p.def.nombre), perfecto ? '¡Perfecto!' : completo ? '¡Lo lograste!' : 'Se acabaron los corazones')}
+      <div class="mjx-final"><div class="mjx-estrellas" role="img" aria-label="${est} de 3 estrellas">${[0, 1, 2].map((i) => `<i class="${i < est ? 'on' : ''}" style="--i:${i}">★</i>`).join('')}</div>
+        ${p.msg}
+        <p class="enunciado">Rondas superadas: <b>${p.buenas} de ${p.def.rondas}</b></p>
+        <ul class="mjx-fichas premio">${txt ? `<li><b>🎁</b> ${E(txt)}</li>` : ''}<li><b>⭐ ${xp}</b> de experiencia</li></ul>
+        ${mult < 1 ? '<p class="nota">Premio reducido: ya jugaste 3 veces hoy.</p>' : ''}</div>
+      <div class="acciones"><button type="button" class="btn" id="mj-fin">Cerrar</button><button type="button" class="btn pri" id="mj-otra" data-foco>↻ Jugar otra vez</button></div>
+      ${completo ? confeti(perfecto ? 30 : 16, p.def.zona) : ''}`, clase(p.id, `mjx-fin ${completo ? 'gano' : 'perdio'}`));
     J().$('mj-fin').addEventListener('click', () => J().ui.cerrar());
     J().$('mj-otra').addEventListener('click', () => empezar(p.id));
     J().guardar(true);
@@ -161,15 +179,17 @@
     vista(r) {
       return { titulo: `Pisa los troncos de ${r.desc ? 'mayor a menor' : 'menor a mayor'}`,
         instr: r.desc ? 'Empieza por el número más grande. Recuerda: entre negativos, es mayor el que está más cerca del 0.' : 'Empieza por el número más pequeño. Si te sirve, piensa dónde va cada uno en la recta numérica.',
-        cuerpo: `<div class="mj-rio"><span class="mj-orilla">🧍</span>${r.items.map((x, i) => {
-          const pis = r.orden.indexOf(x) < r.sig;
-          return `<button type="button" class="mj-tronco ${pis ? 'pisado' : ''}" data-i="${i}" ${pis ? 'disabled' : ''}>${M(x.t)}${pis ? `<small>${r.orden.indexOf(x) + 1}°</small>` : ''}</button>`;
-        }).join('')}<span class="mj-orilla">🏁</span></div>
-        <p class="mj-camino">Camino: ${r.orden.slice(0, r.sig).map((x) => M(x.t)).join(' → ') || '…'}</p>` };
+        cuerpo: `<div class="mj-rio"><span class="mj-orilla izq ${r.sig ? 'vacia' : ''}" aria-hidden="true">${r.sig ? '' : '🧍'}</span><div class="mj-troncos">${r.items.map((x, i) => {
+          const pos = r.orden.indexOf(x), pis = pos < r.sig;
+          return `<button type="button" class="mj-tronco ${pis ? 'pisado' : ''} ${pis && pos === r.sig - 1 ? 'aqui' : ''} ${r.mal === i ? 'falla' : ''}" style="--i:${i}" data-i="${i}" ${pis ? 'disabled' : ''}><span class="mj-tv">${M(x.t)}</span>${pis ? `<small>${pos + 1}°</small>` : ''}</button>`;
+        }).join('')}</div><span class="mj-orilla der" aria-hidden="true">🏁</span></div>
+        <p class="mj-camino"><span>Camino</span>${r.orden.slice(0, r.sig).map((x) => `<b>${M(x.t)}</b>`).join('<i>→</i>') || '<i>pisa el primer tronco…</i>'}</p>` };
     },
     conectar(r, A, area) {
+      r.mal = null;
       enArea(area, '.mj-tronco', (b) => {
         const x = r.items[Number(b.dataset.i)], esperado = r.orden[r.sig];
+        if (x !== esperado) r.mal = Number(b.dataset.i);
         if (x === esperado) {
           r.sig += 1; J().sfx('acierto');
           if (r.sig >= r.orden.length) return A.ronda(true, `¡Cruzaste! El orden era ${r.orden.map((y) => M(y.t)).join(r.desc ? ' > ' : ' < ')}.`);
@@ -209,12 +229,17 @@
     },
     vista(r) {
       const suma = [...r.sel].reduce((s, i) => s + r.canastos[i].v, 0);
-      const ang = Math.max(-16, Math.min(16, ((r.meta - suma) / r.meta) * 22));
+      // la balanza se inclina hacia el lado más pesado (la manzana está a la izquierda)
+      const ang = Math.max(-14, Math.min(14, ((suma - r.meta) / r.meta) * 20));
+      const de = r.ang0 === undefined ? 0 : r.ang0; r.ang0 = ang;
       return { titulo: `La manzana dorada pesa ${M(r.metaTxt)} kg`,
         instr: es8() ? 'Calcula el valor de cada potencia y elige los canastos que sumen exactamente el peso de la manzana dorada.' : 'Elige los canastos que, sumados, pesen exactamente lo mismo que la manzana dorada.',
-        cuerpo: `<div class="mj-balanza"><div class="mj-brazo" style="transform:rotate(${ang}deg)"><span class="mj-plato">🍎<b>${M(r.metaTxt)}</b></span><span class="mj-plato">${[...r.sel].map((i) => `🧺<b>${M(r.canastos[i].t)}</b>`).join('') || '<small>vacío</small>'}</span></div><div class="mj-pie">▲</div></div>
-          <div class="mj-opciones">${r.canastos.map((c, i) => `<button type="button" class="mj-op ${r.sel.has(i) ? 'sel' : ''}" data-i="${i}" aria-pressed="${r.sel.has(i)}">🧺 ${M(c.t)}</button>`).join('')}</div>`,
-        botones: `<button type="button" class="btn pri" id="mj-pesar" ${r.sel.size ? '' : 'disabled'}>Pesar</button>` };
+        cuerpo: `<div class="mj-balanza" style="--a:${ang.toFixed(2)}deg;--de:${de.toFixed(2)}deg">
+            <div class="mj-brazo"><div class="mj-cuelga izq"><div class="mj-plato oro"><span class="mj-fruta" aria-hidden="true">🍎</span><b>${M(r.metaTxt)}</b></div></div>
+              <div class="mj-cuelga der"><div class="mj-plato">${[...r.sel].map((i) => `<span class="mj-enplato">🧺<b>${M(r.canastos[i].t)}</b></span>`).join('') || '<small>vacío</small>'}</div></div></div>
+            <div class="mj-poste" aria-hidden="true"></div><div class="mj-pie" aria-hidden="true"></div></div>
+          <div class="mj-opciones canastos">${r.canastos.map((c, i) => `<button type="button" class="mj-op mj-canasto ${r.sel.has(i) ? 'sel' : ''}" data-i="${i}" aria-pressed="${r.sel.has(i)}"><span class="mj-op-ico" aria-hidden="true">🧺</span><span class="mj-op-txt">${M(c.t)}</span></button>`).join('')}</div>`,
+        botones: `<button type="button" class="btn pri" id="mj-pesar" ${r.sel.size ? '' : 'disabled'}>⚖️ Pesar</button>` };
     },
     conectar(r, A, area) {
       enArea(area, '.mj-op', (b) => { const i = Number(b.dataset.i); if (r.sel.has(i)) r.sel.delete(i); else r.sel.add(i); A.pintar(); });
@@ -239,12 +264,15 @@
       return { s, L: { x: a, n: b }, Rr: { x: c, n: (a - c) * s + b }, pasos: 0 };
     },
     vista(r) {
-      const lado = (q) => `${'<span class="mj-caja">x</span>'.repeat(q.x)}${q.n ? `<span class="mj-pesa">${q.n} kg</span>` : ''}${!q.x && !q.n ? '<small>vacío</small>' : ''}`;
+      const lado = (q) => `${'<span class="mj-caja">x</span>'.repeat(q.x)}${q.n ? `<span class="mj-pesa"><b>${q.n}</b> kg</span>` : ''}${!q.x && !q.n ? '<small>vacío</small>' : ''}`;
       const ec = (q) => [q.x ? `${q.x === 1 ? '' : q.x}x` : '', q.n ? String(q.n) : ''].filter(Boolean).join(' + ') || '0';
       const quitarX = r.L.x >= 1 && r.Rr.x >= 1;
       return { titulo: `${ec(r.L)} = ${ec(r.Rr)}`,
         instr: 'Lo que hagas en un lado, hazlo también en el otro: así la balanza sigue equilibrada. Meta: una sola caja «x» de un lado y solo pesas del otro.',
-        cuerpo: `<div class="mj-caravana"><div class="mj-lado">${lado(r.L)}</div><span class="mj-igual">=</span><div class="mj-lado">${lado(r.Rr)}</div></div>`,
+        cuerpo: `<div class="mj-desierto"><span class="mj-sol" aria-hidden="true"></span><span class="mj-camello" aria-hidden="true">🐫</span>
+            <div class="mj-caravana ${r.pasos ? 'asienta' : ''}"><div class="mj-lado">${lado(r.L)}</div><span class="mj-igual">=</span><div class="mj-lado">${lado(r.Rr)}</div></div>
+            <div class="mj-viga" aria-hidden="true"></div><div class="mj-fulcro" aria-hidden="true"></div></div>
+          <p class="mj-pasos">Pasos: <b>${r.pasos}</b></p>`,
         botones: `<div class="mj-ops">
           <button type="button" class="btn chico" data-op="x" ${quitarX ? '' : 'disabled'}>− 1 caja x a cada lado</button>
           <button type="button" class="btn chico" data-op="1">− 1 kg a cada lado</button>
@@ -308,16 +336,17 @@
       for (let v = lo; v <= hi; v++) grid += `<line x1="${X(v)}" y1="0" x2="${X(v)}" y2="${W}" class="g"/><line x1="0" y1="${Y(v)}" x2="${W}" y2="${Y(v)}" class="g"/>`;
       const ejes = `<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${W}" class="e"/><line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" class="e"/>`;
       const etq = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i).filter((v) => v && v % 2 === 0).map((v) => `<text x="${X(v)}" y="${Y(0) + 12}" class="t">${v}</text><text x="${X(0) - 4}" y="${Y(v) + 4}" class="t" text-anchor="end">${v}</text>`).join('');
-      const linea = `<line x1="${X(lo)}" y1="${Y(f(lo))}" x2="${X(hi)}" y2="${Y(f(hi))}" class="canal"/>`;
-      const oas = r.pts.map(([x, y]) => `<text x="${X(x)}" y="${Y(y) + 7}" class="o" text-anchor="middle">🌴</text><text x="${X(x) + 10}" y="${Y(y) - 8}" class="t">(${num(x)}, ${num(y)})</text>`).join('');
+      const cl = `x1="${X(lo)}" y1="${Y(f(lo))}" x2="${X(hi)}" y2="${Y(f(hi))}"`;
+      const linea = `<line ${cl} class="canal borde"/><line ${cl} class="canal"/><line ${cl} class="canal flujo"/>`;
+      const oas = r.pts.map(([x, y]) => `<circle cx="${X(x)}" cy="${Y(y)}" r="13" class="charco"/><circle cx="${X(x)}" cy="${Y(y)}" r="13" class="onda"/><text x="${X(x)}" y="${Y(y) + 7}" class="o" text-anchor="middle">🌴</text><text x="${X(x) + (x > hi - 3 ? -14 : 14)}" y="${Y(y) - 12}" class="t coord" text-anchor="${x > hi - 3 ? 'end' : 'start'}">(${num(x)}, ${num(y)})</text>`).join('');
       const kTxt = !ocho ? frac(...K7[r.ki]) : '';
       const ecu = !ocho ? `y = ${M(kTxt)} · x` : afin(r.m, r.n);
       return { titulo: `Canal: ${ecu}`,
         instr: ocho ? 'La pendiente m dice cuánto sube (o baja) el canal por cada paso a la derecha; n es dónde corta al eje Y.' : 'En una proporcionalidad directa, y = k · x: k es lo que vale y cuando x = 1. Mira un oasis y calcula k = y ÷ x.',
-        cuerpo: `<svg class="mj-plano" viewBox="-6 -6 ${W + 12} ${W + 12}" role="img" aria-label="Plano con los oasis y el canal">${grid}${ejes}${etq}${linea}${oas}</svg>
-          <div class="mj-control">${ocho ? `<span>m: <button type="button" class="btn chico" data-c="m-">−</button> <b>${num(r.m)}</b> <button type="button" class="btn chico" data-c="m+">+</button></span>
-            <span>n: <button type="button" class="btn chico" data-c="n-">−</button> <b>${num(r.n)}</b> <button type="button" class="btn chico" data-c="n+">+</button></span>`
-            : `<span>k: <button type="button" class="btn chico" data-c="k-">−</button> <b>${M(kTxt)}</b> <button type="button" class="btn chico" data-c="k+">+</button></span>`}</div>`,
+        cuerpo: `<div class="mj-oasis"><svg class="mj-plano" viewBox="-16 -6 ${W + 22} ${W + 22}" role="img" aria-label="Plano con los oasis y el canal">${grid}${ejes}${etq}${linea}${oas}</svg>
+          <div class="mj-control">${ocho ? `<span class="mj-paso"><em>pendiente m</em><button type="button" class="btn chico" data-c="m-" aria-label="Bajar m">−</button><b>${num(r.m)}</b><button type="button" class="btn chico" data-c="m+" aria-label="Subir m">+</button></span>
+            <span class="mj-paso"><em>posición n</em><button type="button" class="btn chico" data-c="n-" aria-label="Bajar n">−</button><b>${num(r.n)}</b><button type="button" class="btn chico" data-c="n+" aria-label="Subir n">+</button></span>`
+            : `<span class="mj-paso"><em>constante k</em><button type="button" class="btn chico" data-c="k-" aria-label="Bajar k">−</button><b>${M(kTxt)}</b><button type="button" class="btn chico" data-c="k+" aria-label="Subir k">+</button></span>`}</div></div>`,
         botones: '<button type="button" class="btn pri" id="mj-agua">💧 Abrir compuertas</button>' };
     },
     conectar(r, A, area) {
@@ -363,8 +392,9 @@
       return { titulo,
         instr: r.tipo === 'seg' ? 'Toca dos clavos. La longitud del corte es √(Δx² + Δy²): busca dos números cuyos cuadrados sumen lo pedido.'
           : `Toca los clavos en orden para marcar las esquinas y vuelve a tocar el primero para cerrar la gema. Cada cuadrito mide 1 de área.${r.tipo === 'tri' ? ' Triángulo: base × altura ÷ 2.' : ''}`,
-        cuerpo: `<svg class="mj-geoplano" viewBox="0 0 ${W} ${W}">${forma}${pegs}</svg>`,
-        botones: `<button type="button" class="btn" id="mj-borrar">Borrar</button><button type="button" class="btn pri" id="mj-tallar" ${(r.tipo === 'seg' ? r.v.length === 2 : r.cerrado) ? '' : 'disabled'}>Tallar</button>` };
+        cuerpo: `<div class="mj-taller"><svg class="mj-geoplano ${r.cerrado ? 'cerrada' : ''}" viewBox="0 0 ${W} ${W}"><defs><linearGradient id="mj-gema-g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#9ff3ff"/><stop offset=".5" stop-color="#4fb8ff"/><stop offset="1" stop-color="#b98cff"/></linearGradient></defs>${forma}${pegs}</svg>
+          <div class="mj-meta"><span aria-hidden="true">${r.tipo === 'seg' ? '📏' : '💎'}</span><em>${r.tipo === 'seg' ? 'Longitud' : 'Área'} pedida</em><b>${metaTxt}</b><small>${r.tipo === 'seg' ? `${r.v.length} de 2 clavos` : r.cerrado ? 'gema cerrada: ¡tállala!' : `${r.v.length} ${r.v.length === 1 ? 'esquina' : 'esquinas'}`}</small></div></div>`,
+        botones: `<button type="button" class="btn" id="mj-borrar">↺ Borrar</button><button type="button" class="btn pri" id="mj-tallar" ${(r.tipo === 'seg' ? r.v.length === 2 : r.cerrado) ? '' : 'disabled'}>💎 Tallar</button>` };
     },
     conectar(r, A, area) {
       area.querySelectorAll('.clavo').forEach((c) => {
@@ -427,7 +457,7 @@
         else if (r.t === 'tri') fig = `<polygon points="20,140 150,140 70,25" class="pol"/><text x="34" y="132" class="t">${r.dat[0]}°</text><text x="118" y="132" class="t">${r.dat[1]}°</text><text x="64" y="48" class="t q">?</text>`;
         else fig = `<polygon points="20,140 145,135 130,30 35,45" class="pol"/><text x="30" y="130" class="t">${r.dat[0]}°</text><text x="118" y="126" class="t">${r.dat[1]}°</text><text x="106" y="50" class="t">${r.dat[2]}°</text><text x="44" y="62" class="t q">?</text>`;
         return { titulo: 'Orienta el espejo', instr: 'Recuerda: los ángulos de un triángulo suman 180° y los de un polígono de n lados suman 180° · (n − 2). (Dibujo sin escala).',
-          cuerpo: `<div class="mj-rayo"><svg viewBox="0 0 160 160" class="mj-fig">${fig}</svg><div><p class="enunciado">${r.txt}</p><label class="mj-entrada"><input type="text" inputmode="decimal" id="mj-ang" autocomplete="off" aria-label="Ángulo en grados"> °</label></div></div>`,
+          cuerpo: `<div class="mj-rayo"><div class="mj-foco"><svg viewBox="0 0 160 160" class="mj-fig">${fig}</svg></div><div class="mj-tarjeta"><p class="enunciado">${r.txt}</p><label class="mj-entrada"><input type="text" inputmode="decimal" id="mj-ang" autocomplete="off" aria-label="Ángulo en grados"> °</label></div></div>`,
           botones: '<button type="button" class="btn pri" id="mj-disparar">🔦 Disparar el rayo</button>' };
       }
       const W = 240, lo = -9, hi = 9, sc = W / (hi - lo), X = (x) => (x - lo) * sc, Y = (y) => W - (y - lo) * sc;
@@ -435,8 +465,8 @@
       const esp = r.t === 'ejeX' ? `<line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" class="espejo"/>` : r.t === 'ejeY' ? `<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${W}" class="espejo"/>` : '';
       const vec = r.v ? `<line x1="${X(r.p[0])}" y1="${Y(r.p[1])}" x2="${X(r.p[0] + r.v[0])}" y2="${Y(r.p[1] + r.v[1])}" class="vec"/>` : '';
       return { titulo: `Cristal en (${num(r.p[0])}, ${num(r.p[1])})`, instr: 'Escribe las coordenadas de la imagen del cristal.',
-        cuerpo: `<div class="mj-rayo"><svg viewBox="0 0 ${W} ${W}" class="mj-fig"> ${g}<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${W}" class="e"/><line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" class="e"/>${esp}${vec}<text x="${X(r.p[0])}" y="${Y(r.p[1]) + 6}" text-anchor="middle" class="o">💎</text></svg>
-          <div><p class="enunciado">${r.txt}</p><label class="mj-entrada">( <input type="text" inputmode="decimal" id="mj-cx" aria-label="Coordenada x" autocomplete="off"> , <input type="text" inputmode="decimal" id="mj-cy" aria-label="Coordenada y" autocomplete="off"> )</label></div></div>`,
+        cuerpo: `<div class="mj-rayo"><div class="mj-foco"><svg viewBox="0 0 ${W} ${W}" class="mj-fig plano"><defs><marker id="mj-flecha" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 10 5 0 10z" class="punta"/></marker></defs> ${g}<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${W}" class="e"/><line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" class="e"/><text x="${W - 4}" y="${Y(0) - 4}" class="t" text-anchor="end">x</text><text x="${X(0) + 5}" y="10" class="t">y</text>${esp}${vec}<circle cx="${X(r.p[0])}" cy="${Y(r.p[1])}" r="12" class="halo"/><text x="${X(r.p[0])}" y="${Y(r.p[1]) + 6}" text-anchor="middle" class="o">💎</text></svg></div>
+          <div class="mj-tarjeta"><p class="enunciado">${r.txt}</p><label class="mj-entrada">( <input type="text" inputmode="decimal" id="mj-cx" aria-label="Coordenada x" autocomplete="off"> , <input type="text" inputmode="decimal" id="mj-cy" aria-label="Coordenada y" autocomplete="off"> )</label></div></div>`,
         botones: '<button type="button" class="btn pri" id="mj-disparar">🔦 Disparar el rayo</button>' };
     },
     conectar(r, A) {
@@ -497,9 +527,11 @@
       return { titulo: ocho ? `Vagoneta de ${r.dims.join(' × ')} (volumen a llenar)` : `Piso de la vagoneta: ${r.dims.join(' × ')}`,
         instr: ocho ? 'Calcula el volumen de la vagoneta (largo × ancho × alto) y el de cada bloque. Cilindro: π · r² · h con π ≈ 3. Prisma triangular: (base × altura ÷ 2) × largo.'
           : 'Calcula el área del piso (largo × ancho) y la de cada placa. Triángulo: b · h ÷ 2. Trapecio: (B + b) · h ÷ 2.',
-        cuerpo: `<div class="mj-vagon">🛒 <b>${r.dims.join(' × ')}</b> · elegido: <b>${r.sel.size ? 'sin calcular' : 'nada'}</b></div>
-          <div class="mj-opciones lista">${r.piezas.map((p, i) => `<button type="button" class="mj-op ${r.sel.has(i) ? 'sel' : ''}" data-i="${i}" aria-pressed="${r.sel.has(i)}">${E(p.t)}</button>`).join('')}</div>`,
-        botones: `<button type="button" class="btn pri" id="mj-cargar" ${r.sel.size ? '' : 'disabled'}>Cargar</button>` };
+        cuerpo: `<div class="mj-via"><div class="mj-vagon ${r.sel.size ? 'con-carga' : ''}"><div class="mj-vagon-carga" aria-hidden="true">${[...r.sel].map((i) => `<i>${partir(r.piezas[i].t)[0]}</i>`).join('')}</div>
+              <div class="mj-vagon-caja"><b>${r.dims.join(' × ')}</b><small>${ocho ? 'volumen a llenar' : 'área del piso'}</small></div><span class="mj-rueda" aria-hidden="true"></span><span class="mj-rueda" aria-hidden="true"></span></div>
+            <p class="mj-elegido">${r.sel.size ? `<b>${r.sel.size}</b> ${r.sel.size === 1 ? 'pieza elegida' : 'piezas elegidas'} · suma sin calcular` : 'Aún no eliges nada'}</p></div>
+          <div class="mj-opciones piezas">${r.piezas.map((p, i) => { const [ic, tx] = partir(p.t); return `<button type="button" class="mj-op mj-pieza ${r.sel.has(i) ? 'sel' : ''}" data-i="${i}" aria-pressed="${r.sel.has(i)}"><span class="mj-op-ico" aria-hidden="true">${ic}</span><span class="mj-op-txt">${E(tx)}</span></button>`; }).join('')}</div>`,
+        botones: `<button type="button" class="btn pri" id="mj-cargar" ${r.sel.size ? '' : 'disabled'}>🛒 Cargar</button>` };
     },
     conectar(r, A, area) {
       enArea(area, '.mj-op', (b) => { const i = Number(b.dataset.i); if (r.sel.has(i)) r.sel.delete(i); else r.sel.add(i); A.pintar(); });
@@ -507,8 +539,8 @@
         const suma = [...r.sel].reduce((s, i) => s + r.piezas[i].v, 0), u = es8() ? '³' : '²';
         const det = [...r.sel].map((i) => r.piezas[i].v).join(' + ');
         if (suma === r.meta) return A.ronda(true, `¡Carga exacta! ${det} = ${r.meta} u${u} = ${r.dims.join(' × ')}.`);
-        A.error(`Cargaste ${det} = ${suma} u${u}, pero la vagoneta necesita ${r.dims.join(' × ')} = ${r.meta} u${u}. ${suma > r.meta ? 'Te pasaste.' : 'Falta.'}`);
         r.sel.clear();
+        A.error(`Cargaste ${det} = ${suma} u${u}, pero la vagoneta necesita ${r.dims.join(' × ')} = ${r.meta} u${u}. ${suma > r.meta ? 'Te pasaste.' : 'Falta.'}`);
       });
     },
   };
@@ -539,7 +571,8 @@
     },
     vista(r) {
       return { titulo: '¿Qué camino tomas?', instr: 'Elige el camino con <b>mayor probabilidad</b> de avanzar. Compara fracciones: casos favorables ÷ casos posibles.',
-        cuerpo: `<div class="mj-caminos">${r.ops.map((o, i) => `<button type="button" class="mj-camino-op" data-i="${i}"><span>${i ? '➡️ Camino derecho' : '⬅️ Camino izquierdo'}</span>${E(o.txt)}</button>`).join('')}</div>` };
+        cuerpo: `<div class="mj-pista" aria-hidden="true"><i class="mj-trineo" style="--p:${P ? Math.round((P.ronda / P.def.rondas) * 100) : 0}%">🛷</i><span>🏁</span></div>
+          <div class="mj-caminos">${r.ops.map((o, i) => { const [ic, tx] = partir(o.txt); return `<button type="button" class="mj-camino-op ${i ? 'der' : 'izq'}" data-i="${i}"><span class="mj-camino-tit">${i ? 'Camino derecho ➡️' : '⬅️ Camino izquierdo'}</span><span class="mj-camino-ico" aria-hidden="true">${ic}</span><span class="mj-camino-txt">${E(tx)}</span></button>`; }).join('<span class="mj-bifurca" aria-hidden="true">o</span>')}</div>` };
     },
     conectar(r, A, area) {
       enArea(area, '.mj-camino-op', (b) => {
@@ -574,8 +607,9 @@
       const nom = { media: 'la media (promedio)', mediana: 'la mediana', moda: 'la moda', rango: 'el rango', q1: 'el primer cuartil (Q₁)', q2: 'el segundo cuartil (Q₂, la mediana)', q3: 'el tercer cuartil (Q₃)', ric: 'el rango intercuartil (Q₃ − Q₁)' }[r.que];
       const ayuda = { media: 'Suma todas y divide por la cantidad de datos.', mediana: 'Ordénalas: es el dato del centro (o el promedio de los dos del centro).', moda: 'Es la temperatura que más se repite.', rango: 'Mayor menos menor.', q1: 'Ordena los datos: Q₁ es la mediana de la mitad inferior.', q2: 'Ordena los datos: Q₂ es la mediana.', q3: 'Ordena los datos: Q₃ es la mediana de la mitad superior.', ric: 'Calcula Q₁ y Q₃ y réstalos.' }[r.que];
       return { titulo: `Calibra con ${nom}`, instr: ayuda,
-        cuerpo: `<div class="mj-datos">${r.d.map((v) => `<span>${num(v)}°</span>`).join('')}</div>
-          <div class="mj-termo"><div class="mj-tubo"><i id="mj-merc" style="height:50%"></i></div><label class="mj-entrada"><input type="text" inputmode="decimal" id="mj-temp" autocomplete="off" aria-label="Temperatura"> °C</label></div>`,
+        cuerpo: `<div class="mj-estacion"><div class="mj-datos">${r.d.map((v, i) => `<span style="--h:${Math.round(215 - Math.max(0, Math.min(1, (v + 12) / 24)) * 195)};--i:${i}"><small aria-hidden="true">${v <= 0 ? '❄️' : v >= 8 ? '☀️' : '⛅'}</small>${num(v)}°</span>`).join('')}</div>
+          <div class="mj-termo"><div class="mj-termometro" aria-hidden="true"><div class="mj-escala"><i>20</i><i>10</i><i>0</i><i>−10</i></div><div class="mj-tubo"><i id="mj-merc" style="height:43%"></i></div><span class="mj-bulbo"></span></div>
+            <div class="mj-tarjeta"><em>Tu lectura</em><label class="mj-entrada"><input type="text" inputmode="decimal" id="mj-temp" autocomplete="off" aria-label="Temperatura"> °C</label></div></div></div>`,
         botones: '<button type="button" class="btn pri" id="mj-calibrar">🌡️ Calibrar</button>' };
     },
     conectar(r, A) {
@@ -613,7 +647,10 @@
     },
     vista(r) {
       return { titulo: `Puesto del mercado: ${E(r.cosa)}`, instr: 'Escribe solo el número (sin $ ni puntos de miles).',
-        cuerpo: `<p class="enunciado">${r.txt}</p><label class="mj-entrada">$ <input type="text" inputmode="decimal" id="mj-precio" autocomplete="off" aria-label="Respuesta"></label>`,
+        cuerpo: `<div class="mj-puesto"><div class="mj-toldo" aria-hidden="true"></div>
+            <div class="mj-mostrador"><span class="mj-producto" aria-hidden="true">${partir(r.cosa)[0]}</span>
+              <div class="mj-pizarra"><p class="enunciado">${r.txt}</p><label class="mj-entrada mj-etiqueta">$ <input type="text" inputmode="decimal" id="mj-precio" autocomplete="off" aria-label="Respuesta"></label></div>
+              <span class="mj-vendedor" aria-hidden="true">🧑‍🌾</span></div></div>`,
         botones: '<button type="button" class="btn pri" id="mj-comprar">🛍️ Comprar</button>' };
     },
     conectar(r, A) {
@@ -637,7 +674,7 @@
   const hash = (s) => { let h = 2166136261; for (const c of s) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 16000000 + 1; };
   async function cerradura(msg = '') {
     const W = J(), S = W.S(), ses = W.sesion();
-    const sinGrupo = (t) => { W.ui.abrir(`<div class="modal-cab"><div><span class="etq">🔐 Base del grupo</span><h2 id="modal-titulo">Cerradura del grupo</h2></div></div><p class="enunciado" style="font-size:18px">${t}</p><div class="acciones"><span></span><button type="button" class="btn pri" id="ce-ok" data-foco>Cerrar</button></div>`, 'minijuego'); W.$('ce-ok').addEventListener('click', () => W.ui.cerrar()); };
+    const sinGrupo = (t) => { W.ui.abrir(`${cab(MJ.cerradura, 'Base del grupo', 'Cerradura del grupo')}<div class="mjx-portada"><div class="mjx-portada-ico" aria-hidden="true">🔐</div><p class="enunciado">${t}</p></div><div class="acciones"><span></span><button type="button" class="btn pri" id="ce-ok" data-foco>Cerrar</button></div>`, clase('cerradura', 'mjx-inicio')); W.$('ce-ok').addEventListener('click', () => W.ui.cerrar()); };
     if (W.esDocente()) return sinGrupo('La cerradura es un desafío de los grupos de estudiantes: cada integrante resuelve una parte distinta y, cuando están todas, se abre para el grupo.');
     if (ses.modo !== 'nube' || !ses.grupo || !window.Nube || !Nube.cerradura) return sinGrupo('La cerradura se abre en equipo: necesitas estar conectado y en un grupo.');
     let r = null;
@@ -653,13 +690,14 @@
       W.guardar(true);
     }
     const espera = Math.max(0, (S.cerrEspera || 0) - Date.now());
-    W.ui.abrir(`<div class="modal-cab"><div><span class="etq">🔐 Base del grupo · se renueva cada día</span><h2 id="modal-titulo">${abierta ? '🔓 Cerradura abierta' : `Cerradura del grupo (${hechas} de ${r.n})`}</h2></div></div>
+    W.ui.abrir(`${cab({ ico: abierta ? '🔓' : '🔐' }, 'Base del grupo · se renueva cada día', abierta ? 'Cerradura abierta' : `Cerradura del grupo (${hechas} de ${r.n})`, `<div class="mjx-estado"><span class="mj-anillo ${abierta ? 'ok' : ''}" style="--p:${Math.round((hechas / Math.max(1, r.n)) * 100)}" role="img" aria-label="${hechas} de ${r.n} partes resueltas"><b>${hechas}/${r.n}</b></span></div>`)}
       ${msg}
       <p class="nota">Cada integrante resuelve <b>una parte distinta</b>. Cuando todas las partes estén resueltas, la cerradura se abre y quienes ayudaron reciben un premio. ¡Organícense!</p>
-      <div class="mj-cerradura">${Array.from({ length: r.n }, (_, i) => { const x = partes[i]; return `<div class="mj-dial ${x ? 'ok' : ''}"><span class="mj-num">${i + 1}</span>${x ? `<b>✅ ${E(x.nombre)}${x.yo ? ' (tú)' : ''}</b>` : `<button type="button" class="btn chico" data-parte="${i}" ${mia && r.miembros >= r.n ? 'disabled' : ''}>Resolver</button>`}<small>${ps[i] ? E(ps[i].titulo) : ''}</small></div>`; }).join('')}</div>
+      <div class="mj-cerradura">${Array.from({ length: r.n }, (_, i) => { const x = partes[i]; return `<div class="mj-dial ${x ? 'ok' : ''}" style="--i:${i}"><span class="mj-num">${x ? '✓' : i + 1}</span>${x ? `<b>✅ ${E(x.nombre)}${x.yo ? ' (tú)' : ''}</b>` : `<button type="button" class="btn chico" data-parte="${i}" ${mia && r.miembros >= r.n ? 'disabled' : ''}>Resolver</button>`}<small>${ps[i] ? E(ps[i].titulo) : ''}</small></div>`; }).join('')}</div>
       ${!abierta && mia && r.miembros >= r.n ? '<p class="nota">Ya resolviste tu parte. Avísale a tu grupo: faltan las demás.</p>' : ''}
       ${espera ? `<p class="nota">Después de un error debes esperar: podrás intentar de nuevo en ${Math.ceil(espera / 60000)} min.</p>` : ''}
-      <div class="acciones"><button type="button" class="btn" id="ce-act">Actualizar</button><button type="button" class="btn pri" id="ce-ok" data-foco>Cerrar</button></div>`, 'minijuego');
+      <div class="acciones"><button type="button" class="btn" id="ce-act">Actualizar</button><button type="button" class="btn pri" id="ce-ok" data-foco>Cerrar</button></div>
+      ${abierta && /mensaje bien/.test(msg) ? confeti(26, 'base') : ''}`, clase('cerradura', abierta ? 'abierta' : ''));
     W.$('ce-ok').addEventListener('click', () => W.ui.cerrar());
     W.$('ce-act').addEventListener('click', () => cerradura());
     document.querySelectorAll('#modal [data-parte]').forEach((b) => b.addEventListener('click', () => {
@@ -667,10 +705,10 @@
       const i = Number(b.dataset.parte), d = ps[i]; if (!d) return;
       let elegida = null;
       const pintarP = () => {
-        W.ui.abrir(`<div class="modal-cab"><div><span class="etq">🔐 Parte ${i + 1} de ${r.n} · ${E(d.titulo)}</span><h2 id="modal-titulo">Resuelve tu parte</h2></div><div class="pildoras"><span class="pildora">Un intento</span></div></div>
+        W.ui.abrir(`${cab(MJ.cerradura, `Parte ${i + 1} de ${r.n} · ${E(d.titulo)}`, 'Resuelve tu parte', '<div class="mjx-estado"><span class="pildora">☝️ Un intento</span></div>')}
           <p class="enunciado">${M(d.enunciado)}</p>
           <div class="alternativas">${d.opciones.map((o, k) => `<button type="button" class="alt" data-k="${k}" aria-pressed="${elegida === k}">${M(o)}</button>`).join('')}</div>
-          <div class="acciones"><button type="button" class="btn" id="ce-volver">Volver</button><button type="button" class="btn pri" id="ce-resp" ${elegida === null ? 'disabled' : ''}>Responder</button></div>`, 'minijuego');
+          <div class="acciones"><button type="button" class="btn" id="ce-volver">Volver</button><button type="button" class="btn pri" id="ce-resp" ${elegida === null ? 'disabled' : ''}>Responder</button></div>`, clase('cerradura', 'parte'));
         document.querySelectorAll('#modal .alt').forEach((x) => x.addEventListener('click', () => { elegida = Number(x.dataset.k); pintarP(); }));
         W.$('ce-volver').addEventListener('click', () => cerradura());
         W.$('ce-resp').addEventListener('click', async () => {
