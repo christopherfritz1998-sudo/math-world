@@ -1521,3 +1521,7 @@ body.alto-contraste :focus-visible { outline: 3px solid #ffe600; outline-offset:
 body.letra-lectura, body.letra-lectura :is(button, input, select, textarea, h1, h2, h3, h4, b, strong, .enunciado, .alt, .nota, .mensaje) { font-family: "Lexend", "Nunito", sans-serif !important; }
 body.letra-lectura :is(.modal, .hud-misiones, #toast, .aviso, .tutorial) { letter-spacing: .03em; word-spacing: .14em; }
 body.letra-lectura :is(.enunciado, .nota, .mensaje, .modal p, .modal li) { line-height: 1.65; }
+
+/* Bloqueo de recursos por errores seguidos */
+.pildora.errores-seguidos { background: #4a2420; border-color: #ff8a7a; color: #ffd2c9; }
+.aviso-bloqueo { color: #ffb08a !important; font-weight: 800; margin: 0; }

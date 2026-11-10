@@ -1675,8 +1675,24 @@
   }
 
   // ---------- Desafío para recolectar o fabricar ----------
+  // ---------- Bloqueo de recursos: 3 errores seguidos en el mismo recurso lo bloquean por 5 minutos ----------
+  // Se guarda en la partida, así que salir de la pregunta o recargar el juego no reinicia la cuenta.
+  const BLOQ_FALLOS = 3, BLOQ_MS = 5 * 60000;
+  let recursoPendiente = null;   // { clave, t }: lo marca interactuar() justo antes de abrir el desafío del recurso
+  const claveRecurso = (zona, o) => `${zona}:${Math.round(o.x)}:${Math.round(o.y)}`;
+  const estadoBloq = (clave) => ((S && S.bloq) || {})[clave] || [0, 0];
+  function bloqueoRestante(clave) { const [, hasta] = estadoBloq(clave); return hasta > Date.now() ? hasta - Date.now() : 0; }
+  function fijarBloq(clave, fallos, hasta) {
+    const B = S.bloq || (S.bloq = {}), ahora = Date.now();
+    if (!fallos && !(hasta > ahora)) delete B[clave]; else B[clave] = [fallos, hasta || 0];
+    for (const [k, [f, h]] of Object.entries(B)) if (!f && !(h > ahora)) delete B[k];
+    const ks = Object.keys(B); if (ks.length > 60) delete B[ks[0]];
+  }
+  const fmtEspera = (ms) => { const s = Math.ceil(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   function abrirDesafio({ accion, dif, premio, unidad, onOk }) {
     const pagarUnaVez = unaVez(onOk);
+    const clave = recursoPendiente && Date.now() - recursoPendiente.t < 1500 && !esDocente() ? recursoPendiente.clave : null;
+    recursoPendiente = null;
     const nuevo = () => Preguntas.nuevo(S.curso, unidad || unidadActual(), dif, S.stats);
     let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = false, fallidas = new Set(), aviso = '', escrito = '', abierta = usarAbierta(d, dif);
     const pintar = () => {
@@ -1686,8 +1702,9 @@
       ui.abrir(`
         <div class="modal-cab">
           <div><span class="etq">${esc(d.titulo)}</span><h2 id="modal-titulo">${esc(accion)}</h2></div>
-          <div class="pildoras"><span class="pildora">Dificultad ${dif} de 3</span><span class="pildora premio">${premio}</span></div>
+          <div class="pildoras"><span class="pildora">Dificultad ${dif} de 3</span><span class="pildora premio">${premio}</span>${clave && !resuelto && estadoBloq(clave)[0] ? `<span class="pildora errores-seguidos">❌ ${estadoBloq(clave)[0]} de ${BLOQ_FALLOS} errores seguidos</span>` : ''}</div>
         </div>
+        ${clave && !resuelto && estadoBloq(clave)[0] === BLOQ_FALLOS - 1 ? '<p class="nota aviso-bloqueo">⚠️ Cuidado: si te equivocas otra vez, este recurso se bloquea por 5 minutos.</p>' : ''}
         <p class="enunciado">${mate(d.enunciado)}</p>
         ${abierta ? (resuelto ? `<p class="resp-ok">✍️ Escribiste <b>${esc(escrito)}</b> ✓</p>` : abiertaHTML(escrito)) : alternativasHTML(d, elegida, fallidas, resuelto)}
         ${msg}
@@ -1717,10 +1734,25 @@
         ok = r.ok; if (!ok) anotarEscrita(d, escrito);
       } else { if (elegida === null) return; ok = elegida === d.correcta; }
       registrar(d.tema, ok);
-      if (ok) { resuelto = true; sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4 + (abierta ? 6 : 0)); if (fallos > 0) contar('recupera'); if (abierta) contar('escrita'); }
+      if (ok) { resuelto = true; if (clave) fijarBloq(clave, 0, 0); sfx('acierto'); ganarXP(8 + 6 * dif - Math.min(fallos, 2) * 4 + (abierta ? 6 : 0)); if (fallos > 0) contar('recupera'); if (abierta) contar('escrita'); }
       else {
         // Error: no quita vida; se muestra la respuesta correcta y se cambia a otra pregunta
         fallos += 1; sfx('error');
+        if (clave) {
+          const f = estadoBloq(clave)[0] + 1;
+          if (f >= BLOQ_FALLOS) {
+            // tercer error seguido: el recurso queda bloqueado 5 minutos (se muestra cómo se resolvía la última)
+            fijarBloq(clave, 0, Date.now() + BLOQ_MS); contar('bloqueo'); guardar(true);
+            ui.abrir(`<div class="modal-cab"><div><span class="etq">${esc(d.titulo)}</span><h2 id="modal-titulo">🔒 Recurso bloqueado</h2></div></div>
+              <p class="enunciado" style="font-size:18px">Te equivocaste <b>${BLOQ_FALLOS} veces seguidas</b> en este recurso. Podrás volver a intentarlo en <b>5 minutos</b>.</p>
+              ${pasoAPasoHTML(d, 'Así se resolvía la última:', 'Mientras tanto, prueba con otro recurso o repasa la pista de este tema.')}
+              <div class="acciones"><span></span><button type="button" class="btn pri" id="bq-ok" data-foco>Entendido</button></div>`);
+            $('bq-ok').addEventListener('click', () => ui.cerrar());
+            ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); ui.cerrar(); } };
+            return;
+          }
+          fijarBloq(clave, f, 0);
+        }
         aviso = pasoAPasoHTML(d, 'No era esa.', 'Ahora intenta con una parecida 👇');
         d = (Preguntas.deTema && Preguntas.deTema(S.curso, d.tema, dif)) || nuevo(); elegida = null; fallidas = new Set(); pista = false; escrito = ''; abierta = usarAbierta(d, dif);
       }
@@ -11569,6 +11601,12 @@
         if (!tiene('amuleto')) return toast('El santuario está sellado. Fabrica el amuleto ancestral (resina y miel) en la fogata de tu base.', 'alerta');
         if ((S.reyHasta || 0) > Date.now()) return toast(`El Rey Jabalí Ancestral descansa. Vuelve en ${Math.ceil((S.reyHasta - Date.now()) / 60000)} min.`);
         return abrirReyJabali();
+      }
+      // desde aquí todo es recolección: un recurso bloqueado por 3 errores seguidos espera 5 minutos
+      if (!esDocente()) {
+        const clave = claveRecurso(this.zona, o), resto = bloqueoRestante(clave);
+        if (resto) { sfx('error'); this.flotante(o.x, o.y - 40, `🔒 ${fmtEspera(resto)}`, '#ff9c8a'); return toast(`🔒 Este recurso está bloqueado por ${BLOQ_FALLOS} errores seguidos. Vuelve a intentarlo en ${fmtEspera(resto)} o prueba con otro.`, 'alerta'); }
+        recursoPendiente = { clave, t: Date.now() };
       }
       if (o.tipo === 'arbol' && (o.rec === 'resina' || o.rec === 'miel')) {
         if (o.estado !== 'arbol') return toast(o.rec === 'miel' ? 'Esta colmena está vacía: vuelve más tarde.' : 'Este árbol gigante todavía está creciendo.');
