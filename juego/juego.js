@@ -1417,6 +1417,15 @@
   ['btn-pantalla', 'btn-pantalla-m'].forEach((id) => { const b = $(id); if (b) b.addEventListener('click', (e) => { e.stopPropagation(); alternarPantalla(); }); });
   ['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => document.addEventListener(ev, () => { pintarPantalla(); setTimeout(() => window.dispatchEvent(new Event('resize')), 250); }));
   pintarPantalla();
+  // Puente para los módulos aparte (minijuegos.js): acceso a la interfaz, premios y estadísticas
+  window.MWJ = {
+    get ui() { return ui; },
+    $: (id) => $(id), esc: (s) => esc(s), mate: (s) => mate(s), toast: (t, c) => toast(t, c), sfx: (k) => sfx(k),
+    S: () => S, sesion: () => sesion, escena: () => escena, esDocente: () => esDocente(),
+    registrar: (t, ok) => registrar(t, ok), contar: (k, n) => contar(k, n), guardar: (i) => guardar(i),
+    darPremio: (r, xp, f) => darPremio(r, xp, f), paquete: (c, v, t) => paquete(c, v, t),
+    nombreZona: (z) => (z === 'base' ? 'Tu base' : nombreZona(z)),
+  };
   // Copia local de imágenes y sonidos (abre más rápido la segunda vez y aguanta la mala señal)
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { scope: './' }).catch(() => { /* sin copia local */ }); });
@@ -1852,6 +1861,7 @@
         case 'arena': icono(o.x, o.y, '⚔️', 10, 0.85); break;
         case 'esfinge': icono(o.x, o.y, '🏺', 11, 0.9); break;
         case 'muelle': icono(o.x, o.y, '⚓', 10, 0.85); break;
+        case 'mj': icono(o.x, o.y, '🎲', 10, 0.85); break;
         case 'carrera': icono(o.x, o.y, '🛒', 10, 0.85); break;
         case 'obra': if (!o.listo) icono(o.x, o.y, '🏗️', 11, 0.9); break;
         case 'santuario': case 'coloso': case 'dragon': case 'faraon': {
@@ -4016,6 +4026,10 @@
     L('evaluacion1', 'aprender', '📝', 'Evaluado', 'Completa una evaluación de tu profesor.', 1, () => CN('evaluacion'), 'Estudiante Responsable'),
     L('nota7', 'aprender', '🌟', 'Nota máxima', 'Obtén un 7,0 en una evaluación de tu profesor.', 1, () => CN('nota7'), 'Excelencia'),
     L('diagnostico', 'aprender', '🧭', 'Punto de partida', 'Completa tu diagnóstico inicial.', 1, () => CN('diagnostico'), 'Punto de Partida'),
+    L('mj10', 'aprender', '🎲', 'Jugador de minijuegos', 'Termina 10 minijuegos de los mundos.', 10, () => CN('minijuego'), 'Jugador Curioso'),
+    L('mj_todos', 'aprender', '🗺️', 'Explorador de minijuegos', 'Juega los 10 minijuegos de los mundos y la base.', 10, () => (S.mjJugados || []).length, 'Explorador Total'),
+    L('mj_perfecto5', 'aprender', '🎯', 'Sin un solo error', 'Termina 5 minijuegos sin perder ningún corazón… ¡y todas las rondas bien!', 5, () => CN('mj_perfecto'), 'Precisión Matemática'),
+    L('cerradura3', 'equipo', '🔐', 'Llave del grupo', 'Ayuda a abrir la cerradura de tu grupo 3 días distintos.', 3, () => CN('cerradura'), 'Guardián de la Llave'),
     L('comercio10', 'equipo', '💼', 'Gran mercader', 'Haz 10 intercambios con tus compañeros.', 10, () => CN('comercio'), 'Gran Mercader'),
     L('pvp1', 'combate', '⚔️', 'Gladiador', 'Gana un duelo en la arena PvP.', 1, () => CN('pvp_victoria'), 'Gladiador'),
     L('pvp5', 'combate', '🏟️', 'Campeón de la arena', 'Gana 5 duelos en la arena PvP.', 5, () => CN('pvp_victoria'), 'Campeón de la Arena'),
@@ -8856,6 +8870,7 @@
       if (this.zona === 'altar' && !puedeAltar()) this.zona = 'base';
       if (!MUNDOS[this.zona] && this.zona !== 'pieza' && this.zona !== 'altar') this.zona = 'base';
       if (this.zona === 'base') this.crearBase(); else if (this.zona === 'pieza') this.crearPieza(); else if (this.zona === 'altar') this.crearAltar(); else this.crearMundo(MUNDOS[this.zona]);
+      try { this.crearEstacionesMJ(); } catch (e) { /* si falla, el mundo sigue sin minijuegos */ }
       this.crearJugador();
       this.physics.world.setBounds(0, 0, this.ancho * TILE, this.alto * TILE);
       this.cameras.main.setBounds(0, 0, this.ancho * TILE, this.alto * TILE);
@@ -10076,6 +10091,29 @@
       if (despierto) this.dragon.anims.play('jefe_u4b_down', true); else { this.dragon.anims.stop(); this.dragon.setFrame(DIRS.down * 9); }
       this.selloDragon.emitting = !abierto;
       this.dragonTag.setText(`Dragón de la Aurora\n(${!abierto ? 'dormido: necesitas el cetro de la aurora' : descansa ? `descansa: vuelve en ${Math.ceil(((S.dragonHasta || 0) - Date.now()) / 60000)} min` : '¡despierto! E para desafiarlo'})`);
+    }
+    // Letreros de los minijuegos del mundo, cerca del portal (en lugares libres, separados entre sí)
+    crearEstacionesMJ() {
+      const lista = (window.Minijuegos && Minijuegos.de(this.zona)) || [];
+      const por = this.objetos.find((o) => o.tipo === 'portal');
+      if (!lista.length || !por) return;
+      const px = Math.floor(por.x / TILE), py = Math.floor(por.y / TILE), usados = [];
+      let k = 0;
+      for (let r = 3; r <= 40 && k < lista.length; r++) {
+        for (let dy = -r; dy <= r && k < lista.length; dy++) for (let dx = -r; dx <= r && k < lista.length; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const x = px + dx, y = py + dy;
+          // el letrero ocupa un tile; abajo debe quedar espacio para pararse a leerlo
+          if (!this.libre(x, y) || !this.libre(x, y + 1) || !(this.libre(x - 1, y + 1) || this.libre(x + 1, y + 1))) continue;
+          if (usados.some(([ux, uy]) => Math.abs(ux - x) + Math.abs(uy - y) < 4)) continue;
+          if (this.objetos.some((o) => Math.abs(o.x / TILE - (x + 0.5)) < 1.6 && Math.abs(o.y / TILE - (y + 1)) < 1.6)) continue;
+          const mj = lista[k++]; usados.push([x, y]);
+          const s = this.sprite('letrero', x, y); this.solido(s.x, s.y - 8, 18, 10);
+          this.marcar(x, y); this.marcar(x, y + 1);
+          this.add.text(s.x, s.y - 44, `${mj.ico} ${mj.nombre}`, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffffff', stroke: '#1d2b25', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(s.y + 40);
+          this.objetos.push({ tipo: 'mj', mj: mj.id, nombre: mj.nombre, x: s.x, y: s.y + 4, activo: true });
+        }
+      }
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
@@ -11557,6 +11595,7 @@
         case 'coloso': return !tiene('corazon_cristal') ? 'Coloso sellado: necesitas el corazón de cristal' : (S.colosoHasta || 0) > Date.now() ? 'El Coloso de Magma descansa' : '¡Desafiar al Coloso de Magma!';
         case 'esfinge': return tiene('antorcha_esfinge') ? 'Entrar al laberinto de la Gran Esfinge' : 'Gran Esfinge: necesitas la antorcha de la esfinge';
         case 'sitio': return o.estado === 'vacio' ? 'Sitio excavado: vuelve más tarde' : tiene('pala') ? 'Excavar el sitio arqueológico' : 'Sitio arqueológico: necesitas una pala de arqueólogo';
+        case 'mj': return `Minijuego: ${o.nombre}`;
         case 'muelle': return tiene('cana') ? `Pescar (caña: ${usosCana()} de ${CANA_USOS} usos)` : 'Muelle: necesitas una caña de pescar';
         case 'colocado':
           if (this.zona === 'pieza' && this.sala.tipo === 'visita') return `${o.nombre} (estás de visita)`;
@@ -11597,6 +11636,7 @@
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
       if (o.tipo === 'obra') return o.listo ? null : abrirObra();
+      if (o.tipo === 'mj') return window.Minijuegos ? Minijuegos.abrir(o.mj) : null;
       if (o.tipo === 'santuario') {
         if (!tiene('amuleto')) return toast('El santuario está sellado. Fabrica el amuleto ancestral (resina y miel) en la fogata de tu base.', 'alerta');
         if ((S.reyHasta || 0) > Date.now()) return toast(`El Rey Jabalí Ancestral descansa. Vuelve en ${Math.ceil((S.reyHasta - Date.now()) / 60000)} min.`);

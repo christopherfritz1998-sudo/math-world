@@ -57,6 +57,7 @@
     cofreHistorial: (token) => rpc('mw_cofre_historial', { p_token: token }),
     gruposSemana: (token) => rpc('mw_grupos_semana', { p_token: token }),
     informe: (enlace) => rpc('mw_informe', { p_enlace: enlace }),
+    cerradura: (token, parte) => rpc('mw_cerradura', { p_token: token, p_parte: parte }),
     docenteEnlace: (token, id, accion) => rpc('mw_docente_enlace', { p_token: token, p_estudiante: id, p_accion: accion }),
     docenteAlertas: (token) => rpc('mw_docente_alertas', { p_token: token }),
     docenteObras: (token) => rpc('mw_docente_obras', { p_token: token }),
