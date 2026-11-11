@@ -6472,16 +6472,23 @@
   }
 
   // ---------- Primeros pasos (tutorial para quienes recién empiezan) ----------
+  // v2: el primer paso es viajar al Bosque (en la base no hay árboles). S.tutorial.v dice con qué lista se guardó el paso.
+  const TUT_V = 2;
   const PASOS_TUT = [
+    { txt: 'Camina al portal y viaja al Bosque.', ok: () => Boolean(escena && MUNDOS[escena.zona]) },
     { txt: 'Tala un árbol: acércate y presiona E (o el botón Acción en el celular).', ok: (b) => CN('talar') > b.talar },
     { txt: 'Vuelve a tu base y fabrica algo en la fogata (tecla B): por ejemplo, el pico.', ok: (b) => (S.mejoras || []).length > b.mejoras || CN('fabricar') > b.fabricar },
-    { txt: 'Entra al portal de tu base y viaja al Bosque de los Enteros.', ok: (b) => Boolean(S.visitados && S.visitados.u1) && (b.u1 || (escena && escena.zona === 'u1')) },
+    { txt: 'Entra al portal de tu base y vuelve al Bosque de los Enteros.', ok: () => Boolean(escena && escena.zona === 'u1') },
     { txt: 'Vence a un enemigo respondiendo bien (si fallas, pierdes un corazón).', ok: (b) => (S.vencidos || 0) > b.vencidos },
     { txt: 'Revisa tus misiones (tecla N) y tus logros (tecla L): ahí ganas premios y títulos.', ok: () => Boolean(S.tutorial && S.tutorial.vio) },
   ];
   function iniciarTutorial() {
-    if (!S || esDocente() || S.tutorial || (S.nivel || 1) > 3) return;
-    S.tutorial = { paso: 0, base: { talar: CN('talar'), mejoras: (S.mejoras || []).length, fabricar: CN('fabricar'), vencidos: S.vencidos || 0, u1: false } };
+    if (!S || esDocente()) return;
+    // tutorial a medias guardado con la lista anterior (sin el paso del portal): sigue en el mismo paso
+    const A = S.tutorial;
+    if (A && A.v !== TUT_V) { if (!A.fin && !A.saltado) A.paso = Math.min(PASOS_TUT.length - 1, (A.paso || 0) + 1); A.v = TUT_V; }
+    if (S.tutorial || (S.nivel || 1) > 3) return;
+    S.tutorial = { v: TUT_V, paso: 0, base: { talar: CN('talar'), mejoras: (S.mejoras || []).length, fabricar: CN('fabricar'), vencidos: S.vencidos || 0, u1: false } };
     guardar(true);
   }
   function pintarTutorial() {
