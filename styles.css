@@ -180,7 +180,8 @@ button { font: inherit; color: inherit; }
 .acc-txt small { font-size: 14px; color: var(--muted); line-height: 1.35; }
 .acc-flecha { font-size: 24px; color: var(--amber); transition: transform .2s; }
 .acceso:hover .acc-flecha { transform: translateX(6px); }
-.acc-pronto { position: absolute; top: 10px; right: 12px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 800; color: var(--muted); }
+.acc-proximamente { max-width: 1100px; margin: 18px auto 0; padding: 12px 18px; border-radius: 14px; border: 2px dashed var(--line); color: var(--muted); font-size: 15px; line-height: 1.6; text-align: center; }
+.acc-proximamente b { color: var(--amber); }
 .acceso.bloqueado .acc-ico { filter: grayscale(.6); opacity: .8; }
 .sacude { animation: sacude .45s; }
 @keyframes sacude { 20%, 60% { transform: translateX(-7px) rotate(-1deg); } 40%, 80% { transform: translateX(7px) rotate(1deg); } }

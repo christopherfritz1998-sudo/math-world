@@ -1,7 +1,7 @@
 // Math World — página principal (portada del juego) y material de clases por curso y unidad.
 // El material vive en contenido.json: para habilitar una unidad, cambiar "habilitada" a true;
 // para agregar material, sumar un objeto a "materiales".
-// Para activar un acceso que hoy dice «Pronto», cambiar activo: false por activo: true (y su enlace) en ACCESOS.
+// Para activar un acceso que hoy aparece en «Próximamente», cambiar activo: false por activo: true (y su enlace) en ACCESOS.
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => (s ?? '').toString().replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -52,7 +52,7 @@ const NOVEDADES = [
   ['🐾', 'Mascotas', 'Vence a los jefes finales y gana 10 mascotas que te siguen por todo el mapa.'],
   ['📱', 'Juega en el celular', 'Una vista especial para teléfonos, con menú ☰ y controles táctiles.'],
 ];
-// Accesos de la página: activo:true se puede abrir; activo:false muestra «Pronto»
+// Accesos de la página: activo:true es una tarjeta que se puede abrir; activo:false va en la línea «Próximamente: …»
 const ACCESOS = [
   { ico: '🎮', titulo: 'Juego Math World', texto: 'Entra a tu base y sigue tu aventura.', href: 'juego/', activo: true, destacado: true },
   { ico: '📚', titulo: 'Material de clases', texto: 'Guías, presentaciones y controles por curso y unidad.', href: '#/material', activo: true },
@@ -117,6 +117,9 @@ function portada() {
   });
 }
 function contadores() {
+  // mundos y logros salen de juego/cifras.js (la misma fuente que revisa el juego)
+  const C = window.MW_CIFRAS || {};
+  document.querySelectorAll('[data-cifra]').forEach((b) => { if (C[b.dataset.cifra]) b.dataset.contar = C[b.dataset.cifra]; else b.parentElement.hidden = true; });
   const io = new IntersectionObserver((ents) => ents.forEach((en) => {
     if (!en.isIntersecting) return;
     io.unobserve(en.target);
@@ -201,17 +204,12 @@ function novedades() {
   document.querySelectorAll('.novedad').forEach((el) => inclinar(el, 6));
 }
 function accesos() {
-  $('lista-accesos').innerHTML = ACCESOS.map((a, i) => {
-    const cuerpo = `<span class="acc-ico">${a.ico}</span><span class="acc-txt"><strong>${esc(a.titulo)}</strong><small>${esc(a.texto)}</small></span>${a.activo ? '<span class="acc-flecha">→</span>' : '<span class="acc-pronto">Pronto</span>'}`;
-    return a.activo
-      ? `<a class="acceso ${a.destacado ? 'destacado' : ''} aparece" style="--retraso:${i * 45}ms" href="${esc(a.href)}">${cuerpo}</a>`
-      : `<button type="button" class="acceso bloqueado aparece" style="--retraso:${i * 45}ms" data-pronto="${esc(a.titulo)}">${cuerpo}</button>`;
-  }).join('');
+  // tarjetas solo para los accesos activos; los que faltan van juntos en una línea «Próximamente: …»
+  $('lista-accesos').innerHTML = ACCESOS.filter((a) => a.activo).map((a, i) => `<a class="acceso ${a.destacado ? 'destacado' : ''} aparece" style="--retraso:${i * 45}ms" href="${esc(a.href)}">
+      <span class="acc-ico">${a.ico}</span><span class="acc-txt"><strong>${esc(a.titulo)}</strong><small>${esc(a.texto)}</small></span><span class="acc-flecha">→</span></a>`).join('');
+  const pronto = ACCESOS.filter((a) => !a.activo), linea = $('accesos-pronto');
+  if (linea) { linea.hidden = !pronto.length; linea.innerHTML = `<b>Próximamente:</b> ${pronto.map((a) => `${a.ico} ${esc(a.titulo)}`).join(' · ')}`; }
   document.querySelectorAll('.acceso').forEach((el) => { inclinar(el, 5); el.addEventListener('pointerdown', onda); });
-  document.querySelectorAll('[data-pronto]').forEach((b) => b.addEventListener('click', () => {
-    b.classList.remove('sacude'); void b.offsetWidth; b.classList.add('sacude');
-    toast(`🚧 «${b.dataset.pronto}» estará disponible muy pronto`);
-  }));
 }
 function ayuda() {
   $('faq').innerHTML = FAQ.map(([p, r], i) => `<details class="preg aparece" style="--retraso:${i * 50}ms"><summary>${esc(p)}<span class="mas" aria-hidden="true"></span></summary><p>${esc(r)}</p></details>`).join('');
@@ -253,8 +251,8 @@ function vistaCurso(curso) {
       const n = u.materiales.length, M = MUNDOS[i] || {};
       const inner = `<span class="u-num" style="--c:${M.color || '#f2b544'}">Unidad ${u.numero} ${M.icono || ''}</span><h3>${esc(u.titulo)}</h3>
         <ul>${u.temas.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
-        <span class="u-foot">${u.habilitada ? `${n} ${n === 1 ? 'material' : 'materiales'} →` : '🔒 Próximamente'}</span>`;
-      return u.habilitada ? `<a class="unidad" href="#/${curso.id}/${u.id}">${inner}</a>` : `<div class="unidad bloqueada" aria-disabled="true">${inner}</div>`;
+        <span class="u-foot">${!u.habilitada ? '🔒 Próximamente' : n ? `${n} ${n === 1 ? 'material' : 'materiales'} →` : 'Practica en el juego →'}</span>`;
+      return u.habilitada ? `<a class="unidad" href="${n ? `#/${curso.id}/${u.id}` : 'juego/'}">${inner}</a>` : `<div class="unidad bloqueada" aria-disabled="true">${inner}</div>`;
     }).join('')}</div>`;
 }
 function tarjeta(m) {

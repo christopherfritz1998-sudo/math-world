@@ -4131,6 +4131,9 @@
   LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Te da el título «El rey del juego».', LOGROS.length,
     () => LOGROS.filter((l) => l.id !== 'rey_juego' && S.logros && S.logros[l.id]).length, 'El rey del juego'));
   const LOGRO = Object.fromEntries(LOGROS.map((l) => [l.id, l]));
+  // Las cifras que muestra la portada viven en cifras.js: aquí se avisa si dejan de calzar con el juego
+  // (mundos = los de las unidades + el Altar de los Dioses)
+  if (window.MW_CIFRAS && (MW_CIFRAS.logros !== LOGROS.length || MW_CIFRAS.mundos !== Object.keys(MUNDOS).length + 1)) console.warn(`cifras.js está desactualizado: el juego tiene ${Object.keys(MUNDOS).length + 1} mundos y ${LOGROS.length} logros.`);
   const esRey = () => esDocente() || Boolean(S && S.logros && S.logros.rey_juego);
   const tituloDe = (id) => (LOGRO[id] ? LOGRO[id].titulo : '');
   const tituloActual = () => (S && S.titulo && S.logros && S.logros[S.titulo] ? tituloDe(S.titulo) : '');

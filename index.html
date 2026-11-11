@@ -41,16 +41,16 @@
         <h1 class="titulo-juego" aria-label="Math World">
           <span class="letras" id="letras">Math World</span>
         </h1>
-        <p class="lead">Resuelve ejercicios, construye tu base, juega con tu grupo y vence a los jefes de cuatro mundos llenos de aventuras.</p>
+        <p class="lead">Resuelve ejercicios, construye tu base, juega con tu grupo y vence a los jefes de mundos llenos de aventuras.</p>
         <div class="cta">
           <a class="btn btn-grande btn-brillo" href="juego/"><span class="btn-ico">▶</span> Jugar ahora</a>
           <a class="btn btn-grande btn-sec" href="juego/#docente"><span class="btn-ico">🎓</span> Soy profesor</a>
         </div>
         <div class="contadores" aria-label="El juego en números">
-          <div><b data-contar="4">0</b><span>mundos</span></div>
+          <div><b data-cifra="mundos">0</b><span>mundos</span></div>
           <div><b data-contar="18">0</b><span>personajes</span></div>
           <div><b data-contar="10">0</b><span>mascotas</span></div>
-          <div><b data-contar="110" data-mas>0</b><span>logros</span></div>
+          <div><b data-cifra="logros">0</b><span>logros</span></div>
         </div>
       </div>
       <div class="desfile" id="desfile" aria-hidden="true"></div>
@@ -128,9 +128,10 @@
       <div class="cab-sec aparece">
         <span class="etq">Todo en un lugar</span>
         <h2>Accesos</h2>
-        <p>Material de clases, herramientas y más. Las secciones marcadas como «Pronto» se irán habilitando durante el año.</p>
+        <p>Material de clases, portal docente y más. Las secciones que faltan se irán habilitando durante el año.</p>
       </div>
       <div class="accesos" id="lista-accesos"></div>
+      <p class="acc-proximamente aparece" id="accesos-pronto" hidden></p>
     </section>
 
     <!-- ================= AYUDA ================= -->
@@ -158,6 +159,7 @@
 
   <div class="toast-web" id="toast-web" role="status" aria-live="polite"></div>
   <script src="juego/config.js"></script>
+  <script src="juego/cifras.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
