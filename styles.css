@@ -289,3 +289,13 @@ a.unidad:hover { transform: translateY(-5px); border-color: var(--teal); }
 .salon-lista li b { flex: 1; }
 .salon-lista li small { color: var(--muted); font-weight: 700; }
 .salon-vacio { color: var(--muted); margin: 0; }
+
+/* Quinto mundo: el Altar de los Dioses ocupa toda la fila como un estandarte */
+.mundo.final { grid-column: 1 / -1; height: 300px; box-shadow: 0 0 34px color-mix(in srgb, var(--c) 45%, transparent); }
+.mundo.final .mundo-img { background-position: center 28%; }
+.mundo.final .mundo-cara { max-width: 560px; }
+.mundo.final .mundo-detalle ul { columns: 2; column-gap: 28px; }
+@media (max-width: 860px) {
+  .mundo.final { height: 360px; }
+  .mundo.final .mundo-detalle ul { columns: 1; }
+}

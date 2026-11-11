@@ -12,15 +12,22 @@ $('year').textContent = new Date().getFullYear();
 // ------------------------------------------------------------------ datos de la portada
 const MUNDOS = [
   { id: 'u1', nombre: 'Bosque de los Enteros', unidad: 'Unidad 1 · Números', color: '#5fb35a', jefe: 'Troll Guardián del Bosque', extra: 'Bosque profundo y el Rey Jabalí Ancestral', icono: '🌲',
-    cosas: ['Tala, pica y pesca resolviendo ejercicios', 'Construye el puente al Bosque profundo con tu grupo', 'Luciérnagas, colmenas y cofres escondidos'] },
+    cosas: ['Tala, pica y pesca resolviendo ejercicios', 'Puente de troncos y Balanza de frutos', 'Construye el puente al Bosque profundo con tu grupo'] },
   { id: 'u2', nombre: 'Desierto Algebraico', unidad: 'Unidad 2 · Álgebra y funciones', color: '#e0a64a', jefe: 'Rey Lagarto de las Dunas', extra: 'Valle de la Esfinge', icono: '🏜️',
-    cosas: ['Excavaciones arqueológicas y álbum de gemas', 'Laberintos de la Esfinge que cambian cada vez', 'Montacargas cooperativo para subir al valle'] },
+    cosas: ['Balanza de la caravana y Canales del oasis', 'Excavaciones arqueológicas y laberintos de la Esfinge', 'Montacargas cooperativo para subir al valle'] },
   { id: 'u3', nombre: 'Mina de las Formas', unidad: 'Unidad 3 · Geometría', color: '#a07ad6', jefe: 'Minotauro de las Profundidades', extra: 'Profundidades y el Coloso de Magma', icono: '⛏️',
-    cosas: ['Carrera de vagonetas contra tus compañeros', 'Rompecabezas de cristales y espejos', 'Elevador a las profundidades de la mina'] },
+    cosas: ['Tallado de gemas, Rayo de luz y Carga exacta', 'Carrera de vagonetas contra tus compañeros', 'Elevador a las profundidades de la mina'] },
   { id: 'u4', nombre: 'Glaciar de los Datos', unidad: 'Unidad 4 · Probabilidad y estadística', color: '#6fc3ea', jefe: 'Yeti, Rey de la Escarcha', extra: 'Cima del Glaciar y el Dragón de la Aurora', icono: '🏔️',
-    cosas: ['Escala el glaciar sin caer respondiendo bien', 'Guerra de bolas de nieve y hielo movedizo', 'Álbum de copos de nieve exclusivos'] },
+    cosas: ['Escala el glaciar sin caer respondiendo bien', 'Trineo del azar y Estación meteorológica', 'Guerra de bolas de nieve y hielo movedizo'] },
+  { id: 'altar', nombre: 'El Altar de los Dioses', unidad: 'Mundo final · Todos los temas', color: '#9b5de5', jefe: 'Hades, Dios del Inframundo', extra: 'La Torre de los Dioses, con pisos infinitos', icono: '🏛️',
+    cosas: ['Aparece al reunir las 8 gemas de los cuatro mundos', 'Cinco dioses dormidos: Cerbero, Lilith, Polifemo, Tánatos y el Gólem', 'Preguntas que mezclan todo lo aprendido en el año'] },
 ];
 const GALERIA = [
+  ['g_mj_caravana', '🐫 Balanza de la caravana', 'Quita lo mismo de cada lado y descubre cuánto pesa la caja x: así se resuelven ecuaciones.'],
+  ['g_mj_puente', '🪵 Puente de troncos', 'Cruza el río pisando los números en orden: enteros, fracciones y decimales.'],
+  ['g_mj_oasis', '🌴 Canales del oasis', 'Ajusta la pendiente y el punto de partida del canal para regar los oasis del plano.'],
+  ['g_mj_gemas', '💎 Tallado de gemas', 'Une los clavos del geoplano para tallar figuras con el área justa (en 8°, con Pitágoras).'],
+  ['g_mj_frutos', '⚖️ Balanza de frutos', 'Equilibra la balanza con fracciones o con potencias.'],
   ['g_arena', '⚔️ Arena PvP', 'Duelos 1 contra 1 con tu espada y tu armadura.'],
   ['g_dragon', '🐉 Jefes finales', 'Vence al Dragón de la Aurora respondiendo bien bajo presión.'],
   ['g_cristales', '💎 Rompecabezas de cristales', 'Gira los espejos para llevar la luz a todos los cristales.'],
@@ -75,9 +82,16 @@ const FAQ = [
   ['Olvidé mi clave, ¿qué hago?', 'Pídele a tu profesor que la restablezca desde el portal docente. La próxima vez que entres podrás crear una clave nueva y conservarás todo tu avance.'],
   ['¿Cómo desbloqueo los personajes especiales?', 'Subiendo de nivel. En el nivel 30 se desbloquea el Fénix Llameante y luego uno nuevo cada 10 niveles. En el nivel 100 se desbloquean las 3 leyendas. Cuando llegues al nivel, el juego te avisa y lo puedes elegir en Equipo (tecla Q).'],
   ['¿Cómo funciona la habilidad especial?', 'Los personajes especiales tienen una habilidad que se carga con 5 respuestas correctas seguidas. Cuando está lista, aparece un botón en el combate: al usarla le quita una cantidad fija de vida al enemigo o al jefe. Si te equivocas en una pregunta, la carga vuelve a 0.'],
-  ['¿Qué pasa si me equivoco al recolectar?', 'No pierdes vida: ves la respuesta correcta con su explicación y aparece otra pregunta para que lo vuelvas a intentar.'],
+  ['¿Qué pasa si me equivoco al recolectar?', 'No pierdes vida: ves la respuesta correcta con su explicación y aparece otra pregunta. Pero si te equivocas 3 veces seguidas en el mismo árbol, roca o cofre, ese recurso se bloquea por 5 minutos: piensa antes de responder. Los demás recursos siguen disponibles.'],
+  ['¿Dónde están los minijuegos?', 'Cada mundo tiene letreros con sus minijuegos cerca del portal (marcados con 🎲 en el minimapa), y en la base están el Mercado y la Cerradura del grupo. Las primeras 3 partidas del día de cada minijuego dan el premio completo.'],
+  ['¿Cómo funciona el cofre del grupo?', 'Todo tu grupo comparte el cofre de la base: lo que cada uno trae de los mundos lo pueden usar todos para fabricar y construir. Si necesitas algo, haz un pedido al grupo desde tu Equipo; en el historial del cofre se ve quién depositó y quién usó cada cosa.'],
+  ['¿Qué es la Cerradura del grupo?', 'Un desafío diario de la base: la cerradura tiene varias partes y cada integrante resuelve una distinta. Cuando están todas resueltas se abre, y quienes ayudaron reciben un premio.'],
+  ['¿Para qué sirve el diagnóstico inicial?', 'Son 12 preguntas sin nota. El juego usa tus respuestas para reforzar los temas que más te cuestan, y tu profesor puede ver cuánto avanzas desde ese punto de partida.'],
+  ['¿Cómo llego al Altar de los Dioses?', 'Reúne las 8 gemas de los cuatro mundos: entonces aparece el quinto mundo. Ahí te esperan cinco dioses y, al vencerlos a todos, Hades, el jefe final del juego.'],
+  ['Soy apoderado: ¿puedo ver el avance de mi pupilo?', 'Sí. Pídele al profesor el enlace del informe: muestra los temas que domina, los que le cuestan y su evolución semana a semana. Es de solo lectura y no muestra el RUT ni la clave.'],
   ['Me equivoqué de grupo', 'Avísale a tu profesor: él te puede cambiar de grupo desde su portal. Tu avance personal (nivel, recursos, logros) no se pierde.'],
-  ['¿Puedo jugar desde el celular?', 'Sí. El juego tiene una vista especial para teléfonos con un menú ☰. Se ve mejor con el celular en horizontal.'],
+  ['¿Puedo jugar desde el celular?', 'Sí. El juego se adapta al celular en vertical y en horizontal, con palanca y botón de acción. Toca ⛶ para jugar en pantalla completa (en iPhone, usa «Agregar a pantalla de inicio» desde Safari).'],
+  ['¿Hay opciones de accesibilidad?', 'Sí, en el panel de sonido 🔊: texto grande, colores para daltonismo, alto contraste, letra de lectura fácil, modo liviano y lectura en voz alta de las preguntas.'],
   ['¿Por qué no puedo entrar a un mundo?', 'Cada mundo corresponde a una unidad y tu profesor lo abre cuando la empiezan a estudiar en clases. Las zonas especiales se abren construyendo obras con tu grupo.'],
   ['El juego dice que está cerrado', 'Tu profesor abre y cierra el juego para cada curso. Cuando lo abra podrás seguir donde quedaste: tu avance queda guardado.'],
   ['Encontré un error o tengo una idea', 'Dentro del juego usa el botón ⚠️ para reportar un problema o 💡 Novedades para enviar una idea. Le llegan directo a tu profesor.'],
@@ -133,7 +147,7 @@ function contadores() {
 // ------------------------------------------------------------------ mundos
 function mundos() {
   $('lista-mundos').innerHTML = MUNDOS.map((m, i) => `
-    <button type="button" class="mundo aparece" style="--c:${m.color};--retraso:${i * 90}ms" aria-expanded="false">
+    <button type="button" class="mundo aparece${m.id === 'altar' ? ' final' : ''}" style="--c:${m.color};--retraso:${i * 90}ms" aria-expanded="false">
       <span class="mundo-img" style="background-image:url('img/mundo_${m.id}.jpg')"></span>
       <span class="mundo-brillo"></span>
       <span class="mundo-cara">
