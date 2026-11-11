@@ -1857,3 +1857,11 @@ body.movil .mj-termometro { height: 120px; }
 body.movil .mj-opciones.piezas { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 body.movil .mj-num { width: 48px; height: 48px; font-size: 21px; }
 .apoyo-etq { margin: 0; color: #9fe0c0 !important; font-weight: 800; }
+
+/* El trotamundos */
+.troto-vida .fila { display: flex; justify-content: space-between; font-weight: 800; }
+.barra.troto { height: 14px; border-radius: 7px; background: #2a1438; overflow: hidden; border: 2px solid #6b2fa0; }
+.barra.troto i { display: block; height: 100%; background: linear-gradient(90deg, #ff5ea8, #b48cff); transition: width .5s; }
+.troto-estado { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.troto-lista li.yo b, .troto-lista li.yo span { color: var(--amber); }
+.marco-gigante { box-shadow: 0 0 0 3px #d39bff, 0 0 18px #6b2fa0 !important; }

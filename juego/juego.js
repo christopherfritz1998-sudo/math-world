@@ -1926,6 +1926,7 @@
         case 'arena': icono(o.x, o.y, '⚔️', 10, 0.85); break;
         case 'esfinge': icono(o.x, o.y, '🏺', 11, 0.9); break;
         case 'muelle': icono(o.x, o.y, '⚓', 10, 0.85); break;
+        case 'trotamundos': icono(o.x, o.y, '👹', 20, 1); break;
         case 'mj': icono(o.x, o.y, '🎲', 10, 0.85); break;
         case 'carrera': icono(o.x, o.y, '🛒', 10, 0.85); break;
         case 'obra': if (!o.listo) icono(o.x, o.y, '🏗️', 11, 0.9); break;
@@ -4091,6 +4092,7 @@
     L('evaluacion1', 'aprender', '📝', 'Evaluado', 'Completa una evaluación de tu profesor.', 1, () => CN('evaluacion'), 'Estudiante Responsable'),
     L('nota7', 'aprender', '🌟', 'Nota máxima', 'Obtén un 7,0 en una evaluación de tu profesor.', 1, () => CN('nota7'), 'Excelencia'),
     L('diagnostico', 'aprender', '🧭', 'Punto de partida', 'Completa tu diagnóstico inicial.', 1, () => CN('diagnostico'), 'Punto de Partida'),
+    L('trotamundos', 'combate', '👹', 'Cazador de gigantes', 'Derrota al Trotamundos junto a tu curso, de pie hasta el final.', 1, () => CN('trotamundos'), 'Cazador de Gigantes'),
     L('mj10', 'aprender', '🎲', 'Jugador de minijuegos', 'Termina 10 minijuegos de los mundos.', 10, () => CN('minijuego'), 'Jugador Curioso'),
     L('mj_todos', 'aprender', '🗺️', 'Explorador de minijuegos', 'Juega los 10 minijuegos de los mundos y la base.', 10, () => (S.mjJugados || []).length, 'Explorador Total'),
     L('mj_perfecto5', 'aprender', '🎯', 'Sin un solo error', 'Termina 5 minijuegos sin perder ningún corazón… ¡y todas las rondas bien!', 5, () => CN('mj_perfecto'), 'Precisión Matemática'),
@@ -6326,6 +6328,7 @@
     ['bronce', 'Bronce', 'Llega a rango oro en 1 tema', () => Object.keys(S.maestria || {}).filter((t) => rangoDe(t) === 3).length >= 1],
     ['torre', 'Celeste', 'Llega al piso 10 de la Torre', () => ((S.torre && S.torre.mejor) || 0) >= 10],
     ['divino', 'Divino', 'Vence a Hades', () => ((S.altar && S.altar.hades) || 0) >= 1],
+    ['gigante', 'Gigante', 'Derrota al Trotamundos (desafío)', () => CN('trotamundos') >= 1],
     ['estelar', 'Estelar', 'Gana una estrella de ascensión', () => estrellasAsc() >= 1],
     ['diamante', 'Diamante', 'Llega a la liga Diamante', () => ((S.liga && S.liga.max) || 0) >= 3],
   ];
@@ -6334,6 +6337,7 @@
     ['#ffd27a', 'Dorado', 'Consigue 30 logros', () => Object.keys(S.logros || {}).length >= 30],
     ['#7ee0ff', 'Cian', 'Llega al piso 20 de la Torre', () => ((S.torre && S.torre.mejor) || 0) >= 20],
     ['#c79bff', 'Violeta', 'Vence a Hades', () => ((S.altar && S.altar.hades) || 0) >= 1],
+    ['#d39bff', 'Púrpura gigante', 'Derrota al Trotamundos (desafío)', () => CN('trotamundos') >= 1],
     ['#ff9a7a', 'Coral', 'Llega a rango oro en 3 temas', () => Object.keys(S.maestria || {}).filter((t) => rangoDe(t) === 3).length >= 3],
     ['#7dff9a', 'Esmeralda', 'Gana 3 duelos de fantasma', () => CN('fantasma') >= 3],
   ];
@@ -7983,6 +7987,23 @@
       progreso: (st) => (st.respondida ? (st.logrado ? '¡Correcto!' : 'Respondida') : '¡Responde rápido!'),
       fin: (st) => (st.respondida ? (st.logrado ? `Acertaste la pregunta relámpago: ${st.premio}.` : 'Esta vez no fue. ¡A la próxima!') : 'Se acabó el tiempo de la pregunta relámpago.'),
     },
+    trotamundos: {
+      estado: () => ({ escudos: 0, aciertos: 0, luchando: false, srv: null }),
+      progreso(st) {
+        const z = vivo.d.mundo, S0 = st.srv, vida = S0 ? Math.max(0, S0.vida - S0.dano) : (vivo.d.vida || 1000);
+        if (S0 && S0.derrotado) return S0.gane ? '👹 ¡Derrotaron al Trotamundos! Recibiste tu recompensa exclusiva.' : '👹 El curso derrotó al Trotamundos.';
+        const mio = S0 && S0.mio, fuera = mio && mio.caidas >= 2;
+        if (!escena || escena.zona !== z) return `👹 El Trotamundos camina por ${MUNDOS[z] ? nombreZona(z) : 'otro mundo'} · vida ${vida} de ${S0 ? S0.vida : 1000} · ¡viaja por el portal!`;
+        return `👹 Vida del Trotamundos: ${vida} de ${S0 ? S0.vida : 1000}${fuera ? ' · caíste 2 veces: ya no puedes luchar' : ' · acércate y presiona E para luchar'}`;
+      },
+      montar(sc) { if (sc.zona === vivo.d.mundo && !(vivo.st.srv && vivo.st.srv.derrotado)) sc.soltarTrotamundos(); },
+      tick(sc) { sc.moverTrotamundos(); },
+      fin(st) {
+        const S0 = st.srv;
+        if (S0 && S0.derrotado) return S0.gane ? '👹 ¡Derrotaron al Trotamundos y seguías de pie: la recompensa exclusiva es tuya!' : '👹 El curso derrotó al Trotamundos, pero no estabas luchando al final.';
+        return `👹 El Trotamundos se fue a otro lugar con ${S0 ? Math.max(0, S0.vida - S0.dano) : 1000} de vida. ¡La próxima vez lo derrotarán!`;
+      },
+    },
     prisma: {
       estado: () => ({ p: 0, otros: {} }),
       progreso(st) {
@@ -8464,6 +8485,10 @@
       const z = vivo.d.mundo;
       avisoGrande('¡Apareció un recurso exclusivo!', `Prisma estelar en ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Dura 2 minutos · Responde bien 5 preguntas para llevártelo (máximo 5 errores)', 'prisma');
       if (escena && escena.jugador) escena.cameras.main.flash(500, 200, 160, 255);
+    } else if (vivo.def.id === 'trotamundos') {
+      const z = vivo.d.mundo;
+      avisoGrande('¡El Trotamundos despertó!', `Un monstruo gigante camina por ${MUNDOS[z] ? nombreZona(z) : 'un mundo'}`, 'Todo el curso puede luchar a la vez · un error sin escudo te derriba · cada 5 aciertos ganas un escudo', 'prisma');
+      if (escena && escena.jugador) escena.cameras.main.shake(600, 0.01);
     } else if (vivo.def.id === 'ladron') {
       avisoGrande('¡Viene un ladrón!', 'Llegará a tu base en 30 segundos', 'Vuelve a tu base y atrápalo respondiendo 5 preguntas (máximo 3 errores)', 'ladron');
     } else if (vivo.def.id === 'horda') {
@@ -8506,6 +8531,7 @@
     if (escena && escena.jugador) escena.limpiarDesafio();
     if (vivo.def.id === 'prisma' && !vivo.st.reclamando && vivo.modal && ui.abierto && $('modal').classList.contains('prisma')) ui.cerrar();
     if (vivo.def.id === 'relampago' && !vivo.st.respondida && vivo.modal && ui.abierto && $('modal').classList.contains('desafio-vivo')) ui.cerrar();
+    if (vivo.def.id === 'trotamundos' && vivo.modal && ui.abierto && $('modal').classList.contains('troto')) ui.cerrar();
     if (porServidor(vivo.def)) { vivo.fase = 'fin'; vivo.pendienteModal = false; pintarModalFin(); consultarDesafio(); return; }
     const txt = I.fin ? I.fin(vivo.st) : 'Terminó el desafío.';
     cerrarDesafio(vivo.d.detenido ? `Tu profesor detuvo el desafío. ${txt}` : txt);
@@ -8660,6 +8686,104 @@
     document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
     $('dv-salir').addEventListener('click', () => ui.cerrar());
     ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
+  }
+
+  // ---------- El trotamundos: monstruo gigante de todo el curso (vida compartida en el servidor) ----------
+  const TROTO_VEL = 42;   // píxeles por segundo: camina lento
+  let trotoConsultando = false, trotoUlt = 0;
+  async function trotoLlamar(accion, dano = 0) {
+    if (!vivo.d || !window.Nube || !Nube.trotamundos || sesion.modo !== 'nube') return null;
+    let r = null;
+    try { r = await Nube.trotamundos(sesion.token, vivo.d.n, accion, dano); } catch (e) { r = null; }
+    if (r && r.vida !== undefined && vivo.def && vivo.def.id === 'trotamundos') { vivo.st.srv = r; trotoRevisar(); pintarTroto(); }
+    return r;
+  }
+  // consulta periódica de la vida compartida (más seguido mientras luchas)
+  setInterval(() => {
+    if (!vivo.def || vivo.def.id !== 'trotamundos' || vivo.fase !== 'activo' || trotoConsultando) return;
+    if (Date.now() - trotoUlt < (vivo.st.luchando ? 2000 : 4000)) return;
+    trotoConsultando = true; trotoUlt = Date.now();
+    trotoLlamar('estado').finally(() => { trotoConsultando = false; });
+  }, 500);
+  function trotoRevisar() {
+    const st = vivo.st, S0 = st.srv;
+    if (!S0 || !S0.derrotado || st.cerrado) return;
+    st.cerrado = true; st.luchando = false;
+    if (escena && escena.jugador) escena.caerTrotamundos();
+    if (S0.gane && !cobrado(vivo.d.n)) {
+      marcarCobrado(vivo.d.n); contar('trotamundos');
+      const txt = darPremio(paquete(16, 5, true), 300); sfx('logro'); if (escena) escena.celebrar();
+      setTimeout(() => avisoGrande('☠️ ¡El Trotamundos cayó!', 'Seguiste de pie hasta el final', `Recompensa exclusiva: marco «Gigante», nombre púrpura, título «Cazador de Gigantes», ${txt} y 300 de experiencia`, 'prisma'), 600);
+    } else setTimeout(() => avisoGrande('☠️ ¡El Trotamundos cayó!', 'Tu curso lo derrotó', 'La recompensa exclusiva fue para quienes seguían luchando al final', 'prisma'), 600);
+    if (vivo.modal && ui.abierto && $('modal').classList.contains('troto')) setTimeout(() => ui.cerrar(), 400);
+  }
+  function trotoBarraHTML() {
+    const S0 = vivo.st.srv, vida = S0 ? S0.vida : 1000, queda = S0 ? Math.max(0, S0.vida - S0.dano) : vida, pct = Math.round((100 * queda) / vida);
+    const L = (S0 && S0.luchadores) || [], de = L.filter((x) => x.luchando).length;
+    return `<div class="troto-vida"><div class="fila"><b>👹 Trotamundos</b><span>${queda} de ${vida}</span></div><div class="barra troto"><i style="width:${pct}%"></i></div></div>
+      <span class="etq">Luchando ahora: ${de} · del curso: ${L.length}</span>
+      <ol class="des-ranking troto-lista">${L.slice(0, 14).map((x) => `<li class="${x.yo ? 'yo' : ''}"><span>${x.luchando ? '⚔️' : x.caidas >= 2 ? '💀' : '🩹'}</span><span>${esc(x.nombre)}</span><b>${x.golpes}</b></li>`).join('') || '<li class="vacio">¡Sé el primero en luchar!</li>'}</ol>`;
+  }
+  function pintarTroto() { const t = $('troto-tabla'); if (t) t.innerHTML = trotoBarraHTML(); if (escena && escena.des && escena.des.troto) escena.etiquetarTrotamundos(); }
+  async function abrirTrotamundos() {
+    const st = vivo.st;
+    if (!desActivo('trotamundos') || st.cerrado || ui.abierto) return;
+    if (sesion.modo !== 'nube') return toast('El Trotamundos se enfrenta con tu cuenta del curso.', 'alerta');
+    const r = await trotoLlamar('entrar');
+    if (!r || !r.ok) return toast(r && r.error === 'sin_intentos' ? '💀 Ya caíste 2 veces: no puedes volver a luchar contra el Trotamundos. ¡Anima a tu curso!' : r && r.error === 'derrotado' ? 'El Trotamundos ya fue derrotado.' : 'No se pudo entrar a la lucha. Revisa tu conexión.', 'alerta');
+    st.luchando = true; if (st.cayo) { st.escudos = 0; st.aciertos = 0; st.cayo = false; } vivo.modal = true;   // los escudos se conservan si solo saliste
+    const caidasAntes = (r.mio && r.mio.caidas) || 0;
+    const u = unidadDesafio();
+    let d = Preguntas.nuevo(S.curso, u, 2, S.stats), fb = '', espera = false;
+    const salir = () => { if (st.luchando) { st.luchando = false; trotoLlamar('salir'); } vivo.modal = false; };
+    const pintar = () => {
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío del curso · ${esc(d.titulo)}</span><h2 id="modal-titulo">👹 El trotamundos</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
+        <div class="des-cols">
+          <div class="des-preg">${fb}<div class="troto-estado"><span class="pildora">🛡️ Escudos: <b>${st.escudos}</b></span><span class="pildora">✅ Aciertos: <b>${st.aciertos}</b> · próximo escudo en ${5 - (st.aciertos % 5)}</span><span class="pildora">❤️ Intento ${caidasAntes + 1} de 2</span></div>
+            <p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
+          <aside class="des-tabla" id="troto-tabla">${trotoBarraHTML()}</aside>
+        </div>
+        <div class="acciones"><span class="nota">Si fallas sin escudo, caes. Si sales, no pierdes un intento, pero solo ganan quienes estén luchando cuando caiga.</span><button type="button" class="btn" id="dv-salir">Salir de la lucha</button></div>`, 'desafio-vivo troto', salir);
+      document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
+      $('dv-salir').addEventListener('click', () => ui.cerrar());
+      ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
+    };
+    const responder = async (i) => {
+      if (espera || !st.luchando || st.cerrado || !desActivo('trotamundos') || i >= d.opciones.length) return;
+      const ok = i === d.correcta;
+      registrar(d.tema, ok);
+      if (ok) {
+        st.aciertos += 1;
+        const dmg = Math.min(8, 2 + Math.floor(danio() / 2));
+        trotoLlamar('golpe', dmg);
+        if (escena && escena.des && escena.des.troto) escena.golpearTrotamundos(dmg);
+        ganarXP(3); sfx('acierto');
+        if (st.aciertos % 5 === 0) { st.escudos += 1; sfx('logro'); fb = `<div class="mensaje bien" role="status">🛡️ ¡${st.aciertos} aciertos! Ganaste un escudo: resistirás un golpe del Trotamundos (tienes ${st.escudos}).</div>`; }
+        else fb = `<div class="mensaje bien" role="status">¡Golpe! Le quitaste ${dmg} de vida al Trotamundos.</div>`;
+      } else if (st.escudos > 0) {
+        st.escudos -= 1; sfx('dano');
+        if (escena && escena.jugador) escena.cameras.main.shake(250, 0.008);
+        fb = `<div class="mensaje pista" role="status">🛡️ El Trotamundos te golpeó, ¡pero tu escudo resistió! Te quedan ${st.escudos}. La respuesta era ${mate(d.opciones[d.correcta])}.</div>`;
+      } else {
+        // sin escudo: caes de inmediato (al volver a entrar, empiezas sin escudos)
+        st.cayo = true;
+        st.luchando = false; sfx('error');
+        if (escena && escena.jugador) escena.cameras.main.shake(500, 0.02);
+        const r2 = await trotoLlamar('caer');
+        const caidas = (r2 && r2.mio && r2.mio.caidas) || caidasAntes + 1;
+        ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío del curso</span><h2 id="modal-titulo">💀 El Trotamundos te derribó</h2></div></div>
+          <div class="mensaje mal" role="status">La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion || '')}</div>
+          <p class="enunciado" style="font-size:18px">${caidas >= 2 ? 'Caíste 2 veces: ya no puedes volver a luchar. ¡Anima a tu curso para que lo derroten!' : 'Te queda <b>1 oportunidad</b>: puedes volver a acercarte al Trotamundos y luchar otra vez.'}</p>
+          <p class="nota">Golpeaste ${st.aciertos} ${st.aciertos === 1 ? 'vez' : 'veces'} en esta lucha.</p>
+          <div class="acciones"><span></span><button type="button" class="btn pri" id="dv-ok" data-foco>Entendido</button></div>`, 'desafio-vivo troto', () => { vivo.modal = false; });
+        $('dv-ok').addEventListener('click', () => ui.cerrar());
+        return;
+      }
+      d = Preguntas.nuevo(S.curso, u, 2, S.stats);
+      pintar();
+      if (!ok) { espera = true; document.querySelectorAll('#modal .alt').forEach((b) => { b.disabled = true; }); setTimeout(() => { espera = false; document.querySelectorAll('#modal .alt').forEach((b) => { b.disabled = false; }); }, 1200); }
+    };
+    pintar();
   }
 
   // ---------- Prisma estelar: el primero del grupo en responder bien 5 preguntas se lo lleva ----------
@@ -11630,7 +11754,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' || o.tipo === 'dios' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'trotamundos' ? 150 : o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' || o.tipo === 'dios' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -11672,6 +11796,7 @@
         case 'torre': return puedeTorre() ? '🗼 Entrar a la Torre de los Dioses' : '🗼 Torre sellada: vence a Hades para abrirla';
         case 'jefe': return this.textoJefe();
         case 'prisma': return 'Tomar el prisma estelar (responde 5 preguntas)';
+        case 'trotamundos': return '¡Luchar contra el Trotamundos!';
         case 'obra': return o.listo ? null : this.valle ? 'Ver y aportar al montacargas' : this.prof ? 'Ver y aportar al elevador' : this.cima ? 'Ver y aportar a la ruta de escalada' : 'Ver y aportar al puente';
         case 'santuario': return !tiene('amuleto') ? 'Santuario sellado: necesitas el amuleto ancestral' : (S.reyHasta || 0) > Date.now() ? 'El Rey Jabalí descansa' : '¡Desafiar al Rey Jabalí Ancestral!';
         case 'carrera': return 'Entrar a la estación de carreras de vagonetas';
@@ -11725,6 +11850,7 @@
       if (o.tipo === 'torre') return abrirTorre();
       if (o.tipo === 'jefe') return this.pedirJefe();
       if (o.tipo === 'prisma') return abrirPrisma();
+      if (o.tipo === 'trotamundos') return abrirTrotamundos();
       if (o.tipo === 'obra') return o.listo ? null : abrirObra();
       if (o.tipo === 'mj') return window.Minijuegos ? Minijuegos.abrir(o.mj) : null;
       if (o.tipo === 'santuario') {
@@ -12637,6 +12763,67 @@
       this.des.items.push(it); this.des.objs.push(halo, punto);
     }
     // El prisma aparece en el mismo lugar para todo el grupo (depende del desafío y del grupo)
+    // ---------- El trotamundos: todos ven el mismo camino (calculado con el número del desafío y la hora del servidor) ----------
+    rutaTrotamundos() {
+      if (this.des.trotoRuta) return this.des.trotoRuta;
+      const rnd = azar(vivo.d.n * 104729 + 17), pts = [];
+      const xMax = (this.anchoUtil || this.ancho) - 5, y0 = (this.yUtil || 0) + 4, yMax = this.alto - 5;
+      for (let i = 0; i < 400 && pts.length < 7; i++) {
+        const x = 5 + rnd() * (xMax - 5), y = y0 + rnd() * (yMax - y0), px = x * TILE, py = y * TILE;
+        if (this.alcanzable && !this.alcanzable(px, py)) continue;
+        pts.push([px, py]);
+      }
+      if (pts.length < 2) pts.push([CENTRO_X * TILE, (y0 + 10) * TILE], [(CENTRO_X + 10) * TILE, (y0 + 14) * TILE]);
+      const seg = []; let total = 0;
+      for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length], l = Math.hypot(b[0] - a[0], b[1] - a[1]); seg.push({ a, b, l, ini: total }); total += l; }
+      this.des.trotoRuta = { seg, total };
+      return this.des.trotoRuta;
+    }
+    posTrotamundos() {
+      const R = this.rutaTrotamundos(), dist = (((ahoraSrv() - vivo.d.inicio) / 1000) * TROTO_VEL) % R.total;
+      const s = R.seg.find((x) => dist >= x.ini && dist < x.ini + x.l) || R.seg[0], f = s.l ? (dist - s.ini) / s.l : 0;
+      return { x: s.a[0] + (s.b[0] - s.a[0]) * f, y: s.a[1] + (s.b[1] - s.a[1]) * f, dx: s.b[0] - s.a[0], dy: s.b[1] - s.a[1] };
+    }
+    soltarTrotamundos() {
+      if (this.des.troto || !this.textures.exists('altar_ciclope_hoja')) return;
+      const p = this.posTrotamundos();
+      const sombra = this.add.ellipse(p.x, p.y, 150, 40, 0x000000, 0.35).setDepth(p.y - 1);
+      const spr = this.add.sprite(p.x, p.y, 'altar_ciclope_hoja', DIRS.down * 9).setOrigin(0.5, 0.92).setScale(4.6).setTint(0xb48cff).setDepth(p.y);
+      const tag = this.add.text(p.x, p.y - 290, '', { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#f3e3ff', stroke: '#2a0f45', strokeThickness: 5, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(99990);
+      const o = { tipo: 'trotamundos', x: p.x, y: p.y, activo: true, desafio: true };
+      this.objetos.push(o);
+      this.des.troto = { spr, sombra, tag, o };
+      this.des.objs.push(spr, sombra, tag);
+      this.etiquetarTrotamundos();
+    }
+    etiquetarTrotamundos() {
+      const T = this.des.troto, S0 = vivo.st.srv; if (!T) return;
+      const vida = S0 ? S0.vida : 1000, queda = S0 ? Math.max(0, S0.vida - S0.dano) : vida;
+      const de = S0 ? (S0.luchadores || []).filter((x) => x.luchando).length : 0;
+      T.tag.setText(`👹 El trotamundos\n❤ ${queda} de ${vida}${de ? ` · ⚔️ ${de} luchando` : ''}`);
+    }
+    moverTrotamundos() {
+      const T = this.des.troto; if (!T || T.cayendo) return;
+      const p = this.posTrotamundos();
+      const dir = Math.abs(p.dx) > Math.abs(p.dy) ? (p.dx < 0 ? 'left' : 'right') : (p.dy < 0 ? 'up' : 'down');
+      T.spr.setPosition(p.x, p.y).setDepth(p.y).setFrame(DIRS[dir] * 9 + 1 + (Math.floor(this.time.now / 160) % 8));
+      T.sombra.setPosition(p.x, p.y).setDepth(p.y - 1);
+      T.tag.setPosition(p.x, p.y - 290);
+      T.o.x = p.x; T.o.y = p.y;
+    }
+    golpearTrotamundos(dmg) {
+      const T = this.des.troto; if (!T) return;
+      T.spr.setTint(0xffffff); this.time.delayedCall(120, () => { if (T.spr.active) T.spr.setTint(0xb48cff); });
+      this.flotante(T.o.x, T.o.y - 200, `−${dmg}`, '#ff9ad5');
+    }
+    caerTrotamundos() {
+      const T = this.des.troto; if (!T || T.cayendo) return;
+      T.cayendo = true; this.objetos = this.objetos.filter((x) => x !== T.o);
+      this.add.particles(T.o.x, T.o.y - 120, 'p_morado', { speed: { min: 80, max: 260 }, lifespan: 1100, scale: { start: 2.4, end: 0 }, emitting: false }).setDepth(99999).explode(80);
+      this.cameras.main.shake(700, 0.015);
+      this.tweens.add({ targets: T.spr, angle: 90, alpha: 0, duration: 1400, ease: 'Quad.in' });
+      this.tweens.add({ targets: [T.tag, T.sombra], alpha: 0, duration: 1400 });
+    }
     soltarPrisma() {
       if (this.des.prisma) return;
       const d = vivo.d, rnd = azar(d.n * 7919 + (S.grupo || 0) * 131 + (S.grupo ? 0 : Math.floor(Math.random() * 1e6)));
@@ -12690,7 +12877,7 @@
       if (this.des.prisma) { this.objetos = this.objetos.filter((o) => o !== this.des.prisma.o); this.des.prisma = null; }
       this.objetos = this.objetos.filter((o) => !o.desafio);
       if (this.des.ladron) { const L = this.des.ladron; this.add.particles(L.s.x, L.s.y - 20, 'p_morado', { speed: { min: 40, max: 140 }, lifespan: 600, scale: { start: 1.5, end: 0 }, emitting: false }).setDepth(99999).explode(24); L.s.destroy(); L.tag.destroy(); this.des.ladron = null; }
-      this.des.tesoro = null; this.des.runas = null; this.des.coord = null; this.des.mimicos = null;
+      this.des.tesoro = null; this.des.runas = null; this.des.coord = null; this.des.mimicos = null; this.des.troto = null; this.des.trotoRuta = null;
       if (oscuro && oscuro.active) this.tweens.add({ targets: oscuro, alpha: 0, duration: 1000, onComplete: () => oscuro.destroy() });
     }
     flotante(x, y, txt, color = '#ffffff') {
