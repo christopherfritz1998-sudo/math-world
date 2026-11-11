@@ -57,6 +57,7 @@
   const MEJORAS = [
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
+    { id: 'botas', nombre: 'Botas de viento', desc: 'Siempre activas: caminas un 30 % más rápido en todos los mundos.', icono: 'crampones', costo: { madera: 25, piedra: 15, cristal: 3 }, requiere: 'pico' },
     // Herramientas del Bosque profundo
     { id: 'ahumador', nombre: 'Ahumador', desc: 'Herramienta: calma a las abejas para recolectar miel de las colmenas del Bosque profundo.', icono: 'ahumador', costo: { madera: 12, piedra: 6, resina: 3 } },
     { id: 'hacha3', nombre: 'Hacha ancestral', desc: 'Más madera al talar y +2 de resina en los árboles gigantes del Bosque profundo.', icono: 'hacha3', costo: { resina: 12, madera: 30, cristal: 4 }, requiere: 'hacha2' },
@@ -76,8 +77,8 @@
     { id: 'antorcha_esfinge', nombre: 'Antorcha de la esfinge', desc: 'Ilumina el laberinto de la Gran Esfinge, en el Valle de la Esfinge: sin ella no puedes entrar.', icono: 'antorcha_esfinge', costo: { obsidiana: 6, fosil: 3, fibra: 8 } },
     { id: 'ankh', nombre: 'Ankh de obsidiana', desc: 'Abre la tumba del Faraón de las Arenas Eternas, en el Valle de la Esfinge.', icono: 'ankh', costo: { obsidiana: 12, fosil: 8, oro: 6 } },
     { id: 'pico3', nombre: 'Pico de cobre', desc: 'Permite extraer oro de las vetas doradas y saca más arenisca y cobre.', icono: 'pickaxe', costo: { cobre: 10, arenisca: 15, fibra: 6 }, requiere: 'pico2' },
-    { id: 'espada3', nombre: 'Espada de oro', desc: 'Equipada, cada acierto en combate quita 4 de vida.', icono: 'espada', costo: { oro: 8, cobre: 10 }, requiere: 'espada2' },
-    { id: 'armadura3', nombre: 'Armadura de oro', desc: 'Equipada, tu vida máxima sube a 11 corazones.', icono: 'armadura', costo: { oro: 12, arenisca: 20, fibra: 10 }, requiere: 'armadura2' },
+    { id: 'espada3', nombre: 'Espada de oro', desc: 'Equipada, cada acierto en combate quita 4 de vida. Requiere dominar 3 temas (🥉 bronce).', icono: 'espada', costo: { oro: 8, cobre: 10 }, requiere: 'espada2', dominio: 3 },
+    { id: 'armadura3', nombre: 'Armadura de oro', desc: 'Equipada, tu vida máxima sube a 11 corazones. Requiere dominar 3 temas (🥉 bronce).', icono: 'armadura', costo: { oro: 12, arenisca: 20, fibra: 10 }, requiere: 'armadura2', dominio: 3 },
     // Equipo de la mina (Unidad 3)
     { id: 'casco', nombre: 'Casco de minero', desc: 'Siempre activo: +1 corazón de vida máxima y los gólems ya no te sorprenden.', icono: 'casco', costo: { carbon: 10, plata: 4, hongo: 4 }, requiere: 'pico' },
     // Herramientas de las Profundidades
@@ -86,8 +87,8 @@
     { id: 'pico_magma', nombre: 'Pico de magma', desc: 'Saca más roca de magma y más carbón de las vetas de las Profundidades.', icono: 'pico_magma', costo: { magma: 12, plata: 10, cristal_eco: 4 }, requiere: 'pico4' },
     { id: 'corazon_cristal', nombre: 'Corazón de cristal', desc: 'Rompe el sello del Coloso de Magma, en la cámara de las Profundidades.', icono: 'corazon_cristal', costo: { cristal_eco: 12, magma: 10, amatista: 6 } },
     { id: 'pico4', nombre: 'Pico de plata', desc: 'Permite extraer amatista y saca más carbón y plata.', icono: 'pickaxe', costo: { plata: 10, carbon: 15, hongo: 6 }, requiere: 'pico2' },
-    { id: 'espada4', nombre: 'Espada de amatista', desc: 'Equipada, cada acierto en combate quita 5 de vida.', icono: 'espada', costo: { amatista: 8, plata: 10 }, requiere: 'espada2' },
-    { id: 'armadura4', nombre: 'Armadura de plata', desc: 'Equipada, tu vida máxima sube a 13 corazones.', icono: 'armadura', costo: { plata: 14, carbon: 20, amatista: 4 }, requiere: 'armadura2' },
+    { id: 'espada4', nombre: 'Espada de amatista', desc: 'Equipada, cada acierto en combate quita 5 de vida. Requiere dominar 5 temas (🥉 bronce).', icono: 'espada', costo: { amatista: 8, plata: 10 }, requiere: 'espada2', dominio: 5 },
+    { id: 'armadura4', nombre: 'Armadura de plata', desc: 'Equipada, tu vida máxima sube a 13 corazones. Requiere dominar 5 temas (🥉 bronce).', icono: 'armadura', costo: { plata: 14, carbon: 20, amatista: 4 }, requiere: 'armadura2', dominio: 5 },
     // Equipo del mundo helado (Unidad 4)
     // Escalada del glaciar y Cima
     { id: 'piolet', nombre: 'Piolet de escarcha', desc: 'Herramienta de escalada: con el piolet y los crampones puedes subir la pared del glaciar. Si resbalas, te sujetas respondiendo bien.', icono: 'piolet', costo: { hielo: 60, escarcha: 30, zafiro: 8, madera: 20 }, requiere: 'pico' },
@@ -627,7 +628,7 @@
       return;
     }
     actualizarPedidos(r.pedidos || []);
-    if (!cancelar) { contar('pedido'); toast('📣 Pedido enviado: tus compañeros lo verán en sus misiones. Lo que depositen en el cofre irá completándolo.'); }
+    if (!cancelar) { avanzarMision('pedido'); toast('📣 Pedido enviado: tus compañeros lo verán en sus misiones. Lo que depositen en el cofre irá completándolo.'); }
     if (ui.abierto) abrirEquipo();
   });
   document.addEventListener('toggle', async (ev) => {
@@ -798,6 +799,7 @@
     if (el) { el.classList.add('sube'); setTimeout(() => el.classList.remove('sube'), 350); }
   }
   function ganarXP(n) {
+    n = Math.max(1, Math.round(n * factorRespuesta()));
     if (desActivo('sabio')) n *= 2;
     if (talento('sabio')) n = Math.round(n * (1 + 0.1 * talento('sabio')));
     const evX = eventoActual(); if (evX && evX.id === 'xp2') n *= 2;
@@ -916,6 +918,9 @@
 
   const TIPOS_DIARIA = {
     talar: { n: 6, txt: 'Recolecta 6 veces de árboles, cactus, hongos o bayas' },
+    minijuego: { n: 1, txt: 'Termina 1 minijuego (letreros 🎲 cerca del portal de cada mundo o en la base)' },
+    pedido: { n: 1, txt: 'Haz un pedido al grupo desde tu Equipo, en la base', req: () => cofreComunitario() },
+    diagnostico: { n: 1, txt: 'Completa tu diagnóstico inicial (12 preguntas, sin nota)', req: () => !S.diagnostico && !esDocente(), prioridad: true },
     picar: { n: 5, txt: 'Pica 5 rocas', req: () => tiene('pico') },
     agua: { n: 3, txt: 'Saca agua del lago 3 veces', req: () => tiene('balde') },
     vencer: { n: 4, txt: 'Vence a 4 enemigos' },
@@ -930,7 +935,8 @@
     const f = hoy();
     if (!S.diaria || S.diaria.fecha !== f) {
       const tipos = Object.keys(TIPOS_DIARIA).filter((t) => !TIPOS_DIARIA[t].req || TIPOS_DIARIA[t].req());
-      const t = tipos[Math.floor(Math.random() * tipos.length)];
+      const prio = tipos.find((x) => TIPOS_DIARIA[x].prioridad);
+      const t = prio || tipos[Math.floor(Math.random() * tipos.length)];
       const normales = OBJETOS.filter((o) => !o.excl);
       S.diaria = { fecha: f, t, n: TIPOS_DIARIA[t].n, p: 0, cobrada: false,
         premio: { rec: PREMIOS_DIARIA[Math.floor(Math.random() * PREMIOS_DIARIA.length)], obj: normales[Math.floor(Math.random() * normales.length)].id, xp: 50 } };
@@ -1423,7 +1429,7 @@
     $: (id) => $(id), esc: (s) => esc(s), mate: (s) => mate(s), toast: (t, c) => toast(t, c), sfx: (k) => sfx(k),
     S: () => S, sesion: () => sesion, escena: () => escena, esDocente: () => esDocente(),
     registrar: (t, ok) => registrar(t, ok), contar: (k, n) => contar(k, n), guardar: (i) => guardar(i),
-    darPremio: (r, xp, f) => darPremio(r, xp, f), paquete: (c, v, t) => paquete(c, v, t),
+    darPremio: (r, xp, f) => darPremio(r, xp, f), paquete: (c, v, t) => paquete(c, v, t), avanzar: (ev) => avanzarMision(ev),
     nombreZona: (z) => (z === 'base' ? 'Tu base' : nombreZona(z)),
   };
   // Copia local de imágenes y sonidos (abre más rápido la segunda vez y aguanta la mala señal)
@@ -1578,6 +1584,7 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Tu personaje</span><h2 id="modal-titulo">Equipo</h2></div><button type="button" class="btn" id="eq-cerrar">Cerrar</button></div>
       ${recursosEq}
+      ${!enBase && !esDocente() ? `<section class="equipo-recursos"><h3>📦 ${cofreComunitario() ? 'Cofre del grupo' : 'Tu cofre'} <small class="nota">(está en la base: aquí solo puedes mirarlo)</small></h3>${recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0).length ? `<div class="objetos">${recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0).map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${S.cofre[r.id]}</small></div>`).join('')}</div>` : '<p class="nota">El cofre está vacío.</p>'}</section>` : ''}
       <div class="equipo">
         <div class="equipo-vista">
           ${figuraHTML(S.pj, S.armadura, S.herramienta, S.arma, 160)}
@@ -1614,6 +1621,7 @@
       const m = $('modal');
       m.className = 'modal ' + clase + (/(^|\s)(excava-modal|laberinto|carrera|cristales-modal|escalada-modal|minijuego)(\s|$)/.test(clase) ? ' pantalla' : '');
       m.innerHTML = html;
+      { const en = /class="enunciado"[^>]*>([\s\S]{0,160})/.exec(html); if (en && en[1] !== ultEnunciado) { ultEnunciado = en[1]; tPregunta = Date.now(); } }
       $('capa').classList.remove('oculto');
       this.abierto = true; this.alCerrar = alCerrar; this.teclas = null;
       const foco = m.querySelector('[data-foco]') || m.querySelector('button');
@@ -1663,8 +1671,65 @@
     if (l.length > 2) l.shift();
     const ks = Object.keys(E); if (ks.length > 30) delete E[ks[0]];
   }
+  // ---------- Premiar el acierto: rachas suben la experiencia; responder al azar la baja ----------
+  let tPregunta = 0, ultEnunciado = '', ultResp = null, avisoApuro = 0;
+  const histResp = [];   // últimas 10 respuestas: { ok, rapido }
+  const apresurado = () => histResp.filter((x) => !x.ok && x.rapido).length >= 3;
+  function factorRespuesta() {
+    // solo afecta la experiencia que se gana justo después de responder bien
+    if (!S || !ultResp || !ultResp.ok || Date.now() - ultResp.t > 1500) return 1;
+    let f = 1 + Math.min(0.5, Math.floor((S.racha || 0) / 3) * 0.1);   // +10 % cada 3 aciertos seguidos (hasta +50 %)
+    if (apresurado()) f *= 0.5;
+    return f;
+  }
+  function anotarRespuesta(acierto) {
+    const rapido = Boolean(tPregunta) && Date.now() - tPregunta < 3000;
+    histResp.push({ ok: acierto, rapido }); if (histResp.length > 10) histResp.shift();
+    ultResp = { t: Date.now(), ok: acierto };
+    if (esDocente()) return;
+    if (!acierto && rapido && apresurado() && Date.now() - avisoApuro > 300000) {
+      avisoApuro = Date.now();
+      toast('🐢 Estás respondiendo muy rápido y fallando: así ganas la mitad de experiencia. Lee con calma y usa la pista: ¡acertar vale mucho más!', 'alerta');
+    } else if (acierto && S.racha && S.racha % 3 === 0 && S.racha <= 15) {
+      toast(`🔥 ¡${S.racha} aciertos seguidos! Ahora ganas +${Math.min(50, (S.racha / 3) * 10)} % de experiencia.`);
+    }
+  }
+  // Dificultad adaptativa: si un tema cuesta mucho, la pista queda a la vista desde el inicio
+  const apoyoTema = (d) => { if (!S || !d || !d.tema || esDocente()) return false; const st = (S.stats || {})[d.tema]; return Boolean(st && st.i >= 6 && st.a / st.i < 0.4); };
+
+  // ---------- Repaso guiado: cuando un tema cuesta mucho, 3 preguntas fáciles con la pista a la vista ----------
+  function revisarGuiado(tema) {
+    if (!S || esDocente() || !tema) return;
+    const st = (S.stats || {})[tema]; if (!st || st.i < 6 || st.a / st.i >= 0.4) return;
+    const G = S.guiado || (S.guiado = {});
+    if (G[tema] && Date.now() - G[tema] < 2 * 86400000) return;
+    G[tema] = Date.now();
+    esperarYAbrir(() => ofrecerGuiado(tema));
+  }
+  function ofrecerGuiado(tema) {
+    const st = (S.stats || {})[tema] || { a: 0, i: 1 }, pct = Math.round((100 * st.a) / Math.max(1, st.i));
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Te ayudamos</span><h2 id="modal-titulo">🧭 Repaso guiado</h2></div></div>
+      <p class="enunciado" style="font-size:18px">«${esc(Preguntas.tituloDe(tema))}» te está costando (${pct} % de acierto). Practiquemos con <b>3 preguntas fáciles</b> y la pista a la vista.</p>
+      <p class="nota">Premio: hasta 65 de experiencia y recursos. Después de esto, las preguntas de este tema serán más sencillas hasta que mejores.</p>
+      <div class="acciones"><button type="button" class="btn" id="gu-no">Ahora no</button><button type="button" class="btn pri" id="gu-si" data-foco>Empezar</button></div>`);
+    $('gu-no').addEventListener('click', () => ui.cerrar());
+    $('gu-si').addEventListener('click', () => {
+      const ps = Array.from({ length: 3 }, () => Preguntas.deTema(S.curso, tema, 1)).filter(Boolean);
+      if (!ps.length) { ui.cerrar(); return; }
+      ps.forEach((d) => { if (d.pista) d.pistaVista = d.pista; });
+      abrirSerie({ etq: '🧭 Repaso guiado', titulo: Preguntas.tituloDe(tema), preguntas: ps,
+        nota: 'Lee la pista antes de responder. Si te equivocas, verás el paso a paso.',
+        alFin: (a, det, ultimo) => {
+          const xp = 20 + 15 * a, txt = darPremio(paquete(2 + a, 2, true), xp); contar('guiado');
+          ui.abrir(resultadoHTML('🧭 Repaso guiado', a === 3 ? '¡Excelente!' : a ? '¡Vas mejorando!' : '¡Sigue practicando!', `${ultimo}<p class="enunciado">Respondiste bien <b>${a} de ${ps.length}</b>.</p><p class="nota">Premio: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.</p>`, ''), 'serie');
+          $('res-ok').addEventListener('click', () => ui.cerrar());
+        } });
+    });
+  }
   function registrar(tema, acierto) {
     if (!acierto) anotarErrorAlt(tema);
+    anotarRespuesta(acierto);
+    if (!acierto) setTimeout(() => revisarGuiado(tema), 0);
     ultAlt = null;
     const st = S.stats[tema] || (S.stats[tema] = { a: 0, i: 0 });
     st.i += 1; if (acierto) st.a += 1;
@@ -1703,11 +1768,11 @@
     const clave = recursoPendiente && Date.now() - recursoPendiente.t < 1500 && !esDocente() ? recursoPendiente.clave : null;
     recursoPendiente = null;
     const nuevo = () => Preguntas.nuevo(S.curso, unidad || unidadActual(), dif, S.stats);
-    let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = false, fallidas = new Set(), aviso = '', escrito = '', abierta = usarAbierta(d, dif);
+    let d = nuevo(), elegida = null, fallos = 0, resuelto = false, pista = apoyoTema(d), fallidas = new Set(), aviso = '', escrito = '', abierta = usarAbierta(d, dif);
     const pintar = () => {
       let msg = '';
       if (resuelto) msg = `<div class="mensaje bien" role="status">¡Correcto! ${mate(d.explicacion)}</div>`;
-      else msg = aviso + (pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : '');
+      else msg = aviso + (apoyoTema(d) && !aviso ? '<p class="nota apoyo-etq">🤝 Este tema te está costando: te dejamos la pista a la vista.</p>' : '') + (pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : '');
       ui.abrir(`
         <div class="modal-cab">
           <div><span class="etq">${esc(d.titulo)}</span><h2 id="modal-titulo">${esc(accion)}</h2></div>
@@ -1727,7 +1792,7 @@
       const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
       on('d-pista', () => { pista = !pista; pintar(); });
       on('d-salir', () => ui.cerrar());
-      on('d-otro', () => { d = nuevo(); elegida = null; fallos = 0; fallidas = new Set(); pista = false; escrito = ''; abierta = usarAbierta(d, dif); pintar(); });
+      on('d-otro', () => { d = nuevo(); elegida = null; fallos = 0; fallidas = new Set(); pista = apoyoTema(d); escrito = ''; abierta = usarAbierta(d, dif); pintar(); });
       on('d-ok', comprobar);
       conectarAbierta((v) => { escrito = v; const b = $('d-ok'); if (b) b.disabled = !v.trim(); });
       on('d-seguir', () => { ui.alCerrar = pagarUnaVez; ui.cerrar(); });
@@ -1763,7 +1828,7 @@
           fijarBloq(clave, f, 0);
         }
         aviso = pasoAPasoHTML(d, 'No era esa.', 'Ahora intenta con una parecida 👇');
-        d = (Preguntas.deTema && Preguntas.deTema(S.curso, d.tema, dif)) || nuevo(); elegida = null; fallidas = new Set(); pista = false; escrito = ''; abierta = usarAbierta(d, dif);
+        d = (Preguntas.deTema && Preguntas.deTema(S.curso, d.tema, dif)) || nuevo(); elegida = null; fallidas = new Set(); pista = apoyoTema(d); escrito = ''; abierta = usarAbierta(d, dif);
       }
       guardar();
       pintar();
@@ -5383,6 +5448,7 @@
   const PTS_BRONCE = 8, PTS_PLATA = 25;
   function maestriaDe(tema) { return ((S && S.maestria) || {})[tema] || { p: 0, g: false }; }
   function rangoDe(tema) { const m = maestriaDe(tema); return m.g ? 3 : m.p >= PTS_PLATA ? 2 : m.p >= PTS_BRONCE ? 1 : 0; }
+  const temasDominados = () => Object.keys((S && S.maestria) || {}).filter((t) => rangoDe(t) >= 1).length;
   function maestriaRegistrar(tema, acierto, dif) {
     if (!S || !tema || esDocente()) return;
     const M = S.maestria || (S.maestria = {}), m = M[tema] || (M[tema] = { p: 0, g: false });
@@ -5472,7 +5538,7 @@
       const d = preguntas[i];
       ui.abrir(`<div class="modal-cab"><div><span class="etq">${etq} · ${i + 1} de ${preguntas.length}</span><h2 id="modal-titulo">${esc(titulo)}</h2></div><div class="pildoras"><span class="pildora">Aciertos: ${aciertos}</span></div></div>
         ${nota ? `<p class="nota">${nota}</p>` : ''}${msg}
-        ${d.paso ? `<p class="paso-serie">${esc(d.paso)}</p>` : ''}
+        ${d.paso ? `<p class="paso-serie">${esc(d.paso)}</p>` : ''}${d.pistaVista ? `<div class="mensaje pista">💡 ${mate(d.pistaVista)}</div>` : ''}
         <p class="enunciado">${mate(d.enunciado)}</p>
         ${d.ab ? abiertaHTML(escrito) : alternativasHTML({ ...d, repaso: false }, elegida, new Set(), false)}
         <div class="acciones"><button type="button" class="btn" id="se-salir">Salir</button><button type="button" class="btn pri" id="se-ok" ${(d.ab ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>Responder</button></div>`, 'serie');
@@ -6369,7 +6435,7 @@
       alFin: (a, det) => {
         S.diagnostico = { t: Date.now(), a, n: det.length, det: det.map((x) => [x.tema, x.ok ? 1 : 0]) };
         det.forEach((x) => { if (!x.ok) repasoRegistrar(x.tema, false); });
-        contar('diagnostico');
+        avanzarMision('diagnostico');
         const txt = darPremio(paquete(8, 3, true), 150); sfx('logro'); if (escena) escena.celebrar();
         const fall = [...new Set(det.filter((x) => !x.ok).map((x) => Preguntas.tituloDe(x.tema)))];
         ui.abrir(resultadoHTML('🧭 Diagnóstico inicial', '¡Diagnóstico completado!', `<p class="enunciado">Respondiste bien <b>${a} de ${det.length}</b>.</p>
@@ -6383,7 +6449,7 @@
   // se ofrece una vez por sesión (hasta 3 veces en total), cuando el jugador lleva un rato en su base
   let diagOfrecido = false, diagDesde = 0;
   setInterval(() => {
-    if (diagOfrecido || !S || !escena || !escena.jugador || esDocente() || S.diagnostico || (S.diagOfertas || 0) >= 3) return;
+    if (diagOfrecido || !S || !escena || !escena.jugador || esDocente() || S.diagnostico || (S.diagOfertas || 0) >= 10) return;
     if (!diagDesde) { diagDesde = Date.now(); return; }
     if (Date.now() - diagDesde < 25000 || escena.zona !== 'base' || ui.abierto) return;
     diagOfrecido = true;
@@ -6396,7 +6462,10 @@
     rachaRevisada = true;
     const hoy = fechaLocal(), ayer = fechaLocal(-1);
     if (S.diaUltimo === hoy) return;
-    S.diasSeguidos = S.diaUltimo === ayer ? (S.diasSeguidos || 0) + 1 : 1;
+    // la racha cuenta días de clases: el fin de semana no la corta (basta haber jugado el día hábil anterior o después)
+    let habil = -1; while ([0, 6].includes(new Date(Date.now() + habil * 86400000).getDay())) habil -= 1;
+    const anterior = fechaLocal(habil);
+    S.diasSeguidos = S.diaUltimo === ayer || (S.diaUltimo && S.diaUltimo >= anterior) ? (S.diasSeguidos || 0) + 1 : 1;
     S.diaUltimo = hoy; S.diasMax = Math.max(S.diasMax || 0, S.diasSeguidos);
     guardar(true); programarLogros();
     const d = S.diasSeguidos;
@@ -6405,7 +6474,7 @@
       const txt = darPremio(paquete(2 + k, Math.min(4, 1 + Math.floor(k / 2)), true), xp);
       sfx('logro');
       ui.abrir(`<div class="rey-modal racha-modal"><div class="rey-brillo"></div>
-        <span class="etq">Racha de días jugados</span><h2 id="modal-titulo">🔥 ${d === 1 ? '¡Bienvenido de vuelta!' : `¡${d} días seguidos!`}</h2>
+        <span class="etq">Racha de días de clases · el fin de semana no la corta</span><h2 id="modal-titulo">🔥 ${d === 1 ? '¡Bienvenido de vuelta!' : `¡${d} días seguidos!`}</h2>
         <div class="racha-dias">${Array.from({ length: 7 }, (_, i) => `<span class="${i < Math.min(7, d) ? 'on' : ''}">${i === 6 ? '🎁' : '🔥'}<small>Día ${i + 1}</small></span>`).join('')}</div>
         <p class="enunciado">Tu premio de hoy: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.</p>
         <p class="nota">${d >= 7 ? '¡Racha máxima! Sigue entrando cada día para mantener el premio mayor.' : `Vuelve mañana: el premio crece hasta el día 7. ${d === 1 && S.diasMax > 1 ? `Tu mejor racha: ${S.diasMax} días.` : ''}`}</p>
@@ -7074,7 +7143,7 @@
         if (S.vida <= 0) fase = 'derrota';
       }
       guardar();
-      d = nuevo(); elegida = null; fallidas = new Set(); pista = false; t0 = performance.now();
+      d = nuevo(); elegida = null; fallidas = new Set(); pista = apoyoTema(d); t0 = performance.now();
       pintar();
     };
     // Se acabó el tiempo (solo en la horda)
@@ -7089,7 +7158,7 @@
         if (S.vida <= 0) fase = 'derrota';
       }
       guardar();
-      d = nuevo(); elegida = null; fallidas = new Set(); pista = false; t0 = performance.now();
+      d = nuevo(); elegida = null; fallidas = new Set(); pista = apoyoTema(d); t0 = performance.now();
       pintar();
     };
     if (conReloj) reloj = setInterval(() => {
@@ -7391,11 +7460,13 @@
     if (!pestana) pestana = escena && escena.zona === 'pieza' ? 'pieza' : 'equipo';
     const filasEquipo = MEJORAS.map((m) => {
       const hecha = tiene(m.id), bloq = m.requiere && !tiene(m.requiere);
+      const faltaDominio = !hecha && !bloq && m.dominio && !esDocente() && temasDominados() < m.dominio;
       const equipable = ARMAS[m.id] || ARMADURAS[m.id];
       const puesta = S.arma === m.id || S.armadura === m.id;
       const der = hecha && equipable ? (puesta ? '<span class="estado-ok">Equipada</span>' : `<button type="button" class="btn sec" data-eq="${m.id}">Equipar</button>`)
         : hecha ? `<span class="estado-ok">${m.id === 'cana' ? `Fabricada · ${usosCana()} de ${CANA_USOS} usos` : 'Fabricado'}</span>`
         : bloq ? `<span class="nota" style="max-width: 150px">Primero: ${esc(NOMBRE_MEJORA[m.requiere])}</span>`
+        : faltaDominio ? `<span class="nota" style="max-width: 170px">🥉 Domina ${m.dominio} temas (llevas ${temasDominados()}): responde bien para subir tu maestría.</span>`
           : `<button type="button" class="btn pri" data-m="${m.id}" ${alcanza(precio(m.costo)) ? '' : 'disabled'}>Fabricar</button>`;
       return `<div class="mejora ${hecha ? 'hecha' : ''}"><img class="ico px" src="${ICONO(m.icono)}" alt="">
         <div class="info"><strong>${esc(m.nombre)}</strong><span>${esc(m.desc)}</span><div class="costo">${costoHTML(precio(m.costo))}</div></div>${der}</div>`;
@@ -7424,7 +7495,7 @@
       const m = MEJORAS.find((x) => x.id === b.dataset.m);
       const hacer = () => {
         const c = precio(m.costo);
-        if (!alcanza(c) || tiene(m.id)) return;
+        if (!alcanza(c) || tiene(m.id) || (m.dominio && !esDocente() && temasDominados() < m.dominio)) return;
         pagar(c); S.mejoras.push(m.id); sfx('fabricar'); eventoDesafio('fabricar', m.id);
         if (m.id === 'cana') S.canaUsos = CANA_USOS;
         guardar(true); pintarHUD(); escena.celebrar();
@@ -10128,6 +10199,11 @@
           this.objetos.push({ tipo: 'mj', mj: mj.id, nombre: mj.nombre, x: s.x, y: s.y + 4, activo: true });
         }
       }
+      // la primera vez en cada lugar se avisa que hay minijuegos
+      if (k && S && !esDocente()) {
+        const A = S.mjAviso || (S.mjAviso = {});
+        if (!A[this.zona]) { A[this.zona] = 1; setTimeout(() => toast(`🎲 Aquí hay ${k === 1 ? 'un minijuego' : `${k} minijuegos`}: busca los letreros cerca del portal (🎲 en el minimapa). ¡Dan recursos y experiencia!`), 4000); }
+      }
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
@@ -11372,7 +11448,7 @@
       const len = Math.hypot(vx, vy);
       if (this.empujon && this.empujon.hasta > this.time.now) { j.setVelocity(this.empujon.vx, this.empujon.vy); j.anims.stop(); }
       else if (len > 0.15) {
-        const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
+        const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : tiene('botas') ? 195 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
         j.setVelocity((vx / Math.max(len, 1)) * vel, (vy / Math.max(len, 1)) * vel);
         this.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
         j.anims.play(`${j.texture.key}_${this.dir}`, true);
@@ -11490,7 +11566,7 @@
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
-          if (!e.desafio) this.tregua = this.time.now + 8000;
+          if (!e.desafio) this.tregua = this.time.now + 15000;   // tras un combate, 15 s sin que otro enemigo te persiga
           if (e.desafio) eventoDesafio('vencer', e);
           guardar(true);
         } else if (resultado === 'huir') {
@@ -11501,7 +11577,7 @@
             toast(`Huiste, pero el ${E.nombre.toLowerCase()} te alcanzó a golpear: −${VIDA_HUIR} corazón.`, 'alerta');
           }
           guardar();
-          e.aturdido = this.time.now + 4000; this.tregua = this.time.now + 5000;
+          e.aturdido = this.time.now + 4000; this.tregua = this.time.now + 8000;
           const ang = Phaser.Math.Angle.Between(e.s.x, e.s.y, this.jugador.x, this.jugador.y);
           // retroceso con física (no teletransporte): así nunca atraviesa ríos, acantilados ni barreras
           this.empujon = { vx: Math.cos(ang) * 260, vy: Math.sin(ang) * 260, hasta: this.time.now + 160 };

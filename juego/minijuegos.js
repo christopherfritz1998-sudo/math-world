@@ -132,7 +132,7 @@
     const xp = Math.round((12 + 10 * p.buenas + (perfecto ? 20 : 0)) * mult);
     const rec = p.buenas ? J().paquete(Math.max(1, Math.round((2 + 2 * p.buenas) * mult)), 2, true) : {};
     const txt = J().darPremio(rec, xp);
-    J().contar('minijuego'); J().contar(`mj_${p.id}`); if (perfecto) J().contar('mj_perfecto');
+    if (J().avanzar) J().avanzar('minijuego'); else J().contar('minijuego'); J().contar(`mj_${p.id}`); if (perfecto) J().contar('mj_perfecto');
     J().sfx(perfecto ? 'logro' : p.buenas ? 'acierto' : 'error');
     if (perfecto && J().escena()) J().escena().celebrar();
     const est = perfecto ? 3 : completo ? 2 : p.buenas ? 1 : 0;
