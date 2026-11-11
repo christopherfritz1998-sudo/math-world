@@ -6402,22 +6402,35 @@
     esperarYAbrir(() => ofrecerDiagnostico());
   }, 5000);
 
-  let rachaRevisada = false;
+  let rachaRevisada = false, rachaAbriendo = false;
+  // el tutorial «Primeros pasos» está en curso (o está por empezar para un jugador nuevo)
+  const tutorialActivo = () => Boolean(S && !esDocente() && (S.tutorial ? !(S.tutorial.fin || S.tutorial.saltado) : (S.nivel || 1) <= 3));
   setInterval(() => {
-    if (rachaRevisada || !S || !escena || !escena.jugador || esDocente()) return;
-    rachaRevisada = true;
-    const hoy = fechaLocal(), ayer = fechaLocal(-1);
-    if (S.diaUltimo === hoy) return;
-    S.diasSeguidos = S.diaUltimo === ayer ? (S.diasSeguidos || 0) + 1 : 1;
-    S.diaUltimo = hoy; S.diasMax = Math.max(S.diasMax || 0, S.diasSeguidos);
-    guardar(true); programarLogros();
-    const d = S.diasSeguidos;
+    if (!S || !escena || !escena.jugador || esDocente()) return;
+    if (!rachaRevisada) {
+      rachaRevisada = true;
+      const hoy = fechaLocal(), ayer = fechaLocal(-1);
+      if (S.diaUltimo !== hoy) {
+        // el día se cuenta al entrar; la ventana con el premio queda pendiente (S.rachaPend) hasta poder mostrarla
+        S.rachaPend = { d: S.diaUltimo === ayer ? (S.diasSeguidos || 0) + 1 : 1, nuevo: !S.diaUltimo };
+        S.diasSeguidos = S.rachaPend.d;
+        S.diaUltimo = hoy; S.diasMax = Math.max(S.diasMax || 0, S.diasSeguidos);
+        guardar(true); programarLogros();
+      }
+    }
+    // mientras el tutorial está activo no se muestra: aparece al terminarlo o saltarlo
+    if (!S.rachaPend || rachaAbriendo || tutorialActivo()) return;
+    rachaAbriendo = true;
+    const d = S.rachaPend.d, nuevo = Boolean(S.rachaPend.nuevo);
     esperarYAbrir(() => {
+      rachaAbriendo = false;
+      if (!S || !S.rachaPend) return;
+      delete S.rachaPend;
       const k = Math.min(7, d), xp = 20 + 10 * k;
       const txt = darPremio(paquete(2 + k, Math.min(4, 1 + Math.floor(k / 2)), true), xp);
       sfx('logro');
       ui.abrir(`<div class="rey-modal racha-modal"><div class="rey-brillo"></div>
-        <span class="etq">Racha de días jugados</span><h2 id="modal-titulo">🔥 ${d === 1 ? '¡Bienvenido de vuelta!' : `¡${d} días seguidos!`}</h2>
+        <span class="etq">Racha de días jugados</span><h2 id="modal-titulo">🔥 ${d === 1 ? (nuevo ? '¡Tu primer día en Math World!' : '¡Bienvenido de vuelta!') : `¡${d} días seguidos!`}</h2>
         <div class="racha-dias">${Array.from({ length: 7 }, (_, i) => `<span class="${i < Math.min(7, d) ? 'on' : ''}">${i === 6 ? '🎁' : '🔥'}<small>Día ${i + 1}</small></span>`).join('')}</div>
         <p class="enunciado">Tu premio de hoy: <b>${esc(txt)}</b> y <b>${xp}</b> de experiencia.</p>
         <p class="nota">${d >= 7 ? '¡Racha máxima! Sigue entrando cada día para mantener el premio mayor.' : `Vuelve mañana: el premio crece hasta el día 7. ${d === 1 && S.diasMax > 1 ? `Tu mejor racha: ${S.diasMax} días.` : ''}`}</p>
