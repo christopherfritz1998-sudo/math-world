@@ -11397,9 +11397,25 @@
       }
     }
 
+    // Letreros y nombres del mundo que caen bajo el minimapa o los botones del HUD: se ocultan para que no se vean cortados
+    ocultarLetrerosBajoHud() {
+      const cv = this.game.canvas.getBoundingClientRect(), v = this.cameras.main.worldView;
+      if (!cv.width || !v.width) return;
+      const zonas = Array.from(document.querySelectorAll('#minimapa, .btns-redondos, #btn-sonido, .btn-menu, .btn-pantalla-m, #tutorial, .herramientas, .tarjeta-pj, .hud-misiones')).map((e) => e.getBoundingClientRect()).filter((r) => r.width && r.height);
+      const ex = cv.width / v.width, ey = cv.height / v.height;
+      for (const o of this.children.list) {
+        if (o.type !== 'Text' || o.scrollFactorX === 0) continue;
+        const b = o.getBounds();
+        const x1 = cv.left + (b.x - v.x) * ex, y1 = cv.top + (b.y - v.y) * ey, x2 = x1 + b.width * ex, y2 = y1 + b.height * ey;
+        const tapado = zonas.some((r) => x1 < r.right && x2 > r.left && y1 < r.bottom && y2 > r.top);
+        if (tapado && !o._bajoHud) { o._bajoHud = true; o._alfaHud = o.alpha; o.setAlpha(0); }
+        else if (!tapado && o._bajoHud) { o._bajoHud = false; o.setAlpha(o._alfaHud); }
+      }
+    }
     update(t, dt) {
       const j = this.jugador;
       if (!j) return;
+      if (t - (this._tLetreros || 0) > 200) { this._tLetreros = t; this.ocultarLetrerosBajoHud(); }
       let vx = 0, vy = 0;
       if (!ui.abierto) {
         const k = this.teclas;
