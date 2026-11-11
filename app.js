@@ -42,15 +42,18 @@ const PERSONAJES = [['zorro', 'Zorro'], ['luna', 'Luna'], ['puma', 'Puma'], ['co
   ['emperador', 'Emperador Dorado', 100, '👑 Juicio del Emperador', 60, 1], ['esqueleto', 'Rey Esqueleto', 100, '💀 Ejército de Huesos', 60, 1], ['minotauro', 'Minotauro Titán', 100, '🐂 Embestida del Titán', 60, 1]];
 const MASCOTAS = [['buho', 'Búho'], ['fenec', 'Fénec'], ['topo', 'Topo minero'], ['pinguino', 'Pingüino'], ['jabato', 'Jabato'], ['ajolote', 'Ajolote de lava'], ['dragon', 'Dragoncito'], ['grifo', 'Grifo (nivel 50)'], ['fenix', 'Fénix (nivel 70)'], ['unicornio', 'Unicornio (nivel 90)']];
 const NOVEDADES = [
-  ['✨', 'Personajes especiales', 'Del nivel 30 al 100 se desbloquean 10 personajes nuevos, cada uno con su propia habilidad especial.'],
-  ['⭐', 'Las 3 leyendas', 'En el nivel 100 te esperan el Emperador Dorado, el Rey Esqueleto y el Minotauro Titán: los personajes más fuertes del juego.'],
-  ['⚡', 'Habilidad especial', 'Responde bien 5 preguntas seguidas para cargarla y lánzala en combate: quita mucha vida, ¡también a los jefes! Si fallas, la carga vuelve a 0.'],
-  ['👹', 'Jefes más fuertes', 'Los jefes tienen más vida y ahora vencerlos tiene su propia animación de victoria con confeti y K.O.'],
-  ['🏅', '20 logros nuevos', 'Una nueva pestaña «Héroes y habilidades», niveles 50, 75 y 100, y logros por duelos y prismas perfectos.'],
-  ['🎯', 'Desafíos renovados', 'En el Duelo por el cofre y el Prisma estelar quedas fuera con 5 errores, y la Meta del curso dura 3 minutos.'],
-  ['🌱', 'Aprender del error', 'Al talar, picar o recolectar, si te equivocas ves la respuesta correcta y pasas a otra pregunta sin perder vida.'],
-  ['🐾', 'Mascotas', 'Vence a los jefes finales y gana 10 mascotas que te siguen por todo el mapa.'],
-  ['📱', 'Juega en el celular', 'Una vista especial para teléfonos, con menú ☰ y controles táctiles.'],
+  ['🎲', '11 minijuegos nuevos', 'Puente de troncos, Balanza de frutos, Balanza de la caravana, Canales del oasis, Tallado de gemas, Rayo de luz, Carga exacta, Trineo del azar, Estación meteorológica, Mercado y Cerradura del grupo: la matemática es la mecánica, con versión de 7° y 8°.'],
+  ['🏛️', 'El Altar de los Dioses', 'Al reunir todas las gemas aparece el quinto mundo: cinco jefes dormidos en sus altares y, al final, el jefe más poderoso del juego.'],
+  ['📦', 'Cofre comunitario', 'Todo tu grupo comparte un cofre: lo que cada uno recolecta lo pueden usar todos. Haz pedidos al grupo y revisa el historial del cofre.'],
+  ['🏆', 'Meta y ranking de grupos', 'Cada semana tu grupo tiene una meta de respuestas correctas y compite en el ranking del curso por promedio por integrante.'],
+  ['🧭', 'Diagnóstico inicial', '12 preguntas sin nota para que el juego sepa qué reforzar contigo desde el primer día.'],
+  ['📝', 'Evaluaciones con nota', 'Tu profesor puede lanzar evaluaciones de hasta 20 preguntas, con tiempo y nota de 1,0 a 7,0.'],
+  ['🔒', 'Recolectar con cuidado', 'Si te equivocas 3 veces seguidas en un mismo recurso, se bloquea por 5 minutos: piensa antes de responder.'],
+  ['📈', 'Nivel 100 alcanzable', 'Nueva curva de experiencia: el nivel 100 se puede lograr durante el año escolar.'],
+  ['📱', 'Celular y pantalla completa', 'El juego se ve ordenado en vertical y horizontal, con botón ⛶ de pantalla completa y carga más rápida.'],
+  ['♿', 'Accesibilidad', 'Texto grande, colores para daltonismo, alto contraste, letra de lectura fácil y lectura en voz alta de las preguntas.'],
+  ['👪', 'Informe para apoderados', 'Tu profesor puede compartir con tu familia un enlace con tu avance: temas que dominas, los que te cuestan y tu evolución semanal.'],
+  ['✨', 'Personajes y leyendas', 'Del nivel 30 al 100 se desbloquean personajes especiales con habilidad propia y, en el nivel 100, las 3 leyendas.'],
 ];
 // Accesos de la página: activo:true se puede abrir; activo:false muestra «Pronto»
 const ACCESOS = [
