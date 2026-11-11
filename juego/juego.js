@@ -5135,6 +5135,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
+  const VERSION_JUEGO = '2026-11-11';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -5144,13 +5145,18 @@
       const clave = String(msg).slice(0, 120);
       if (erroresVistos.has(clave)) return;
       erroresVistos.add(clave); erroresEnviados += 1;
-      const txt = `[auto] ${String(msg).slice(0, 300)}${origen ? ` · ${origen}` : ''} · ${tactil() ? 'celular/tablet' : 'computador'} · nivel ${S.nivel}`;
+      // contexto para ubicar el error: ventana abierta, mundo y versión del juego
+      const m = document.getElementById('modal');
+      const ventana = m ? (ui.abierto ? (m.className.replace(/\bmodal\b/, '').trim() || 'modal') : 'ninguna') : '¡sin #modal!';
+      const txt = `[auto] ${String(msg).slice(0, 300)}${origen ? ` · ${origen}` : ''} · ${tactil() ? 'celular/tablet' : 'computador'} · nivel ${S.nivel} · ventana: ${ventana} · zona: ${escena ? escena.zona : '-'} · v${VERSION_JUEGO}`;
       Nube.reporteEnviar(sesion.token, 'error', 'Error automático', txt, escena ? escena.zona : '').catch(() => {});
     } catch (e) { /* nunca falla por reportar */ }
   }
   window.addEventListener('error', (ev) => {
     if (!ev || !ev.message || /ResizeObserver loop|Script error\.?$/.test(ev.message)) return;
-    reportarError(ev.message, ev.filename ? `${String(ev.filename).split('/').pop()}:${ev.lineno}:${ev.colno}` : '');
+    // además de la posición, el siguiente paso de la pila (quién llamó a la función que falló)
+    const pila = ev.error && ev.error.stack ? String(ev.error.stack).split('\n').slice(2, 3).map((l) => (l.match(/:(\d+:\d+)\)?\s*$/) || [])[1]).filter(Boolean).join('') : '';
+    reportarError(ev.message, ev.filename ? `${String(ev.filename).split('/').pop()}:${ev.lineno}:${ev.colno}${pila ? ` ← ${pila}` : ''}` : '');
   });
   window.addEventListener('unhandledrejection', (ev) => {
     const r = ev && ev.reason, m = r && (r.message || String(r));
@@ -5597,20 +5603,20 @@
     const plantillas = [
       () => { const t = elige([2, 3, 4]), n = ent(6, 15), c = ent(3, 6), p = elige([2, 3, 5]); return { titulo: '🌉 El puente del río', pasos: [
         preg('🌉 Paso 1', `El puente mide ${t * n} m y cada tablón cubre ${t} m. ¿Cuántos tablones necesitas?`, n, 'Divide el largo del puente por lo que cubre cada tablón.', `${t * n} : ${t} = ${n} tablones.`, 'Paso 1 de 3'),
-        preg('🌉 Paso 2', `Cada tablón lleva ${c} clavos. ¿Cuántos clavos necesitas en total?`, n * c, 'Multiplica los tablones por los clavos de cada uno.', `${n} · ${c} = ${n * c} clavos.`, 'Paso 2 de 3'),
-        preg('🌉 Paso 3', `Cada clavo cuesta ${p} monedas. ¿Cuánto cuestan todos los clavos?`, n * c * p, 'Multiplica la cantidad de clavos por su precio.', `${n * c} · ${p} = ${n * c * p} monedas.`, 'Paso 3 de 3')] }; },
+        preg('🌉 Paso 2', `Son ${n} tablones y cada uno lleva ${c} clavos. ¿Cuántos clavos necesitas en total?`, n * c, 'Multiplica los tablones por los clavos de cada uno.', `${n} · ${c} = ${n * c} clavos.`, 'Paso 2 de 3'),
+        preg('🌉 Paso 3', `Necesitas ${n * c} clavos y cada uno cuesta ${p} monedas. ¿Cuánto cuestan todos los clavos?`, n * c * p, 'Multiplica la cantidad de clavos por su precio.', `${n * c} · ${p} = ${n * c * p} monedas.`, 'Paso 3 de 3')] }; },
       () => { const q = ent(2, 6), p = ent(2, 9) * 20, tot = q * p, desc = (tot * 3) / 4, billete = Math.ceil((desc + 1) / 100) * 100; return { titulo: '🛡️ Escudos para el clan', pasos: [
         preg('🛡️ Paso 1', `Tu clan necesita ${q} escudos y cada uno cuesta ${p} monedas. ¿Cuánto cuestan todos?`, tot, 'Multiplica la cantidad por el precio.', `${q} · ${p} = ${tot} monedas.`, 'Paso 1 de 3'),
-        preg('🛡️ Paso 2', `El herrero les hace un 25 % de descuento sobre el total. ¿Cuánto pagan ahora?`, desc, 'El 25 % es la cuarta parte: réstala al total.', `25 % de ${tot} = ${tot / 4}. ${tot} − ${tot / 4} = ${desc}.`, 'Paso 2 de 3'),
-        preg('🛡️ Paso 3', `Pagan con ${billete} monedas. ¿Cuánto vuelto reciben?`, billete - desc, 'Resta lo que pagan al dinero entregado.', `${billete} − ${desc} = ${billete - desc} monedas de vuelto.`, 'Paso 3 de 3')] }; },
+        preg('🛡️ Paso 2', `Los escudos cuestan ${tot} monedas en total y el herrero les hace un 25 % de descuento. ¿Cuánto pagan ahora?`, desc, 'El 25 % es la cuarta parte: réstala al total.', `25 % de ${tot} = ${tot / 4}. ${tot} − ${tot / 4} = ${desc}.`, 'Paso 2 de 3'),
+        preg('🛡️ Paso 3', `Deben pagar ${desc} monedas y entregan ${billete} monedas. ¿Cuánto vuelto reciben?`, billete - desc, 'Resta lo que pagan al dinero entregado.', `${billete} − ${desc} = ${billete - desc} monedas de vuelto.`, 'Paso 3 de 3')] }; },
       () => { const a = ent(2, 6) * 2, b = ent(2, 6) * 2, k = ent(3, 8), ar = a * b; return { titulo: '🥕 El huerto del gremio', pasos: [
         preg('🥕 Paso 1', `El huerto mide ${a} m por ${b} m. ¿Cuál es su área en m²?`, ar, 'Área del rectángulo = largo · ancho.', `${a} · ${b} = ${ar} m².`, 'Paso 1 de 3'),
-        preg('🥕 Paso 2', `Un cuarto (1/4) del huerto será para zanahorias. ¿Cuántos m² son?`, ar / 4, 'Divide el área por 4.', `${ar} : 4 = ${ar / 4} m².`, 'Paso 2 de 3'),
-        preg('🥕 Paso 3', `Cada m² da ${k} zanahorias. ¿Cuántas zanahorias cosecharán?`, (ar / 4) * k, 'Multiplica los m² de zanahorias por lo que da cada uno.', `${ar / 4} · ${k} = ${(ar / 4) * k} zanahorias.`, 'Paso 3 de 3')] }; },
+        preg('🥕 Paso 2', `El huerto tiene ${ar} m² y un cuarto (1/4) será para zanahorias. ¿Cuántos m² son?`, ar / 4, 'Divide el área por 4.', `${ar} : 4 = ${ar / 4} m².`, 'Paso 2 de 3'),
+        preg('🥕 Paso 3', `Hay ${ar / 4} m² de zanahorias y cada m² da ${k} zanahorias. ¿Cuántas zanahorias cosecharán?`, (ar / 4) * k, 'Multiplica los m² de zanahorias por lo que da cada uno.', `${ar / 4} · ${k} = ${(ar / 4) * k} zanahorias.`, 'Paso 3 de 3')] }; },
       () => { const t0 = -ent(8, 20), s = ent(2, 5), h = ent(3, 6), tf = t0 + s * h, cima = -ent(15, 25), noche = ent(2, 6); return { titulo: '🏔️ La expedición al glaciar', pasos: [
         preg('🏔️ Paso 1', `Al amanecer el campamento está a ${numTxt(t0)} °C y la temperatura sube ${s} °C cada hora. ¿Qué temperatura hay después de ${h} horas?`, tf, `Suma ${s} °C una vez por cada hora.`, `${numTxt(t0)} + ${s} · ${h} = ${numTxt(t0)} + ${s * h} = ${numTxt(tf)} °C.`, 'Paso 1 de 3'),
         preg('🏔️ Paso 2', `En la cima hace ${numTxt(cima)} °C. ¿Cuántos grados de diferencia hay entre el campamento (${numTxt(tf)} °C) y la cima?`, tf - cima, 'Resta la temperatura menor a la mayor.', `${numTxt(tf)} − (${numTxt(cima)}) = ${numTxt(tf - cima)} °C.`, 'Paso 2 de 3'),
-        preg('🏔️ Paso 3', `En la noche la cima baja ${noche} °C más. ¿Qué temperatura habrá en la cima?`, cima - noche, 'Baja = resta.', `${numTxt(cima)} − ${noche} = ${numTxt(cima - noche)} °C.`, 'Paso 3 de 3')] }; },
+        preg('🏔️ Paso 3', `En la cima hace ${numTxt(cima)} °C y en la noche baja ${noche} °C más. ¿Qué temperatura habrá en la cima?`, cima - noche, 'Baja = resta.', `${numTxt(cima)} − ${noche} = ${numTxt(cima - noche)} °C.`, 'Paso 3 de 3')] }; },
     ];
     return elige(plantillas)();
   }
@@ -7647,7 +7653,9 @@
       else if (ui.teclas) ui.teclas(e);
       return;
     }
-    const k = e.key.toLowerCase();
+    // el autocompletado del navegador dispara keydown sin tecla (e.key indefinido)
+    const k = String(e.key || '').toLowerCase();
+    if (!k) return;
     const enBase = escena && enCasa();
     if (k === 'b' && enBase) abrirFabricar();
     else if (k === 'g' && enBase) abrirDecorar();
@@ -7699,11 +7707,17 @@
       perilla.style.transform = `translate(${dx}px, ${dy}px)`;
       palanca.x = dx / max; palanca.y = dy / max;
     };
-    base.addEventListener('pointerdown', (e) => { id = e.pointerId; base.setPointerCapture(id); mover(e); });
+    base.addEventListener('pointerdown', (e) => { id = e.pointerId; try { base.setPointerCapture(id); } catch (err) { /* algunos navegadores no la permiten: la palanca igual funciona */ } mover(e); });
     base.addEventListener('pointermove', (e) => { if (e.pointerId === id) mover(e); });
     const soltar = () => { id = null; palanca.x = palanca.y = 0; perilla.style.transform = ''; };
     base.addEventListener('pointerup', soltar);
     base.addEventListener('pointercancel', soltar);
+    // si se abre una ventana (combate, pregunta) con el dedo en la palanca, el navegador suelta la captura sin
+    // enviar «pointerup»: sin esto el personaje seguía caminando solo al cerrar la ventana
+    base.addEventListener('lostpointercapture', soltar);
+    window.addEventListener('blur', soltar);
+    document.addEventListener('visibilitychange', () => { if (document.hidden) soltar(); });
+    setInterval(() => { if (ui.abierto && (palanca.x || palanca.y)) soltar(); }, 250);
     $('btn-accion').addEventListener('pointerdown', (e) => { e.preventDefault(); if (escena && !ui.abierto) escena.interactuar(); });
   })();
 

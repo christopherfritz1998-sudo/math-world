@@ -497,7 +497,7 @@
       return { titulo: ocho ? `Vagoneta de ${r.dims.join(' × ')} (volumen a llenar)` : `Piso de la vagoneta: ${r.dims.join(' × ')}`,
         instr: ocho ? 'Calcula el volumen de la vagoneta (largo × ancho × alto) y el de cada bloque. Cilindro: π · r² · h con π ≈ 3. Prisma triangular: (base × altura ÷ 2) × largo.'
           : 'Calcula el área del piso (largo × ancho) y la de cada placa. Triángulo: b · h ÷ 2. Trapecio: (B + b) · h ÷ 2.',
-        cuerpo: `<div class="mj-vagon">🛒 <b>${r.dims.join(' × ')}</b> · elegido: <b>${r.sel.size ? 'sin calcular' : 'nada'}</b></div>
+        cuerpo: `<div class="mj-vagon">🛒 Vagoneta <b>${r.dims.join(' × ')}</b> · ${r.sel.size ? `<b>${r.sel.size}</b> ${r.sel.size === 1 ? 'pieza elegida' : 'piezas elegidas'}` : 'elige las piezas'}</div>
           <div class="mj-opciones lista">${r.piezas.map((p, i) => `<button type="button" class="mj-op ${r.sel.has(i) ? 'sel' : ''}" data-i="${i}" aria-pressed="${r.sel.has(i)}">${E(p.t)}</button>`).join('')}</div>`,
         botones: `<button type="button" class="btn pri" id="mj-cargar" ${r.sel.size ? '' : 'disabled'}>Cargar</button>` };
     },
