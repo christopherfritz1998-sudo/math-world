@@ -466,13 +466,29 @@
   const corazones = (n, max) => Array.from({ length: max }, (_, i) => corazon(i < n)).join('');
 
   const sfx = (n) => { if (window.Sonido) Sonido.sfx(n); };
+  // ---------- Cola de avisos: los consejos (toast) y los logros se muestran de a uno ----------
+  const colaAvisos = [];
+  let avisoActivo = null;
   function toast(msg, tipo = '') {
+    msg = String(msg);
+    if ((avisoActivo && avisoActivo.msg === msg) || colaAvisos.some((a) => a.msg === msg)) return;
+    // los consejos no se acumulan: quedan a lo más 3 en espera (se descarta el más antiguo)
+    if (colaAvisos.filter((a) => a.msg).length >= 3) colaAvisos.splice(colaAvisos.findIndex((a) => a.msg), 1);
+    colaAvisos.push({ msg, tipo });
+    sigAviso();
+  }
+  function avisarLogro(l) { colaAvisos.push({ logro: l }); sigAviso(); }
+  function sigAviso() {
+    if (avisoActivo || !colaAvisos.length) return;
+    const a = colaAvisos.shift(); avisoActivo = a;
+    const fin = () => { avisoActivo = null; sigAviso(); };
+    if (a.logro) return mostrarAvisoLogro(a.logro, fin);
     const t = $('toast');
-    t.textContent = msg;
-    t.className = tipo;
+    t.textContent = a.msg;
+    t.className = a.tipo;
     t.style.opacity = '1';
-    clearTimeout(toast._t);
-    toast._t = setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.classList.add('oculto'), 300); }, 2800);
+    // si hay más avisos esperando, este se despide antes
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => { t.classList.add('oculto'); fin(); }, 300); }, colaAvisos.length ? 2000 : 2800);
   }
 
   // ===================================================================
@@ -4142,21 +4158,17 @@
     guardar(true);
     // la primera vez se desbloquea en silencio lo que ya se había logrado antes de que existieran los logros
     if (primera) { setTimeout(() => toast(`¡Tu avance ya desbloqueó ${nuevos.length} ${nuevos.length === 1 ? 'logro' : 'logros'}! Míralos y equipa un título en Logros (tecla L).`), 2500); pintarHUD(); return; }
-    nuevos.forEach((l) => avisosLogro.push(l));
-    mostrarAvisoLogro();
+    nuevos.forEach((l) => avisarLogro(l));
     if (nuevos.some((l) => l.id === 'rey_juego')) setTimeout(() => esperarYAbrir(abrirRey), 4600 * nuevos.length);
   }
-  const avisosLogro = [];
-  let avisoLogroActivo = false;
-  function mostrarAvisoLogro() {
-    if (avisoLogroActivo || !avisosLogro.length) return;
-    const l = avisosLogro.shift(); avisoLogroActivo = true;
+  // lo llama la cola de avisos (sigAviso): un logro a la vez y nunca junto a un consejo
+  function mostrarAvisoLogro(l, fin) {
     let el = $('aviso-logro');
     if (!el) { el = document.createElement('button'); el.type = 'button'; el.id = 'aviso-logro'; el.className = 'aviso-logro'; document.body.appendChild(el); el.addEventListener('click', () => { if (!ui.abierto) abrirLogros(); }); }
     el.innerHTML = `<span class="al-icono">${l.icono}</span><span><small>¡Logro desbloqueado!</small><b>${esc(l.nombre)}</b><em>Nuevo título: «${esc(l.titulo)}»</em></span>`;
     el.classList.remove('sale'); el.classList.add('entra');
     sfx('logro');
-    setTimeout(() => { el.classList.remove('entra'); el.classList.add('sale'); setTimeout(() => { avisoLogroActivo = false; mostrarAvisoLogro(); }, 500); }, 3800);
+    setTimeout(() => { el.classList.remove('entra'); el.classList.add('sale'); setTimeout(fin, 500); }, 3800);
   }
   setInterval(() => { if (S) revisarLogros(); }, 4000);
   // Zonas visitadas (para los logros de exploración)
@@ -6475,7 +6487,12 @@
   function pintarTutorial() {
     let el = $('tutorial');
     const T = S && S.tutorial;
-    if (!T || T.fin || T.saltado || !escena || !escena.jugador) { if (el) el.remove(); return; }
+    if (!T || T.fin || T.saltado || !escena || !escena.jugador) { if (el) el.remove(); document.body.classList.remove('con-tutorial'); return; }
+    // los avisos (consejos y logros) bajan para no tapar este cartel cuando está arriba
+    const caja = el && el.getBoundingClientRect();
+    const arriba = Boolean(caja && caja.height && caja.top < 140);
+    document.body.classList.toggle('con-tutorial', arriba);
+    if (arriba) document.body.style.setProperty('--tut-bajo', `${Math.round(caja.bottom)}px`);
     if (!el) {
       el = document.createElement('div'); el.id = 'tutorial'; el.className = 'tutorial'; el.setAttribute('role', 'status');
       $('hud').appendChild(el);

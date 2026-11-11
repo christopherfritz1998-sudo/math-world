@@ -1219,6 +1219,10 @@ body.movil .hg-ranking li, body.movil .hg-tarea { font-size: 11px; }
 .tutorial small { display: block; font-size: 11px; font-weight: 800; color: var(--teal); text-transform: uppercase; letter-spacing: .04em; }
 .tutorial b { font-size: 14px; line-height: 1.25; }
 .tut-saltar { margin-left: auto; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+/* con el cartel de primeros pasos arriba, los avisos (consejos y logros) se muestran debajo de él */
+body.con-tutorial #toast { top: calc(var(--tut-bajo, 70px) + 10px) !important; }
+body.con-tutorial .aviso-logro { top: calc(var(--tut-bajo, 70px) + 10px); }
+body.con-tutorial .aviso-logro:not(.entra) { transform: translate(-50%, calc(-140% - var(--tut-bajo, 70px) - 10px)); }
 body.movil .tutorial { top: auto; bottom: 150px; max-width: calc(100vw - 24px); }
 @media (max-width: 1000px) { .tutorial { max-width: calc(100vw - 32px); top: auto; bottom: 120px; } }
 .btn-voz { float: right; margin: 0 0 4px 8px; padding: 2px 8px; border-radius: 10px; border: 2px solid var(--line); background: rgba(79, 209, 197, .15); font-size: 18px; cursor: pointer; line-height: 1.3; }
