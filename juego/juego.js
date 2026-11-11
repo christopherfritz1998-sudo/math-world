@@ -447,6 +447,10 @@
   };
   const VIDA_HUIR = 1, VIDA_COFRE = 2;
   const JEFE_MIN = 4, JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 9, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
+  // Mínimo de jugadores con sus misiones cumplidas para que aparezca el jefe y para desafiarlo: la mitad (hacia arriba) de los
+  // integrantes del grupo que jugaron en los últimos 7 días, con piso de 2 y techo de 4. El servidor informa esa actividad en
+  // mw_grupo_estado (activos7, ver supabase/jefe_minimo.sql); si no llega, se usa el valor por defecto JEFE_MIN.
+  const jefeMin = () => { const n = Number(sesion && sesion.activos7); return n > 0 ? Math.max(2, Math.min(JEFE_MIN, Math.ceil(n / 2))) : JEFE_MIN; };
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
   // ===================================================================
@@ -969,7 +973,7 @@
         }
         if (cambio && M.lista.every((m) => m.p >= m.n)) {
           M.ok = true;
-          setTimeout(() => toast(`¡Completaste tus misiones! Cuando ${JEFE_MIN} jugadores de tu grupo las cumplan, ${JEFES[u].nombre} aparecerá en algún lugar del mapa.`), 1200);
+          setTimeout(() => toast(`¡Completaste tus misiones! Cuando ${jefeMin()} jugadores de tu grupo las cumplan, ${JEFES[u].nombre} aparecerá en algún lugar del mapa.`), 1200);
           ganarXP(30);
           if (escena) { escena.celebrar(); escena.avisarGuarida(); }
         }
@@ -1030,7 +1034,7 @@
           : `<button type="button" class="btn pri" id="mi-cobrar" ${Dd.p >= Dd.n ? '' : 'disabled'}>${Dd.p >= Dd.n ? 'Reclamar recompensa' : 'Cúmplela para reclamar'}</button>`}
       </section>
       ${u ? `<section class="tarjeta-mision"><div class="fila"><strong>${esc(nombreZona(u))}: misiones para el jefe final</strong></div>
-        <p class="nota">${misionesListas(u) ? `¡Listo! Cuando ${JEFE_MIN} jugadores de tu grupo cumplan sus misiones, ${esc(JEFES[u].nombre)} aparecerá en un lugar al azar del mapa. ¡Búsquenlo y derrótenlo juntos!` : `Cumple tus ${MISIONES_JEFE} misiones para invocar a ${esc(JEFES[u].nombre)}. Cada jugador recibe misiones distintas y se necesitan ${JEFE_MIN} jugadores del grupo con sus misiones cumplidas.`}</p>
+        <p class="nota">${misionesListas(u) ? `¡Listo! Cuando ${jefeMin()} jugadores de tu grupo cumplan sus misiones, ${esc(JEFES[u].nombre)} aparecerá en un lugar al azar del mapa. ¡Búsquenlo y derrótenlo juntos!` : `Cumple tus ${MISIONES_JEFE} misiones para invocar a ${esc(JEFES[u].nombre)}. Cada jugador recibe misiones distintas y se necesitan ${jefeMin()} jugadores del grupo con sus misiones cumplidas.`}</p>
         ${lista(misionesDe(u))}</section>`
         : '<p class="nota">Al entrar a cada mundo recibes ${MISIONES_JEFE} misiones al azar. Cúmplelas con tu grupo para invocar al jefe final: aparecerá en algún lugar del mapa.</p>'}
       ${mundos ? `<div class="unidades-avance">${mundos}</div>` : ''}`);
@@ -1250,6 +1254,7 @@
       let gr = null;
       try { gr = await Nube.grupoEstado(r.token); } catch (e) { gr = null; }
       sesion.grupo = (gr && gr.grupo) || 0;
+      sesion.activos7 = (gr && gr.activos7) || 0;   // integrantes del grupo activos en los últimos 7 días (para jefeMin)
       if (gr && gr.ok && !gr.grupo) pedirCodigoGrupo(() => empezar());
       else empezar();
     } catch (e) {
@@ -7278,7 +7283,7 @@
   function abrirInfoJefe(zona) {
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq" style="color: var(--coral)">Jefe final</span><h2 id="modal-titulo">${esc(JEFES[zona].nombre)}</h2></div></div>
-      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y cuando al menos <strong>${JEFE_MIN} jugadores</strong> cumplan sus misiones de este mundo, el jefe aparecerá en un lugar al azar del mapa: búsquenlo y lleguen juntos hasta él. Pueden luchar de <strong>${JEFE_MIN} a ${JEFE_MAX} jugadores</strong>: los que lleguen después se pueden unir al combate. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
+      <p class="enunciado" style="font-size: 18px">Este jefe no se puede vencer en solitario. Viaja a este mundo con un grupo y cuando al menos <strong>${jefeMin()} jugadores</strong> cumplan sus misiones de este mundo, el jefe aparecerá en un lugar al azar del mapa: búsquenlo y lleguen juntos hasta él. Pueden luchar de <strong>${jefeMin()} a ${JEFE_MAX} jugadores</strong>: los que lleguen después se pueden unir al combate. Cada uno responde sus ejercicios y todos los aciertos le quitan vida.</p>
       <div class="acciones"><span></span><button type="button" class="btn pri" id="ij-ok" data-foco>Entendido</button></div>`, 'jefe');
     $('ij-ok').addEventListener('click', () => ui.cerrar());
   }
@@ -7304,7 +7309,7 @@
         cuerpo = `<div class="mensaje mal" role="status">Te quedaste sin corazones. Tu grupo sigue luchando; tú vuelves a tu base y pierdes lo que llevabas en la mochila. Para volver a enfrentar al jefe tendrás que cumplir nuevas misiones.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Volver a mi base</button></div>`;
       } else if (fase === 'fin') {
-        cuerpo = `<div class="mensaje pista" role="status">El combate terminó porque el grupo se separó. Pueden volver a intentarlo cuando estén ${JEFE_MIN} junto al jefe.</div>
+        cuerpo = `<div class="mensaje pista" role="status">El combate terminó porque el grupo se separó. Pueden volver a intentarlo cuando estén ${jefeMin()} junto al jefe.</div>
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Cerrar</button></div>`;
       } else {
         cuerpo = `${ultimo}
@@ -12099,12 +12104,12 @@
       if (this.yoEnGuarida) ids.push(idJuego);
       return ids;
     }
-    // El jefe está oculto hasta que al menos JEFE_MIN jugadores del grupo cumplan sus misiones
+    // El jefe está oculto hasta que al menos jefeMin() jugadores del grupo (ver jefeMin) cumplan sus misiones
     jefeVisible() {
       const J = this.jefe;
       if (!this.canal || !J) return false;
       if (J.estado === 'combate') return true;
-      return this.jefeDisponible() && this.jugadoresListos().length >= JEFE_MIN;
+      return this.jefeDisponible() && this.jugadoresListos().length >= jefeMin();
     }
     // Elige el claro donde aparece el jefe: lo decide el jugador listo con menor id (los demás esperan su aviso)
     elegirLugarJefe() {
@@ -12161,7 +12166,7 @@
       }
       if (vis) {
         const n = this.jugadoresEnGuarida().length;
-        const txt = this.jefe.estado === 'combate' ? `${nombre}\n(${this.jefe.part.length} de ${JEFE_MAX} luchando${this.jefe.part.length < JEFE_MAX && !this.jefe.part.includes(idJuego) ? ' · E para unirse' : ''})` : `${nombre}\n(${n} ${n === 1 ? 'jugador' : 'jugadores'} aquí · se lucha de ${JEFE_MIN} a ${JEFE_MAX})`;
+        const txt = this.jefe.estado === 'combate' ? `${nombre}\n(${this.jefe.part.length} de ${JEFE_MAX} luchando${this.jefe.part.length < JEFE_MAX && !this.jefe.part.includes(idJuego) ? ' · E para unirse' : ''})` : `${nombre}\n(${n} ${n === 1 ? 'jugador' : 'jugadores'} aquí · se lucha de ${jefeMin()} a ${JEFE_MAX})`;
         if (txt !== this.jefeTagTxt) { this.jefeTagTxt = txt; this.jefeTag.setText(txt).setAlign('center'); }
       }
     }
@@ -12183,9 +12188,9 @@
       const J = this.jefe;
       if (J.estado === 'combate') return J.part.includes(idJuego) ? 'Volver al combate' : 'Tu grupo está luchando';
       if (!this.jefeDisponible()) return `Jefe derrotado: vuelve en ${Math.ceil((J.hasta - Date.now()) / 60000)} min`;
-      if (!this.jefeVisible()) return `Jefe oculto: ${this.jugadoresListos().length} de ${JEFE_MIN} jugadores listos`;
+      if (!this.jefeVisible()) return `Jefe oculto: ${this.jugadoresListos().length} de ${jefeMin()} jugadores listos`;
       const n = this.jugadoresEnGuarida().length;
-      return n >= JEFE_MIN ? `¡Desafiar al jefe! (${Math.min(JEFE_MAX, this.jugadoresJuntoAlJefe().length)} jugadores)` : `Jefe final: ${n} de ${JEFE_MIN} jugadores listos aquí (máximo ${JEFE_MAX})`;
+      return n >= jefeMin() ? `¡Desafiar al jefe! (${Math.min(JEFE_MAX, this.jugadoresJuntoAlJefe().length)} jugadores)` : `Jefe final: ${n} de ${jefeMin()} jugadores listos aquí (máximo ${JEFE_MAX})`;
     }
     pedirJefe() {
       const Jc = this.jefe;
@@ -12204,16 +12209,16 @@
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
       if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); } return; }
       if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
-      if (!this.jefeVisible()) return toast(`El jefe sigue oculto: aparecerá cuando ${JEFE_MIN} jugadores de tu grupo cumplan sus misiones (van ${this.jugadoresListos().length}).`);
+      if (!this.jefeVisible()) return toast(`El jefe sigue oculto: aparecerá cuando ${jefeMin()} jugadores de tu grupo cumplan sus misiones (van ${this.jugadoresListos().length}).`);
       const n = this.jugadoresEnGuarida().length;
-      if (n < JEFE_MIN) return toast(`Faltan ${JEFE_MIN - n} ${JEFE_MIN - n === 1 ? 'compañero' : 'compañeros'} junto al jefe con sus misiones cumplidas para desafiarlo.`);
+      if (n < jefeMin()) return toast(`Faltan ${jefeMin() - n} ${jefeMin() - n === 1 ? 'compañero' : 'compañeros'} junto al jefe con sus misiones cumplidas para desafiarlo.`);
       this.canal.emitir('jefe_pedir', { id: idJuego });
       this.iniciarJefeSiLider();
     }
     iniciarJefeSiLider() {
       if (!this.jefeDisponible()) return;
       const listos = this.jugadoresEnGuarida().sort();
-      if (listos.length < JEFE_MIN || listos[0] !== idJuego) return;
+      if (listos.length < jefeMin() || listos[0] !== idJuego) return;
       // entran todos los que están junto al jefe (primero los que cumplieron sus misiones), hasta 6
       const part = [...new Set([...listos, ...this.jugadoresJuntoAlJefe().sort()])].slice(0, JEFE_MAX).sort();
       if (!part.includes(idJuego)) part[0] = idJuego;
