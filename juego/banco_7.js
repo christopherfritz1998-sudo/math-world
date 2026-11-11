@@ -35,7 +35,7 @@
       const a = nz(-15, 15), b = nz(-15, 15), op = pick(['+', '−']);
       const r = op === '+' ? a + b : a - b;
       return D(`Calcula: ${num(a)} ${op} ${par(b)}`, num(r), [num(op === '+' ? a - b : a + b), num(-r), num(Math.abs(a) + Math.abs(b))], cerca(r),
-        op === '+' ? 'Sumar un negativo es lo mismo que restar su valor absoluto.' : 'Restar un número es sumar su opuesto.',
+        P.h.pistaEnteros(a, b, op === '−'),
         op === '+' ? `${num(a)} + ${par(b)} = ${num(r)}.` : `${num(a)} − ${par(b)} = ${num(a)} + ${par(-b)} = ${num(r)}.`);
     },
     () => {
@@ -267,7 +267,7 @@
     () => {
       const N = pick([20, 25, 40, 50, 80, 200, 400]), p = pick([10, 20, 25, 30, 40, 50, 75]), parte = (N * p) / 100;
       if (!Number.isInteger(parte)) return null;
-      return D(`¿Qué porcentaje de ${N} es ${parte}?`, p + ' %', [parte + ' %', (100 - p) + ' %', (p * 2 > 100 ? p / 2 : p * 2) + ' %'], (k) => (p + 5 * k) + ' %',
+      return D(`¿Qué porcentaje de ${N} es ${parte}?`, p + ' %', [parte + ' %', (100 - p) + ' %', num(p * 2 > 100 ? p / 2 : p * 2) + ' %'], (k) => (p + 5 * k) + ' %',
         'Divide la parte por el total y multiplica por 100.', `${parte} : ${N} = ${num(parte / N)} → ${p} %.`);
     },
     () => {
@@ -947,7 +947,12 @@
 
   N7.u4.tendencia = [
     () => {
-      const vals = [rnd(1, 3), rnd(4, 5), rnd(6, 8)], f = [rnd(1, 6), rnd(1, 6), rnd(1, 6)], N = f.reduce((a, b) => a + b, 0), S = vals.reduce((s, v, i) => s + v * f[i], 0);
+      // se buscan frecuencias que den un promedio entero (antes se descartaba la pregunta 8 de cada 10 veces)
+      let vals, f, N, S, k = 0;
+      do {
+        vals = [rnd(1, 3), rnd(4, 5), rnd(6, 8)]; f = [rnd(1, 6), rnd(1, 6), rnd(1, 6)];
+        N = f.reduce((a, b) => a + b, 0); S = vals.reduce((s, v, i) => s + v * f[i], 0);
+      } while (S % N && ++k < 400);
       if (S % N) return null;
       return D(`Pescados por turista en el lago congelado: ${vals.map((v, i) => `${v} pescados → ${f[i]} ${f[i] === 1 ? 'turista' : 'turistas'}`).join('; ')}. ¿Cuál es el promedio de pescados por turista?`, num(S / N),
         [num(redondear(vals.reduce((a, b) => a + b, 0) / 3, 2)), num(redondear(S / 3, 2)), num(N)], cerca(S / N),

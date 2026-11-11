@@ -595,7 +595,7 @@
     },
     () => {
       const T = intervalos();
-      return D(`En una tabla los intervalos son ${T.ints.map(([a, b]) => `[${a}, ${b}[`).join(', ')}. ¿Cuál es la amplitud de cada intervalo?`, String(T.amp), [String(T.amp * 4), String(T.ini + T.amp), String(T.amp / 2)], cerca(T.amp),
+      return D(`En una tabla los intervalos son ${T.ints.map(([a, b]) => `[${a}, ${b}[`).join(', ')}. ¿Cuál es la amplitud de cada intervalo?`, String(T.amp), [String(T.amp * 4), String(T.ini + T.amp), num(T.amp / 2)], cerca(T.amp),
         'La amplitud es la diferencia entre el límite superior y el inferior.', `${T.ints[0][1]} − ${T.ints[0][0]} = ${T.amp}.`);
     },
     () => {

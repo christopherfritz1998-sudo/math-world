@@ -23,6 +23,13 @@
   }
   // Número entre paréntesis si es negativo: 5 + (−3)
   const par = (x) => (x < 0 ? '(' + num(x) + ')' : num(x));
+  // Pista para «a + b» o «a − b» con enteros: se elige según los signos del caso generado
+  function pistaEnteros(a, b, resta) {
+    if (resta) return b < 0 ? 'Restar un número negativo es lo mismo que sumar su opuesto (un positivo).' : 'Restar un número es lo mismo que sumar su opuesto. Puedes avanzar hacia la izquierda en la recta numérica.';
+    if (a < 0 && b < 0) return 'Los dos números son negativos: suma sus valores absolutos y el resultado es negativo.';
+    if (a >= 0 && b >= 0) return 'Los dos números son positivos: súmalos como siempre.';
+    return 'Los signos son distintos: resta los valores absolutos y conserva el signo del número con mayor valor absoluto.';
+  }
 
   function frac(n, d) {
     if (d < 0) { n = -n; d = -d; }
@@ -98,7 +105,7 @@
           `Calcula: ${num(a)} ${op} ${par(b)}`,
           num(r), [num(resta ? a + b : a - b), num(-r), num(Math.abs(a) + Math.abs(b))],
           cerca(r),
-          resta ? 'Restar un número es lo mismo que sumar su opuesto.' : 'Si los signos son distintos, resta los valores absolutos y conserva el signo del mayor.',
+          pistaEnteros(a, b, resta),
           resta ? `${num(a)} − ${par(b)} = ${num(a)} + ${par(-b)} = ${num(r)}` : `${num(a)} + ${par(b)} = ${num(r)}`);
       },
     },
@@ -349,7 +356,7 @@
           const l = rnd(4, dif === 3 ? 25 : 15);
           return desafio('raiz', this.titulo,
             `Quieres construir un corral cuadrado de ${l * l} m² de área. ¿Cuánto debe medir cada lado?`,
-            l + ' m', [(l * l) / 4 + ' m', l * 2 + ' m', (l + 2) + ' m'], (k) => (l + k) + ' m',
+            l + ' m', [num((l * l) / 4) + ' m', l * 2 + ' m', (l + 2) + ' m'], (k) => (l + k) + ' m',
             'El área de un cuadrado es lado · lado. Busca la raíz cuadrada del área.',
             `√${l * l} = ${l}, porque ${l} · ${l} = ${l * l}. Cada lado mide ${l} m.`);
         }
@@ -426,7 +433,7 @@
     return t ? Object.fromEntries(Object.entries(t).map(([k, v]) => [k, v.titulo])) : {};
   };
 
-  const api = { nuevo, titulos, BANCO, _num: num, h: { rnd, pick, gcd, shuffle, redondear, num, par, frac, fracTxt, opciones, cerca, desafio } };
+  const api = { nuevo, titulos, BANCO, _num: num, h: { rnd, pick, gcd, shuffle, redondear, num, par, frac, fracTxt, opciones, cerca, desafio, pistaEnteros } };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.Preguntas = api;
 })(typeof window !== 'undefined' ? window : globalThis);

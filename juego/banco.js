@@ -106,13 +106,19 @@
   function deViejo(fn, filtro) {
     if (!filtro) return (dif) => fn(dif);
     return (dif) => {
-      for (let i = 0; i < 40; i++) {
-        const d = fn(dif);
-        if (d && (!filtro.si || filtro.si.test(d.enunciado)) && (!filtro.no || !filtro.no.test(d.enunciado))) return d;
+      // si el subtema no sale en esa dificultad (p. ej. «entre qué enteros está la raíz» aparece desde la 2), se prueba con las otras
+      for (const dd of [dif, 2, 3, 1]) {
+        for (let i = 0; i < 40; i++) {
+          const d = fn(dd);
+          if (d && (!filtro.si || filtro.si.test(d.enunciado)) && (!filtro.no || !filtro.no.test(d.enunciado))) return d;
+        }
       }
       return null;
     };
   }
+  // Muchas variantes descartan los números incómodos devolviendo null, o repiten una alternativa de vez en cuando:
+  // se reintenta aquí para que cada variante entregue casi siempre una pregunta válida (ver herramientas/revisar_banco.js)
+  const firme = (fn) => (dif) => { let d = null; for (let i = 0; i < 12 && !valido(d); i++) d = fn(dif); return d; };
 
   const BANCO = {};
   for (const [curso, unidades] of Object.entries(PLAN)) {
@@ -126,9 +132,9 @@
           if (!t) continue;
           const lista = t.variantes || [t.gen.bind(t)];
           const idx = f.idx === 'todos' ? lista.map((_, i) => i) : f.idx;
-          for (const i of idx) if (lista[i]) variantes.push(deViejo(lista[i], f.filtro));
+          for (const i of idx) if (lista[i]) variantes.push(firme(deViejo(lista[i], f.filtro)));
         }
-        for (const fn of nuevas || []) variantes.push(fn);
+        for (const fn of nuevas || []) variantes.push(firme(fn));
         const tema = {
           titulo, variantes,
           // compatibilidad: una variante al azar
