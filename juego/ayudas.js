@@ -91,6 +91,14 @@
   function revisarBoton() {
     const hay = !modal.closest('.oculto') && Boolean(modal.querySelector('.alternativas, .alt'));
     btn.classList.toggle('oculto', !hay);
+    // el botón va en la cabecera de la pregunta, junto al de leer en voz alta (así no tapa alternativas ni el HUD)
+    if (hay) {
+      const cab = modal.querySelector('.modal-cab'), en = modal.querySelector('.enunciado');
+      let zona = cab && cab.querySelector('.cab-ayudas');
+      if (cab && !zona) { zona = document.createElement('div'); zona.className = 'cab-ayudas'; cab.appendChild(zona); }
+      const destino = zona || en || modal;
+      if (btn.parentElement !== destino) { if (zona) destino.appendChild(btn); else destino.prepend(btn); }
+    } else if (btn.parentElement !== document.body) document.body.appendChild(btn);
     if (!hay && !panel.classList.contains('oculto')) panel.classList.add('oculto');
   }
   btn.addEventListener('click', () => { panel.classList.toggle('oculto'); if (!panel.classList.contains('oculto')) ajustarLienzo(); });

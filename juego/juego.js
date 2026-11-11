@@ -6576,7 +6576,11 @@
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'btn-voz'; b.textContent = '🔊'; b.title = 'Leer en voz alta'; b.setAttribute('aria-label', 'Leer la pregunta en voz alta');
       b.addEventListener('click', (ev) => { ev.stopPropagation(); leerPregunta(en, m.querySelectorAll('.alternativas .alt')); });
-      en.prepend(b);
+      // en la cabecera de la ventana (junto al botón del cuaderno); si la ventana no tiene cabecera, sobre el enunciado
+      const cab = m.querySelector('.modal-cab');
+      let zona = cab && cab.querySelector('.cab-ayudas');
+      if (cab && !zona) { zona = document.createElement('div'); zona.className = 'cab-ayudas'; cab.appendChild(zona); }
+      if (zona) { zona.querySelectorAll('.btn-voz').forEach((x) => x.remove()); zona.prepend(b); } else en.prepend(b);
       const t = textoParaLeer(en);
       if (vozAuto && t !== vozUltimo) { vozUltimo = t; leerPregunta(en, m.querySelectorAll('.alternativas .alt')); }
     }).observe($('modal'), { childList: true, subtree: true });
