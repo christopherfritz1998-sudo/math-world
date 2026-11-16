@@ -1886,3 +1886,15 @@ body.movil .mj-num { width: 48px; height: 48px; font-size: 21px; }
 .bases-doc .base-doc.actual { border-color: #ffd27a; }
 .bases-doc .base-doc .en-linea { color: #8fe3a0; font-weight: 700; }
 .zona.zona-docente { border-color: #ffd27a; }
+/* ---------- iPhone y celulares en vertical: tarjeta compacta (la pila de la izquierda la acomoda acomodarHudMovil) ---------- */
+/* el «scale» no liberaba espacio: los corazones saltaban a una segunda fila y la tarjeta crecía sobre lo demás */
+body.movil .corazones { transform: none; flex-wrap: nowrap; gap: 1px; align-items: center; }
+body.movil .cor { width: 12px; height: 11px; flex: none; }
+body.movil .corazones .vida-num { font: 700 12px Fredoka, Nunito, sans-serif; color: var(--text); margin-left: 4px; }
+body.movil .tarjeta-pj .datos { min-width: 0; }
+body.movil .tarjeta-pj .fila { white-space: nowrap; }
+@media (orientation: portrait) {
+  body.movil .zona-actual.coop { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  body.movil .minimapa:not(.grande) { width: 96px; }
+  body.movil .minimapa:not(.grande) canvas { width: 86px; }
+}

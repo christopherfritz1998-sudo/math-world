@@ -1271,6 +1271,36 @@
     } catch (e) { error('No hay conexión con el servidor.', 'error-docente'); }
   }
 
+  // ---------- Celular vertical: nada del HUD se monta sobre otra cosa ----------
+  // La tarjeta del jugador cambia de alto (título, corazones), así que lo que va debajo a la izquierda
+  // (grupo conectado, evento, desafío, misiones, guerra) se apila según su alto real, y el minimapa va bajo las herramientas.
+  const PILA_HUD = ['hud-coop', 'evento-mundo', 'desafio', 'hud-misiones', 'hud-guerra'];
+  const PROPS_PILA = ['top', 'left', 'right', 'bottom', 'transform', 'max-width'];
+  function acomodarHudMovil() {
+    const hud = $('hud'), card = document.querySelector('#hud .tarjeta-pj');
+    const vertical = document.body.classList.contains('movil') && window.innerHeight > window.innerWidth;
+    const pila = PILA_HUD.map((id) => $(id)).filter(Boolean), mm = $('minimapa'), herr = $('hud-herramientas');
+    if (!vertical || !hud || hud.classList.contains('oculto') || !card) {
+      pila.forEach((el) => PROPS_PILA.forEach((p) => el.style.removeProperty(p)));
+      if (mm) ['top', 'right', 'left'].forEach((p) => mm.style.removeProperty(p));
+      return;
+    }
+    let y = Math.round(card.getBoundingClientRect().bottom) + 6;
+    for (const el of pila) {
+      const cs = getComputedStyle(el);
+      if (el.classList.contains('oculto') || cs.display === 'none' || cs.visibility === 'hidden') continue;
+      el.style.top = `${y}px`; el.style.left = '8px'; el.style.bottom = 'auto'; el.style.transform = 'none';
+      if (el.id === 'hud-coop' || el.id === 'evento-mundo') { el.style.right = 'auto'; el.style.maxWidth = 'calc(100vw - 80px)'; }
+      y += Math.round(el.getBoundingClientRect().height) + 6;
+    }
+    if (mm && herr && !mm.classList.contains('grande')) {
+      const hb = herr.getBoundingClientRect();
+      mm.style.top = `${Math.round(hb.bottom) + 8}px`; mm.style.right = '8px'; mm.style.left = 'auto';
+    } else if (mm) ['top', 'right', 'left'].forEach((p) => mm.style.removeProperty(p));
+  }
+  setInterval(acomodarHudMovil, 400);
+  window.addEventListener('resize', () => setTimeout(acomodarHudMovil, 50));
+
   // ---------- Modo celular: interfaz compacta con un menú ☰ ----------
   const MENU_MOVIL = [['btn-base', '🔥', 'Fabricar'], ['btn-decorar', '🧰', 'Decorar'], ['btn-equipo', '⚔️', 'Equipo'], ['btn-misiones', '📜', 'Misiones'], ['btn-logros', '🏆', 'Logros'],
     ['btn-mapa', '🗺️', 'Avance'], ['btn-progreso', '📈', 'Mi progreso'], ['btn-pantalla', '⛶', 'Pantalla completa'], ['btn-chat', '💬', 'Chat'], ['btn-novedades', '💡', 'Novedades'], ['btn-reportar', '⚠️', 'Reportar'], ['btn-sonido', '🔊', 'Sonido'], ['btn-portal', '🏫', 'Portal docente']];
@@ -1401,7 +1431,8 @@
     aplicarEstilo();
     const tit = $('hud-titulo'); if (tit) { const t = tituloActual(); tit.textContent = t ? `«${t}»` : ''; tit.classList.toggle('oculto', !t); }
     $('hud-nivel').textContent = `Nivel ${S.nivel}`;
-    $('hud-vida').innerHTML = corazones(S.vida, vidaMax());
+    // en celular, con muchos corazones se muestra «❤ 12/13» para que la tarjeta no crezca a dos filas
+    { const vm = vidaMax(); $('hud-vida').innerHTML = document.body.classList.contains('movil') && vm > 10 ? `${corazon(S.vida > 0)}<b class="vida-num">${S.vida}/${vm}</b>` : corazones(S.vida, vm); }
     $('hud-vida').setAttribute('aria-label', `Vida: ${S.vida} de ${vidaMax()}`);
     $('hud-xpbar').style.width = `${Math.round((S.xp / xpPara(S.nivel)) * 100)}%`;
     $('hud-zona').textContent = escena ? nombreZona(escena.zona) : '';
@@ -5066,7 +5097,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16d';
+  const VERSION_JUEGO = '2026-11-16e';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
