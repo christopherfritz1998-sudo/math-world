@@ -1280,12 +1280,32 @@
     const hud = $('hud'), card = document.querySelector('#hud .tarjeta-pj');
     const vertical = document.body.classList.contains('movil') && window.innerHeight > window.innerWidth;
     const pila = PILA_HUD.map((id) => $(id)).filter(Boolean), mm = $('minimapa'), herr = $('hud-herramientas');
+    const soltarMM = () => { if (!mm) return; ['top', 'right', 'left', 'width'].forEach((p) => mm.style.removeProperty(p)); const cv = mm.querySelector('canvas'); if (cv) cv.style.removeProperty('width'); };
     if (!vertical || !hud || hud.classList.contains('oculto') || !card) {
       pila.forEach((el) => PROPS_PILA.forEach((p) => el.style.removeProperty(p)));
-      if (mm) ['top', 'right', 'left'].forEach((p) => mm.style.removeProperty(p));
+      soltarMM();
       return;
     }
-    let y = Math.round(card.getBoundingClientRect().bottom) + 6;
+    const cr = card.getBoundingClientRect();
+    // minimapa: en el hueco de arriba, entre la tarjeta y el botón de pantalla completa (si cabe);
+    // si no cabe, bajo la columna de herramientas
+    let mmAbajo = 0;
+    if (mm && !mm.classList.contains('grande') && !mm.classList.contains('oculto')) {
+      const pant = $('btn-pantalla-m'), pr = pant && getComputedStyle(pant).display !== 'none' ? pant.getBoundingClientRect() : null;
+      const tope = pr && pr.width ? pr.left : herr ? herr.getBoundingClientRect().left : window.innerWidth;
+      const libre = Math.floor(tope - 8 - (cr.right + 8));
+      if (libre >= 84) {
+        const w = Math.min(112, libre);
+        mm.style.top = '8px'; mm.style.left = `${Math.round(cr.right) + 8}px`; mm.style.right = 'auto'; mm.style.width = `${w}px`;
+        const cv = mm.querySelector('canvas'); if (cv) cv.style.width = `${w - 10}px`;
+        mmAbajo = Math.round(mm.getBoundingClientRect().bottom);
+      } else if (herr) {
+        soltarMM();
+        mm.style.top = `${Math.round(herr.getBoundingClientRect().bottom) + 8}px`; mm.style.right = '8px'; mm.style.left = 'auto';
+      }
+    } else soltarMM();
+    // lo de la izquierda se apila bajo la tarjeta (y bajo el minimapa si este quedó arriba)
+    let y = Math.max(Math.round(cr.bottom), mmAbajo) + 6;
     for (const el of pila) {
       const cs = getComputedStyle(el);
       if (el.classList.contains('oculto') || cs.display === 'none' || cs.visibility === 'hidden') continue;
@@ -1293,12 +1313,9 @@
       if (el.id === 'hud-coop' || el.id === 'evento-mundo') { el.style.right = 'auto'; el.style.maxWidth = 'calc(100vw - 80px)'; }
       y += Math.round(el.getBoundingClientRect().height) + 6;
     }
-    if (mm && herr && !mm.classList.contains('grande')) {
-      const hb = herr.getBoundingClientRect();
-      mm.style.top = `${Math.round(hb.bottom) + 8}px`; mm.style.right = '8px'; mm.style.left = 'auto';
-    } else if (mm) ['top', 'right', 'left'].forEach((p) => mm.style.removeProperty(p));
   }
   setInterval(acomodarHudMovil, 400);
+  { const m = $('minimapa'); if (m) m.addEventListener('click', () => setTimeout(acomodarHudMovil, 0)); }   // al agrandarlo o achicarlo, se reacomoda al instante
   window.addEventListener('resize', () => setTimeout(acomodarHudMovil, 50));
 
   // ---------- Modo celular: interfaz compacta con un menú ☰ ----------
@@ -5097,7 +5114,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16e';
+  const VERSION_JUEGO = '2026-11-16f';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
