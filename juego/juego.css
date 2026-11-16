@@ -1865,3 +1865,5 @@ body.movil .mj-num { width: 48px; height: 48px; font-size: 21px; }
 .troto-estado { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .troto-lista li.yo b, .troto-lista li.yo span { color: var(--amber); }
 .marco-gigante { box-shadow: 0 0 0 3px #d39bff, 0 0 18px #6b2fa0 !important; }
+.mj-signo { min-width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid var(--mz); background: rgba(0, 0, 0, .35); color: #fff; font: 700 22px "Fredoka", "Nunito", sans-serif; cursor: pointer; }
+.mj-signo:active { transform: scale(.94); }

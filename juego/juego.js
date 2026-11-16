@@ -5239,6 +5239,8 @@
   }
   window.addEventListener('error', (ev) => {
     if (!ev || !ev.message || /ResizeObserver loop|Script error\.?$/.test(ev.message)) return;
+    // solo errores de nuestros archivos: lo que inyectan el navegador o extensiones (ej. «gmo is not defined») no es del juego
+    if (!ev.filename || !/\.js(\?|$)/.test(ev.filename) || !String(ev.filename).startsWith(location.origin)) return;
     // además de la posición, el siguiente paso de la pila (quién llamó a la función que falló)
     const pila = ev.error && ev.error.stack ? String(ev.error.stack).split('\n').slice(2, 3).map((l) => (l.match(/:(\d+:\d+)\)?\s*$/) || [])[1]).filter(Boolean).join('') : '';
     reportarError(ev.message, ev.filename ? `${String(ev.filename).split('/').pop()}:${ev.lineno}:${ev.colno}${pila ? ` ← ${pila}` : ''}` : '');
@@ -7669,13 +7671,19 @@
     inp.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') enviar(); });
   }
   function viajar(zona, grupo = 0) {
+    if (!escena) return;   // aún cargando o tras cerrar sesión: no hay mundo desde el que viajar
     const desde = escena.zona;
     S.grupo = zona === 'base' ? (esDocente() ? 0 : sesion.grupo || 0) : grupo;
     if (zona === 'base') {
       const guardado = RECURSOS.map((r) => [r.id, S.mochila[r.id] || 0]).filter(([, n]) => n > 0);
       guardado.forEach(([r, n]) => { S.cofre[r] += n; S.mochila[r] = 0; });
       S.vida = vidaMax();
-      if (guardado.length) setTimeout(() => toast(`Guardaste en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`), 600);
+      if (guardado.length) {
+        const lista = guardado.map(([r, n]) => `+${n} ${nombreRec(r)}`).join(', ');
+        // en el cofre comunitario todo el grupo gasta: se avisa para que nadie piense que se perdió lo que trajo
+        setTimeout(() => toast(cofreComunitario() ? `📦 Depositaste en el cofre del Grupo ${sesion.grupo}: ${lista}. Tus compañeros también pueden usarlo (mira el historial del cofre en tu Equipo).` : `Guardaste en tu cofre: ${lista}.`), 600);
+        if (cofreComunitario()) setTimeout(() => sincronizarCofre(true), 1500);
+      }
     }
     S.zona = zona;
     guardar(true);
@@ -11315,13 +11323,16 @@
         this.tweens.add({ targets: sp, y: sp.y - 6, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
         this.enemigos.push(this.nuevoEnemigo('espiritu', sp, { despierto: true, k: `s${i}` }));
       }
-      for (let i = 0; i < M.munecos; i++) {
+      // siempre aparecen todos (antes un lugar junto al portal se descartaba y quedaban menos muñecos)
+      for (let i = 0, intentos = 0; i < M.munecos && intentos < M.munecos * 8; intentos++) {
         const p = lugar(1); if (!p) break;
         if (!lejos(p, 8)) continue;
         const sp = this.add.sprite(p[0] * TILE + 16, (p[1] + 1) * TILE, 'nv_montonnieve').setOrigin(0.5, 1).setScale(2);
         sp.setDepth(sp.y);
         this.marcar(p[0], p[1]);
-        this.enemigos.push(this.nuevoEnemigo('muneco', sp, { despierto: false, k: `n${i}` }));
+        const e = this.nuevoEnemigo('muneco', sp, { despierto: false, k: `n${i}` });
+        this.enemigos.push(e); this.temblarMuneco(e, i);
+        i++;
       }
       if (M.cima) this.crearCima();
     }
@@ -11752,7 +11763,13 @@
       const E = ENEMIGOS[e.clase];
       e.despierto = false;
       this.tweens.killTweensOf(e.s);
-      if (E.anim) { e.s.anims.stop(); e.s.setTexture(E.tex).setOrigin(0.5, 1).setScale(2); } else e.s.setTexture(E.tex);
+      if (E.anim) { e.s.anims.stop(); e.s.setTexture(E.tex).setOrigin(0.5, 1).setScale(2); } else e.s.setTexture(E.tex).setScale(2);
+      this.temblarMuneco(e, 0);
+    }
+    // los muñecos de nieve escondidos «respiran»: el montón tiembla un poco para que se puedan encontrar
+    temblarMuneco(e, i) {
+      if (e.clase !== 'muneco') return;
+      this.tweens.add({ targets: e.s, scaleX: 2.12, scaleY: 1.9, duration: 650, yoyo: true, repeat: -1, repeatDelay: 1400, delay: (i % 5) * 330, ease: 'Sine.inOut' });
     }
     golpeEnemigo(e, n) {
       this.flotante(e.s.x, e.s.y - 36, `−${n}`, '#ffd27a');

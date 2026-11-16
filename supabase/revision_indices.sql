@@ -1,0 +1,26 @@
+-- Revisión: search_path fijo en funciones auxiliares e índices para las claves foráneas a estudiantes (aplicado)
+alter function public.mw_clan_nombre_ok(text) set search_path = public;
+alter function public.mw_codigo_nuevo(text) set search_path = public;
+alter function public.mw_codigos_crear(text,boolean) set search_path = public;
+alter function public.mw_ms() set search_path = public;
+alter function public.mw_ms_de(timestamptz) set search_path = public;
+alter function public.mw_nombre_corto(text) set search_path = public;
+alter function public.mw_norm_codigo(text) set search_path = public;
+alter function public.mw_obra_meta(text) set search_path = public;
+alter function public.mw_obra_meta(text,text) set search_path = public;
+alter function public.mw_recursos_ok(jsonb) set search_path = public;
+alter function public.mw_semana_actual() set search_path = public;
+create index if not exists clanes_lider_idx on public.clanes (lider);
+create index if not exists cofre_aportes_est_idx on public.cofre_aportes (estudiante_id);
+create index if not exists cofre_movs_est_idx on public.cofre_movs (estudiante_id);
+create index if not exists comercio_aceptante_idx on public.comercio (aceptante);
+create index if not exists comercio_est_idx on public.comercio (estudiante_id);
+create index if not exists desafio_premios_est_idx on public.desafio_premios (estudiante_id);
+create index if not exists desafio_puntos_est_idx on public.desafio_puntos (estudiante_id);
+create index if not exists guerra_aportes_est_idx on public.guerra_aportes (estudiante_id);
+create index if not exists obra_aportes_est_idx on public.obra_aportes (estudiante_id);
+create index if not exists pedido_ayudas_est_idx on public.pedido_ayudas (estudiante_id);
+create index if not exists pedidos_est_idx on public.pedidos (estudiante_id);
+create index if not exists reportes_est_idx on public.reportes (estudiante_id);
+create index if not exists ticket_respuestas_est_idx on public.ticket_respuestas (estudiante_id);
+create index if not exists trotamundos_luchas_est_idx on public.trotamundos_luchas (estudiante_id);

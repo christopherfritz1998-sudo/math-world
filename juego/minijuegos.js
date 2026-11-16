@@ -13,6 +13,15 @@
   const num = (n) => neg(Number.isInteger(n) ? String(n) : String(Math.round(n * 1000) / 1000).replace('.', ','));
   const frac = (p, q) => { if (q < 0) { p = -p; q = -q; } const g = mcd(p, q) || 1; p /= g; q /= g; return q === 1 ? num(p) : `${p < 0 ? '−' : ''}${Math.abs(p)}/${q}`; };
   const leerNum = (t) => { const s = String(t || '').trim().replace(/\s/g, '').replace(/−/g, '-').replace(',', '.'); if (!s) return NaN; if (/^-?\d+\/\d+$/.test(s)) { const [a, b] = s.split('/').map(Number); return b ? a / b : NaN; } return /^-?\d*\.?\d+$/.test(s) ? Number(s) : NaN; };
+  // En celular el teclado numérico no trae el signo menos: el botón ± lo pone o lo quita
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest && e.target.closest(".mj-signo"); if (!b) return;
+    e.preventDefault();
+    const inp = document.getElementById(b.dataset.para); if (!inp) return;
+    const v = inp.value.trim();
+    inp.value = /^[-−]/.test(v) ? v.replace(/^[-−]\s*/, "") : `-${v}`;
+    inp.dispatchEvent(new Event("input", { bubbles: true })); inp.focus();
+  });
   const igual = (a, b) => Math.abs(a - b) < 1e-6;
   const M = (s) => J().mate(s);
   const E = (s) => J().esc(s);
@@ -466,7 +475,7 @@
       const vec = r.v ? `<line x1="${X(r.p[0])}" y1="${Y(r.p[1])}" x2="${X(r.p[0] + r.v[0])}" y2="${Y(r.p[1] + r.v[1])}" class="vec"/>` : '';
       return { titulo: `Cristal en (${num(r.p[0])}, ${num(r.p[1])})`, instr: 'Escribe las coordenadas de la imagen del cristal.',
         cuerpo: `<div class="mj-rayo"><div class="mj-foco"><svg viewBox="0 0 ${W} ${W}" class="mj-fig plano"><defs><marker id="mj-flecha" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 10 5 0 10z" class="punta"/></marker></defs> ${g}<line x1="${X(0)}" y1="0" x2="${X(0)}" y2="${W}" class="e"/><line x1="0" y1="${Y(0)}" x2="${W}" y2="${Y(0)}" class="e"/><text x="${W - 4}" y="${Y(0) - 4}" class="t" text-anchor="end">x</text><text x="${X(0) + 5}" y="10" class="t">y</text>${esp}${vec}<circle cx="${X(r.p[0])}" cy="${Y(r.p[1])}" r="12" class="halo"/><text x="${X(r.p[0])}" y="${Y(r.p[1]) + 6}" text-anchor="middle" class="o">💎</text></svg></div>
-          <div class="mj-tarjeta"><p class="enunciado">${r.txt}</p><label class="mj-entrada">( <input type="text" inputmode="decimal" id="mj-cx" aria-label="Coordenada x" autocomplete="off"> , <input type="text" inputmode="decimal" id="mj-cy" aria-label="Coordenada y" autocomplete="off"> )</label></div></div>`,
+          <div class="mj-tarjeta"><p class="enunciado">${r.txt}</p><label class="mj-entrada">( <button type="button" class="mj-signo" data-para="mj-cx" aria-label="Cambiar signo de x">±</button><input type="text" inputmode="decimal" id="mj-cx" aria-label="Coordenada x" autocomplete="off"> , <button type="button" class="mj-signo" data-para="mj-cy" aria-label="Cambiar signo de y">±</button><input type="text" inputmode="decimal" id="mj-cy" aria-label="Coordenada y" autocomplete="off"> )</label></div></div>`,
         botones: '<button type="button" class="btn pri" id="mj-disparar">🔦 Disparar el rayo</button>' };
     },
     conectar(r, A) {
@@ -609,7 +618,7 @@
       return { titulo: `Calibra con ${nom}`, instr: ayuda,
         cuerpo: `<div class="mj-estacion"><div class="mj-datos">${r.d.map((v, i) => `<span style="--h:${Math.round(215 - Math.max(0, Math.min(1, (v + 12) / 24)) * 195)};--i:${i}"><small aria-hidden="true">${v <= 0 ? '❄️' : v >= 8 ? '☀️' : '⛅'}</small>${num(v)}°</span>`).join('')}</div>
           <div class="mj-termo"><div class="mj-termometro" aria-hidden="true"><div class="mj-escala"><i>20</i><i>10</i><i>0</i><i>−10</i></div><div class="mj-tubo"><i id="mj-merc" style="height:43%"></i></div><span class="mj-bulbo"></span></div>
-            <div class="mj-tarjeta"><em>Tu lectura</em><label class="mj-entrada"><input type="text" inputmode="decimal" id="mj-temp" autocomplete="off" aria-label="Temperatura"> °C</label></div></div></div>`,
+            <div class="mj-tarjeta"><em>Tu lectura</em><label class="mj-entrada"><button type="button" class="mj-signo" data-para="mj-temp" aria-label="Cambiar signo">±</button><input type="text" inputmode="decimal" id="mj-temp" autocomplete="off" aria-label="Temperatura"> °C</label></div></div></div>`,
         botones: '<button type="button" class="btn pri" id="mj-calibrar">🌡️ Calibrar</button>' };
     },
     conectar(r, A) {
