@@ -72,20 +72,29 @@
     J().ui.abrir(`${cab(def, `Minijuego · ${E(J().nombreZona(def.zona))}`, E(def.nombre))}
       <div class="mjx-portada"><div class="mjx-portada-ico" aria-hidden="true">${def.ico}</div>
         <p class="enunciado">${E(def.desc[es8() ? 1 : 0])}</p>
-        <ul class="mjx-fichas"><li><b>🎯 ${def.rondas}</b> rondas</li><li><b>❤️ 3</b> corazones</li><li><b>🎁 ${veces >= 3 ? 'Premio menor' : `${veces} de 3`}</b> ${veces >= 3 ? 'por hoy' : 'partidas de hoy'}</li></ul>
-        <p class="nota">Cada error quita un corazón.${veces >= 3 ? ' Hoy ya jugaste 3 veces: el premio ahora es menor, pero sigue sumando a tus estadísticas.' : ` Premio completo en tus primeras 3 partidas del día (llevas ${veces}).`}</p></div>
+        <ul class="mjx-fichas"><li><b>🎯 ${def.rondas}</b> rondas</li><li><b>❤️ 3</b> corazones</li><li><b>🎁 ${veces >= MJ_PREMIO_MENOR ? 'Sin premio' : veces >= MJ_PREMIO_COMPLETO ? 'Premio menor' : `${veces} de ${MJ_PREMIO_COMPLETO}`}</b> ${veces >= MJ_PREMIO_COMPLETO ? 'por hoy' : 'partidas de hoy'}</li></ul>
+        <p class="nota">Cada error quita un corazón. ${textoPremioDia(veces)}</p></div>
       <div class="acciones"><button type="button" class="btn" id="mj-no">Ahora no</button><button type="button" class="btn pri mjx-jugar" id="mj-si" data-foco>▶ ¡Jugar!</button></div>`, clase(id, 'mjx-inicio'));
     J().$('mj-no').addEventListener('click', () => J().ui.cerrar());
     J().$('mj-si').addEventListener('click', () => empezar(id));
     J().ui.teclas = (e) => { if (e.key === 'Enter') { e.preventDefault(); empezar(id); } };
   }
+  // Premio por día: las 3 primeras partidas de cada minijuego dan premio completo, las 2 siguientes un cuarto
+  // y desde la 6.ª es práctica libre. Además, todos los minijuegos juntos dan como máximo MJ_XP_DIA de experiencia al día.
+  const MJ_PREMIO_COMPLETO = 3, MJ_PREMIO_MENOR = 5, MJ_XP_DIA = 400;
+  // Para ganar premio la partida debe durar al menos esto por ronda: nadie piensa una ronda en menos de 2,5 s
+  const MJ_MS_RONDA = 2500;
+  // Tras dibujar una ronda, los botones no responden durante un instante (evita apretar Intro o tocar sin parar)
+  const MJ_ESPERA_CLIC = 450;
+  const textoPremioDia = (veces) => (veces >= MJ_PREMIO_MENOR ? `Hoy ya jugaste ${veces} veces este minijuego: ahora es práctica libre (sin premio). Vuelve mañana por más.`
+    : veces >= MJ_PREMIO_COMPLETO ? `Hoy ya jugaste ${veces} veces: el premio ahora es menor.` : `Premio completo en tus primeras ${MJ_PREMIO_COMPLETO} partidas del día (llevas ${veces}).`);
   function dia() {
     const S = J().S(), hoy = new Date().toISOString().slice(0, 10);
-    if (!S.mjDia || S.mjDia.f !== hoy) S.mjDia = { f: hoy, n: {} };
+    if (!S.mjDia || S.mjDia.f !== hoy) S.mjDia = { f: hoy, n: {}, xp: 0 };
     return S.mjDia;
   }
   function empezar(id) {
-    P = { id, def: MJ[id], g: JUEGOS[id], ronda: 0, vidas: 3, buenas: 0, msg: '', r: null, ronErr: false, hist: [], fx: '' };
+    P = { id, def: MJ[id], g: JUEGOS[id], ronda: 0, vidas: 3, buenas: 0, msg: '', r: null, ronErr: false, hist: [], fx: '', t0: Date.now(), tr: 0 };
     P.r = P.g.generar(P.ronda);
     pintar();
   }
@@ -128,6 +137,9 @@
       <div class="acciones"><button type="button" class="btn" id="mj-salir">Salir</button><div class="mj-botones">${v.botones || ''}</div></div>
       ${fx === 'bien' ? confeti(14, def.zona) : ''}`, clase(P.id, fx ? `fx-${fx}` : ''), () => { /* al cerrar no se pierde nada */ });
     P.msg = '';
+    P.tr = Date.now();
+    // el foco va al título, no a una respuesta: así mantener Intro apretado no responde solo
+    { const h = J().$('modal-titulo'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); } }
     J().$('mj-salir').addEventListener('click', () => { P = null; J().ui.cerrar(); });
     J().ui.teclas = null;
     g.conectar(r, api, J().$('mj-area'));
@@ -137,10 +149,16 @@
     const D = dia(), veces = D.n[p.id] || 0; D.n[p.id] = veces + 1;
     const S = J().S();
     S.mjJugados = Array.from(new Set([...(S.mjJugados || []), p.id]));
-    const mult = veces < 3 ? 1 : 0.34, perfecto = completo && p.buenas === p.def.rondas;
-    const xp = Math.round((12 + 10 * p.buenas + (perfecto ? 20 : 0)) * mult);
-    const rec = p.buenas ? J().paquete(Math.max(1, Math.round((2 + 2 * p.buenas) * mult)), 2, true) : {};
-    const txt = J().darPremio(rec, xp);
+    // partida demasiado rápida (respuestas a ciegas o Intro apretado): cuenta como jugada, pero sin premio
+    const apurada = Date.now() - p.t0 < MJ_MS_RONDA * p.hist.length;
+    const mult = apurada || veces >= MJ_PREMIO_MENOR ? 0 : veces >= MJ_PREMIO_COMPLETO ? 0.25 : 1, perfecto = completo && p.buenas === p.def.rondas;
+    let xp = Math.round((12 + 10 * p.buenas + (perfecto ? 20 : 0)) * mult);
+    xp = Math.max(0, Math.min(xp, MJ_XP_DIA - (D.xp || 0))); D.xp = (D.xp || 0) + xp;
+    const rec = p.buenas && mult > 0 ? J().paquete(Math.max(1, Math.round((2 + 2 * p.buenas) * mult)), 2, true) : {};
+    const txt = xp || Object.keys(rec).length ? J().darPremio(rec, xp) : '';
+    const motivo = apurada ? '⚡ Respondiste demasiado rápido: para ganar premio hay que pensar cada ronda.'
+      : mult === 0 ? 'Práctica libre: hoy ya ganaste el premio de este minijuego. Vuelve mañana.'
+      : (D.xp || 0) >= MJ_XP_DIA ? `Llegaste al máximo de experiencia de minijuegos por hoy (${MJ_XP_DIA}).` : mult < 1 ? 'Premio reducido: ya jugaste varias veces hoy.' : '';
     if (J().avanzar) J().avanzar('minijuego'); else J().contar('minijuego'); J().contar(`mj_${p.id}`); if (perfecto) J().contar('mj_perfecto');
     J().sfx(perfecto ? 'logro' : p.buenas ? 'acierto' : 'error');
     if (perfecto && J().escena()) J().escena().celebrar();
@@ -150,16 +168,17 @@
         ${p.msg}
         <p class="enunciado">Rondas superadas: <b>${p.buenas} de ${p.def.rondas}</b></p>
         <ul class="mjx-fichas premio">${txt ? `<li><b>🎁</b> ${E(txt)}</li>` : ''}<li><b>⭐ ${xp}</b> de experiencia</li></ul>
-        ${mult < 1 ? '<p class="nota">Premio reducido: ya jugaste 3 veces hoy.</p>' : ''}</div>
-      <div class="acciones"><button type="button" class="btn" id="mj-fin">Cerrar</button><button type="button" class="btn pri" id="mj-otra" data-foco>↻ Jugar otra vez</button></div>
+        ${motivo ? `<p class="nota">${motivo}</p>` : ''}</div>
+      <div class="acciones"><button type="button" class="btn" id="mj-fin" data-foco>Cerrar</button><button type="button" class="btn pri" id="mj-otra">↻ Jugar otra vez</button></div>
       ${completo ? confeti(perfecto ? 30 : 16, p.def.zona) : ''}`, clase(p.id, `mjx-fin ${completo ? 'gano' : 'perdio'}`));
     J().$('mj-fin').addEventListener('click', () => J().ui.cerrar());
     J().$('mj-otra').addEventListener('click', () => empezar(p.id));
     J().guardar(true);
   }
   // botones con número propio (data-v) dentro del área
-  const enArea = (area, sel, f) => area.querySelectorAll(sel).forEach((b) => b.addEventListener('click', () => f(b)));
-  const boton = (id, f) => { const b = J().$(id); if (b) b.addEventListener('click', f); };
+  const listo = () => !P || Date.now() - P.tr >= MJ_ESPERA_CLIC;
+  const enArea = (area, sel, f) => area.querySelectorAll(sel).forEach((b) => b.addEventListener('click', () => { if (listo()) f(b); }));
+  const boton = (id, f) => { const b = J().$(id); if (b) b.addEventListener('click', (e) => { if (listo()) f(e); }); };
 
   // ===================================================================
   // 1 · Puente de troncos (ordenar números)
@@ -289,7 +308,7 @@
           <span class="mj-div">÷ ambos lados por ${[2, 3, 4, 5, 6].map((k) => `<button type="button" class="btn chico" data-op="d${k}">${k}</button>`).join('')}</span></div>` };
     },
     conectar(r, A, area) {
-      document.querySelectorAll('#modal [data-op]').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('#modal [data-op]').forEach((b) => b.addEventListener('click', () => { if (!listo()) return;
         const op = b.dataset.op, L = r.L, D = r.Rr;
         if (op === 'x') { L.x -= 1; D.x -= 1; }
         else if (op === '1' || op === '5') {
@@ -415,7 +434,7 @@
           if (r.v.some(([a, b]) => a === p[0] && b === p[1])) return;
           r.v.push(p); A.pintar();
         };
-        c.addEventListener('click', toque);
+        c.addEventListener('click', (e) => { if (listo()) toque(e); });
         c.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toque(); } });
       });
       boton('mj-borrar', () => { r.v = []; r.cerrado = false; A.pintar(); });

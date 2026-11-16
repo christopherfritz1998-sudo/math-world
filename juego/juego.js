@@ -1545,7 +1545,8 @@
       { const en = /class="enunciado"[^>]*>([\s\S]{0,160})/.exec(html); if (en && en[1] !== ultEnunciado) { ultEnunciado = en[1]; tPregunta = Date.now(); } }
       $('capa').classList.remove('oculto');
       this.abierto = true; this.alCerrar = alCerrar; this.teclas = null;
-      const foco = m.querySelector('[data-foco]') || m.querySelector('button');
+      // nunca se enfoca una alternativa: así mantener Intro apretado no responde solo
+      const foco = m.querySelector('[data-foco]') || m.querySelector('button:not(.alt):not(.mj-camino-op)');
       if (foco) foco.focus();
     },
     cerrar() {
@@ -5065,7 +5066,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16c';
+  const VERSION_JUEGO = '2026-11-16d';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -7634,6 +7635,8 @@
   }
 
   // Teclado global
+  // Intro o un número mantenidos apretados se repiten solos: dentro de una ventana se ignoran (ni botones ni atajos)
+  document.addEventListener('keydown', (e) => { if (e.repeat && ui.abierto && (e.key === 'Enter' || e.key === ' ' || /^[1-9]$/.test(e.key))) { e.preventDefault(); e.stopImmediatePropagation(); } }, true);
   document.addEventListener('keydown', (e) => {
     if (!S || $('hud').classList.contains('oculto')) return;
     if (ui.abierto) {
