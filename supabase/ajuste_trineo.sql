@@ -33,3 +33,9 @@ begin
   end loop;
   delete from sesiones where estudiante_id in (select estudiante_id from respaldo_ajuste_trineo);
 end $$;
+
+-- ===================================================================
+-- Cofre de un grupo afectado (aplicado el 2026-11-16): se quitaron los depósitos imposibles para el tiempo
+-- jugado y cada recurso quedó como máximo igual al grupo más rico de los demás cursos (el prisma se mantuvo).
+-- El cofre anterior quedó en public.respaldo_ajuste_cofre; para revertir se copia recursos desde esa tabla.
+-- ===================================================================
