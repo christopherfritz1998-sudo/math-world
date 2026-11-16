@@ -1278,18 +1278,29 @@
   const PROPS_PILA = ['top', 'left', 'right', 'bottom', 'transform', 'max-width'];
   function acomodarHudMovil() {
     const hud = $('hud'), card = document.querySelector('#hud .tarjeta-pj');
-    const vertical = document.body.classList.contains('movil') && window.innerHeight > window.innerWidth;
+    const movil = document.body.classList.contains('movil');
+    const vertical = movil && window.innerHeight > window.innerWidth;
     const pila = PILA_HUD.map((id) => $(id)).filter(Boolean), mm = $('minimapa'), herr = $('hud-herramientas');
+    const visible = (el) => { const cs = getComputedStyle(el); return !el.classList.contains('oculto') && cs.display !== 'none' && cs.visibility !== 'hidden'; };
+    const soltar = (el) => { PROPS_PILA.forEach((p) => el.style.removeProperty(p)); el.classList.remove('hud-estrecho'); };
     const soltarMM = () => { if (!mm) return; ['top', 'right', 'left', 'width'].forEach((p) => mm.style.removeProperty(p)); const cv = mm.querySelector('canvas'); if (cv) cv.style.removeProperty('width'); };
-    if (!vertical || !hud || hud.classList.contains('oculto') || !card) {
-      pila.forEach((el) => PROPS_PILA.forEach((p) => el.style.removeProperty(p)));
-      soltarMM();
+    if (!movil || !hud || hud.classList.contains('oculto') || !card) { pila.forEach(soltar); soltarMM(); return; }
+    const cr = card.getBoundingClientRect();
+    if (!vertical) {
+      // horizontal: el resto queda como está; solo las misiones (y la guerra) bajan hasta quedar bajo la tarjeta,
+      // para no tapar la barra de experiencia
+      pila.forEach(soltar); soltarMM();
+      let y = Math.round(cr.bottom) + 6;
+      for (const id of ['hud-misiones', 'hud-guerra']) {
+        const el = $(id); if (!el || !visible(el)) continue;
+        if (Math.round(el.getBoundingClientRect().top) < y) el.style.top = `${y}px`;
+        y = Math.round(el.getBoundingClientRect().bottom) + 6;
+      }
       return;
     }
-    const cr = card.getBoundingClientRect();
     // minimapa: en el hueco de arriba, entre la tarjeta y el botón de pantalla completa (si cabe);
     // si no cabe, bajo la columna de herramientas
-    let mmAbajo = 0;
+    let mmR = null;
     if (mm && !mm.classList.contains('grande') && !mm.classList.contains('oculto')) {
       const pant = $('btn-pantalla-m'), pr = pant && getComputedStyle(pant).display !== 'none' ? pant.getBoundingClientRect() : null;
       const tope = pr && pr.width ? pr.left : herr ? herr.getBoundingClientRect().left : window.innerWidth;
@@ -1298,19 +1309,21 @@
         const w = Math.min(112, libre);
         mm.style.top = '8px'; mm.style.left = `${Math.round(cr.right) + 8}px`; mm.style.right = 'auto'; mm.style.width = `${w}px`;
         const cv = mm.querySelector('canvas'); if (cv) cv.style.width = `${w - 10}px`;
-        mmAbajo = Math.round(mm.getBoundingClientRect().bottom);
+        mmR = mm.getBoundingClientRect();
       } else if (herr) {
         soltarMM();
         mm.style.top = `${Math.round(herr.getBoundingClientRect().bottom) + 8}px`; mm.style.right = '8px'; mm.style.left = 'auto';
       }
     } else soltarMM();
-    // lo de la izquierda se apila bajo la tarjeta (y bajo el minimapa si este quedó arriba)
-    let y = Math.max(Math.round(cr.bottom), mmAbajo) + 6;
+    // lo de la izquierda se apila justo bajo la tarjeta; mientras va al lado del minimapa, se angosta para no tocarlo
+    let y = Math.round(cr.bottom) + 6;
     for (const el of pila) {
-      const cs = getComputedStyle(el);
-      if (el.classList.contains('oculto') || cs.display === 'none' || cs.visibility === 'hidden') continue;
+      if (!visible(el)) { soltar(el); continue; }
       el.style.top = `${y}px`; el.style.left = '8px'; el.style.bottom = 'auto'; el.style.transform = 'none';
-      if (el.id === 'hud-coop' || el.id === 'evento-mundo') { el.style.right = 'auto'; el.style.maxWidth = 'calc(100vw - 80px)'; }
+      if (el.id === 'hud-coop' || el.id === 'evento-mundo' || el.id === 'desafio') el.style.right = 'auto';
+      const alLado = mmR && y < mmR.bottom + 4;
+      el.classList.toggle('hud-estrecho', Boolean(alLado));
+      el.style.maxWidth = alLado ? `${Math.floor(mmR.left - 16)}px` : el.id === 'hud-coop' || el.id === 'evento-mundo' ? 'calc(100vw - 80px)' : '';
       y += Math.round(el.getBoundingClientRect().height) + 6;
     }
   }
@@ -5114,7 +5127,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16f';
+  const VERSION_JUEGO = '2026-11-16g';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();

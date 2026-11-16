@@ -1898,3 +1898,8 @@ body.movil .tarjeta-pj .fila { white-space: nowrap; }
   body.movil .minimapa:not(.grande) { width: 96px; }
   body.movil .minimapa:not(.grande) canvas { width: 86px; }
 }
+/* misiones (u otro aviso) al lado del minimapa en vertical: más compactas para caber entre la orilla y el mapa */
+body.movil .hud-estrecho { padding-left: 6px; padding-right: 4px; }
+body.movil .hud-estrecho .hm-cab { gap: 4px; font-size: 9px; letter-spacing: .02em; }
+body.movil .hud-estrecho .hm-plegar { padding: 2px 6px; font-size: 10px; }
+body.movil .hud-estrecho li { font-size: 10px; }
