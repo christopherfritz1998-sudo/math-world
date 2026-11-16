@@ -35,6 +35,16 @@
     speechSynthesis.speak(u);
   }
   window.MWLeer = leer;
+  // «Leer preguntas en voz alta» (accesibilidad): cada enunciado nuevo se lee solo
+  let ultimoLeido = '';
+  try {
+    new MutationObserver(() => {
+      if (!document.body.classList.contains('voz-auto')) return;
+      const en = modal.querySelector('.enunciado'); if (!en) { ultimoLeido = ''; return; }
+      const t = textoDe(en); if (!t || t === ultimoLeido) return;
+      ultimoLeido = t; leer(t);
+    }).observe(modal, { childList: true, subtree: true });
+  } catch (e) { /* sin observador */ }
   // al abrir la pista (botones «Ver pista»), se lee sola
   document.addEventListener('click', (e) => {
     const b = e.target.closest('#d-pista, #c-pista');

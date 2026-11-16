@@ -5,105 +5,12 @@
 (() => {
   'use strict';
 
-  // ===================================================================
-  // Datos del juego
-  // ===================================================================
-  const PERSONAJES = [
-    { id: 'zorro', nombre: 'Zorro' }, { id: 'luna', nombre: 'Luna' },
-    { id: 'puma', nombre: 'Puma' }, { id: 'copihue', nombre: 'Copihue' },
-    { id: 'condor', nombre: 'Cóndor' }, { id: 'huemul', nombre: 'Huemul' },
-    { id: 'pudu', nombre: 'Pudú' }, { id: 'lobo', nombre: 'Lobo' },
-    // Personajes especiales: se desbloquean por nivel y tienen una habilidad que quita una cantidad fija de vida
-    { id: 'fenix', nombre: 'Fénix Llameante', nivel: 30, hab: { nombre: 'Llamarada del Fénix', icono: '🔥', clase: 'fuego', color: [255, 120, 40], dano: 10 } },
-    { id: 'trueno', nombre: 'Centinela del Trueno', nivel: 40, hab: { nombre: 'Rayo Celestial', icono: '⚡', clase: 'rayo', color: [255, 230, 90], dano: 20 } },
-    { id: 'sombra', nombre: 'Caballero de las Sombras', nivel: 50, hab: { nombre: 'Golpe Sombrío', icono: '🌑', clase: 'sombra', color: [150, 80, 220], dano: 30 } },
-    { id: 'bosque', nombre: 'Guardiana del Bosque', nivel: 60, hab: { nombre: 'Furia de la Naturaleza', icono: '🌿', clase: 'bosque', color: [90, 200, 110], dano: 35 } },
-    { id: 'cazadora', armaPropia: true, nombre: 'Cazadora Élfica', nivel: 70, hab: { nombre: 'Lluvia de Flechas', icono: '🏹', clase: 'flechas', color: [140, 210, 90], dano: 40 } },
-    { id: 'ninja', armaPropia: true, nombre: 'Ninja Carmesí', nivel: 80, hab: { nombre: 'Danza de Katanas', icono: '🗡️', clase: 'katana', color: [230, 40, 60], dano: 45 } },
-    { id: 'archimago', armaPropia: true, nombre: 'Archimago Celestial', nivel: 90, hab: { nombre: 'Tormenta Arcana', icono: '🔮', clase: 'arcano', color: [150, 90, 255], dano: 50 } },
-    // Leyendas: los 3 personajes más fuertes del juego (nivel 100)
-    { id: 'emperador', armaPropia: true, nombre: 'Emperador Dorado', nivel: 100, leyenda: true, hab: { nombre: 'Juicio del Emperador', icono: '👑', clase: 'dorado', color: [255, 200, 60], dano: 60, leyenda: true } },
-    { id: 'esqueleto', armaPropia: true, nombre: 'Rey Esqueleto', nivel: 100, leyenda: true, hab: { nombre: 'Ejército de Huesos', icono: '💀', clase: 'huesos', color: [190, 80, 255], dano: 60, leyenda: true } },
-    { id: 'minotauro', armaPropia: true, nombre: 'Minotauro Titán', nivel: 100, leyenda: true, hab: { nombre: 'Embestida del Titán', icono: '🐂', clase: 'titan', color: [235, 120, 40], dano: 60, leyenda: true } },
-  ];
-  // Cada mundo tiene sus propios recursos (los mundos sin recursos propios usan los de la Unidad 1)
-  const RECURSOS = [
-    { id: 'madera', nombre: 'Madera', grupo: 'u1' }, { id: 'piedra', nombre: 'Piedra', grupo: 'u1' },
-    { id: 'agua', nombre: 'Agua', grupo: 'u1' }, { id: 'cristal', nombre: 'Cristal', grupo: 'u1' },
-    // Bosque profundo (al otro lado del puente)
-    { id: 'resina', nombre: 'Resina', grupo: 'u1p' }, { id: 'miel', nombre: 'Miel', grupo: 'u1p' },
-    { id: 'fibra', nombre: 'Fibra de cactus', corto: 'Fibra', grupo: 'u2' }, { id: 'arenisca', nombre: 'Arenisca', grupo: 'u2' },
-    { id: 'cobre', nombre: 'Cobre', grupo: 'u2' }, { id: 'oro', nombre: 'Oro', grupo: 'u2' },
-    // Valle de la Esfinge (sobre el acantilado del desierto)
-    { id: 'obsidiana', nombre: 'Obsidiana', grupo: 'u2v' }, { id: 'fosil', nombre: 'Fósiles', grupo: 'u2v' },
-    { id: 'carbon', nombre: 'Carbón', grupo: 'u3' }, { id: 'plata', nombre: 'Plata', grupo: 'u3' },
-    { id: 'amatista', nombre: 'Amatista', grupo: 'u3' }, { id: 'hongo', nombre: 'Hongos luminosos', corto: 'Hongos', grupo: 'u3' },
-    // Profundidades de la mina (bajo la fosa)
-    { id: 'magma', nombre: 'Roca de magma', corto: 'Magma', grupo: 'u3p' }, { id: 'cristal_eco', nombre: 'Cristal resonante', corto: 'Cristal res.', grupo: 'u3p' },
-    { id: 'baya', nombre: 'Bayas de invierno', corto: 'Bayas', grupo: 'u4' }, { id: 'hielo', nombre: 'Hielo', grupo: 'u4' },
-    { id: 'escarcha', nombre: 'Cristal de escarcha', corto: 'Escarcha', grupo: 'u4' }, { id: 'zafiro', nombre: 'Zafiro', grupo: 'u4' },
-    // Cima del Glaciar (tras escalar la pared de hielo)
-    { id: 'hielo_eterno', nombre: 'Hielo eterno', corto: 'H. eterno', grupo: 'u4c' }, { id: 'aurora', nombre: 'Polvo de aurora', corto: 'Aurora', grupo: 'u4c' },
-    // Recurso exclusivo: solo se consigue en el desafío "Prisma estelar"
-    { id: 'prisma', nombre: 'Prisma estelar', corto: 'Prisma', grupo: 'especial' },
-    // Se atrapan en el desafío "Eclipse de luciérnagas"
-    { id: 'luciernaga', nombre: 'Luciérnagas', grupo: 'especial' },
-  ];
+  // catálogos de datos: viven en datos.js
+  const { PERSONAJES, RECURSOS, MEJORAS, MUNDOS, ENEMIGOS, JEFES, OBRAS, PECES, GEMAS, PIEZAS_EXC, COPOS, CONSEJOS, NOVEDADES, TALENTOS, CAPITULOS, EVENTOS, DIOSES, OFRENDAS, RELIQUIAS, REGLAS_TORRE } = window.MWDatos;
   const REC = Object.fromEntries(RECURSOS.map((r) => [r.id, r]));
   const nombreRec = (id) => (REC[id] ? REC[id].nombre.toLowerCase() : id);
   const ICONO = (id) => `assets/iconos/${id}.png`;
 
-  // Herramientas y equipo (se fabrican una vez)
-  const MEJORAS = [
-    { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
-    { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
-    { id: 'botas', nombre: 'Botas de viento', desc: 'Siempre activas: caminas un 30 % más rápido en todos los mundos.', icono: 'crampones', costo: { madera: 25, piedra: 15, cristal: 3 }, requiere: 'pico' },
-    // Herramientas del Bosque profundo
-    { id: 'ahumador', nombre: 'Ahumador', desc: 'Herramienta: calma a las abejas para recolectar miel de las colmenas del Bosque profundo.', icono: 'ahumador', costo: { madera: 12, piedra: 6, resina: 3 } },
-    { id: 'hacha3', nombre: 'Hacha ancestral', desc: 'Más madera al talar y +2 de resina en los árboles gigantes del Bosque profundo.', icono: 'hacha3', costo: { resina: 12, madera: 30, cristal: 4 }, requiere: 'hacha2' },
-    { id: 'amuleto', nombre: 'Amuleto ancestral', desc: 'Rompe el sello del santuario del Rey Jabalí Ancestral, en el Bosque profundo.', icono: 'amuleto', costo: { resina: 15, miel: 10, cristal: 6 } },
-    { id: 'cana', nombre: 'Caña de pescar', desc: 'Herramienta: con ella puedes pescar en el muelle del gran lago del Bosque. No hace falta equiparla. Dura 5 pescas: cuando se rompe, fabrica otra.', icono: 'cana', costo: { madera: 14, agua: 4, cristal: 1 } },
-    { id: 'espada', nombre: 'Espada de piedra', desc: 'Equipada, cada acierto en combate quita 2 de vida.', icono: 'espada', costo: { madera: 15, piedra: 10 }, requiere: 'pico' },
-    { id: 'hacha2', nombre: 'Hacha de hierro', desc: 'Ganas 2 maderas más por cada árbol.', icono: 'axe', costo: { madera: 25, piedra: 15 }, requiere: 'pico' },
-    { id: 'armadura', nombre: 'Armadura de cuero', desc: 'Equipada, tu vida máxima sube a 7 corazones.', icono: 'armadura', costo: { piedra: 25, agua: 6, cristal: 2 }, requiere: 'espada' },
-    { id: 'pico2', nombre: 'Pico reforzado', desc: 'Más piedra y más cristales al picar rocas.', icono: 'pickaxe', costo: { madera: 20, piedra: 25, cristal: 2 }, requiere: 'hacha2' },
-    { id: 'espada2', nombre: 'Espada de cristal', desc: 'Equipada, cada acierto en combate quita 3 de vida.', icono: 'espada', costo: { piedra: 20, cristal: 6 }, requiere: 'armadura' },
-    { id: 'armadura2', nombre: 'Armadura de cristal', desc: 'Equipada, tu vida máxima sube a 9 corazones.', icono: 'armadura', costo: { agua: 12, cristal: 8 }, requiere: 'espada2' },
-    // Equipo del desierto (Unidad 2)
-    { id: 'cantimplora', nombre: 'Cantimplora', desc: 'Siempre activa: +1 corazón de vida máxima.', icono: 'cantimplora', costo: { fibra: 12, cobre: 4 }, requiere: 'pico' },
-    // Herramientas del Valle de la Esfinge
-    { id: 'pala', nombre: 'Pala de arqueólogo', desc: 'Herramienta: permite excavar en los sitios arqueológicos del Valle de la Esfinge (incluye la brocha).', icono: 'pala', costo: { fibra: 10, cobre: 6, arenisca: 10 }, requiere: 'pico' },
-    { id: 'pala2', nombre: 'Pala de obsidiana', desc: 'Las excavaciones aguantan más golpes antes de derrumbarse y la pala cava más hondo.', icono: 'pala2', costo: { obsidiana: 10, fosil: 6, oro: 4 }, requiere: 'pala' },
-    { id: 'antorcha_esfinge', nombre: 'Antorcha de la esfinge', desc: 'Ilumina el laberinto de la Gran Esfinge, en el Valle de la Esfinge: sin ella no puedes entrar.', icono: 'antorcha_esfinge', costo: { obsidiana: 6, fosil: 3, fibra: 8 } },
-    { id: 'ankh', nombre: 'Ankh de obsidiana', desc: 'Abre la tumba del Faraón de las Arenas Eternas, en el Valle de la Esfinge.', icono: 'ankh', costo: { obsidiana: 12, fosil: 8, oro: 6 } },
-    { id: 'pico3', nombre: 'Pico de cobre', desc: 'Permite extraer oro de las vetas doradas y saca más arenisca y cobre.', icono: 'pickaxe', costo: { cobre: 10, arenisca: 15, fibra: 6 }, requiere: 'pico2' },
-    { id: 'espada3', nombre: 'Espada de oro', desc: 'Equipada, cada acierto en combate quita 4 de vida. Requiere dominar 3 temas (🥉 bronce).', icono: 'espada', costo: { oro: 8, cobre: 10 }, requiere: 'espada2', dominio: 3 },
-    { id: 'armadura3', nombre: 'Armadura de oro', desc: 'Equipada, tu vida máxima sube a 11 corazones. Requiere dominar 3 temas (🥉 bronce).', icono: 'armadura', costo: { oro: 12, arenisca: 20, fibra: 10 }, requiere: 'armadura2', dominio: 3 },
-    // Equipo de la mina (Unidad 3)
-    { id: 'casco', nombre: 'Casco de minero', desc: 'Siempre activo: +1 corazón de vida máxima y los gólems ya no te sorprenden.', icono: 'casco', costo: { carbon: 10, plata: 4, hongo: 4 }, requiere: 'pico' },
-    // Herramientas de las Profundidades
-    { id: 'guantes', nombre: 'Guantes térmicos', desc: 'Herramienta: protegen tus manos del calor para extraer roca de magma en las Profundidades de la mina.', icono: 'guantes', costo: { plata: 6, hongo: 8, carbon: 10 }, requiere: 'pico' },
-    { id: 'cincel', nombre: 'Cincel de cristal', desc: 'Herramienta: permite desprender cristales resonantes de las Profundidades sin romperlos.', icono: 'cincel', costo: { plata: 8, carbon: 10, amatista: 2 }, requiere: 'pico' },
-    { id: 'pico_magma', nombre: 'Pico de magma', desc: 'Saca más roca de magma y más carbón de las vetas de las Profundidades.', icono: 'pico_magma', costo: { magma: 12, plata: 10, cristal_eco: 4 }, requiere: 'pico4' },
-    { id: 'corazon_cristal', nombre: 'Corazón de cristal', desc: 'Rompe el sello del Coloso de Magma, en la cámara de las Profundidades.', icono: 'corazon_cristal', costo: { cristal_eco: 12, magma: 10, amatista: 6 } },
-    { id: 'pico4', nombre: 'Pico de plata', desc: 'Permite extraer amatista y saca más carbón y plata.', icono: 'pickaxe', costo: { plata: 10, carbon: 15, hongo: 6 }, requiere: 'pico2' },
-    { id: 'espada4', nombre: 'Espada de amatista', desc: 'Equipada, cada acierto en combate quita 5 de vida. Requiere dominar 5 temas (🥉 bronce).', icono: 'espada', costo: { amatista: 8, plata: 10 }, requiere: 'espada2', dominio: 5 },
-    { id: 'armadura4', nombre: 'Armadura de plata', desc: 'Equipada, tu vida máxima sube a 13 corazones. Requiere dominar 5 temas (🥉 bronce).', icono: 'armadura', costo: { plata: 14, carbon: 20, amatista: 4 }, requiere: 'armadura2', dominio: 5 },
-    // Equipo del mundo helado (Unidad 4)
-    // Escalada del glaciar y Cima
-    { id: 'piolet', nombre: 'Piolet de escarcha', desc: 'Herramienta de escalada: con el piolet y los crampones puedes subir la pared del glaciar. Si resbalas, te sujetas respondiendo bien.', icono: 'piolet', costo: { hielo: 60, escarcha: 30, zafiro: 8, madera: 20 }, requiere: 'pico' },
-    { id: 'crampones', nombre: 'Crampones de hielo', desc: 'Herramienta de escalada: puntas de metal para las botas. Se necesitan junto con el piolet para subir al glaciar.', icono: 'crampones', costo: { hielo: 50, escarcha: 25, baya: 20, piedra: 30 }, requiere: 'pico' },
-    { id: 'frasco_aurora', nombre: 'Frasco de aurora', desc: 'Herramienta: guarda el polvo de aurora de las flores que brillan en la Cima del Glaciar.', icono: 'frasco_aurora', costo: { hielo: 12, escarcha: 8, cristal: 2 } },
-    { id: 'pico_eterno', nombre: 'Pico de hielo eterno', desc: 'Saca más hielo eterno de los pilares de la Cima y más zafiros.', icono: 'pickaxe', costo: { hielo_eterno: 12, zafiro: 8, escarcha: 10 }, requiere: 'pico5' },
-    { id: 'cetro_aurora', nombre: 'Cetro de la aurora', desc: 'Despierta al Dragón de la Aurora en su trono, en lo más alto de la Cima del Glaciar.', icono: 'cetro_aurora', costo: { aurora: 14, hielo_eterno: 12, zafiro: 8 } },
-    { id: 'abrigo', nombre: 'Abrigo de piel', desc: 'Siempre activo: +1 corazón de vida máxima y la ventisca ya no te hace caminar lento.', icono: 'abrigo', costo: { baya: 8, hielo: 10, escarcha: 4 }, requiere: 'pico' },
-    { id: 'pico5', nombre: 'Pico de escarcha', desc: 'Permite extraer zafiros y saca más hielo y escarcha.', icono: 'pickaxe', costo: { escarcha: 10, hielo: 15, baya: 6 }, requiere: 'pico2' },
-    { id: 'espada5', nombre: 'Espada de hielo', desc: 'Equipada, cada acierto en combate quita 6 de vida.', icono: 'espada', costo: { zafiro: 8, escarcha: 10 }, requiere: 'espada2' },
-    // Equipo exclusivo (Prisma estelar)
-    { id: 'espada6', nombre: 'Espada prismática', desc: 'Exclusiva. Equipada, cada acierto en combate quita 10 de vida.', icono: 'espada_prisma', costo: { prisma: 10, cristal: 8, piedra: 20 }, requiere: 'espada2' },
-    { id: 'armadura6', nombre: 'Armadura prismática', desc: 'Exclusiva. Equipada, tu vida máxima sube a 17 corazones.', icono: 'armadura_prisma', costo: { prisma: 10, cristal: 10, agua: 15 }, requiere: 'armadura2' },
-    { id: 'armadura5', nombre: 'Armadura de escarcha', desc: 'Equipada, tu vida máxima sube a 15 corazones.', icono: 'armadura', costo: { escarcha: 14, hielo: 20, zafiro: 4 }, requiere: 'armadura2' },
-  ];
   const NOMBRE_MEJORA = Object.fromEntries(MEJORAS.map((m) => [m.id, m.nombre]));
   // Equipo que se ve en el personaje
   const ARMAS = { espada: { nombre: 'Espada de piedra', danio: 2 }, espada2: { nombre: 'Espada de cristal', danio: 3 }, espada3: { nombre: 'Espada de oro', danio: 4 }, espada4: { nombre: 'Espada de amatista', danio: 5 }, espada5: { nombre: 'Espada de hielo', danio: 6 }, espada6: { nombre: 'Espada prismática', danio: 10 } };
@@ -358,62 +265,11 @@
   ];
   const OBJ = Object.fromEntries(OBJETOS.map((o) => [o.id, o]));
 
-  // Mundos: uno por unidad
-  const MUNDOS = {
-    u1: { nombre: { '7basico': 'Bosque de los Enteros', '8basico': 'Bosque de las Potencias' }, semilla: 11, fondo: '#2f6b47',
-      suelo: [[5, 0, 1], [5, 1, 0.15]], arboles: ['arbol_manzano', 'arbol_redondo', 'arbol_pino', 'arbol_otono'], nArboles: 175,
-      rocas: ['roca3'], nRocas: 48, lagos: 3, granLago: true, profundo: true, cofres: 9, arbustos: 9, nieblas: 4, bichos: 0.08 },
-    // Unidad 2: desierto con recursos propios (fibra de cactus, arenisca, cobre y oro)
-    u2: { nombre: { '7basico': 'Desierto Algebraico', '8basico': 'Dunas de las Funciones' }, tipo: 'desierto', recursos: 'u2', semilla: 22, fondo: '#d8c08a',
-      suelo: [[8, 22, 1], [3, 19, 0.07]], valle: true, nCactus: 120, nRocas: 66, vetasCobre: 19, vetasOro: 9, oasis: 5, cofres: 11,
-      escorpiones: 10, remolinos: 6, esqueletos: 8, cofre: { oro: 2, cobre: 3 }, tinte: [0xffb347, 0.08] },
-    // Unidad 3: mina subterránea con recursos propios (carbón, plata, amatista y hongos luminosos)
-    u3: { nombre: { '7basico': 'Mina de las Formas', '8basico': 'Mina de los Volúmenes' }, tipo: 'cueva', recursos: 'u3', semilla: 33, fondo: '#1a1a24',
-      suelo: [[9, 2, 1], [9, 7, 0.08], [9, 3, 0.015]], nHongos: 112, nRocas: 72, vetasPlata: 19, vetasAmatista: 9, pozas: 5, cofres: 11,
-      murcielagos: 8, golems: 7, mineros: 8, cofre: { plata: 2, amatista: 1 }, oscuridad: 0.5, abismo: true },
-    // Unidad 4: mundo helado con ventiscas y recursos propios (bayas de invierno, hielo, escarcha y zafiros)
-    u4: { nombre: { '7basico': 'Glaciar de los Datos', '8basico': 'Glaciar del Azar' }, tipo: 'hielo', recursos: 'u4', semilla: 44, fondo: '#e4eef7',
-      suelo: [[0, 0, 1], [1, 0, 0.12], [2, 0, 0.06]], nPinos: 112, nArbustos: 88, nRocas: 66, vetasEscarcha: 19, vetasZafiro: 9, cofres: 11,
-      lobos: 8, espiritus: 6, munecos: 8, cofre: { escarcha: 2, zafiro: 1 }, cima: true },
-  };
   // Cada mundo puede tener una zona extra con recursos propios (Bosque profundo, Valle de la Esfinge)
   const SUBZONA = { u1: 'u1p', u2: 'u2v', u3: 'u3p', u4: 'u4c' };
   const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || r.grupo === SUBZONA[g]); };
   const nombreZona = (z) => (z === 'altar' ? 'El Altar de los Dioses' : z === 'base' ? 'Base del grupo' : z === 'pieza' ? (escena && escena.sala && escena.sala.tipo === 'comun' ? 'Carpa común' : escena && escena.sala && escena.sala.tipo === 'visita' ? `Casa de ${escena.sala.nombre}` : 'Tu casa') : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
-  // oculto: espera escondido y despierta al acercarse · flota: atraviesa obstáculos · anim: hoja animada (LPC)
-  const ENEMIGOS = {
-    // Bosque (Unidad 1): los identificadores se mantienen para no perder misiones guardadas
-    arbusto: { nombre: 'Duende del bosque', vida: 3, dif: 1, botin: { madera: 3 }, xp: 15, vel: 62, oculto: true, tex: 'arbusto', anim: 'duende', retrato: 'duende_retrato', radio: 240 },
-    niebla: { nombre: 'Hombre lobo', vida: 4, dif: 2, botin: { agua: 3, cristal: 1 }, xp: 22, vel: 66, anim: 'lobo', retrato: 'lobo_retrato', radio: 190 },
-    bicho: { nombre: 'Jabalí salvaje', vida: 2, dif: 1, botin: { madera: 2 }, xp: 10, vel: 92, anim: 'jabali', retrato: 'jabali_retrato', radio: 240 },
-    // Desierto (Unidad 2)
-    escorpion: { nombre: 'Escorpión de las dunas', vida: 4, dif: 2, botin: { fibra: 2, cobre: 1 }, xp: 20, vel: 78, oculto: true, tex: 'monticulo', texVivo: 'escorpion', retrato: 'escorpion', radio: 220 },
-    remolino: { nombre: 'Remolino de arena', vida: 5, dif: 2, botin: { arenisca: 3, oro: 1 }, xp: 26, vel: 50, flota: true, alfa: 0.9, radio: 170 },
-    // Mundo helado (Unidad 4)
-    lobo_nieve: { nombre: 'Lobo de las nieves', vida: 5, dif: 2, botin: { baya: 2, hielo: 1 }, xp: 22, vel: 82, anim: 'lobo_nieve', retrato: 'lobo_nieve_retrato', radio: 220 },
-    espiritu: { nombre: 'Espíritu de la ventisca', vida: 5, dif: 3, botin: { escarcha: 2, hielo: 1 }, xp: 28, vel: 52, flota: true, alfa: 0.9, retrato: 'nv_espiritu', radio: 180 },
-    muneco: { nombre: 'Muñeco de nieve furioso', vida: 6, dif: 3, botin: { hielo: 2, zafiro: 1 }, xp: 32, vel: 48, oculto: true, tex: 'nv_montonnieve', texVivo: 'nv_muneco_malo', retrato: 'nv_muneco_malo', radio: 200 },
-    // Mina (Unidad 3)
-    murcielago: { nombre: 'Murciélago de la mina', vida: 3, dif: 2, botin: { hongo: 2, carbon: 1 }, xp: 18, vel: 88, flota: true, radio: 190 },
-    golem: { nombre: 'Gólem de roca', vida: 7, dif: 3, botin: { carbon: 2, plata: 1, amatista: 1 }, xp: 34, vel: 46, oculto: true, tex: 'golem_roca', texVivo: 'golem', retrato: 'golem', radio: 200 },
-    minero: { nombre: 'Minero zombi', vida: 6, dif: 3, botin: { plata: 2, carbon: 2 }, xp: 30, vel: 56, anim: 'minero', retrato: 'minero_retrato', radio: 210 },
-    // Bosque profundo
-    arana: { nombre: 'Araña del bosque profundo', vida: 5, dif: 2, botin: { resina: 1, miel: 1 }, xp: 26, vel: 96, retrato: 'arana', radio: 230 },
-    raiz: { nombre: 'Raíz viviente', vida: 7, dif: 3, botin: { resina: 2, madera: 3 }, xp: 34, vel: 50, oculto: true, tex: 'tocon_raiz', texVivo: 'raiz_viva', retrato: 'raiz_viva', radio: 200 },
-    // Profundidades de la mina
-    salamandra: { nombre: 'Salamandra de magma', vida: 6, dif: 3, botin: { magma: 1, carbon: 2 }, xp: 34, vel: 104, retrato: 'a_salamandra', texVivo: 'a_salamandra', radio: 220 },
-    // Cima del Glaciar
-    halcon: { nombre: 'Halcón de escarcha', vida: 6, dif: 3, botin: { aurora: 1, baya: 2 }, xp: 36, vel: 110, flota: true, retrato: 'g_halcon', texVivo: 'g_halcon', radio: 230 },
-    golem_hielo: { nombre: 'Gólem de hielo eterno', vida: 10, dif: 3, botin: { hielo_eterno: 1, hielo: 3 }, xp: 46, vel: 48, oculto: true, tex: 'g_bloque_eterno', texVivo: 'g_golem_hielo', retrato: 'g_golem_hielo', radio: 190 },
-    golem_cristal: { nombre: 'Gólem de cristal', vida: 9, dif: 3, botin: { cristal_eco: 1, amatista: 1 }, xp: 42, vel: 50, oculto: true, tex: 'a_cristal_n', texVivo: 'a_golem_cristal', retrato: 'a_golem_cristal', radio: 190 },
-    // Desafío en vivo "Criatura dorada": huye del jugador
-    dorado: { nombre: 'Criatura dorada', vida: 3, dif: 2, botin: {}, xp: 45, vel: 112, anim: 'jabali', retrato: 'jabali_retrato', radio: 3000 },
-    // Valle de la Esfinge
-    escarabajo: { nombre: 'Escarabajo del valle', vida: 5, dif: 2, botin: { obsidiana: 1, cobre: 1 }, xp: 26, vel: 100, retrato: 'v_escarabajo', texVivo: 'v_escarabajo', radio: 230 },
-    momia: { nombre: 'Momia del valle', vida: 7, dif: 3, botin: { fosil: 1, fibra: 2 }, xp: 34, vel: 54, oculto: true, tex: 'v_sarcofago', anim: 'momia', retrato: 'momia_retrato', radio: 190 },
-    esqueleto: { nombre: 'Esqueleto del desierto', vida: 6, dif: 3, botin: { cobre: 2, oro: 1 }, xp: 32, vel: 62, anim: 'esqueleto', retrato: 'esqueleto_retrato', radio: 210 },
-  };
   // Curva de experiencia: crece hasta el nivel 14 y desde ahí cada nivel cuesta lo mismo (620 XP),
   // para que el nivel 100 sea alcanzable dentro de un año escolar.
   const XP_TOPE = 620;
@@ -437,15 +293,6 @@
     guardar(true); pintarHUD(); revisarPendientes();
   }
   setInterval(() => { if (S && escena && escena.jugador && !S.curva2) migrarCurva(); }, 1500);
-  const JEFES = {
-    u1: { nombre: 'Troll Guardián del Bosque', color: '#7d8a7a', lpc: true, retrato: 'jefe_u1_retrato' },
-    u2: { nombre: 'Rey Lagarto de las Dunas', color: '#c9a46b', lpc: true, retrato: 'jefe_u2_retrato', vida: 14, fases: true, premio: { oro: 6, cobre: 8, arenisca: 10 },
-      furia: { titulo: '¡Tormenta de arena!', toast: 'desató una tormenta de arena', particula: 'p_arena', tinte: 0xffc07a, flash: [230, 170, 60] } },
-    u3: { nombre: 'Minotauro de las Profundidades', color: '#8a7aa6', lpc: true, retrato: 'jefe_u3_retrato', vida: 15, fases: true, premio: { amatista: 5, plata: 8, carbon: 10 },
-      furia: { titulo: '¡Derrumbe en la mina!', toast: 'provocó un derrumbe', particula: 'p_piedra', tinte: 0xc9b6ff, flash: [150, 130, 200] } },
-    u4: { nombre: 'Yeti, Rey de la Escarcha', color: '#9fc6e6', lpc: true, retrato: 'jefe_u4_retrato', vida: 17, fases: true, premio: { zafiro: 5, escarcha: 8, hielo: 10 },
-      furia: { titulo: '¡Ventisca helada!', toast: 'desató una ventisca helada', particula: 'p_nieve', tinte: 0xbfe8ff, flash: [210, 235, 255] } },
-  };
   const VIDA_HUIR = 1, VIDA_COFRE = 2;
   const JEFE_MIN = 4, JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 9, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
@@ -537,6 +384,23 @@
   const cofreCom = { enviando: false, ult: 0, top: [], aviso: false };
   const cofreComunitario = () => Boolean(S && !esDocente() && sesion.modo === 'nube' && sesion.grupo && cursoCanal() !== 'INV' && window.Nube && Nube.cofreGrupo);
   const cerosCofre = () => Object.fromEntries(RECURSOS.map((r) => [r.id, 0]));
+  // Avisos de lo que hacen los compañeros con el cofre: así nadie piensa que «se perdieron» sus recursos
+  const movsVistos = new Set(); let movsIni = false;
+  function avisarMovsCofre(movs) {
+    if (!Array.isArray(movs)) return;
+    const nuevos = movs.filter((m) => m && m.id && !movsVistos.has(m.id));
+    nuevos.forEach((m) => movsVistos.add(m.id));
+    if (!movsIni) { movsIni = true; return; }   // al entrar no se repite lo que pasó antes
+    const frases = [];
+    for (const m of nuevos.reverse()) {
+      const d = Object.entries(m.delta || {}), usa = d.filter(([, n]) => n < 0), pone = d.filter(([, n]) => n > 0);
+      const tot = (l) => l.reduce((s, [, n]) => s + Math.abs(n), 0);
+      const txt = (l) => l.slice(0, 3).map(([k, n]) => `${Math.abs(n)} ${nombreRec(k)}`).join(', ');
+      if (tot(usa) >= 15) frases.push(`${esc(m.nombre)} usó ${txt(usa)}`);
+      if (tot(pone) >= 15) frases.push(`${esc(m.nombre)} depositó ${txt(pone)}`);
+    }
+    if (frases.length) toast(`📦 Cofre del grupo: ${frases.slice(0, 2).join(' · ')}.`);
+  }
   async function sincronizarCofre(forzar = false) {
     if (!cofreComunitario() || cofreCom.enviando || juegoCerrado) return;
     const clave = `${cursoCanal()}-${sesion.grupo}`;
@@ -564,6 +428,8 @@
     cofreCom.enviando = false;
     if (!r || !r.ok || !S || S.cofreGrupo !== clave || S.cofreEnv !== env) return;
     cofreCom.ult = Date.now(); cofreCom.top = Array.isArray(r.top) ? r.top : [];
+    avisarMovsCofre(r.movs);
+    if (r.rechazado) toast('⚠️ El cofre del grupo no aceptó un depósito demasiado grande para el tiempo jugado.', 'alerta');
     const tot = r.recursos || {};
     for (const x of RECURSOS) {
       const t = Math.max(0, Math.floor(Number(tot[x.id]) || 0));
@@ -638,8 +504,10 @@
     try { r = await Nube.cofreHistorial(sesion.token); } catch (e) { r = null; }
     const el = $('cofre-hist'); if (!el) return;
     if (!r || !r.ok) { el.textContent = 'No se pudo cargar el historial.'; return; }
-    el.innerHTML = r.lista.length ? `<ul class="hist-lista">${r.lista.map((m) => `<li><b>${m.yo ? 'Tú' : esc(m.nombre)}</b> ${Object.entries(m.delta || {}).map(([k, n]) => `<span class="${n > 0 ? 'mas' : 'menos'}">${n > 0 ? '+' : ''}${n} ${esc(nombreRec(k))}</span>`).join(' ')} <small>${haceTxt(r.ahora - m.t)}</small></li>`).join('')}</ul>`
-      : 'Aún no hay movimientos en el cofre del grupo.';
+    const per = Array.isArray(r.personas) && r.personas.length
+      ? `<p class="nota"><b>Quién aportó y quién usó</b> (desde que existe el cofre del grupo):</p><ul class="hist-lista hist-personas">${r.personas.map((p) => `<li><b>${p.yo ? 'Tú' : esc(p.nombre)}</b> <span class="mas">+${p.aportado} aportados</span> <span class="menos">−${p.usado} usados</span></li>`).join('')}</ul><p class="nota"><b>Últimos movimientos:</b></p>` : '';
+    el.innerHTML = per + (r.lista.length ? `<ul class="hist-lista">${r.lista.map((m) => `<li><b>${m.yo ? 'Tú' : esc(m.nombre)}</b> ${Object.entries(m.delta || {}).map(([k, n]) => `<span class="${n > 0 ? 'mas' : 'menos'}">${n > 0 ? '+' : ''}${n} ${esc(nombreRec(k))}</span>`).join(' ')} <small>${haceTxt(r.ahora - m.t)}</small></li>`).join('')}</ul>`
+      : 'Aún no hay movimientos en el cofre del grupo.');
   }, true);
 
   // ---------- Meta semanal de cada grupo y ranking de grupos del curso ----------
@@ -790,6 +658,7 @@
   function sumar(recurso, n) {
     if (!vivo.premiando && n > 0) {
       if (desActivo('fiebre')) { n *= 2; if (escena && escena.jugador) escena.flotante(escena.jugador.x, escena.jugador.y - 74, '¡x2!', '#ffd27a'); }
+      const evS = eventoSemana(); if (evS && evS.id === 'cosecha' && escena && escena.zona === evS.mundo) n *= 2;
       eventoDesafio('recurso', n);
     }
     S.mochila[recurso] = (S.mochila[recurso] || 0) + n;
@@ -803,6 +672,7 @@
     if (desActivo('sabio')) n *= 2;
     if (talento('sabio')) n = Math.round(n * (1 + 0.1 * talento('sabio')));
     const evX = eventoActual(); if (evX && evX.id === 'xp2') n *= 2;
+    const evS = eventoSemana(); if (evS && evS.id === 'saber' && escena && escena.zona === evS.mundo) n = Math.round(n * 1.25);
     if (S.reliquia === 'reloj') n = Math.round(n * 1.15);
     if (estrellasAsc()) n = Math.round(n * (1 + 0.02 * Math.min(10, estrellasAsc())));
     sumarAscension(n);
@@ -813,6 +683,7 @@
       S.xp -= xpPara(S.nivel); S.nivel += 1; subio = true;
       S.premiosNivel = (S.premiosNivel || 0) + 1;
       toast(`¡Subiste a nivel ${S.nivel}! Elige tu recompensa.`); sfx('nivel');
+      anunciarSistema(S.nivel);
     }
     if (subio) premioPospuesto = false;
     pintarHUD();
@@ -1011,6 +882,7 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Misiones</span><h2 id="modal-titulo">Tus misiones</h2></div><button type="button" class="btn" id="mi-cerrar">Cerrar</button></div>
       ${(S.premiosNivel || 0) > 0 ? `<div class="mensaje pista" style="display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap"><span>Tienes ${S.premiosNivel === 1 ? 'una recompensa' : `${S.premiosNivel} recompensas`} de nivel por elegir.</span><button type="button" class="btn pri" id="mi-nivel">Elegir</button></div>` : ''}
+      ${eventoSemanaHTML()}${window.MWPareja ? MWPareja.tarjeta() : ''}
       ${extraMisionesModal()}
       <section class="tarjeta-mision diaria">
         <div class="fila"><strong>Misión diaria</strong><small>Se renueva cada día</small></div>
@@ -1431,6 +1303,9 @@
     registrar: (t, ok) => registrar(t, ok), contar: (k, n) => contar(k, n), guardar: (i) => guardar(i),
     darPremio: (r, xp, f) => darPremio(r, xp, f), paquete: (c, v, t) => paquete(c, v, t), avanzar: (ev) => avanzarMision(ev),
     nombreZona: (z) => (z === 'base' ? 'Tu base' : nombreZona(z)),
+    // usados por los módulos aparte (pareja.js)
+    nombreJug: () => nombreJug(), cursoCanal: () => cursoCanal(), unidad: () => unidadActual(), coop: () => coopActivo(),
+    pasoAPaso: (d, a, b, c) => pasoAPasoHTML(d, a, b, c), cerrar: () => ui.cerrar(), celebrar: () => { if (escena) escena.celebrar(); },
   };
   // Copia local de imágenes y sonidos (abre más rápido la segunda vez y aguanta la mala señal)
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
@@ -1664,10 +1539,38 @@
     const m = b.closest('#modal');
     ultAlt = { r: textoMate(b).slice(0, 40), e: textoMate(m && m.querySelector('.enunciado')).slice(0, 120), t: Date.now() };
   }, true);
+  // Último error de alternativa: el paso a paso lo usa para explicar QUÉ se hizo mal (el error típico)
+  let ultErr = null;
+  const numDe = (t) => {
+    const s = String(t || '').replace(/−|–/g, '-').replace(/\s/g, '');
+    const m = s.match(/-?\d+(?:[.,]\d+)*(?:\/-?\d+)?/); if (!m) return NaN;
+    let x = m[0];
+    if (x.includes('/')) { const [a, b] = x.split('/').map((v) => Number(v.replace(',', '.'))); return b ? a / b : NaN; }
+    x = x.replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.');
+    return Number(x);
+  };
+  const casi = (a, b) => Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a), Math.abs(b));
+  function diagnosticoError(correcta, elegida) {
+    const c = numDe(correcta), e = numDe(elegida);
+    if (!Number.isFinite(c) || !Number.isFinite(e) || casi(c, e)) return null;
+    const frac = /\//.test(String(correcta) + String(elegida));
+    if (c !== 0 && casi(e, -c)) return { tipo: 'signo', txt: 'Tu resultado tiene el signo contrario. Revisa la regla de los signos (menos por menos da más; al restar un negativo, se suma).' };
+    if (c !== 0 && e !== 0) {
+      const r = e / c;
+      if ([10, 100, 1000, 0.1, 0.01, 0.001].some((k) => casi(r, k))) return { tipo: 'coma', txt: `Te corriste de posición: tu resultado es ${r > 1 ? `${Math.round(r)} veces mayor` : `${Math.round(1 / r)} veces menor`}. Revisa dónde va la coma o cuántos ceros lleva.` };
+      if (frac && casi(e * c, 1)) return { tipo: 'inversa', txt: 'Invertiste la fracción: intercambiaste el numerador con el denominador.' };
+      if (casi(r, 2) || casi(r, 0.5)) return { tipo: 'doble', txt: `Tu resultado es ${casi(r, 2) ? 'el doble' : 'la mitad'} del correcto. Revisa si multiplicaste o dividiste por 2 de más.` };
+      if ((Math.abs(c) > 1 && casi(e, c * c)) || (Math.abs(e) > 1 && casi(e * e, c))) return { tipo: 'potencia', txt: 'Confundiste elevar al cuadrado con sacar la raíz (o con multiplicar por 2).' };
+    }
+    if (Math.abs(e - c) <= Math.max(1, Math.abs(c) * 0.1)) return { tipo: 'cerca', txt: 'Estuviste muy cerca: el procedimiento va bien, revisa el último cálculo.' };
+    return null;
+  }
   function anotarErrorAlt(tema) {
     if (!S || !tema || esDocente() || !ultAlt || !ultAlt.e || Date.now() - ultAlt.t > 120000) return;
     const E = S.errAlt || (S.errAlt = {}), l = E[tema] || (E[tema] = []);
-    l.push({ e: ultAlt.e, r: ultAlt.r });
+    const entrada = { e: ultAlt.e, r: ultAlt.r };
+    l.push(entrada);
+    ultErr = { tema, r: ultAlt.r, t: Date.now(), entrada };
     if (l.length > 2) l.shift();
     const ks = Object.keys(E); if (ks.length > 30) delete E[ks[0]];
   }
@@ -1736,7 +1639,7 @@
     S.racha = acierto ? (S.racha || 0) + 1 : 0; S.rachaMax = Math.max(S.rachaMax || 0, S.racha);
     cargarHabilidad(acierto);
     extraRegistrar(tema, acierto);
-    repasoRegistrar(tema, acierto); semanaRegistrar(acierto); semanalRegistrar(acierto); mascotaRegistrar(acierto);
+    repasoRegistrar(tema, acierto); mantenerRegistrar(tema, acierto); eventoSemanaRegistrar(acierto); semanaRegistrar(acierto); semanalRegistrar(acierto); mascotaRegistrar(acierto);
     maestriaRegistrar(tema, acierto, Preguntas.difDe ? Preguntas.difDe(tema) : 1); bonoRespuesta(acierto); reliquiaRegistrar(acierto);
     if (acierto) avanzarMision('acierto', tema);
     if (acierto) eventoDesafio('acierto', tema);
@@ -1976,23 +1879,6 @@
     else if (el.classList.contains('grande')) el.classList.remove('grande');
   });
 
-  // ---------- Obras cooperativas: el puente al Bosque profundo y el montacargas al Valle de la Esfinge ----------
-  // Todo el nivel (7° u 8° básico) aporta recursos a la misma obra; el avance queda guardado en el sistema
-  // y, cuando se completa, queda construida para siempre.
-  const OBRAS = {
-    puente: { id: 'puente_bosque', meta: { madera: 540, piedra: 315, agua: 135, cristal: 36 }, icono: '🌉', nombre: 'Puente al Bosque profundo', corto: 'el puente', al: 'al puente', local: 'obraLocal',
-      intro: 'El río no se puede cruzar. Tu grupo construye su propio puente aportando recursos: el avance se guarda y, cuando se completa, queda construido para siempre para tu grupo.',
-      listo: 'El puente está construido para siempre: cruza el río por el camino hacia el Bosque profundo.', fin: '¡Puente terminado!' },
-    valle: { id: 'montacargas_valle', meta: { fibra: 1500, arenisca: 1200, cobre: 600, oro: 180 }, icono: '🏗️', nombre: 'Montacargas al Valle de la Esfinge', corto: 'el montacargas', al: 'al montacargas', local: 'obraLocalValle',
-      intro: 'El acantilado no se puede escalar. Tu grupo construye su montacargas de poleas: cuerdas de fibra, plataforma de arenisca, poleas de cobre y engranajes de oro. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
-      listo: 'El montacargas está terminado para siempre: sube por él hacia el Valle de la Esfinge.', fin: '¡Montacargas terminado!' },
-    mina: { id: 'elevador_mina', meta: { carbon: 1500, plata: 975, hongo: 480, amatista: 165 }, icono: '⛓️', nombre: 'Elevador a las Profundidades', corto: 'el elevador', al: 'al elevador', local: 'obraLocalMina',
-      intro: 'La fosa no se puede bajar a pie. Tu grupo construye su elevador de la mina: carbón para la máquina, plata para los cables, hongos luminosos para alumbrar y amatista para el mecanismo. El avance se guarda y, cuando se completa, queda funcionando para siempre.',
-      listo: 'El elevador está terminado para siempre: baja por él hacia las Profundidades.', fin: '¡Elevador terminado!' },
-    cima: { id: 'ruta_glaciar', meta: { hielo: 1500, escarcha: 840, baya: 480, zafiro: 165 }, icono: '🧗', nombre: 'Ruta de escalada del glaciar', corto: 'la ruta de escalada', al: 'a la ruta de escalada', local: 'obraLocalCima',
-      intro: 'La pared del glaciar es demasiado alta y lisa. Tu grupo equipa su ruta de escalada: bloques de hielo para los peldaños, escarcha para fijar los anclajes, bayas para los escaladores y zafiros para los ganchos. El avance se guarda y, cuando se completa, la ruta queda lista para siempre. Además, cada escalador necesita su propio piolet y sus crampones.',
-      listo: 'La ruta de escalada está lista para siempre: con piolet y crampones puedes subir a la Cima del Glaciar.', fin: '¡Ruta de escalada terminada!' },
-  };
   const obraDeEscena = () => (escena && escena.rio ? 'puente' : escena && escena.valle ? 'valle' : escena && escena.prof ? 'mina' : escena && escena.cima ? 'cima' : null);
   let cargandoObra = false;
   async function cargarObra(k = obraDeEscena()) {
@@ -2088,19 +1974,6 @@
     } });
   }
 
-  // ---------- Minijuego de pesca ----------
-  // El pez se mueve por una barra vertical; con ESPACIO (o manteniendo presionado) se sube el aro.
-  // Mientras el pez esté dentro del aro se llena la barra de captura; si sale, se vacía.
-  const PECES = [
-    { id: 'trucha', nombre: 'trucha', un: 'una', el: 'La', lo: 'la', peso: 40, dif: 1, vida: 2 },
-    { id: 'carpa', nombre: 'carpa', un: 'una', el: 'La', lo: 'la', peso: 30, dif: 1.3, vida: 2 },
-    { id: 'salmon', nombre: 'salmón', un: 'un', el: 'El', lo: 'lo', peso: 20, dif: 1.8, vida: 3 },
-    { id: 'dorado', nombre: 'pez dorado', un: 'un', el: 'El', lo: 'lo', peso: 10, dif: 2.4, vida: 4 },
-    // Solo en el estanque del Bosque profundo
-    { id: 'luna', nombre: 'pez luna', un: 'un', el: 'El', lo: 'lo', peso: 30, dif: 2.0, vida: 3, profundo: true },
-    { id: 'anguila', nombre: 'anguila de raíz', un: 'una', el: 'La', lo: 'la', peso: 22, dif: 2.6, vida: 3, profundo: true },
-    { id: 'ancestral', nombre: 'carpa ancestral', un: 'una', el: 'La', lo: 'la', peso: 8, dif: 3.2, vida: 5, profundo: true },
-  ];
   const DONDE_PEZ = (p) => (p.profundo ? 'Estanque del Bosque profundo' : 'Gran lago y estanque del bosque');
   function abrirAlbum() {
     const A = S.album || {}, tengo = PECES.filter((p) => A[p.id]).length;
@@ -2250,20 +2123,6 @@
     raf = requestAnimationFrame(paso);
   }
 
-  // ---------- Gemas del Valle de la Esfinge (álbum) ----------
-  // Se consiguen al superar el laberinto de la Gran Esfinge (y, a veces, enterradas en las excavaciones).
-  const GEMAS = [
-    { id: 'cuarzo', nombre: 'Cuarzo rosado', rareza: 'Común', peso: 24 },
-    { id: 'topacio', nombre: 'Topacio', rareza: 'Común', peso: 20 },
-    { id: 'turquesa', nombre: 'Turquesa', rareza: 'Común', peso: 18 },
-    { id: 'lapislazuli', nombre: 'Lapislázuli', rareza: 'Poco común', peso: 12 },
-    { id: 'esmeralda', nombre: 'Esmeralda', rareza: 'Poco común', peso: 10 },
-    { id: 'rubi', nombre: 'Rubí', rareza: 'Rara', peso: 7 },
-    { id: 'zafiro_estrella', nombre: 'Zafiro estrella', rareza: 'Rara', peso: 5 },
-    { id: 'opalo', nombre: 'Ópalo de fuego', rareza: 'Rara', peso: 4 },
-    { id: 'diamante', nombre: 'Diamante del desierto', rareza: 'Épica', peso: 2 },
-    { id: 'ojo_esfinge', nombre: 'Ojo de la Esfinge', rareza: 'Legendaria', peso: 1, solo: 'laberinto' },
-  ];
   const CLASE_RAREZA = { 'Común': 'comun', 'Poco común': 'poco', 'Rara': 'rara', 'Épica': 'epica', 'Legendaria': 'legendaria' };
   // bono > 1 aumenta la probabilidad de las gemas raras; si sale una repetida se vuelve a sortear una vez
   function sortearGema(bono = 1, origen = 'laberinto') {
@@ -2364,20 +2223,6 @@
     setTimeout(quitar, g ? 5800 : 4800);
   }
 
-  // ---------- Minijuego de excavación ----------
-  // Bajo la arena hay piezas enterradas. La brocha quita una capa de una casilla; la pala quita más, pero
-  // hace temblar la excavación. Si la firmeza llega a 0, se derrumba y se pierde lo que quedó enterrado.
-  const PIEZAS_EXC = [
-    { id: 'fosil_g', nombre: 'Fósil de pez', w: 3, h: 2, peso: 12, rec: { fosil: 3 } },
-    { id: 'fosil_m', nombre: 'Amonita fósil', w: 2, h: 2, peso: 16, rec: { fosil: 2 } },
-    { id: 'hueso', nombre: 'Hueso fósil', w: 2, h: 1, peso: 20, rec: { fosil: 1 } },
-    { id: 'obs_l', nombre: 'Trozo de obsidiana', w: 2, h: 1, peso: 14, rec: { obsidiana: 2 } },
-    { id: 'obs_s', nombre: 'Esquirla de obsidiana', w: 1, h: 1, peso: 16, rec: { obsidiana: 1 } },
-    { id: 'pepita', nombre: 'Pepita de oro', w: 1, h: 1, peso: 14, rec: { oro: 1 } },
-    { id: 'escarabajo_oro', nombre: 'Escarabajo de oro', w: 2, h: 2, peso: 5, rec: { oro: 3 } },
-    { id: 'vasija', nombre: 'Vasija antigua', w: 2, h: 2, peso: 9, rec: { cobre: 2, arenisca: 3 } },
-    { id: 'gema', nombre: 'Gema', w: 1, h: 1, peso: 5, gema: true },
-  ];
   function abrirExcavacion(alTerminar) {
     const W = 10, H = 7, capas = [], ocup = new Array(W * H).fill(-1), piezas = [];
     for (let i = 0; i < W * H; i++) capas.push(1 + (Math.random() < 0.55 ? 1 : 0) + (Math.random() < 0.25 ? 1 : 0));
@@ -2670,7 +2515,7 @@
         }
         st.fallos += 1; st.tiempo = Math.max(1, st.tiempo - 15); sfx('error');
         fallidas.add(elegida); elegida = null;
-        msg = fallidas.size >= 2 ? `<div class="mensaje mal" role="status">Revisemos: ${mate(d.explicacion)}</div>` : `<div class="mensaje mal" role="status">Casi. ${mate(d.pista)}</div>`;
+        msg = fallidas.size >= 2 ? pasoAPasoHTML(d, 'Revisemos.', '') : `<div class="mensaje mal" role="status">Casi. ${mate(d.pista)}</div>`;
         if (fallidas.size >= d.opciones.length - 1) { d = Preguntas.nuevo(S.curso, unidadActual(), difPara(2), S.stats); fallidas = new Set(); }
         pintarP();
       };
@@ -3321,14 +3166,6 @@
     raf = requestAnimationFrame(paso);
   }
 
-  // ---------- Copos de nieve (álbum): se ganan en el hielo movedizo ----------
-  const COPOS = [
-    { id: 'estrella', nombre: 'Copo estrella', rareza: 'Común', peso: 24 }, { id: 'aguja', nombre: 'Copo de agujas', rareza: 'Común', peso: 22 },
-    { id: 'helecho', nombre: 'Copo helecho', rareza: 'Común', peso: 18 }, { id: 'diamante', nombre: 'Copo diamante', rareza: 'Poco común', peso: 12 },
-    { id: 'flor', nombre: 'Copo flor', rareza: 'Poco común', peso: 10 }, { id: 'escarcha', nombre: 'Copo de escarcha', rareza: 'Rara', peso: 7 },
-    { id: 'corona', nombre: 'Copo corona', rareza: 'Rara', peso: 5 }, { id: 'prisma', nombre: 'Copo prisma', rareza: 'Rara', peso: 4 },
-    { id: 'aurora', nombre: 'Copo de aurora', rareza: 'Épica', peso: 2 }, { id: 'eterno', nombre: 'Copo eterno', rareza: 'Legendaria', peso: 1 },
-  ];
   function sortearCopo(bono = 1) {
     const tirar = () => { const pesos = COPOS.map((g) => g.peso * (g.peso <= 7 ? bono : 1)); let r = Math.random() * pesos.reduce((a, b) => a + b, 0); for (let i = 0; i < COPOS.length; i++) { if ((r -= pesos[i]) < 0) return COPOS[i]; } return COPOS[0]; };
     let g = tirar(); if (S.copos && S.copos[g.id] && Math.random() < 0.6) g = tirar(); return g;
@@ -4347,34 +4184,6 @@
       ${mascotaActual() ? '<button type="button" class="btn" data-mascota="">Guardar mascota</button>' : ''}`;
   }
 
-  // ===================================================================
-  // Pantalla de bienvenida (carga) al entrar al juego
-  // ===================================================================
-  const CONSEJOS = [
-    'Responde bien las preguntas para recolectar más rápido: ¡cada acierto suma!',
-    'Si te equivocas, lee la pista: te explica el paso que falta.',
-    'Tu mochila se vacía al volver por el portal, pero todo queda guardado en el cofre comunitario de tu grupo.',
-    'El cofre de la base es de todo tu grupo: lo que recolectas ayuda a tus compañeros, y lo que ellos traen te ayuda a ti.',
-    'Las obras cooperativas (puente, montacargas, elevador, ruta del glaciar) se construyen entre todo el curso.',
-    'Equipa una espada para quitarle más vida a los enemigos en cada acierto.',
-    'Las armaduras te dan más corazones: fabrícalas en la fogata de tu base.',
-    'Los jefes finales se vencen en grupo: busca compañeros en el mismo grupo del portal.',
-    'Abre Logros (tecla L) y equipa un título para que aparezca sobre tu nombre.',
-    'Desde el nivel 30 hay premios exclusivos cada 5 niveles.',
-    'Las mascotas se ganan venciendo jefes finales y se equipan desde el nivel 30.',
-    'Usa el chat 💬 (tecla T) para saludar y coordinarte con tu grupo.',
-    '¿Encontraste un error? Avísale a tu profesor con el botón ⚠️.',
-    '¿Tienes una idea para el juego? Escríbela en Novedades 💡.',
-    'Decora tu base con los muebles que fabriques: tecla G.',
-    'Las misiones (tecla N) te dan monedas y experiencia extra.',
-    'Las potencias de igual base se multiplican sumando los exponentes.',
-    'Para sumar fracciones, primero busca un denominador común.',
-    'Un número negativo multiplicado por otro negativo da positivo.',
-    'Revisa tu respuesta antes de confirmar: la calma también es una estrategia.',
-    'En el glaciar, responder bien en los anclajes evita que te caigas.',
-    'Los minijuegos dan coleccionables únicos para tus álbumes.',
-    'Si tu profesor activa un desafío en vivo, ¡todo el curso suma para la meta!',
-  ];
   let carga = null;
   function abrirCarga() {
     const el = document.createElement('div');
@@ -4449,23 +4258,6 @@
     alternarChat(false);
   }
 
-  // ===================================================================
-  // Reportar un problema y Novedades (ideas para el profesor)
-  // ===================================================================
-  const NOVEDADES = [
-    ['🐾', 'Mascotas', 'Vence jefes finales para ganar 8 mascotas distintas. Se equipan desde el nivel 30 y te siguen por todo el mapa.'],
-    ['💬', 'Chat seguro', 'Saluda y coordínate con tu grupo usando emoticones y frases (tecla T).'],
-    ['🏆', 'Logros y títulos', 'Más de 70 logros. Cada uno desbloquea un título para mostrar sobre tu nombre.'],
-    ['🎁', 'Premios de nivel', 'Desde el nivel 30, cada 5 niveles recibes un objeto exclusivo.'],
-    ['🏔️', 'Cima del Glaciar', 'Escala el glaciar, juega guerra de bolas de nieve y hielo movedizo, y enfrenta al Dragón de la Aurora.'],
-    ['⛏️', 'Profundidades de la mina', 'Carrera de carritos, rompecabezas de cristales y el Coloso de Magma.'],
-    ['🏜️', 'Valle de la Esfinge', 'Excavaciones, laberintos aleatorios, el álbum de gemas y el Faraón de las Arenas Eternas.'],
-    ['⚱️', 'Faraón de las Arenas Eternas', 'Nuevo jefe ancestral en el Valle de la Esfinge. Fabrica el ankh de obsidiana para despertarlo y gana al gato sagrado.'],
-    ['👑', 'Gemas de los jefes y el 5to Mundo', 'Cada jefe deja caer una gema única. Reúne las 8 en tu álbum para despertar el misterioso 5to Mundo.'],
-    ['🗺️', 'Minimapa', 'Arriba a la derecha ves todo el mundo: compañeros, enemigos, portal, cofres, jefes y desafíos. Haz clic para agrandarlo.'],
-    ['🧭', '5 desafíos nuevos', 'Coordenadas perdidas, Burbujas del resultado, Cofres de verdad o mentira, Mascotas fugitivas y Sendero de las cifras.'],
-    ['🎯', 'Desafíos en los mundos', 'Los desafíos en vivo se juegan en los mundos; solo el ladrón y la horda llegan a la base. En la horda tienes 20 segundos por pregunta.'],
-  ];
   const CATS_PROBLEMA = ['El juego se trabó', 'Una pregunta está mal', 'Perdí recursos u objetos', 'No puedo entrar a una zona', 'Problema con mi grupo', 'Otro'];
   function abrirReporte() {
     let cat = '';
@@ -4712,6 +4504,7 @@
   }
   setInterval(() => { if (S && !carga) cobrarComercio(); }, 45000);
   async function abrirComercio(tab) {
+    if (!sistemaListo('comercio')) return;
     if (tab) comTab = tab;
     if (!comercioOk()) {
       ui.abrir(`<div class="modal-cab"><div><span class="etq">Tu base</span><h2 id="modal-titulo">🤝 Cofre de comercio</h2></div><button type="button" class="btn" id="cm-cerrar">Cerrar</button></div>
@@ -4864,6 +4657,7 @@
   }
   function datosYo() { return { nombre: nombreJug(), pj: S.pj, tex: texArmadura(S.armadura), vm: vidaPvp(), dmg: golpePvp(), mochila: mochilaTotal(), w: S.arma || '' }; }
   function abrirArena() {
+    if (!sistemaListo('arena')) return;
     pvp = { fase: 'sala', gente: new Map(), reto: null, retoDe: null, aviso: '', limpiar: [] };
     ui.abrir(`<div class="modal-cab"><div><span class="etq">Arena · ${escena && escena.canal ? `Grupo ${S.grupo}` : 'sin compañeros: puedes practicar'}</span><h2 id="modal-titulo">⚔️ Arena PvP</h2></div><button type="button" class="btn" id="pv-salir">Salir</button></div>
       <div class="carrera-sala" id="pv-cuerpo">
@@ -4915,7 +4709,12 @@
       $('pv-si').addEventListener('click', () => { emitirPvp({ t: 'acepto', a: R.id, ...datosYo() }); arrancarDuelo(R); });
     }
   }
-  function imgPj(pj, tex) { const k = `pj_${pj}_${tex}`; return escena && escena.textures.exists(k) ? escena.textures.get(k).getSourceImage() : null; }
+  function imgPj(pj, tex) {
+    if (!escena) return null;
+    let k = `pj_${pj}_${tex}`;
+    if (!escena.asegurarPj(k)) k = `pj_${pj}_nada`;   // mientras se descarga esa armadura, se ve la básica
+    return escena.textures.exists(k) ? escena.textures.get(k).getSourceImage() : null;
+  }
   // rival: datos del compañero (null = muñeco de práctica)
   function arrancarDuelo(rival) {
     if (!pvp || pvp.fase !== 'sala') return;
@@ -5220,7 +5019,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-11';
+  const VERSION_JUEGO = '2026-11-16';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -5316,7 +5115,23 @@
     if (r.n + 1 >= PASOS_REPASO.length) { delete R[tema]; toast(`🔁 ¡Dominaste «${Preguntas.tituloDe(tema)}»! Ya no aparecerá como repaso.`); }
     else { r.n += 1; r.d = ahora + PASOS_REPASO[r.n]; }
   }
-  function repasosPendientes() { const ahora = Date.now(); return Object.entries((S && S.repaso) || {}).filter(([, r]) => r.d <= ahora).map(([t]) => t); }
+  function repasosPendientes() {
+    const ahora = Date.now(), vence = (o) => Object.entries(o || {}).filter(([, r]) => r.d <= ahora).map(([t]) => t);
+    return [...new Set([...vence(S && S.repaso), ...vence(S && S.mantener)])];
+  }
+  // ---------- Mantener lo dominado: los temas en plata u oro vuelven cada vez más espaciados ----------
+  const PASOS_MANT = [5 * 86400000, 10 * 86400000, 20 * 86400000, 40 * 86400000];
+  function mantenerRegistrar(tema, acierto) {
+    if (!S || !tema || esDocente() || rangoDe(tema) < 2) return;
+    const M = S.mantener || (S.mantener = {}), m = M[tema], ahora = Date.now();
+    if (!m) { M[tema] = { n: 0, d: ahora + PASOS_MANT[0] }; return; }
+    if (m.d > ahora) return;
+    if (acierto) {
+      m.n = Math.min(PASOS_MANT.length - 1, m.n + 1); m.d = ahora + PASOS_MANT[m.n];
+      const txt = darPremio(paquete(2, 2, true), 15);
+      toast(`🧠 ¡Aún dominas «${Preguntas.tituloDe(tema)}»! Repaso al día: ${txt}. Volverá en ${Math.round(PASOS_MANT[m.n] / 86400000)} días.`);
+    } else { m.n = 0; m.d = ahora + PASOS_MANT[0]; }
+  }
   if (window.Preguntas && Preguntas.fijarRepaso) {
     Preguntas.fijarRepaso((curso) => { const ts = repasosPendientes().filter((t) => Preguntas.unidadDeTema(curso, t)); return ts.length ? ts[Math.floor(Math.random() * ts.length)] : null; });
   }
@@ -5331,8 +5146,12 @@
     return pasos;
   }
   const pap = { id: '', n: 1 };
-  function pasoAPasoHTML(d, intro, cierre) {
+  function pasoAPasoHTML(d, intro, cierre, elegidaTxt) {
     const p = pasosDe(d);
+    // el error típico detrás de la respuesta equivocada va primero: es lo que más enseña
+    const reciente = ultErr && ultErr.tema === d.tema && Date.now() - ultErr.t < 20000;
+    const dx = d && d.opciones ? diagnosticoError(d.opciones[d.correcta], elegidaTxt != null ? elegidaTxt : reciente ? ultErr.r : null) : null;
+    if (dx) { p.unshift(['🔍', 'Tu error', dx.txt]); if (reciente && elegidaTxt == null && ultErr.entrada) ultErr.entrada.t = dx.tipo; }
     pap.id = String(Math.random()).slice(2, 9); pap.n = 1;
     return `<div class="mensaje mal paso-a-paso" role="status" data-pap="${pap.id}"><b>${esc(intro)}</b> Veámoslo paso a paso:
       <ol>${p.map(([ico, t, x], i) => `<li data-i="${i}"><span>${ico} <b>${esc(t)}:</b> ${mate(x)}</span></li>`).join('')}</ol>
@@ -5552,7 +5371,7 @@
       if (registrarStats && d.tema) registrar(d.tema, ok);
       if (ok) { aciertos += 1; if (d.ab) contar('escrita'); }
       det.push({ tema: d.tema, ok }); sfx(ok ? 'acierto' : 'error');
-      msg = ok ? `<div class="mensaje bien" role="status">✅ ¡Correcto! ${mate(d.explicacion || '')}</div>` : pasoAPasoHTML(d, 'No era esa.', '');
+      msg = ok ? `<div class="mensaje bien" role="status">✅ ¡Correcto! ${mate(d.explicacion || '')}</div>` : pasoAPasoHTML(d, 'No era esa.', '', d.ab ? escrito : null);
       i += 1; elegida = null; escrito = ''; guardar();
       if (i >= preguntas.length) { ui.cerrar(); alFin(aciertos, det, msg); } else pintar();
     };
@@ -5598,13 +5417,6 @@
       } });
   }
 
-  // ---------- Talentos: puntos por dominar temas (1 por plata, 2 por oro) ----------
-  const TALENTOS = [
-    { id: 'fuerza', ico: '⚔️', nombre: 'Fuerza', desc: '+1 de daño en cada golpe por punto.' },
-    { id: 'vitalidad', ico: '❤️', nombre: 'Vitalidad', desc: '+1 corazón máximo por punto.' },
-    { id: 'sabio', ico: '📖', nombre: 'Sabiduría', desc: '+10 % de experiencia por punto.' },
-    { id: 'suerte', ico: '🍀', nombre: 'Suerte', desc: '6 % de probabilidad por punto de ganar un recurso extra al acertar.' },
-  ];
   const MAX_TALENTO = 3;
   function talento(id) { return Math.max(0, Math.min(MAX_TALENTO, Number(((S && S.talentos) || {})[id]) || 0)); }
   function puntosTalento() { let n = 0; for (const t of Object.keys((S && S.maestria) || {})) { const r = rangoDe(t); n += r >= 3 ? 2 : r >= 2 ? 1 : 0; } return n; }
@@ -5632,7 +5444,7 @@
         const meta = r === 0 ? PTS_BRONCE : r === 1 ? PTS_PLATA : 0;
         const pct = meta ? Math.min(100, Math.round((m.p / meta) * 100)) : 100;
         const espera = ((S.guardianEspera || {})[k] || 0) - Date.now();
-        const accion = r === 2 ? (espera > 0 ? `<small class="nota">Guardián en ${Math.ceil(espera / 60000)} min</small>` : `<button type="button" class="btn mini" data-guardian="${k}">🛡️ Guardián</button>`) : '';
+        const accion = (r < 3 && !esDocente() ? `<button type="button" class="btn mini" data-practicar="${k}">✏️ Practicar</button>` : '') + (r === 2 ? (espera > 0 ? `<small class="nota">Guardián en ${Math.ceil(espera / 60000)} min</small>` : `<button type="button" class="btn mini" data-guardian="${k}">🛡️ Guardián</button>`) : '');
         const sub = r === 3 ? '¡Dominado!' : r === 2 ? 'Vence al guardián para llegar a oro' : `${m.p}/${meta} puntos para ${RANGOS[r + 1][1].toLowerCase()}`;
         return `<li class="rango-${r}"><span class="r-ico" title="${RANGOS[r][1]}">${RANGOS[r][0]}</span><div class="r-info"><b>${esc(t)}</b><div class="barra"><i style="width:${pct}%"></i></div><small>${sub}${st && st.i ? ` · ${Math.round((st.a / st.i) * 100)} % de acierto (${st.i})` : ' · aún sin respuestas'}</small></div>${accion}</li>`;
       }).join('');
@@ -5641,6 +5453,7 @@
     const debiles = Object.entries(S.stats || {}).filter(([k, s]) => s.i >= 3 && Preguntas.unidadDeTema(S.curso, k)).map(([k, s]) => ({ k, pct: Math.round((s.a / s.i) * 100) })).filter((x) => x.pct < 70).sort((a, b) => a.pct - b.pct).slice(0, 3);
     const libres = puntosTalento() - puntosUsados();
     const cuerpoM = `<div class="prog-resumen"><span>🥇 <b>${cuenta[3]}</b> oro</span><span>🥈 <b>${cuenta[2]}</b> plata</span><span>🥉 <b>${cuenta[1]}</b> bronce</span><span>▫️ <b>${cuenta[0]}</b> sin rango</span></div>
+      ${repasosPendientes().filter((t) => Preguntas.unidadDeTema(S.curso, t)).length ? `<div class="mensaje pista prog-repasar"><span>🧠 <b>Para repasar hoy:</b> ${repasosPendientes().filter((t) => Preguntas.unidadDeTema(S.curso, t)).slice(0, 5).map((t) => `<button type="button" class="btn mini" data-practicar="${t}">${esc(Preguntas.tituloDe(t))}</button>`).join(' ')}</span></div>` : ''}
       ${debiles.length ? `<div class="mensaje prog-mejorar"><span>🎯 <b>Para mejorar:</b> ${debiles.map((x) => `${esc(Preguntas.tituloDe(x.k))} (${x.pct} %)`).join(' · ')}</span></div>` : ''}
       <p class="nota">Cada respuesta correcta suma puntos al tema (+1 fácil, +2 media, +3 difícil; −1 por error). Con <b>${PTS_BRONCE}</b> llegas a bronce 🥉 (a veces tendrás que escribir el resultado) y con <b>${PTS_PLATA}</b> a plata 🥈 (preguntas más difíciles). Para oro 🥇 vence al guardián del tema.</p>
       ${unidades}`;
@@ -5655,6 +5468,7 @@
     $('pg-cerrar').addEventListener('click', () => ui.cerrar());
     document.querySelectorAll('#modal [data-pg]').forEach((b) => b.addEventListener('click', () => abrirProgreso(b.dataset.pg)));
     document.querySelectorAll('#modal [data-guardian]').forEach((b) => b.addEventListener('click', () => abrirGuardian(b.dataset.guardian)));
+    document.querySelectorAll('#modal [data-practicar]').forEach((b) => b.addEventListener('click', () => practicarTema(b.dataset.practicar)));
     document.querySelectorAll('#modal [data-talento]').forEach((b) => b.addEventListener('click', () => {
       if (puntosTalento() - puntosUsados() <= 0) return;
       S.talentos = { ...(S.talentos || {}), [b.dataset.talento]: talento(b.dataset.talento) + 1 };
@@ -5709,7 +5523,7 @@
     return elige(plantillas)();
   }
   function abrirTaller() {
-    if (!S) return;
+    if (!S || !sistemaListo('taller')) return;
     const T = tallerHoy(), quedan = Math.max(0, ENCARGOS_DIA - T.encargos);
     ui.abrir(`<div class="modal-cab"><div><span class="etq">Tu base · Matemática aplicada</span><h2 id="modal-titulo">🧮 Taller del gremio</h2></div><button type="button" class="btn" id="tl-cerrar">Cerrar</button></div>
       <p class="nota">El gremio necesita ayuda con cálculos reales: compras, construcciones, recetas y expediciones. Aquí no hay alternativas: escribe el resultado.</p>
@@ -5749,13 +5563,6 @@
     });
   }
 
-  // ---------- Modo historia: un capítulo por mundo ----------
-  const CAPITULOS = [
-    { u: 'u1', titulo: 'Capítulo 1 · El bosque que olvidó contar', intro: 'La Sabia Euclidia te recibe en el bosque: «Desde que el Troll Guardián despertó, los árboles olvidaron sus números. Ayúdame a devolverle el orden al bosque».', fin: '«¡El bosque vuelve a contar! Pero escucho rumores extraños desde el desierto…»', obj: [['aciertos', 15, 'Responde bien 15 preguntas de esta unidad'], ['vencer', 5, 'Vence 5 enemigos'], ['recurso', 20, 'Recolecta 20 recursos']] },
-    { u: 'u2', titulo: 'Capítulo 2 · Las dunas de las proporciones', intro: 'Euclidia te alcanza en el desierto: «Las caravanas se pierden porque nadie sabe repartir el agua. Demuestra que los números pueden guiarlas».', fin: '«¡Las caravanas encontraron su camino! Bajo la arena, la mina empieza a temblar…»', obj: [['aciertos', 20, 'Responde bien 20 preguntas de esta unidad'], ['vencer', 8, 'Vence 8 enemigos'], ['recurso', 30, 'Recolecta 30 recursos']] },
-    { u: 'u3', titulo: 'Capítulo 3 · El eco de la mina', intro: 'En la oscuridad de la mina, Euclidia susurra: «Cada eco aquí es una ecuación sin resolver. Si las resolvemos, la mina dejará de derrumbarse».', fin: '«¡La mina está a salvo! Solo queda la cima helada… y lo que duerme allí».', obj: [['aciertos', 25, 'Responde bien 25 preguntas de esta unidad'], ['vencer', 10, 'Vence 10 enemigos'], ['recurso', 40, 'Recolecta 40 recursos']] },
-    { u: 'u4', titulo: 'Capítulo 4 · La cima helada', intro: 'El viento del glaciar apaga casi todo, pero Euclidia sonríe: «Has aprendido mucho. Esta última prueba es para quienes ya no le temen a ningún número».', fin: '«Lo lograste: Math World vuelve a estar en equilibrio. Ahora tú eres quien guía a los demás».', obj: [['aciertos', 30, 'Responde bien 30 preguntas de esta unidad'], ['vencer', 12, 'Vence 12 enemigos'], ['recurso', 50, 'Recolecta 50 recursos']] },
-  ];
   function valoresHistoria(u) {
     let a = 0; for (const k of Object.keys(Preguntas.titulos(S.curso, u))) a += ((S.stats || {})[k] || {}).a || 0;
     return { aciertos: a, vencer: S.vencidos || 0, recurso: CN('recurso') };
@@ -5795,12 +5602,6 @@
     }
   }, 3000);
 
-  // ---------- Eventos del mundo: iguales para todo el curso (dependen de la hora) ----------
-  const EVENTOS = [
-    { id: 'xp2', ico: '⚡', nombre: 'Tormenta del saber', desc: 'Toda la experiencia vale el doble.' },
-    { id: 'cristal', ico: '💎', nombre: 'Lluvia de cristales', desc: 'Cada respuesta correcta te da 1 cristal.' },
-    { id: 'racha', ico: '🔥', nombre: 'Racha relámpago', desc: 'Cada 3 respuestas correctas seguidas ganas un cofre.' },
-  ];
   const SLOT_EV = 8 * 60000, DUR_EV = 3 * 60000;
   function eventoActual() {
     if (!S || !escena || !MUNDOS[escena.zona]) return null;
@@ -5823,8 +5624,85 @@
     if (eventoMostrado !== ev.clave) { eventoMostrado = ev.clave; sfx('logro'); avisoGrande(`${ev.ico} ${ev.nombre}`, ev.desc, 'Evento del mundo · 3 minutos para todo el curso'); }
   }, 1000);
 
+  // ---------- Evento de la semana: igual para todo el curso, cambia cada lunes ----------
+  const EVENTOS_SEMANA = [
+    { id: 'cosecha', ico: '🌾', nombre: 'Semana de cosecha', desc: (m) => `En ${m}, los recursos que recolectas valen el doble.` },
+    { id: 'saber', ico: '📚', nombre: 'Semana del saber', desc: (m) => `En ${m}, ganas un 25 % más de experiencia.` },
+    { id: 'cofres', ico: '🎁', nombre: 'Semana de los cofres', desc: (m) => `En ${m}, cada 10 respuestas correctas ganas un cofre de recursos.` },
+  ];
+  function eventoSemana() {
+    if (!S || esDocente()) return null;
+    const k = semanaISO(), n = Number(k.replace(/\D/g, '')) || 0;
+    const mundos = ['u1', 'u2', 'u3', 'u4'].filter((u) => MUNDOS[u] && mundoAbierto({ id: u, habilitada: true }));
+    if (!mundos.length) return null;
+    const ev = EVENTOS_SEMANA[n % EVENTOS_SEMANA.length], mundo = mundos[Math.floor(n / EVENTOS_SEMANA.length) % mundos.length];
+    return { ...ev, mundo, clave: `${k}-${ev.id}-${mundo}`, texto: ev.desc(nombreMundo(mundo)) };
+  }
+  function eventoSemanaRegistrar(acierto) {
+    const ev = eventoSemana();
+    if (!acierto || !ev || ev.id !== 'cofres' || !escena || escena.zona !== ev.mundo) return;
+    const C = S.evSemana && S.evSemana.k === ev.clave ? S.evSemana : (S.evSemana = { k: ev.clave, c: 0 });
+    C.c += 1;
+    if (C.c % 10 === 0) { const txt = darPremio(paquete(3, 2, true), 20); sfx('logro'); toast(`🎁 ¡Semana de los cofres! Ganaste: ${txt}.`); }
+  }
+  function eventoSemanaHTML() {
+    const ev = eventoSemana(); if (!ev) return '';
+    return `<section class="tarjeta-mision evento-semana"><div class="fila"><strong>${ev.ico} ${esc(ev.nombre)}</strong><small>Toda la semana · todo el curso</small></div><span class="nota">${esc(ev.texto)}</span></section>`;
+  }
+  setInterval(() => {
+    const ev = S && escena && escena.jugador ? eventoSemana() : null;
+    if (!ev || (S.evVisto === ev.clave) || ui.abierto) return;
+    S.evVisto = ev.clave; guardar();
+    avisoGrande(`${ev.ico} ${ev.nombre}`, ev.texto, 'Evento de esta semana · lo encuentras también en tus Misiones');
+  }, 5000);
+
+  // ---------- Sistemas que se desbloquean de a poco (para no abrumar al empezar) ----------
+  const SISTEMAS = {
+    taller: { nivel: 3, ico: '🧮', nombre: 'Taller del gremio', desc: 'Cada día el gremio te da encargos: resuelve problemas aplicados y gana recursos.', abrir: () => abrirTaller() },
+    arena: { nivel: 4, ico: '⚔️', nombre: 'Arena PvP', desc: 'Duelos amistosos con tus compañeros: gana quien responde mejor y más rápido.', abrir: () => abrirArena() },
+    comercio: { nivel: 5, ico: '🤝', nombre: 'Cofre de comercio', desc: 'Ofrece recursos que te sobran a cambio de los que necesitas.', abrir: () => abrirComercio() },
+    clan: { nivel: 6, ico: '🪧', nombre: 'Clan del grupo', desc: 'Tu grupo es un clan: voten a su líder, pónganle nombre y participen en las guerras de clanes.', abrir: () => abrirClan() },
+  };
+  function sistemaListo(id) {
+    const s = SISTEMAS[id];
+    if (!S || !s || esDocente()) return true;
+    const V = S.sistemas || (S.sistemas = {});
+    if (V[id]) return true;
+    if (S.nivel < s.nivel) { sfx('alerta'); toast(`🔒 ${s.ico} ${s.nombre} se desbloquea en el nivel ${s.nivel}. ¡Sigue respondiendo para subir!`, 'alerta'); return false; }
+    // primera vez: una explicación corta y luego se abre
+    V[id] = Date.now(); guardar();
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">¡Nuevo para ti!</span><h2 id="modal-titulo">${s.ico} ${esc(s.nombre)}</h2></div></div>
+      <p class="enunciado" style="font-size:18px">${esc(s.desc)}</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="sis-ok" data-foco>¡Vamos!</button></div>`);
+    $('sis-ok').addEventListener('click', () => { ui.cerrar(); setTimeout(() => s.abrir(), 50); });
+    return false;
+  }
+  function anunciarSistema(nivel) {
+    const s = Object.values(SISTEMAS).find((x) => x.nivel === nivel);
+    if (s && !esDocente()) setTimeout(() => toast(`🔓 ¡Desbloqueaste ${s.ico} ${s.nombre}! ${s.desc}`), 2500);
+  }
+
+  // ---------- Practicar un tema desde «Mi progreso» ----------
+  function practicarTema(tema) {
+    if (!S || !tema) return;
+    const P = S.practica || (S.practica = {}), espera = (P[tema] || 0) + 10 * 60000 - Date.now();
+    const r = rangoDe(tema), dif = r >= 2 ? 3 : r === 1 ? 2 : 1;
+    const ps = Array.from({ length: 4 }, () => Preguntas.deTema(S.curso, tema, dif)).filter(Boolean);
+    if (!ps.length) return toast('No hay preguntas de este tema por ahora.', 'alerta');
+    abrirSerie({ etq: '✏️ Práctica', titulo: Preguntas.tituloDe(tema), preguntas: ps, abierta: r >= 1,
+      nota: espera > 0 ? 'Práctica libre: el premio vuelve en unos minutos, pero tu avance en el tema sí cuenta.' : 'Si te equivocas, verás el paso a paso y tu error.',
+      alFin: (a, det, ultimo) => {
+        let txt = '';
+        if (espera <= 0 && a > 0) { P[tema] = Date.now(); txt = darPremio(paquete(1 + a, 2, true), 8 * a); }
+        ui.abrir(resultadoHTML('✏️ Práctica', a === ps.length ? '¡Perfecto!' : a ? '¡Bien!' : '¡A seguir practicando!', `${ultimo}<p class="enunciado">Respondiste bien <b>${a} de ${ps.length}</b>.${txt ? ` Ganaste: ${esc(txt)}.` : ''}</p>`, 'Volver a Mi progreso'));
+        $('res-ok').addEventListener('click', () => ui.cerrar());
+        $('res-volver').addEventListener('click', () => abrirProgreso());
+      } });
+  }
+
   // ---------- Accesibilidad: texto grande, colores para daltonismo y modo liviano ----------
-  const OPCIONES_ACC = [['op-texto', 'mw_texto', 'texto-grande'], ['op-dalto', 'mw_dalto', 'daltonico'], ['op-contraste', 'mw_contraste', 'alto-contraste'], ['op-lectura', 'mw_lectura', 'letra-lectura'], ['op-liviano', 'mw_liviano', 'liviano']];
+  const OPCIONES_ACC = [['op-texto', 'mw_texto', 'texto-grande'], ['op-dalto', 'mw_dalto', 'daltonico'], ['op-contraste', 'mw_contraste', 'alto-contraste'], ['op-lectura', 'mw_lectura', 'letra-lectura'], ['op-liviano', 'mw_liviano', 'liviano'],
+    ['op-voz', 'mw_voz', 'voz-auto'], ['op-quieto', 'mw_quieto', 'sin-sacudidas']];
   function aplicarLiviano(on) {
     try {
       const L = escena && escena.game && escena.game.loop; if (!L || L.hasFpsLimit === Boolean(on)) return;
@@ -5847,29 +5725,8 @@
   });
   setInterval(() => { if (document.body.classList.contains('liviano')) aplicarLiviano(true); }, 4000);
 
-  // ===================================================================
-  // Mundo 5: El Altar de los Dioses — 5 dioses en sus altares y Hades, el jefe final
-  // Las preguntas mezclan todas las unidades. Cada dios tiene su propia dinámica.
-  // ===================================================================
-  const DIOSES = [
-    { id: 'cerbero', nombre: 'Cerbero, Guardián de la Puerta', golpes: 14, dano: 2, tiempo: 20, dif: 2, color: 0xff4a3a, mec: 'cabezas', premio: 15, xp: 350,
-      desc: 'Tiene <b>tres cabezas</b> con su propia vida. Cada cabeza que cae enfurece a las demás: tendrás menos tiempo para responder.' },
-    { id: 'vampira', nombre: 'Lilith, Reina de la Noche', golpes: 16, dano: 2, tiempo: 18, dif: 2, color: 0xff3a8a, mec: 'drenaje', premio: 18, xp: 450,
-      desc: 'Cada error o pregunta sin responder <b>la cura</b>. Con <b>3 aciertos seguidos</b> la atraviesas con una estaca de luz (daño triple).' },
-    { id: 'ciclope', nombre: 'Polifemo, el Cíclope de Obsidiana', golpes: 18, dano: 3, tiempo: 17, dif: 3, color: 0xff8a1a, mec: 'escudo', premio: 21, xp: 550,
-      desc: 'Su <b>piel de obsidiana</b> (4) bloquea tus golpes hasta que la rompas con aciertos, y <b>cada error la vuelve a endurecer</b> (+2). Si fallas, su <b>mirada petrificante</b> te deja solo 7 segundos en la siguiente.' },
-    { id: 'segador', nombre: 'Tánatos, el Segador de Almas', golpes: 20, dano: 3, tiempo: 16, dif: 3, color: 0x4ae0d0, mec: 'reloj', premio: 24, xp: 650,
-      desc: 'Un <b>reloj de arena</b> de 4 minutos marca todo el combate: cada acierto suma 6 s y cada error resta 12 s. Si la arena se acaba, te cosecha.' },
-    { id: 'golem', nombre: 'El Gólem de las Almas Perdidas', golpes: 22, dano: 3, tiempo: 15, dif: 3, color: 0x5aff8a, mec: 'combo', premio: 27, xp: 750,
-      desc: 'Cada 2 errores <b>absorbe tus fallos y crece</b> (recupera vida). Encadena aciertos para multiplicar tu daño: ×1 → ×1,5 → ×2 → ×3.' },
-  ];
   const HADES = { id: 'hades', nombre: 'Hades, Dios del Inframundo', golpes: 30, dano: 4, dif: 3, color: 0xaa4aff, premio: 40, xp: 2000,
     desc: '<b>Fase 1 · El Juicio</b>: 18 s por pregunta. <b>Fase 2 · Las almas de los dioses</b>: un escudo de 5 almas y se cura con tus errores. <b>Fase 3 · Furia del Inframundo</b>: solo lo hieres con 2 aciertos seguidos (el segundo hace daño doble) y cada error te quita 5 corazones.' };
-  const OFRENDAS = [
-    { id: 'vida', ico: '❤️', nombre: 'Ofrenda de vida', desc: '+3 corazones de escudo solo para este combate.' },
-    { id: 'furia', ico: '⚔️', nombre: 'Ofrenda de furia', desc: 'Tus golpes hacen 50 % más de daño.' },
-    { id: 'tiempo', ico: '⏳', nombre: 'Ofrenda del tiempo', desc: '+6 segundos para cada pregunta.' },
-  ];
   function estadoAltar() { if (!S) return { v: 0 }; if (!S.altar) S.altar = { v: 0, hades: 0, espera: {} }; return S.altar; }
   function textoDios(i) {
     const A = estadoAltar();
@@ -6098,18 +5955,6 @@
     }, 200);
   }
 
-  // ===================================================================
-  // Ambición: Torre de los Dioses, reliquias divinas, ascensión, invasión semanal, ligas, estilo y duelos de fantasma
-  // ===================================================================
-  // ---------- Fragmentos y reliquias divinas ----------
-  const RELIQUIAS = [
-    { id: 'collar', dios: 'cerbero', ico: '🐺', nombre: 'Collar de Cerbero', efecto: '10 % de probabilidad de ganar un recurso extra con cada acierto.', frag: 4 },
-    { id: 'capa', dios: 'vampira', ico: '🦇', nombre: 'Capa de Lilith', efecto: 'Bloquea un golpe que te iban a dar; se recarga con 5 aciertos.', frag: 4 },
-    { id: 'ojo', dios: 'ciclope', ico: '👁️', nombre: 'Ojo de Polifemo', efecto: '+1 de daño en todos tus golpes.', frag: 4 },
-    { id: 'reloj', dios: 'segador', ico: '⏳', nombre: 'Reloj de Tánatos', efecto: '+15 % de experiencia.', frag: 4 },
-    { id: 'corazon', dios: 'golem', ico: '🗿', nombre: 'Corazón del Gólem', efecto: '+2 corazones máximos.', frag: 4 },
-    { id: 'tridente', dios: 'hades', ico: '🔱', nombre: 'Tridente de Hades', efecto: 'Cada 3 aciertos seguidos recuperas 1 corazón.', frag: 3 },
-  ];
   const NOMBRE_DIOS = { cerbero: 'Cerbero', vampira: 'Lilith', ciclope: 'Polifemo', segador: 'Tánatos', golem: 'el Gólem', hades: 'Hades' };
   function darFragmento(dios, n = 1) { S.fragmentos = S.fragmentos || {}; S.fragmentos[dios] = (S.fragmentos[dios] || 0) + n; guardar(true); return `${n} ${n === 1 ? 'fragmento divino' : 'fragmentos divinos'}`; }
   function forjaVisible() { return Boolean(S && (Object.keys(S.fragmentos || {}).length || Object.keys(S.reliquias || {}).length || esDocente())); }
@@ -6172,13 +6017,6 @@
 
   // ---------- Torre de los Dioses: pisos infinitos y ranking semanal del curso ----------
   const RIVALES_TORRE = ['esqueleto', 'duende', 'lobo', 'jabali', 'minero', 'lobo_nieve', 'momia', 'ladron', 'jefe_u1', 'jefe_u2', 'jefe_u3', 'jefe_u4'];
-  const REGLAS_TORRE = [
-    { id: 'veloz', txt: '⚡ Solo 9 segundos por pregunta' },
-    { id: 'escrita', txt: '✍️ Todas las respuestas se escriben' },
-    { id: 'doble', txt: '💀 Cada error quita 2 corazones más' },
-    { id: 'tema', txt: '📘 Todas las preguntas son de un solo tema' },
-    { id: 'sinpista', txt: '🙈 Sin paso a paso: solo ves si acertaste' },
-  ];
   function puedeTorre() { return Boolean(S) && (((S.altar && S.altar.hades) || 0) > 0 || esDocente()); }
   async function abrirTorre() {
     if (!puedeTorre()) { sfx('alerta'); return toast('🗼 La Torre de los Dioses está sellada. Vence a Hades para abrirla.', 'alerta'); }
@@ -6679,6 +6517,7 @@
     if (cc && cc.active && vic > 0) escena.estandarte = escena.add.text(cc.x + 18, cc.y - 64, vic >= 5 ? '👑🚩' : vic >= 3 ? '⭐🚩' : '🚩', { fontSize: vic >= 3 ? '28px' : '24px' }).setOrigin(0.5, 1).setDepth(cc.y + 2);
   }
   async function abrirClan() {
+    if (!sistemaListo('clan')) return;
     if (!conClanes()) return toast(sesion.modo === 'nube' ? 'Únete a un grupo para formar un clan.' : 'Los clanes funcionan con tu cuenta del curso.', 'alerta');
     ui.abrir('<div class="modal-cab"><div><span class="etq">Letrero del clan</span><h2 id="modal-titulo">🪧 Tu clan</h2></div><button type="button" class="btn" id="cl-cerrar">Cerrar</button></div><p class="nota">Cargando…</p>', 'clan');
     $('cl-cerrar').addEventListener('click', () => ui.cerrar());
@@ -8700,7 +8539,7 @@
         st.premio = darPremio(paquete(2 + Math.round(4 * frac), 2), xp);
         msg = `<div class="mensaje bien" role="status">¡Correcto y rápido! Ganas ${esc(st.premio)} y ${xp} de experiencia. ${mate(d.explicacion)}</div>`;
         if (escena) escena.celebrar();
-      } else msg = `<div class="mensaje mal" role="status">No era esa. La respuesta correcta es ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+      } else msg = pasoAPasoHTML(d, 'No era esa.', '');
       document.querySelectorAll('.alt').forEach((b, k) => { b.disabled = true; if (k === d.correcta) b.classList.add('bien'); else if (k === i) b.classList.add('mal'); });
       const acc = document.querySelector('#modal .acciones');
       acc.insertAdjacentHTML('beforebegin', msg);
@@ -8717,6 +8556,19 @@
   // ---------- El trotamundos: monstruo gigante de todo el curso (vida compartida en el servidor) ----------
   const TROTO_VEL = 42;   // píxeles por segundo: camina lento
   let trotoConsultando = false, trotoUlt = 0;
+  // el servidor acepta un golpe cada 1,2 s: los aciertos muy rápidos esperan su turno en una cola (no se pierden)
+  const trotoCola = []; let trotoEnviando = false;
+  function trotoGolpe(dmg) {
+    trotoCola.push(dmg);
+    if (trotoEnviando) return;
+    trotoEnviando = true;
+    const sig = () => {
+      if (!trotoCola.length || !vivo.def || vivo.def.id !== 'trotamundos') { trotoCola.length = 0; trotoEnviando = false; return; }
+      trotoLlamar('golpe', trotoCola.shift());
+      setTimeout(sig, 1300);
+    };
+    sig();
+  }
   async function trotoLlamar(accion, dano = 0) {
     if (!vivo.d || !window.Nube || !Nube.trotamundos || sesion.modo !== 'nube') return null;
     let r = null;
@@ -8781,7 +8633,7 @@
       if (ok) {
         st.aciertos += 1;
         const dmg = Math.min(8, 2 + Math.floor(danio() / 2));
-        trotoLlamar('golpe', dmg);
+        trotoGolpe(dmg);
         if (escena && escena.des && escena.des.troto) escena.golpearTrotamundos(dmg);
         ganarXP(3); sfx('acierto');
         if (st.aciertos % 5 === 0) { st.escudos += 1; sfx('logro'); fb = `<div class="mensaje bien" role="status">🛡️ ¡${st.aciertos} aciertos! Ganaste un escudo: resistirás un golpe del Trotamundos (tienes ${st.escudos}).</div>`; }
@@ -8854,7 +8706,7 @@
         fb = `<div class="mensaje bien" role="status">¡Correcto! Llevas ${st.p} de ${PRISMA_META}.</div>`;
       } else {
         st.e = (st.e || 0) + 1;
-        fb = `<div class="mensaje mal" role="status">No era esa: la respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
+        fb = pasoAPasoHTML(d, 'No era esa.', '');
         if (st.e >= PRISMA_ERR_MAX) {
           ui.abrir(`<div class="modal-cab"><div><span class="etq">Recurso exclusivo</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div></div>${fb}
             <div class="mensaje mal" role="status" style="font-size:18px">Llegaste a ${PRISMA_ERR_MAX} errores: ya no puedes seguir intentando el prisma estelar.</div>
@@ -9084,12 +8936,16 @@
       if (!this.textures.exists('jefe_u2_hoja')) this.load.spritesheet('jefe_u2_hoja', 'assets/enemigos/jefe_u2.png', { frameWidth: 64, frameHeight: 64 });
       for (const n of ['esqueleto', 'duende', 'lobo', 'jabali', 'jefe_u1', 'minero', 'jefe_u3', 'lobo_nieve', 'jefe_u4', 'momia', 'jefe_u2b', 'jefe_u3b', 'jefe_u4b', 'ladron', 'altar_cerbero', 'altar_vampira', 'altar_ciclope', 'altar_segador', 'altar_golem', 'altar_hades']) if (!this.textures.exists(`${n}_hoja`)) this.load.spritesheet(`${n}_hoja`, `assets/enemigos/${n}.png`, { frameWidth: 64, frameHeight: 64 });
       const hoja = (key, url) => { if (!this.textures.exists(key)) this.load.spritesheet(key, url, { frameWidth: 64, frameHeight: 64 }); };
-      for (const p of PERSONAJES) for (const a of TEX_ARMADURA) hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
+      // personajes: al entrar solo se descargan todas las armaduras del tuyo y la versión básica de los demás;
+      // las otras armaduras se piden recién cuando un compañero aparece con ellas (ver asegurarPj)
+      for (const p of PERSONAJES) for (const a of TEX_ARMADURA) if (!S || p.id === S.pj || a === 'nada') hoja(`pj_${p.id}_${a}`, `assets/pj/${p.id}_${a}.png`);
       for (const c of ['hacha_male', 'hacha_thin', 'pico_male', 'pico_thin', 'espada_fg', 'espada_bg', 'espada2_fg', 'espada2_bg', 'espada3_fg', 'espada3_bg', 'espada4_fg', 'espada4_bg', 'espada5_fg', 'espada5_bg', 'espada6_fg', 'espada6_bg']) hoja(`capa_${c}`, `assets/capas/${c}.png`);
     }
 
     create() {
       escena = this;
+      // «Sin sacudidas»: la cámara no tiembla con golpes ni explosiones (accesibilidad)
+      { const cam = this.cameras.main, sh = cam.shake.bind(cam); cam.shake = (...a) => (document.body.classList.contains('sin-sacudidas') ? cam : sh(...a)); }
       this.crearTexturas();
       this.crearAnimaciones();
       this.obstaculos = this.physics.add.staticGroup();
@@ -9454,12 +9310,30 @@
     retrato(clase) { return this.textures.getBase64((ENEMIGOS[clase] && ENEMIGOS[clase].retrato) || clase); }
 
     crearAnimaciones() {
-      for (const p of PERSONAJES) for (const a of TEX_ARMADURA) {
-        for (const [d, fila] of Object.entries(DIRS)) {
-          const key = `pj_${p.id}_${a}_${d}`;
-          if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(`pj_${p.id}_${a}`, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
-        }
+      for (const p of PERSONAJES) for (const a of TEX_ARMADURA) this.animarPj(`pj_${p.id}_${a}`);
+    }
+    animarPj(tex) {
+      if (!this.textures.exists(tex)) return;
+      for (const [d, fila] of Object.entries(DIRS)) {
+        const key = `${tex}_${d}`;
+        if (!this.anims.exists(key)) this.anims.create({ key, frames: this.anims.generateFrameNumbers(tex, { start: fila * 9 + 1, end: fila * 9 + 8 }), frameRate: 12, repeat: -1 });
       }
+    }
+    // Descarga bajo demanda la hoja de un personaje con armadura; llama a «listo» cuando está disponible
+    asegurarPj(tex, listo) {
+      if (this.textures.exists(tex)) return true;
+      const m = /^pj_(.+)_([a-z]+)$/.exec(tex); if (!m) return false;
+      const esperan = this.pjEsperan || (this.pjEsperan = {});
+      if (esperan[tex]) { if (listo) esperan[tex].push(listo); return false; }
+      esperan[tex] = listo ? [listo] : [];
+      this.load.spritesheet(tex, `assets/pj/${m[1]}_${m[2]}.png`, { frameWidth: 64, frameHeight: 64 });
+      this.load.once(`filecomplete-spritesheet-${tex}`, () => {
+        this.animarPj(tex);
+        const l = esperan[tex] || []; delete esperan[tex];
+        l.forEach((f) => { try { f(); } catch (e) { /* el sprite ya no existe */ } });
+      });
+      if (!this.load.isLoading()) this.load.start();
+      return false;
     }
 
     // ---------- utilidades de construcción ----------
@@ -11331,7 +11205,7 @@
         sp.setDepth(sp.y);
         this.marcar(p[0], p[1]);
         const e = this.nuevoEnemigo('muneco', sp, { despierto: false, k: `n${i}` });
-        this.enemigos.push(e); this.temblarMuneco(e, i);
+        this.enemigos.push(e);
         i++;
       }
       if (M.cima) this.crearCima();
@@ -11452,13 +11326,16 @@
     quitarZonaJefe() { if (this.jefeZona) { this.obstaculos.remove(this.jefeZona, true, true); this.jefeZona = null; } }
     nuevoEnemigo(clase, s, extra = {}) {
       const E = ENEMIGOS[clase];
-      return { clase, s, vida: E.vida, vidaMax: E.vida, origen: { x: s.x, y: s.y }, activo: true, aturdido: 0, ...extra };
+      const e = { clase, s, vida: E.vida, vidaMax: E.vida, origen: { x: s.x, y: s.y }, activo: true, aturdido: 0, ...extra };
+      if (E.oculto && !e.despierto) this.time.delayedCall(0, () => this.temblarEscondido(e));
+      return e;
     }
 
     // ---------- jugador ----------
     crearJugador() {
       if (S.herramienta === 'pico' && !tiene('pico')) S.herramienta = 'hacha';
-      this.jugador = this.physics.add.sprite(this.inicio.x, this.inicio.y, `pj_${S.pj}_${texArmadura(S.armadura)}`, DIRS.down * 9);
+      const texJ = `pj_${S.pj}_${texArmadura(S.armadura)}`;
+      this.jugador = this.physics.add.sprite(this.inicio.x, this.inicio.y, this.textures.exists(texJ) ? texJ : `pj_${S.pj}_nada`, DIRS.down * 9);
       this.jugador.setOrigin(0.5, 0.9);
       this.jugador.body.setSize(18, 10).setOffset(23, 50);
       this.jugador.setCollideWorldBounds(true);
@@ -11550,7 +11427,9 @@
       return { atras: this.add.sprite(0, 0, 'capa_espada_bg', 0).setOrigin(0.5, 0.9).setVisible(false), mano: this.add.sprite(0, 0, 'capa_hacha_male', 0).setOrigin(0.5, 0.9).setVisible(false) };
     }
     vestir(base, capas, pj, armadura, mano, arma) {
-      const key = `pj_${pj}_${texArmadura(armadura)}`;
+      let key = `pj_${pj}_${texArmadura(armadura)}`;
+      if (!this.asegurarPj(key, () => { if (base.active) this.vestir(base, capas, pj, armadura, mano, arma); })) key = `pj_${pj}_nada`;
+      if (!this.textures.exists(key)) return;
       if (base.texture.key !== key) { base.anims.stop(); base.setTexture(key, Number(base.frame.name) || 0); }
       const propia = armaPropia(pj);
       const espada = !propia && mano === 'espada' && ARMAS[arma];
@@ -11764,12 +11643,15 @@
       e.despierto = false;
       this.tweens.killTweensOf(e.s);
       if (E.anim) { e.s.anims.stop(); e.s.setTexture(E.tex).setOrigin(0.5, 1).setScale(2); } else e.s.setTexture(E.tex).setScale(2);
-      this.temblarMuneco(e, 0);
+      this.temblarEscondido(e);
     }
-    // los muñecos de nieve escondidos «respiran»: el montón tiembla un poco para que se puedan encontrar
-    temblarMuneco(e, i) {
-      if (e.clase !== 'muneco') return;
-      this.tweens.add({ targets: e.s, scaleX: 2.12, scaleY: 1.9, duration: 650, yoyo: true, repeat: -1, repeatDelay: 1400, delay: (i % 5) * 330, ease: 'Sine.inOut' });
+    // todo enemigo escondido (muñeco de nieve, duende, escorpión, gólem, raíz, momia…) «respira»:
+    // su disfraz tiembla un poco cada tanto, así se distingue de la decoración y se puede encontrar
+    temblarEscondido(e) {
+      const E = ENEMIGOS[e.clase];
+      if (!E || !E.oculto || e.despierto || !e.s || !e.s.active) return;
+      const bx = e.s.scaleX, by = e.s.scaleY;
+      this.tweens.add({ targets: e.s, scaleX: bx * 1.06, scaleY: by * 0.95, duration: 650, yoyo: true, repeat: -1, repeatDelay: 1400 + Math.floor(Math.random() * 900), delay: Math.floor(Math.random() * 1600), ease: 'Sine.inOut' });
     }
     golpeEnemigo(e, n) {
       this.flotante(e.s.x, e.s.y - 36, `−${n}`, '#ffd27a');

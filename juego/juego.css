@@ -1867,3 +1867,9 @@ body.movil .mj-num { width: 48px; height: 48px; font-size: 21px; }
 .marco-gigante { box-shadow: 0 0 0 3px #d39bff, 0 0 18px #6b2fa0 !important; }
 .mj-signo { min-width: 44px; min-height: 44px; border-radius: 12px; border: 2px solid var(--mz); background: rgba(0, 0, 0, .35); color: #fff; font: 700 22px "Fredoka", "Nunito", sans-serif; cursor: pointer; }
 .mj-signo:active { transform: scale(.94); }
+/* ---------- Evento semanal, práctica por tema, cofre transparente y reto en pareja ---------- */
+.tarjeta-mision.evento-semana { border-color: #ffd27a; background: linear-gradient(135deg, rgba(255, 210, 122, .14), rgba(0, 0, 0, 0)); }
+.tarjeta-mision.pareja { border-color: var(--teal); }
+.prog-repasar .btn.mini { margin: 2px 4px 2px 0; }
+.hist-personas li { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+.pareja-modal .alt[aria-pressed="true"] { border-color: #ffd27a; background: #3d3418; }

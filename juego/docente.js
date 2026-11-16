@@ -555,6 +555,8 @@
     const d = a.detalle || {}, f = new Date(a.t).toLocaleString('es-CL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
     return a.tipo === 'nivel' ? `${f}: intentó pasar del nivel ${d.antes} al ${d.ahora} en ${d.seg} s`
       : a.tipo === 'respuestas' ? `${f}: intentó sumar ${d.ahora - d.antes} respuestas en ${d.seg} s`
+      : a.tipo === 'recursos' ? `${f}: intentó sumar ${Math.round(d.ahora - d.antes)} recursos en ${d.seg} s`
+      : a.tipo === 'cofre' ? `${f}: intentó depositar ${d.deposito} recursos de una vez en el cofre del grupo (máximo posible: ${d.tope})`
       : `${f}: envió más aciertos que intentos en un tema`;
   };
   function alertasHTML(e) {
@@ -564,9 +566,12 @@
       <ul class="errores-escritos">${l.slice(0, 5).map((a) => `<li>${esc(textoAlerta(a))}</li>`).join('')}</ul></div>`;
   }
   // ---------- Errores típicos: qué alternativa incorrecta eligen ----------
+  // tipo de error que el juego reconoce en la respuesta equivocada (ver diagnosticoError en juego.js)
+  const TIPOS_ERROR = { signo: 'signos', coma: 'posición de la coma o ceros', inversa: 'fracción invertida', doble: 'doble o mitad', potencia: 'cuadrado y raíz', cerca: 'cálculo final' };
+  const tipoErrorHTML = (x) => (x && x.t && TIPOS_ERROR[x.t] ? ` <span class="pill">${esc(TIPOS_ERROR[x.t])}</span>` : '');
   function erroresAltHTML(e) {
     const E = (e.progreso || {}).errAlt || {}, nivel = nivelDe(e);
-    const filas = Object.entries(E).filter(([, l]) => l && l.length).map(([k, l]) => `<li><b>${esc(nombreTema(nivel, k).titulo)}:</b> ${l.map((x) => `«${esc(x.e)}» → eligió <code>${esc(x.r)}</code>`).join(' · ')}</li>`);
+    const filas = Object.entries(E).filter(([, l]) => l && l.length).map(([k, l]) => `<li><b>${esc(nombreTema(nivel, k).titulo)}:</b> ${l.map((x) => `«${esc(x.e)}» → eligió <code>${esc(x.r)}</code>${tipoErrorHTML(x)}`).join(' · ')}</li>`);
     return filas.length ? `<h4>Alternativas incorrectas que eligió</h4><p class="muted">Últimos errores por tema: muestran el razonamiento equivocado detrás de la respuesta.</p><ul class="errores-escritos">${filas.join('')}</ul>` : '';
   }
   function erroresCursoHTML(lista, temas, nivel) {
@@ -579,8 +584,12 @@
       // las respuestas equivocadas más repetidas primero
       const cuenta = {}; ej.forEach((x) => { cuenta[x.r] = (cuenta[x.r] || 0) + 1; });
       const rep = Object.entries(cuenta).filter(([, n]) => n >= 2).sort((a, b) => b[1] - a[1]).slice(0, 3);
-      return `<li><b>${esc(t.titulo)}</b> <span class="muted">(${t.pct} % de acierto)</span>${rep.length ? `<br><span class="muted">Respuestas equivocadas que más se repiten:</span> ${rep.map(([r, n]) => `<code>${esc(r)}</code> ×${n}`).join(' · ')}` : ''}
-        <ul>${ej.slice(-5).map((x) => `<li>«${esc(x.e)}» → <code>${esc(x.r)}</code></li>`).join('')}</ul></li>`;
+      // qué tipo de error predomina en el tema (signos, coma, fracción invertida…)
+      const tipos = {}; ej.forEach((x) => { if (x.t && TIPOS_ERROR[x.t]) tipos[x.t] = (tipos[x.t] || 0) + 1; });
+      const conTipo = Object.values(tipos).reduce((a, b) => a + b, 0);
+      const tipoTxt = conTipo >= 2 ? `<br><span class="muted">Error más común:</span> ${Object.entries(tipos).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k, n]) => `<b>${esc(TIPOS_ERROR[k])}</b> (${Math.round((100 * n) / ej.length)} %)`).join(' · ')}` : '';
+      return `<li><b>${esc(t.titulo)}</b> <span class="muted">(${t.pct} % de acierto)</span>${rep.length ? `<br><span class="muted">Respuestas equivocadas que más se repiten:</span> ${rep.map(([r, n]) => `<code>${esc(r)}</code> ×${n}`).join(' · ')}` : ''}${tipoTxt}
+        <ul>${ej.slice(-5).map((x) => `<li>«${esc(x.e)}» → <code>${esc(x.r)}</code>${tipoErrorHTML(x)}</li>`).join('')}</ul></li>`;
     }).filter(Boolean);
     return `<h2>🔎 Errores típicos del curso</h2><span class="muted">En los temas con menor acierto, qué preguntaron y qué respondieron mal: sirve para ver el error conceptual y retomarlo en la pizarra.</span>
       ${bloques.length ? `<ul class="errores-escritos">${bloques.join('')}</ul>` : '<p class="muted">Aún no hay errores registrados: se empiezan a guardar desde esta actualización, a medida que los estudiantes jueguen.</p>'}`;

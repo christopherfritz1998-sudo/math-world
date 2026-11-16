@@ -60,8 +60,8 @@ begin
     if l.caidas >= 2 then return (mw_trotamundos_estado(c, p_n, id_e, vida)::jsonb || '{"ok": false, "error": "sin_intentos"}'::jsonb)::json; end if;
     update trotamundos_luchas set luchando = true where curso = c and n = p_n and estudiante_id = id_e;
   elsif p_accion = 'golpe' then
-    -- solo quien está luchando, como máximo un golpe cada 0,8 s y de 1 a 8 de daño
-    if l.luchando and t.derrotado is null and l.ultimo < now() - interval '800 milliseconds' then
+    -- solo quien está luchando, como máximo un golpe cada 1,2 s y de 1 a 8 de daño
+    if l.luchando and t.derrotado is null and l.ultimo < now() - interval '1200 milliseconds' then
       update trotamundos_luchas set golpes = golpes + least(greatest(coalesce(p_dano, 1), 1), 8), ultimo = now()
         where curso = c and n = p_n and estudiante_id = id_e;
       update trotamundos set dano = dano + least(greatest(coalesce(p_dano, 1), 1), 8) where curso = c and n = p_n returning * into t;
