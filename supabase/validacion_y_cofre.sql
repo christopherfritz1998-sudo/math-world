@@ -153,3 +153,14 @@ begin
   where id = id_e;
   return true;
 end $$;
+
+-- ===================================================================
+-- Cofre personal + cofre del grupo (aplicado): cada jugador guarda lo que recolecta en su cofre personal
+-- (progreso->cofre, con progreso->cofreV2) y comparte con el grupo lo que quiera. Lo compartido viaja como
+-- depósito a mw_cofre_grupo2, cuyo tope ahora suma lo que el estudiante tiene en su cofre personal guardado;
+-- mw_guardar valida el cofre personal de todos los que ya lo tienen (cofreV2).
+-- Se aplicó reemplazando en las funciones de arriba:
+--   tope := least(20000, 1500 + coalesce(seg, 3600) * 8)::bigint + coalesce((select sum(...) from estudiantes e2,
+--           jsonb_each(e2.progreso->'cofre') x where e2.id = id_e and e2.progreso ? 'cofreV2'), 0);
+--   elsif (p_progreso->>'cofreGrupo' is null and viejo->>'cofreGrupo' is null) or (p_progreso ? 'cofreV2' and viejo ? 'cofreV2') then
+-- ===================================================================

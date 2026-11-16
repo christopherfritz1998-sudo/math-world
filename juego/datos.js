@@ -255,6 +255,7 @@ window.MWDatos = (function () {
   // Reportar un problema y Novedades (ideas para el profesor)
   // ===================================================================
   const NOVEDADES = [
+    ['📦', 'Cofre personal y cofre del grupo', 'Lo que recolectas queda en tu cofre. Desde tu Equipo (Q) puedes compartir recursos con tu grupo: lo compartido lo puede usar cualquiera para fabricar.'],
     ['🤝', 'Reto en pareja', 'En tus Misiones: uno calcula y el otro verifica. Si aciertan 4 de 6, ¡ambos ganan premio!'],
     ['🔍', 'Tu error, explicado', 'Al equivocarte, el paso a paso ahora te dice qué se te pasó: el signo, la coma, la fracción invertida…'],
     ['✏️', 'Practicar un tema', 'En Mi progreso (tecla P), cada tema tiene un botón para practicarlo. Los temas dominados vuelven a repasarse cada cierto tiempo.'],

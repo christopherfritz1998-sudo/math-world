@@ -1873,3 +1873,10 @@ body.movil .mj-num { width: 48px; height: 48px; font-size: 21px; }
 .prog-repasar .btn.mini { margin: 2px 4px 2px 0; }
 .hist-personas li { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
 .pareja-modal .alt[aria-pressed="true"] { border-color: #ffd27a; background: #3d3418; }
+/* ---------- Cofre personal + cofre del grupo ---------- */
+.recurso b .rg, .rot .rg { font-style: normal; font-size: .72em; color: #8fe3c9; margin-left: 3px; font-weight: 600; }
+.compartir-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+.compartir-form select { flex: 1 1 180px; min-height: 40px; }
+.compartir-form input { width: 90px; min-height: 40px; text-align: center; }
+.equipo-recursos .obj .btn.mini[data-compartir] { margin-top: 4px; padding: 2px 8px; }
+.equipo-recursos.cofre-grupo { border-color: var(--teal); }

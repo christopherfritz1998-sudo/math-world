@@ -366,21 +366,26 @@
   const vidaMax = () => 5 + (S.armadura && ARMADURAS[S.armadura] ? ARMADURAS[S.armadura].vida : 0) + (tiene('cantimplora') ? 1 : 0) + (tiene('casco') ? 1 : 0) + (tiene('abrigo') ? 1 : 0) + talento('vitalidad') + (S.reliquia === 'corazon' ? 2 : 0) + (estrellasAsc() >= 3 ? 1 : 0);
   const danio = () => (S.arma && ARMAS[S.arma] ? ARMAS[S.arma].danio : 1) + talento('fuerza') + (S.reliquia === 'ojo' ? 1 : 0) + (estrellasAsc() >= 6 ? 1 : 0);
   const esDocente = () => Boolean(S && S.docente);
-  const total = (r) => (esDocente() ? Infinity : (S.mochila[r] || 0) + (S.cofre[r] || 0));
+  // Cada jugador tiene su cofre personal (S.cofre). Además, en la base, puede usar lo que su grupo compartió
+  // en el cofre del grupo (S.cofreG): al pagar se usa primero lo propio y después lo del grupo.
+  const cofreDelGrupo = () => (cofreComunitario() && S.cofreG && enCasa() ? S.cofreG : null);
+  const total = (r) => { if (esDocente()) return Infinity; const G = cofreDelGrupo(); return (S.mochila[r] || 0) + (S.cofre[r] || 0) + (G ? G[r] || 0 : 0); };
   const alcanza = (costo) => Object.entries(costo).every(([r, n]) => total(r) >= n);
   function pagar(costo) {
     if (esDocente()) return;
+    const G = cofreDelGrupo();
     for (const [r, n] of Object.entries(costo)) {
-      const delCofre = Math.min(S.cofre[r] || 0, n);
-      S.cofre[r] -= delCofre;
-      S.mochila[r] -= n - delCofre;
+      let falta = n;
+      const delCofre = Math.min(S.cofre[r] || 0, falta); S.cofre[r] = (S.cofre[r] || 0) - delCofre; falta -= delCofre;
+      if (G && falta > 0) { const delGrupo = Math.min(G[r] || 0, falta); G[r] = (G[r] || 0) - delGrupo; falta -= delGrupo; }
+      S.mochila[r] = (S.mochila[r] || 0) - falta;
     }
   }
 
-  // ---------- Cofre comunitario del grupo ----------
-  // S.cofre es la copia local del cofre que comparte todo el grupo. S.cofreSnap es el total que informó el servidor
-  // la última vez y S.cofreEnv el envío pendiente {n, d}: solo viaja la diferencia (lo depositado o gastado),
-  // así cualquier parte del juego sigue sumando o gastando del cofre como siempre y el grupo lo ve en segundos.
+  // ---------- Cofre del grupo (además del cofre personal) ----------
+  // S.cofreG es la copia local del cofre que comparte todo el grupo. S.cofreSnap es el total que informó el servidor
+  // la última vez y S.cofreEnv el envío pendiente {n, d}: solo viaja la diferencia (lo compartido o lo gastado).
+  // Lo personal (S.cofre) no viaja aquí: cada uno decide qué compartir con su grupo desde su Equipo.
   const cofreCom = { enviando: false, ult: 0, top: [], aviso: false };
   const cofreComunitario = () => Boolean(S && !esDocente() && sesion.modo === 'nube' && sesion.grupo && cursoCanal() !== 'INV' && window.Nube && Nube.cofreGrupo);
   const cerosCofre = () => Object.fromEntries(RECURSOS.map((r) => [r.id, 0]));
@@ -397,24 +402,46 @@
       const tot = (l) => l.reduce((s, [, n]) => s + Math.abs(n), 0);
       const txt = (l) => l.slice(0, 3).map(([k, n]) => `${Math.abs(n)} ${nombreRec(k)}`).join(', ');
       if (tot(usa) >= 15) frases.push(`${esc(m.nombre)} usó ${txt(usa)}`);
-      if (tot(pone) >= 15) frases.push(`${esc(m.nombre)} depositó ${txt(pone)}`);
+      if (tot(pone) >= 15) frases.push(`${esc(m.nombre)} compartió ${txt(pone)}`);
     }
     if (frases.length) toast(`📦 Cofre del grupo: ${frases.slice(0, 2).join(' · ')}.`);
   }
+  // Paso al cofre personal: antes S.cofre era la copia del cofre del grupo. Esa copia pasa a S.cofreG (nada se pierde:
+  // todo lo que había sigue en el cofre del grupo) y el cofre personal empieza vacío, para llenarse con lo que recolectes.
+  function migrarCofrePersonal() {
+    if (!S || S.cofreV2) return;
+    if (S.cofreGrupo) { S.cofreG = { ...cerosCofre(), ...S.cofre }; S.cofre = cerosCofre(); cofreCom.avisoV2 = true; }
+    S.cofreV2 = true; S.cofreIni = false; guardar(true);
+  }
+  // Compartir recursos del cofre personal con el cofre del grupo
+  function compartirConGrupo(r, n) {
+    if (!cofreComunitario() || !enCasa()) return toast('Solo puedes compartir desde tu base, con un grupo.', 'alerta');
+    n = Math.max(0, Math.min(Math.floor(n) || 0, S.cofre[r] || 0));
+    if (!n) return;
+    S.cofre[r] -= n;
+    S.cofreG = S.cofreG || cerosCofre(); S.cofreG[r] = (S.cofreG[r] || 0) + n;
+    S.donPend = S.donPend || {}; S.donPend[r] = (S.donPend[r] || 0) + n;   // si el servidor lo rechazara, vuelve a tu cofre
+    S.compartido = (S.compartido || 0) + n;
+    contar('compartido', n);
+    ganarXP(Math.min(15, Math.ceil(n / 5)));
+    sfx('logro'); guardar(true); pintarHUD();
+    toast(`🤝 Compartiste ${n} ${nombreRec(r)} con el Grupo ${sesion.grupo}. ¡Gracias por apoyar a tu equipo!`);
+    sincronizarCofre(true);
+  }
   async function sincronizarCofre(forzar = false) {
     if (!cofreComunitario() || cofreCom.enviando || juegoCerrado) return;
+    migrarCofrePersonal();
     const clave = `${cursoCanal()}-${sesion.grupo}`;
     if (S.cofreGrupo !== clave) {
-      const primera = !S.cofreGrupo;
-      if (!primera) S.cofre = { ...S.cofre, ...cerosCofre() };   // cambio de grupo: lo aportado queda en el cofre del grupo anterior
-      S.cofreGrupo = clave; S.cofreSnap = cerosCofre(); S.cofreEnv = null; S.cofreIni = true;   // primera vez: todo tu cofre se suma al del grupo (no cuenta para pedidos)
-      if (primera) cofreCom.aviso = true;
+      // primera vez en un grupo o cambio de grupo: se parte con el cofre del grupo nuevo; lo tuyo sigue en tu cofre personal
+      S.cofreGrupo = clave; S.cofreG = cerosCofre(); S.cofreSnap = cerosCofre(); S.cofreEnv = null; S.cofreIni = false; S.donPend = {};
     }
+    if (!S.cofreG) S.cofreG = cerosCofre();
     if (!S.cofreSnap) S.cofreSnap = cerosCofre();
     if (!S.cofreEnv) {
       const d = {};
-      for (const r of RECURSOS) { const x = Math.round((S.cofre[r.id] || 0) - (S.cofreSnap[r.id] || 0)); if (x) d[r.id] = x; }
-      if (Object.keys(d).length) { S.cofreSeq = (S.cofreSeq || 0) + 1; S.cofreEnv = { n: S.cofreSeq, d, ini: Boolean(S.cofreIni) }; guardar(); }
+      for (const r of RECURSOS) { const x = Math.round((S.cofreG[r.id] || 0) - (S.cofreSnap[r.id] || 0)); if (x) d[r.id] = x; }
+      if (Object.keys(d).length) { S.cofreSeq = (S.cofreSeq || 0) + 1; S.cofreEnv = { n: S.cofreSeq, d, ini: false, don: S.donPend || {} }; S.donPend = {}; guardar(); }
     }
     if (!S.cofreEnv && !forzar && Date.now() - cofreCom.ult < 15000) return;
     const env = S.cofreEnv;
@@ -429,21 +456,24 @@
     if (!r || !r.ok || !S || S.cofreGrupo !== clave || S.cofreEnv !== env) return;
     cofreCom.ult = Date.now(); cofreCom.top = Array.isArray(r.top) ? r.top : [];
     avisarMovsCofre(r.movs);
-    if (r.rechazado) toast('⚠️ El cofre del grupo no aceptó un depósito demasiado grande para el tiempo jugado.', 'alerta');
+    if (r.rechazado) {
+      // lo compartido vuelve a tu cofre personal: no se pierde nada
+      Object.entries((env && env.don) || {}).forEach(([k, n]) => { S.cofre[k] = (S.cofre[k] || 0) + n; });
+      toast('⚠️ El cofre del grupo no aceptó lo que compartiste (era demasiado de una vez). Volvió a tu cofre personal.', 'alerta');
+    }
     const tot = r.recursos || {};
     for (const x of RECURSOS) {
       const t = Math.max(0, Math.floor(Number(tot[x.id]) || 0));
-      const pend = (S.cofre[x.id] || 0) - (S.cofreSnap[x.id] || 0) - ((env && env.d[x.id]) || 0);   // lo que cambió mientras viajaba el envío
-      S.cofre[x.id] = Math.max(0, t + pend); S.cofreSnap[x.id] = t;
+      const pend = (S.cofreG[x.id] || 0) - (S.cofreSnap[x.id] || 0) - ((env && env.d[x.id]) || 0);   // lo que cambió mientras viajaba el envío
+      S.cofreG[x.id] = Math.max(0, t + pend); S.cofreSnap[x.id] = t;
     }
-    if (env && env.ini) S.cofreIni = false;
     S.cofreEnv = null;
     guardar(); pintarHUD();
     if (Array.isArray(r.pedidos)) actualizarPedidos(r.pedidos);
     if (r.ayude > 0) premioAyuda(r.ayude);
-    if (cofreCom.aviso) {
-      cofreCom.aviso = false;
-      toast(`📦 ¡El cofre ahora es comunitario! Lo que tenías se sumó al cofre del Grupo ${sesion.grupo}: todos pueden usar los recursos que recolecta cada integrante. ¡Trabajen en equipo!`);
+    if (cofreCom.avisoV2) {
+      cofreCom.avisoV2 = false;
+      esperarYAbrir(() => avisoGrande('📦 ¡Ahora tienes cofre personal!', `Lo que recolectes queda en tu cofre. Todo lo que había sigue en el cofre del Grupo ${sesion.grupo}, y lo puedes seguir usando para fabricar.`, 'Desde tu Equipo (tecla Q) puedes compartir recursos con tu grupo'));
     }
   }
   setInterval(() => { if (S && escena && escena.jugador) sincronizarCofre(); }, 4000);
@@ -474,7 +504,7 @@
     const listos = (cofreCom.pedidos || []).filter((p) => p.cumplido).slice(0, 3);
     return `<section class="pedidos-grupo"><h3>📣 Pedidos al grupo</h3>
       ${abiertos.length ? `<ul class="ped-lista">${abiertos.map((p) => `<li><img class="px" src="${ICONO(p.recurso)}" alt=""><span><b>${p.mio ? 'Tú' : esc(p.nombre)}</b> ${p.mio ? 'pides' : 'pide'} ${p.cantidad} ${esc(nombreRec(p.recurso))}<i class="ped-barra"><i style="width:${Math.round((100 * p.entregado) / p.cantidad)}%"></i></i></span><small>${p.entregado}/${p.cantidad}</small>${p.mio ? `<button type="button" class="btn chico" data-ped-cancelar="${p.id}">Cancelar</button>` : ''}</li>`).join('')}</ul>`
-        : '<p class="nota">No hay pedidos abiertos. Si necesitas un recurso para fabricar algo, pídelo: lo que tus compañeros depositen en el cofre irá completando tu pedido.</p>'}
+        : '<p class="nota">No hay pedidos abiertos. Si necesitas un recurso para fabricar algo, pídelo: lo que tus compañeros compartan en el cofre del grupo irá completando tu pedido.</p>'}
       ${listos.length ? `<p class="nota">✅ Cumplidos: ${listos.map((p) => `${p.cantidad} ${esc(nombreRec(p.recurso))} para ${p.mio ? 'ti' : esc(p.nombre)}${(p.ayudantes || []).length ? ` (gracias a ${esc(p.ayudantes.slice(0, 3).join(', '))})` : ''}`).join(' · ')}</p>` : ''}
       <div class="ped-form"><select id="ped-rec" aria-label="Recurso que pides">${recursosVisibles().map((r) => `<option value="${r.id}">${esc(r.nombre)}</option>`).join('')}</select>
         <select id="ped-n" aria-label="Cantidad">${[10, 20, 40, 80].map((n) => `<option value="${n}">${n}</option>`).join('')}</select>
@@ -494,7 +524,7 @@
       return;
     }
     actualizarPedidos(r.pedidos || []);
-    if (!cancelar) { avanzarMision('pedido'); toast('📣 Pedido enviado: tus compañeros lo verán en sus misiones. Lo que depositen en el cofre irá completándolo.'); }
+    if (!cancelar) { avanzarMision('pedido'); toast('📣 Pedido enviado: tus compañeros lo verán en sus misiones. Lo que compartan en el cofre del grupo irá completándolo.'); }
     if (ui.abierto) abrirEquipo();
   });
   document.addEventListener('toggle', async (ev) => {
@@ -1357,7 +1387,7 @@
   function recursosVisibles() {
     if (escena && MUNDOS[escena.zona]) return recursosDe(escena.zona);
     const grupos = new Set(['u1', 'u1p']);
-    for (const r of RECURSOS) if ((S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0) grupos.add(r.grupo);
+    for (const r of RECURSOS) if ((S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) + ((S.cofreG || {})[r.id] || 0) > 0) grupos.add(r.grupo);
     for (const z of Object.keys(MUNDOS)) if (MUNDOS[z].recursos && mundoAbierto({ id: z, habilitada: false })) grupos.add(MUNDOS[z].recursos);
     for (const g of [...grupos]) if (SUBZONA[g]) grupos.add(SUBZONA[g]);
     return RECURSOS.filter((r) => grupos.has(r.grupo));
@@ -1376,11 +1406,12 @@
     $('hud-zona').textContent = escena ? nombreZona(escena.zona) : '';
     const fuente = enBase ? S.cofre : S.mochila;
     const lista = recursosVisibles();
+    const G = enBase && cofreComunitario() ? S.cofreG || {} : null;
     $('hud-recursos').classList.toggle('muchos', lista.length > 4);
-    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? (cofreComunitario() ? `Cofre del grupo ${sesion.grupo}` : 'Cofre') : 'Mochila'}</span>` + lista.map((r) => `
-      <div class="recurso" data-r="${r.id}" title="${esc(r.nombre)}">
+    $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? (G ? `Tu cofre · <i class="rg">+grupo ${sesion.grupo}</i>` : 'Cofre') : 'Mochila'}</span>` + lista.map((r) => `
+      <div class="recurso" data-r="${r.id}" title="${esc(r.nombre)}${G ? `: ${fuente[r.id] || 0} en tu cofre y ${G[r.id] || 0} en el cofre del grupo` : ''}">
         <img class="px" src="${ICONO(r.id)}" alt="">
-        <span><small>${r.corto || r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}</b></span>
+        <span><small>${r.corto || r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}${G && G[r.id] ? `<i class="rg">+${G[r.id]}</i>` : ''}</b></span>
       </div>`).join('');
     const ranuras = [
       { id: 'hacha', icono: 'axe', tecla: '1', ok: true, nombre: tiene('hacha2') ? 'Hacha de hierro' : 'Hacha' },
@@ -1450,16 +1481,24 @@
     const comun = enBase && cofreComunitario();
     if (comun) sincronizarCofre(true);
     const topCofre = comun && cofreCom.top.length ? `<p class="nota cofre-top">🤝 Más aportes al cofre: ${cofreCom.top.map((x) => `${x.yo ? '<b>' : ''}${esc(x.nombre)} (${x.aportado})${x.yo ? '</b>' : ''}`).join(' · ')}</p>` : '';
-    const recursosEq = `<section class="equipo-recursos"><h3>${comun ? `📦 Cofre comunitario del Grupo ${sesion.grupo}` : enBase ? '📦 Recursos en tu cofre' : '🎒 Recursos en tu mochila'}</h3>
-      ${comun ? '<p class="nota">Todo el grupo comparte este cofre: lo que cada uno trae de los mundos lo pueden usar todos para fabricar y construir.</p>' : ''}${topCofre}
-      ${comun && Nube.pedido ? pedidosHTML() : ''}
+    const G = S.cofreG || {}, recsG = recursosVisibles().filter((r) => (G[r.id] || 0) > 0);
+    const objs = (l, f, comp) => `<div class="objetos">${l.map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${f[r.id]}</small>${comp ? `<button type="button" class="btn mini" data-compartir="${r.id}" title="Compartir ${esc(r.nombre.toLowerCase())} con el grupo">🤝</button>` : ''}</div>`).join('')}</div>`;
+    const recursosEq = `<section class="equipo-recursos"><h3>${enBase ? '📦 Tu cofre personal' : '🎒 Recursos en tu mochila'}</h3>
+      ${comun ? '<p class="nota">Lo que recolectas es tuyo. Toca 🤝 en un recurso (o usa el formulario) para compartirlo con tu grupo: lo que está en el cofre del grupo lo puede usar cualquiera para fabricar y construir.</p>' : ''}
       ${esDocente() ? '<p class="nota">Docente: recursos ilimitados.</p>'
-        : recs.length ? `<div class="objetos">${recs.map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${fuente[r.id]}</small></div>`).join('')}</div>`
-        : `<p class="nota">${enBase ? 'Tu cofre está vacío: lo que recolectes en los mundos se guarda aquí al volver a la base.' : 'Aún no llevas recursos: tala, pica o recolecta en este mundo.'}</p>`}</section>`;
+        : recs.length ? objs(recs, fuente, comun)
+        : `<p class="nota">${enBase ? 'Tu cofre está vacío: lo que recolectes en los mundos se guarda aquí al volver a la base.' : 'Aún no llevas recursos: tala, pica o recolecta en este mundo.'}</p>`}
+      ${comun && recs.length ? `<div class="compartir-form"><select id="cp-rec" aria-label="Recurso que compartes">${recs.map((r) => `<option value="${r.id}">${esc(r.nombre)} (tienes ${fuente[r.id]})</option>`).join('')}</select>
+        <input id="cp-n" type="number" min="1" value="10" aria-label="Cantidad que compartes"><button type="button" class="btn" id="cp-todo">Todo</button>
+        <button type="button" class="btn pri" id="cp-ok">🤝 Compartir con el grupo</button></div>` : ''}</section>
+      ${comun ? `<section class="equipo-recursos cofre-grupo"><h3>🤝 Cofre del Grupo ${sesion.grupo}</h3>
+        <p class="nota">Lo que tu grupo comparte. Al fabricar se usa primero tu cofre y, si falta, lo del grupo.</p>${topCofre}
+        ${recsG.length ? objs(recsG, G, false) : '<p class="nota">El cofre del grupo está vacío: ¡sé el primero en compartir!</p>'}
+        ${Nube.pedido ? pedidosHTML() : ''}</section>` : ''}`;
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Tu personaje</span><h2 id="modal-titulo">Equipo</h2></div><button type="button" class="btn" id="eq-cerrar">Cerrar</button></div>
       ${recursosEq}
-      ${!enBase && !esDocente() ? `<section class="equipo-recursos"><h3>📦 ${cofreComunitario() ? 'Cofre del grupo' : 'Tu cofre'} <small class="nota">(está en la base: aquí solo puedes mirarlo)</small></h3>${recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0).length ? `<div class="objetos">${recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0).map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${S.cofre[r.id]}</small></div>`).join('')}</div>` : '<p class="nota">El cofre está vacío.</p>'}</section>` : ''}
+      ${!enBase && !esDocente() ? `<section class="equipo-recursos"><h3>📦 Tu cofre <small class="nota">(está en la base: aquí solo puedes mirarlo)</small></h3>${recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0).length ? `<div class="objetos">${recursosVisibles().filter((r) => (S.cofre[r.id] || 0) > 0).map((r) => `<div class="obj"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)}</span><small>${S.cofre[r.id]}</small></div>`).join('')}</div>` : '<p class="nota">El cofre está vacío.</p>'}</section>` : ''}
       <div class="equipo">
         <div class="equipo-vista">
           ${figuraHTML(S.pj, S.armadura, S.herramienta, S.arma, 160)}
@@ -1478,6 +1517,12 @@
         </div>
       </div>`);
     $('eq-cerrar').addEventListener('click', () => ui.cerrar());
+    document.querySelectorAll('#modal [data-compartir]').forEach((b) => b.addEventListener('click', () => {
+      const r = b.dataset.compartir, sel = $('cp-rec'); if (sel) { sel.value = r; const n = $('cp-n'); if (n) { n.value = String(Math.min(10, S.cofre[r] || 0)); n.focus(); } }
+    }));
+    const cpTodo = $('cp-todo'); if (cpTodo) cpTodo.addEventListener('click', () => { $('cp-n').value = String(S.cofre[$('cp-rec').value] || 0); });
+    const cpOk = $('cp-ok'); if (cpOk) cpOk.addEventListener('click', () => { compartirConGrupo($('cp-rec').value, Number($('cp-n').value)); abrirEquipo(); });
+    const cpN = $('cp-n'); if (cpN) cpN.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') cpOk.click(); });
     document.querySelectorAll('[data-poner]').forEach((b) => b.addEventListener('click', () => { ponerEquipo(b.dataset.poner); abrirEquipo(); }));
     document.querySelectorAll('[data-quitar]').forEach((b) => b.addEventListener('click', () => { quitarEquipo(b.dataset.quitar); abrirEquipo(); }));
     document.querySelectorAll('[data-mano]').forEach((b) => b.addEventListener('click', () => { equipar(b.dataset.mano); abrirEquipo(); }));
@@ -5019,7 +5064,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16';
+  const VERSION_JUEGO = '2026-11-16b';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -6386,7 +6431,7 @@
       ${S.diasSeguidos ? `<span class="nota">🔥 Racha actual: ${S.diasSeguidos} ${S.diasSeguidos === 1 ? 'día' : 'días'} seguidos (mejor: ${S.diasMax || S.diasSeguidos}).</span>` : ''}</section>`;
     if (!S.diagnostico && !esDocente()) h += '<section class="tarjeta-mision"><div class="fila"><strong>🧭 Diagnóstico inicial</strong><small>12 preguntas · sin nota</small></div><span class="nota">Ayuda al juego a saber qué reforzar contigo. Premio: 150 de experiencia y un cofre de recursos.</span><button type="button" class="btn pri chico" data-diag>Hacer el diagnóstico</button></section>';
     h += grupoSemanaModalHTML();
-    if (cofreComunitario() && (cofreCom.pedidos || []).some((p) => !p.cerrado)) h += `<section class="tarjeta-mision"><div class="fila"><strong>📣 Pedidos del grupo</strong><small>Deposita en el cofre de la base</small></div>${(cofreCom.pedidos || []).filter((p) => !p.cerrado).map((p) => `<div class="fila"><span>${p.mio ? 'Tú pides' : `${esc(p.nombre)} pide`} ${p.cantidad} ${esc(nombreRec(p.recurso))}</span><b>${p.entregado}/${p.cantidad}</b></div>`).join('')}<span class="nota">Cada recurso que lleves al cofre completa estos pedidos y te da experiencia. Para pedir algo, abre tu Equipo en la base.</span></section>`;
+    if (cofreComunitario() && (cofreCom.pedidos || []).some((p) => !p.cerrado)) h += `<section class="tarjeta-mision"><div class="fila"><strong>📣 Pedidos del grupo</strong><small>Compártelo desde tu Equipo, en la base</small></div>${(cofreCom.pedidos || []).filter((p) => !p.cerrado).map((p) => `<div class="fila"><span>${p.mio ? 'Tú pides' : `${esc(p.nombre)} pide`} ${p.cantidad} ${esc(nombreRec(p.recurso))}</span><b>${p.entregado}/${p.cantidad}</b></div>`).join('')}<span class="nota">Cada recurso que compartas con el grupo completa estos pedidos y te da experiencia. Para pedir algo, abre tu Equipo en la base.</span></section>`;
     return h;
   }
 
@@ -6814,7 +6859,7 @@
     for (const r of RECURSOS) {
       const n = S.cofre[r.id] || 0;
       // con el cofre comunitario el ladrón se lleva menos: el cofre es de todo el grupo
-      if (n >= 3) { const k = cofreComunitario() ? Math.min(25, Math.floor(n * 0.1)) : Math.min(80, Math.floor(n * 0.3)); if (k) { quitado[r.id] = k; S.cofre[r.id] = n - k; } }
+      if (n >= 3) { const k = Math.min(80, Math.floor(n * 0.3)); if (k) { quitado[r.id] = k; S.cofre[r.id] = n - k; } }
     }
     // a veces también se lleva un adorno o mueble (nunca exclusivos, trofeos ni la carpa)
     let mueble = null;
@@ -7315,9 +7360,9 @@
   }
   // Recursos recolectados (cofre + mochila): se muestran al fabricar
   function recursosFabricarHTML() {
-    const lista = RECURSOS.filter((r) => r.grupo === 'u1' || r.grupo === 'u1p' || recursosVisibles().includes(r) || (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0) > 0);
+    const lista = RECURSOS.filter((r) => r.grupo === 'u1' || r.grupo === 'u1p' || recursosVisibles().includes(r) || total(r.id) > 0);
     return `<section class="mis-recursos" aria-label="Tus recursos"><span class="etq">${esDocente() ? 'Tus recursos · docente: ilimitados' : 'Tus recursos recolectados'}</span>
-      <div class="lista">${lista.map((r) => `<div class="recurso-fab" title="${esc(r.nombre)}"><img class="px" src="${ICONO(r.id)}" alt=""><span><small>${esc(r.corto || r.nombre)}</small><b>${esDocente() ? '∞' : (S.cofre[r.id] || 0) + (S.mochila[r.id] || 0)}</b></span></div>`).join('')}</div></section>`;
+      <div class="lista">${lista.map((r) => `<div class="recurso-fab" title="${esc(r.nombre)}"><img class="px" src="${ICONO(r.id)}" alt=""><span><small>${esc(r.corto || r.nombre)}</small><b>${esDocente() ? '∞' : total(r.id)}</b></span></div>`).join('')}</div></section>`;
   }
   function abrirFabricar(pestana) {
     if (!pestana) pestana = escena && escena.zona === 'pieza' ? 'pieza' : 'equipo';
@@ -7519,9 +7564,7 @@
       S.vida = vidaMax();
       if (guardado.length) {
         const lista = guardado.map(([r, n]) => `+${n} ${nombreRec(r)}`).join(', ');
-        // en el cofre comunitario todo el grupo gasta: se avisa para que nadie piense que se perdió lo que trajo
-        setTimeout(() => toast(cofreComunitario() ? `📦 Depositaste en el cofre del Grupo ${sesion.grupo}: ${lista}. Tus compañeros también pueden usarlo (mira el historial del cofre en tu Equipo).` : `Guardaste en tu cofre: ${lista}.`), 600);
-        if (cofreComunitario()) setTimeout(() => sincronizarCofre(true), 1500);
+        setTimeout(() => toast(cofreComunitario() ? `📦 Guardaste en tu cofre personal: ${lista}. Si quieres apoyar a tu grupo, compártelos desde tu Equipo (Q).` : `Guardaste en tu cofre: ${lista}.`), 600);
       }
     }
     S.zona = zona;
@@ -7578,6 +7621,7 @@
   }
 
   function abrirCofre() {
+    if (cofreComunitario()) return abrirEquipo();   // con grupo: tu cofre personal, el del grupo y el botón para compartir
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Tu base</span><h2 id="modal-titulo">Cofre</h2></div><button type="button" class="btn" id="k-cerrar">Cerrar</button></div>
       <p class="nota">Aquí se guarda todo lo que traes de los mundos. Lo del cofre está a salvo aunque pierdas un combate.</p>
