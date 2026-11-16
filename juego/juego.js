@@ -268,7 +268,7 @@
   // Cada mundo puede tener una zona extra con recursos propios (Bosque profundo, Valle de la Esfinge)
   const SUBZONA = { u1: 'u1p', u2: 'u2v', u3: 'u3p', u4: 'u4c' };
   const recursosDe = (z) => { const g = (MUNDOS[z] && MUNDOS[z].recursos) || 'u1'; return RECURSOS.filter((r) => r.grupo === g || r.grupo === SUBZONA[g]); };
-  const nombreZona = (z) => (z === 'altar' ? 'El Altar de los Dioses' : z === 'base' ? 'Base del grupo' : z === 'pieza' ? (escena && escena.sala && escena.sala.tipo === 'comun' ? 'Carpa común' : escena && escena.sala && escena.sala.tipo === 'visita' ? `Casa de ${escena.sala.nombre}` : 'Tu casa') : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
+  const nombreZona = (z) => (z === 'altar' ? 'El Altar de los Dioses' : z === 'base' ? (visitaDoc ? `Base del Grupo ${visitaDoc.grupo} · ${cursoNombre(visitaDoc.curso)}` : 'Base del grupo') : z === 'pieza' ? (escena && escena.sala && escena.sala.tipo === 'comun' ? 'Carpa común' : escena && escena.sala && escena.sala.tipo === 'visita' ? `Casa de ${escena.sala.nombre}` : 'Tu casa') : typeof MUNDOS[z].nombre === 'string' ? MUNDOS[z].nombre : MUNDOS[z].nombre[S.curso]);
 
   // Curva de experiencia: crece hasta el nivel 14 y desde ahí cada nivel cuesta lo mismo (620 XP),
   // para que el nivel 100 sea alcanzable dentro de un año escolar.
@@ -1376,6 +1376,7 @@
     setTimeout(() => latir(), 1500);
     if (guardado.length) trasCarga(() => toast(`Volviste a tu base. Lo que llevabas quedó en tu cofre: ${guardado.map(([r, n]) => `${n} ${nombreRec(r)}`).join(', ')}.`));
     if (window.Sonido && !Sonido.cfg.on) trasCarga(() => toast('🔊 El juego tiene música y efectos: actívalos con el botón de sonido (arriba). En clases, usa audífonos.'));
+    if (esDocente() && sesion.modo === 'docente') trasCarga(() => setTimeout(() => esperarYAbrir(() => abrirBasesDocente(true)), 1500));
     trasCarga(() => toast(esDocente() ? 'Modo docente: recursos ilimitados y fabricación sin desafíos.' : S.creado > Date.now() - 60000 ? `¡Bienvenido, ${S.nombre}! Esta es la base de tu grupo: fabrica una carpa para tener tu casa y camina al portal para viajar.` : `¡Hola de nuevo, ${S.nombre}!`));
   }
   function pintarChatBtn() { const b = $('btn-chat'); if (b) b.classList.toggle('apagado', !chatPermitido()); }
@@ -5064,7 +5065,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16b';
+  const VERSION_JUEGO = '2026-11-16c';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -7430,6 +7431,7 @@
   function abrirDecorar() {
     const lugar = escena.zona === 'pieza' ? 'pieza' : 'base';
     if (lugar === 'pieza' && escena.sala.tipo === 'visita') { toast(`Estás de visita en la casa de ${escena.sala.nombre}: solo puedes mirar.`, 'alerta'); return; }
+    if (visitaDoc) { toast(`👀 Estás de visita en la base del Grupo ${visitaDoc.grupo}: solo puedes mirar. Para decorar, vuelve a tu base desde el portal.`, 'alerta'); return; }
     // afuera solo se coloca tu carpa (tu casa); adentro de tu casa y de la carpa común, todo lo demás
     const sirve = (o) => (lugar === 'base' ? Boolean(o.carpa) || (lugarDe(o).includes('base') && !o.pared) : !o.carpa);
     const items = OBJETOS.filter((o) => S.inventario[o.id] > 0 && sirve(o));
@@ -7487,11 +7489,13 @@
         <small>GEMAS DE LOS JEFES · ${gemasJefeTengo()} DE ${GEMAS_JEFE.length}</small><strong>5to Mundo</strong><span class="q-misterio">??????</span></button>`);
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Portal</span><h2 id="modal-titulo">¿A dónde quieres ir?</h2></div><button type="button" class="btn" id="p-cerrar">Cerrar</button></div>
+      ${esDocente() && sesion.modo === 'docente' ? `<button type="button" class="zona zona-docente" id="p-bases"><small>MODO DOCENTE</small><strong>🏕️ Bases de los grupos</strong><span>${visitaDoc ? `Ahora estás en la base del Grupo ${visitaDoc.grupo} · ${esc(cursoNombre(visitaDoc.curso))}. ` : ''}Entra a la base de cualquier grupo de cualquier curso, o vuelve a la tuya.</span></button>` : ''}
       ${enBase ? '' : `<button type="button" class="zona" id="p-base"><small>TU BASE</small><strong>Volver a tu base</strong><span>Lo que llevas en la mochila se guarda en tu cofre y recuperas toda tu vida.</span></button>`}
       <div class="zonas">${tarjetas}</div>
       ${enBase ? '' : '<p class="nota">En los mundos tu vida no se recupera sola: vuelve a tu base o abre los cofres con corazón. Huir de un enemigo te quita 1 corazón. Si pierdes un combate, vuelves a tu base sin lo que llevabas en la mochila.</p>'}`);
     $('p-cerrar').addEventListener('click', () => ui.cerrar());
     $('p-quinto').addEventListener('click', () => { if (puedeAltar()) { if (escena.zona === 'altar') return; ui.alCerrar = () => viajar('altar', 0); ui.cerrar(); return; } sfx('alerta'); toast(quintoListo() ? '' : `🔒 El 5to Mundo está sellado. Reúne las ${GEMAS_JEFE.length} gemas de los jefes (llevas ${gemasJefeTengo()}). Míralas en Tu avance → Gemas de los jefes.`, 'alerta'); });
+    const pbs = $('p-bases'); if (pbs) pbs.addEventListener('click', () => abrirBasesDocente());
     const pb = $('p-base');
     if (pb) pb.addEventListener('click', () => { ui.alCerrar = () => viajar('base'); ui.cerrar(); });
     document.querySelectorAll('[data-z]').forEach((b) => b.addEventListener('click', () => {
@@ -7557,7 +7561,7 @@
   function viajar(zona, grupo = 0) {
     if (!escena) return;   // aún cargando o tras cerrar sesión: no hay mundo desde el que viajar
     const desde = escena.zona;
-    S.grupo = zona === 'base' ? (esDocente() ? 0 : sesion.grupo || 0) : grupo;
+    S.grupo = zona === 'base' ? (esDocente() ? (visitaDoc ? visitaDoc.grupo : 0) : sesion.grupo || 0) : grupo;
     if (zona === 'base') {
       const guardado = RECURSOS.map((r) => [r.id, S.mochila[r.id] || 0]).filter(([, n]) => n > 0);
       guardado.forEach(([r, n]) => { S.cofre[r] += n; S.mochila[r] = 0; });
@@ -8930,14 +8934,50 @@
   const COMUN = { x: 22, y: 10 };        // casilla (abajo a la derecha) de la carpa común, sobre la fogata
   const baseG = { yo: null, comun: [], exterior: [], casas: [], cargada: false };
   const baseEnGrupo = () => sesion.modo === 'nube' && (sesion.grupo || 0) > 0 && !esDocente();
+  // El docente puede entrar a la base de cualquier grupo de cualquier curso: la ve como sus estudiantes
+  // (carpa común, carpas de cada uno y quiénes están conectados), pero solo para mirar y acompañar.
+  let visitaDoc = null;   // { curso, grupo } mientras el docente visita una base
+  const baseCompartida = () => baseEnGrupo() || Boolean(esDocente() && visitaDoc);
   async function cargarBase() {
-    if (!baseEnGrupo()) { baseG.comun = S.comunLocal = S.comunLocal || []; baseG.exterior = S.exteriorLocal = S.exteriorLocal || []; baseG.casas = []; baseG.cargada = true; }
+    if (!baseCompartida()) { baseG.comun = S.comunLocal = S.comunLocal || []; baseG.exterior = S.exteriorLocal = S.exteriorLocal || []; baseG.casas = []; baseG.cargada = true; }
     else {
-      try { const r = await Nube.base(sesion.token); if (r && r.ok) { baseG.yo = r.yo; baseG.comun = Array.isArray(r.comun) ? r.comun : []; baseG.exterior = Array.isArray(r.exterior) ? r.exterior : []; baseG.casas = Array.isArray(r.casas) ? r.casas : []; baseG.cargada = true; } } catch (e) { /* sin red: se usa lo último */ }
+      try { const r = visitaDoc ? await Nube.docenteBase(sesion.token, visitaDoc.curso, visitaDoc.grupo) : await Nube.base(sesion.token); if (r && r.ok) { baseG.yo = r.yo; baseG.comun = Array.isArray(r.comun) ? r.comun : []; baseG.exterior = Array.isArray(r.exterior) ? r.exterior : []; baseG.casas = Array.isArray(r.casas) ? r.casas : []; baseG.cargada = true; } } catch (e) { /* sin red: se usa lo último */ }
     }
     if (escena && escena.jugador && escena.refrescarBase) escena.refrescarBase();
   }
   setInterval(() => { if (escena && escena.jugador && (escena.zona === 'base' || (escena.zona === 'pieza' && escena.sala && escena.sala.tipo === 'comun')) && !ui.abierto) cargarBase(); }, 30000);
+  async function abrirBasesDocente(inicial = false) {
+    if (!esDocente() || sesion.modo !== 'docente' || !window.Nube || !Nube.docenteBases) return;
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Modo docente</span><h2 id="modal-titulo">🏕️ Bases de los grupos</h2></div></div><p class="nota">Cargando cursos y grupos…</p>`);
+    let r = null;
+    try { r = await Nube.docenteBases(sesion.token); } catch (e) { r = null; }
+    const cursos = r && r.ok && Array.isArray(r.cursos) ? r.cursos : [];
+    if (!cursos.length) { ui.abrir(`<div class="modal-cab"><div><span class="etq">Modo docente</span><h2 id="modal-titulo">🏕️ Bases de los grupos</h2></div><button type="button" class="btn" id="bd-cerrar">Cerrar</button></div><p class="nota">No se pudieron cargar los cursos. Revisa la conexión e inténtalo otra vez.</p>`); $('bd-cerrar').addEventListener('click', () => ui.cerrar()); return; }
+    let sel = (visitaDoc && visitaDoc.curso) || (cursos.find((c) => c.curso === sesion.docCurso) || cursos.find((c) => c.grupos.length) || cursos[0]).curso;
+    const entrar = (curso, grupo) => { visitaDoc = curso ? { curso, grupo } : null; if (curso) sesion.docCurso = curso; ui.alCerrar = () => viajar('base'); ui.cerrar(); };
+    const pintar = () => {
+      const C = cursos.find((c) => c.curso === sel) || { grupos: [] };
+      const nG = sel === 'INV' ? 1 : N_GRUPOS;
+      const tarjetas = Array.from({ length: nG }, (_, i) => {
+        const g = i + 1, info = (C.grupos || []).find((x) => x.grupo === g) || { n: 0, conectados: 0, nombres: [] };
+        const actual = visitaDoc && visitaDoc.curso === sel && visitaDoc.grupo === g;
+        return `<button type="button" class="obj grupo base-doc ${actual ? 'actual' : ''}" data-bg="${g}" ${info.n ? '' : 'disabled'}>
+          <strong>Grupo ${g}${actual ? ' · aquí estás' : ''}</strong>
+          <small>${info.n ? `${info.n} ${info.n === 1 ? 'integrante' : 'integrantes'} · ${info.conectados ? `<b class="en-linea">🟢 ${info.conectados} conectado${info.conectados === 1 ? '' : 's'}</b>` : 'nadie conectado'}` : 'Sin integrantes'}</small>
+          ${info.n ? `<small class="nombres">${(info.nombres || []).slice(0, 6).map(esc).join(', ')}</small>` : ''}</button>`;
+      }).join('');
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">${inicial ? '¡Hola, profe!' : 'Modo docente'}</span><h2 id="modal-titulo">🏕️ ¿A qué base quieres entrar?</h2></div><button type="button" class="btn" id="bd-cerrar">${inicial ? 'Quedarme aquí' : 'Cerrar'}</button></div>
+        <p class="nota">Entra a la base de cualquier grupo para ver su carpa común, las carpas de cada estudiante y acompañar a quienes estén jugando. Es solo para mirar: no cambias nada de su base.</p>
+        <div class="rp-cats">${cursos.map((c) => `<button type="button" class="pildora-btn" data-bc="${esc(c.curso)}" aria-checked="${c.curso === sel}">${esc(cursoNombre(c.curso))}${c.grupos.some((g) => g.conectados) ? ' 🟢' : ''}</button>`).join('')}</div>
+        <div class="objetos bases-doc">${tarjetas}</div>
+        <div class="acciones"><span class="nota">También lo encuentras en el portal de tu base.</span><button type="button" class="btn sec" id="bd-mia">🏠 Ir a mi base</button></div>`);
+      $('bd-cerrar').addEventListener('click', () => ui.cerrar());
+      $('bd-mia').addEventListener('click', () => entrar(null));
+      document.querySelectorAll('#modal [data-bc]').forEach((b) => b.addEventListener('click', () => { sel = b.dataset.bc; pintar(); }));
+      document.querySelectorAll('#modal [data-bg]').forEach((b) => b.addEventListener('click', () => entrar(sel, Number(b.dataset.bg))));
+    };
+    pintar();
+  }
   let combateActual = null;
   const COLS = 57;
   const fr = (c, r) => r * COLS + c;
@@ -9032,7 +9072,7 @@
       this.cambios = new Map();
       this.canal = null;
       this.canalZona = MUNDOS[this.zona] ? this.zona : this.zona === 'base' ? 'base' : this.sala.tipo === 'comun' ? 'comun' : `casa-${String(this.sala.tipo === 'visita' ? this.sala.id : baseG.yo || 'yo').slice(0, 8)}`;
-      if ((MUNDOS[this.zona] || ((this.zona === 'base' || this.zona === 'pieza') && baseEnGrupo())) && S.grupo && coopActivo()) this.iniciarCoop();
+      if ((MUNDOS[this.zona] || ((this.zona === 'base' || this.zona === 'pieza') && baseCompartida())) && S.grupo && coopActivo()) this.iniciarCoop();
       this.events.once('shutdown', () => { if (this.canal) { this.canal.salir(); this.canal = null; } pintarCoop(); });
       pintarHUD();
       pintarCoop();
@@ -10347,7 +10387,7 @@
     // Todas las casas del grupo (la mía con lo último guardado en este navegador)
     casasDelGrupo() {
       const lista = (baseG.casas || []).filter((c) => c && c.casa && c.id !== baseG.yo && OBJ[c.casa.k]).map((c) => ({ id: c.id, nombre: c.nombre, casa: c.casa, mia: false }));
-      if (S.casa && OBJ[S.casa.k]) lista.push({ id: baseG.yo || 'yo', nombre: S.nombre, casa: S.casa, mia: true });
+      if (S.casa && OBJ[S.casa.k] && !visitaDoc) lista.push({ id: baseG.yo || 'yo', nombre: S.nombre, casa: S.casa, mia: true });
       return lista;
     }
     pintarCasas() {
@@ -10407,7 +10447,7 @@
     async entrarCasa(obj) {
       if (obj.mia) { ultimaCarpa = { x: obj.cx, y: obj.cy }; S.zona = 'pieza'; guardar(true); this.scene.restart({ zona: 'pieza', desde: 'base', sala: { tipo: 'mia' } }); return; }
       let r = null;
-      try { r = await Nube.baseCasa(sesion.token, obj.id); } catch (e) { r = null; }
+      try { r = visitaDoc ? await Nube.docenteBaseCasa(sesion.token, obj.id) : await Nube.baseCasa(sesion.token, obj.id); } catch (e) { r = null; }
       if (!r || !r.ok) { toast('No se pudo abrir esa casa. Inténtalo otra vez.', 'alerta'); return; }
       ultimaCarpa = { x: obj.cx, y: obj.cy }; S.zona = 'pieza'; guardar(true);
       this.scene.restart({ zona: 'pieza', desde: 'base', sala: { tipo: 'visita', id: obj.id, nombre: r.nombre || obj.nombre, items: Array.isArray(r.pieza) ? r.pieza : [] } });
@@ -10465,8 +10505,8 @@
     zonaCompartida() { return this.zona === 'base' ? 'afuera' : 'comun'; }
     listaCompartida() { return this.zona === 'base' ? (baseG.exterior || []) : (baseG.comun || []); }
     fijarListaCompartida(l) {
-      if (this.zona === 'base') { baseG.exterior = l; if (!baseEnGrupo()) S.exteriorLocal = l; }
-      else { baseG.comun = l; if (!baseEnGrupo()) S.comunLocal = l; }
+      if (this.zona === 'base') { baseG.exterior = l; if (!baseCompartida()) S.exteriorLocal = l; }
+      else { baseG.comun = l; if (!baseCompartida()) S.comunLocal = l; }
     }
     esMio(c) { return !c.de || c.de === 'yo' || !baseG.yo || c.de === baseG.yo; }
     limpiarCompartidos() {

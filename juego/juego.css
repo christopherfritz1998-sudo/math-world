@@ -1880,3 +1880,9 @@ body.movil .mj-num { width: 48px; height: 48px; font-size: 21px; }
 .compartir-form input { width: 90px; min-height: 40px; text-align: center; }
 .equipo-recursos .obj .btn.mini[data-compartir] { margin-top: 4px; padding: 2px 8px; }
 .equipo-recursos.cofre-grupo { border-color: var(--teal); }
+/* ---------- Docente: bases de los grupos ---------- */
+.bases-doc .base-doc { align-items: flex-start; text-align: left; gap: 2px; min-height: 92px; }
+.bases-doc .base-doc .nombres { opacity: .75; font-size: 11px; line-height: 1.25; }
+.bases-doc .base-doc.actual { border-color: #ffd27a; }
+.bases-doc .base-doc .en-linea { color: #8fe3a0; font-weight: 700; }
+.zona.zona-docente { border-color: #ffd27a; }
