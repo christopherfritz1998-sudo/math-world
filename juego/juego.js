@@ -3987,6 +3987,9 @@
   const ENE_MUNDO = { bosque: ['arbusto', 'niebla', 'bicho', 'arana', 'raiz'], desierto: ['escorpion', 'remolino', 'esqueleto', 'escarabajo', 'momia'], mina: ['murcielago', 'golem', 'minero', 'salamandra', 'golem_cristal'], hielo: ['lobo_nieve', 'espiritu', 'muneco', 'halcon', 'golem_hielo'] };
   const CATS_LOGRO = { explorar: '🧭 Exploración', recolectar: '🪓 Recolección', combate: '⚔️ Combate', aprender: '🧠 Aprendizaje', nivel: '⭐ Niveles', fabricar: '🔨 Fabricación', coleccion: '📖 Colecciones', minijuegos: '🎮 Minijuegos', equipo: '🤝 Trabajo en equipo', heroes: '✨ Héroes y habilidades', rey: '👑 El rey del juego' };
   const L = (id, cat, icono, nombre, desc, meta, v, titulo) => ({ id, cat, icono, nombre, desc, meta, v, titulo });
+  // mascotas adultas: 200 respuestas correctas con cada una (ver ETAPAS_MASCOTA)
+  const mascotaAdulta = (id) => (((S && S.mascotaXP) || {})[id] || 0) >= 200;
+  const mascotasAdultas = () => ['buho', 'fenec', 'topo', 'pinguino', 'jabato', 'ajolote', 'dragon', 'gato', 'grifo', 'fenix', 'unicornio'].filter(mascotaAdulta).length;
   const LOGROS = [
     // Exploración
     L('viaje1', 'explorar', '🧭', 'Primer viaje', 'Viaja a tu primer mundo por el portal de tu base.', 1, () => ['u1', 'u2', 'u3', 'u4'].filter(visto).length, 'Pies Inquietos'),
@@ -4115,6 +4118,21 @@
     L('ticket3', 'aprender', '🎟️', 'Ticket en mano', 'Responde 3 tickets de salida de tu profesor.', 3, () => CN('ticket'), 'Estudiante Puntual'),
     L('semana1', 'aprender', '👥', 'Todos a una', 'Ayuda a tu curso a cumplir una misión semanal.', 1, () => CN('semana'), 'Espíritu de Curso'),
     L('mascota_adulta', 'coleccion', '🐾', 'Criador experto', 'Haz crecer una mascota hasta su forma adulta.', 1, () => CN('mascota_adulta'), 'Domador'),
+    // Una por cada mascota que llega a su forma adulta (200 respuestas correctas acompañándote)
+    L('adulta_buho', 'coleccion', '🦉', 'Búho sabio', 'Haz crecer a tu Búho del bosque hasta su forma adulta.', 1, () => (mascotaAdulta('buho') ? 1 : 0), 'Guardián del Búho'),
+    L('adulta_fenec', 'coleccion', '🦊', 'Fénec del desierto', 'Haz crecer a tu Fénec de las dunas hasta su forma adulta.', 1, () => (mascotaAdulta('fenec') ? 1 : 0), 'Amigo del Fénec'),
+    L('adulta_topo', 'coleccion', '⛏️', 'Topo excavador', 'Haz crecer a tu Topo minero hasta su forma adulta.', 1, () => (mascotaAdulta('topo') ? 1 : 0), 'Compañero del Topo'),
+    L('adulta_pinguino', 'coleccion', '🐧', 'Pingüino emperador', 'Haz crecer a tu Pingüino bebé hasta su forma adulta.', 1, () => (mascotaAdulta('pinguino') ? 1 : 0), 'Amigo del Hielo'),
+    L('adulta_jabato', 'coleccion', '🐗', 'Jabalí de raíces', 'Haz crecer a tu Jabato de raíces hasta su forma adulta.', 1, () => (mascotaAdulta('jabato') ? 1 : 0), 'Raíz del Bosque'),
+    L('adulta_ajolote', 'coleccion', '🦎', 'Ajolote volcánico', 'Haz crecer a tu Ajolote de lava hasta su forma adulta.', 1, () => (mascotaAdulta('ajolote') ? 1 : 0), 'Corazón de Lava'),
+    L('adulta_dragon', 'coleccion', '🐉', 'Dragón de aurora', 'Haz crecer a tu Dragoncito de aurora hasta su forma adulta.', 1, () => (mascotaAdulta('dragon') ? 1 : 0), 'Criador de Dragones'),
+    L('adulta_gato', 'coleccion', '🐈', 'Gato del faraón', 'Haz crecer a tu Gato sagrado hasta su forma adulta.', 1, () => (mascotaAdulta('gato') ? 1 : 0), 'Protegido del Faraón'),
+    L('adulta_grifo', 'coleccion', '🦅', 'Grifo majestuoso', 'Haz crecer a tu Grifo dorado hasta su forma adulta.', 1, () => (mascotaAdulta('grifo') ? 1 : 0), 'Alas Doradas'),
+    L('adulta_fenix', 'coleccion', '🔥', 'Fénix renacido', 'Haz crecer a tu Fénix de fuego hasta su forma adulta.', 1, () => (mascotaAdulta('fenix') ? 1 : 0), 'Llama Eterna'),
+    L('adulta_unicornio', 'coleccion', '🦄', 'Unicornio legendario', 'Haz crecer a tu Unicornio de cristal hasta su forma adulta.', 1, () => (mascotaAdulta('unicornio') ? 1 : 0), 'Cristal Legendario'),
+    L('adultas3', 'coleccion', '🏡', 'Granja feliz', 'Haz crecer 3 mascotas distintas hasta su forma adulta.', 3, () => mascotasAdultas(), 'Criador Dedicado'),
+    L('adultas6', 'coleccion', '🌟', 'Santuario animal', 'Haz crecer 6 mascotas distintas hasta su forma adulta.', 6, () => mascotasAdultas(), 'Maestro Criador'),
+    L('adultas_todas', 'coleccion', '👑', 'Arca adulta', 'Haz crecer las 11 mascotas hasta su forma adulta.', 11, () => mascotasAdultas(), 'Padre de las Bestias'),
     L('plata5', 'aprender', '🥈', 'Mente de plata', 'Llega al rango plata en 5 temas.', 5, () => CN('plata'), 'Estudioso'),
     L('oro1', 'aprender', '🥇', 'Vencedor del guardián', 'Vence al guardián de un tema y llega al rango oro.', 1, () => CN('oro'), 'Maestro del Tema'),
     L('escrita20', 'aprender', '✍️', 'Sin alternativas', 'Responde bien 20 preguntas escribiendo el resultado.', 20, () => CN('escrita'), 'Calculista'),
