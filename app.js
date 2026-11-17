@@ -273,7 +273,7 @@ function vistaCurso(curso) {
       const n = u.materiales.length, M = MUNDOS[i] || {};
       const inner = `<span class="u-num" style="--c:${M.color || '#f2b544'}">Unidad ${u.numero} ${M.icono || ''}</span><h3>${esc(u.titulo)}</h3>
         <ul>${u.temas.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
-        <span class="u-foot">${u.habilitada ? `${n} ${n === 1 ? 'material' : 'materiales'} →` : '🔒 Próximamente'}</span>`;
+        <span class="u-foot">${!u.habilitada ? '🔒 Próximamente' : n ? `${n} ${n === 1 ? 'material' : 'materiales'} →` : '🎮 Practica en el juego →'}</span>`;
       return u.habilitada ? `<a class="unidad" href="#/${curso.id}/${u.id}">${inner}</a>` : `<div class="unidad bloqueada" aria-disabled="true">${inner}</div>`;
     }).join('')}</div>`;
 }
