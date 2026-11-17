@@ -134,6 +134,9 @@ function portada() {
   });
 }
 function contadores() {
+  // cifras reales del juego (juego/cifras.js, generado desde el código)
+  const C = window.MW_CIFRAS || {};
+  document.querySelectorAll('[data-cifra]').forEach((b) => { const v = Number(C[b.dataset.cifra]); if (v > 0) b.dataset.contar = String(v); });
   const io = new IntersectionObserver((ents) => ents.forEach((en) => {
     if (!en.isIntersecting) return;
     io.unobserve(en.target);
