@@ -77,7 +77,7 @@
     const M = J(), i = P.ronda + 1;
     if (i >= RONDAS) return;
     const d = window.Preguntas.nuevo(M.S().curso, M.unidad(), 2, M.S().stats);
-    const msg = { t: 'ronda', i, calc: i % 2 === 0 ? P.yo : P.otro, d: { tema: d.tema, titulo: d.titulo, enunciado: d.enunciado, opciones: d.opciones, correcta: d.correcta, pista: d.pista, explicacion: d.explicacion } };
+    const msg = { t: 'ronda', i, calc: i % 2 === 0 ? P.yo : P.otro, d: { tema: d.tema, titulo: d.titulo, enunciado: d.enunciado, figura: d.figura, opciones: d.opciones, correcta: d.correcta, pista: d.pista, explicacion: d.explicacion } };
     P.canal.emitir('par', msg); recibir(msg);
   }
 
@@ -146,7 +146,7 @@
         zona = `${alts((i) => (i === d.correcta ? 'pa-correcta' : i === P.final ? 'pa-mal' : 'pa-bloq'))}
           ${ok ? `<div class="mensaje bien" role="status">✅ ¡Correcto${P.aprobo === false ? ' gracias a la corrección' : ''}! ${mate(d.explicacion || '')}</div>` : M.pasoAPaso(d, P.aprobo === false ? 'La corrección tampoco era.' : 'No era esa.', '')}`;
       }
-      cuerpo = `<p class="nota">${rol}</p><p class="enunciado">${mate(d.enunciado)}</p>${zona}`;
+      cuerpo = `<p class="nota">${rol}</p>${J().enunciadoHTML ? J().enunciadoHTML(d) : `<p class="enunciado">${mate(d.enunciado)}</p>`}${zona}`;
     }
     M.ui.abrir(`${cab}${cuerpo}<div class="acciones"><span></span><button type="button" class="btn" id="pa-salir">Salir del reto</button></div>`, 'pareja-modal', () => salir());
     $('pa-salir').addEventListener('click', () => M.ui.cerrar());
