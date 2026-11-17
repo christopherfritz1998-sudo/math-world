@@ -81,6 +81,8 @@ window.MWDatos = (function () {
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
     { id: 'botas', nombre: 'Botas de viento', desc: 'Siempre activas: caminas un 30 % más rápido en todos los mundos.', icono: 'crampones', costo: { madera: 25, piedra: 15, cristal: 3 }, requiere: 'pico' },
+    // Montura (D4): se fabrica al final del juego con recursos de las cuatro zonas difíciles; solo acelera en mundos que ya visitaste
+    { id: 'montura', nombre: 'Montura de viaje', desc: 'Siempre activa: en los mundos que ya visitaste caminas el doble de rápido que sin botas (en un mundo nuevo, la primera vez, se explora a pie).', icono: 'crampones', costo: { obsidiana: 8, magma: 8, hielo_eterno: 8, aurora: 6, oro: 10 }, requiere: 'botas' },
     // Herramientas del Bosque profundo
     { id: 'ahumador', nombre: 'Ahumador', desc: 'Herramienta: calma a las abejas para recolectar miel de las colmenas del Bosque profundo.', icono: 'ahumador', costo: { madera: 12, piedra: 6, resina: 3 } },
     { id: 'hacha3', nombre: 'Hacha ancestral', desc: 'Más madera al talar y +2 de resina en los árboles gigantes del Bosque profundo.', icono: 'hacha3', costo: { resina: 12, madera: 30, cristal: 4 }, requiere: 'hacha2' },

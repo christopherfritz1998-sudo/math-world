@@ -9205,7 +9205,8 @@
 
   class Juego extends Phaser.Scene {
     constructor() { super('juego'); }
-    init(data) { this.zona = (data && data.zona) || 'base'; this.desde = data && data.desde; this.carpa = data && data.carpa; this.sala = (data && data.sala) || { tipo: 'mia' }; }
+    init(data) { this.zona = (data && data.zona) || 'base'; this.yaVisitado = Boolean(S && S.visitados && S.visitados[this.zona]);   // la montura solo sirve en mundos ya visitados
+      this.desde = data && data.desde; this.carpa = data && data.carpa; this.sala = (data && data.sala) || { tipo: 'mia' }; }
 
     preload() {
       this.load.on('progress', (p) => { if (carga) carga.real = p; });
@@ -11802,7 +11803,7 @@
       const len = Math.hypot(vx, vy);
       if (this.empujon && this.empujon.hasta > this.time.now) { j.setVelocity(this.empujon.vx, this.empujon.vy); j.anims.stop(); }
       else if (len > 0.15) {
-        const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : tiene('botas') ? 195 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
+        const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : tiene('montura') && MUNDOS[this.zona] && this.yaVisitado ? 300 : tiene('botas') ? 195 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
         j.setVelocity((vx / Math.max(len, 1)) * vel, (vy / Math.max(len, 1)) * vel);
         this.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
         j.anims.play(`${j.texture.key}_${this.dir}`, true);
