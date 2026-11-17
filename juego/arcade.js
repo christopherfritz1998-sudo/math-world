@@ -587,14 +587,20 @@
       : veces >= PREMIO_COMPLETO ? `Hoy ya jugaste ${veces} veces: el premio ahora es menor.` : `Premio completo en tus primeras ${PREMIO_COMPLETO} partidas del día (llevas ${veces}).`;
   }
 
+  // Fichas: cada partida cuesta 1; se ganan respondiendo bien (3 aciertos = 1 ficha) en el resto del juego
+  const nFichas = () => (J() && J().fichas ? J().fichas() : Infinity);
+  const fichasLi = () => (nFichas() === Infinity ? '' : `<li><b>🎟️ ${nFichas()}</b> ${nFichas() === 1 ? 'ficha' : 'fichas'}</li>`);
+  const fichasNota = () => (nFichas() === Infinity ? '' : nFichas() < 1
+    ? `<div class="mensaje pista" role="status">🎟️ No te quedan fichas. Gana una respondiendo bien ${J().ACIERTOS_FICHA} preguntas (llevas ${J().fichaAc()}) en cualquier parte del juego.</div>`
+    : '<p class="nota">🎟️ Cada partida usa 1 ficha. Ganas otra cada 3 respuestas correctas.</p>');
   function abrir(id) {
     const d = DEF[id]; if (!d || !J() || !J().S()) return;
     if (d.huerto) return abrirHuerto();
     const veces = dia().n[id] || 0, r = rec(id);
     J().ui.abrir(`<div class="modal-cab"><div><span class="etq">Minijuego · ${esc(J().nombreZona(d.zona))}</span><h2 id="modal-titulo">${d.ico} ${esc(d.nombre)}</h2></div><button type="button" class="btn" id="ar-no">Cerrar</button></div>
       <div class="ar-portada"><div class="ar-portada-ico" aria-hidden="true">${d.ico}</div><p class="enunciado">${esc(d.desc)}</p>
-        <ul class="mjx-fichas"><li><b>🏆 ${r}</b> tu récord</li>${d.dura ? `<li><b>⏱️ ${d.dura} s</b></li>` : ''}${d.vidas > 1 ? `<li><b>${'❤️'.repeat(d.vidas)}</b></li>` : ''}${d.album ? `<li><b>📖 ${albumTengo(d.album)}/${ALBUMES[d.album].items.length}</b> álbum</li>` : ''}</ul>
-        <p class="nota">${textoPremio(veces)}${d.album ? ' Al jugar puedes ganar objetos para tu álbum.' : ''}</p></div>
+        <ul class="mjx-fichas"><li><b>🏆 ${r}</b> tu récord</li>${fichasLi()}${d.dura ? `<li><b>⏱️ ${d.dura} s</b></li>` : ''}${d.vidas > 1 ? `<li><b>${'❤️'.repeat(d.vidas)}</b></li>` : ''}${d.album ? `<li><b>📖 ${albumTengo(d.album)}/${ALBUMES[d.album].items.length}</b> álbum</li>` : ''}</ul>
+        <p class="nota">${textoPremio(veces)}${d.album ? ' Al jugar puedes ganar objetos para tu álbum.' : ''}</p>${fichasNota()}</div>
       <div class="acciones">${d.album ? `<button type="button" class="btn sec" id="ar-album">📖 Ver álbum</button>` : '<span></span>'}<div>${puedeCompetir(d) ? '<button type="button" class="btn sec" id="ar-comp">🏁 Competir con compañeros</button> ' : ''}<button type="button" class="btn pri" id="ar-si" data-foco>▶ ¡Jugar!</button></div></div>`, 'ar-modal');
     $('ar-no').addEventListener('click', () => J().ui.cerrar());
     $('ar-si').addEventListener('click', () => empezar(id));
@@ -621,6 +627,7 @@
 
   function empezar(id, semillaComp) {
     const d = DEF[id];
+    if (J().gastarFicha && !J().gastarFicha()) { J().toast(`🎟️ Necesitas una ficha para jugar: responde bien ${J().ACIERTOS_FICHA} preguntas para ganar una.`, 'alerta'); return; }
     parar();
     rnd = semillaComp ? semilla(semillaComp) : Math.random;
     G = { id, d, t: 0, puntos: 0, vidas: d.vidas || 1, fin: false, keys: {}, ptr: null, t0: Date.now(), st: {}, comp: Boolean(semillaComp), envio: 0 };
@@ -722,6 +729,7 @@
     clearTimeout(C.reloj); C = null;
   }
   function abrirComp(id, err) {
+    if (nFichas() < 1) { J().toast(`🎟️ Necesitas una ficha para competir: responde bien ${J().ACIERTOS_FICHA} preguntas para ganar una.`, "alerta"); return; }
     const d = DEF[id], M = J();
     M.ui.abrir(`<div class="modal-cab"><div><span class="etq">Competencia · ${esc(d.nombre)}</span><h2 id="modal-titulo">🏁 Competir con compañeros</h2></div><button type="button" class="btn" id="ac-cerrar">Cerrar</button></div>
       <p class="enunciado">Todos juegan <b>la misma partida a la vez</b> y ven los puntos de los demás en vivo. ¡Gana quien haga más puntos! (De 2 a ${COMP_MAX} jugadores.)</p>

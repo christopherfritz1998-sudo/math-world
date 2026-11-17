@@ -1447,6 +1447,7 @@
   window.MWJ = {
     get ui() { return ui; },
     $: (id) => $(id), esc: (s) => esc(s), mate: (s) => mate(s), toast: (t, c) => toast(t, c), sfx: (k) => sfx(k),
+    fichas: () => (esDocente() ? Infinity : fichas()), fichaAc: () => (S && S.fichaAc) || 0, gastarFicha: () => gastarFicha(), get ACIERTOS_FICHA() { return ACIERTOS_FICHA; },
     S: () => S, sesion: () => sesion, escena: () => escena, esDocente: () => esDocente(), hoy: () => diaChile(),
     registrar: (t, ok) => registrar(t, ok), contar: (k, n) => contar(k, n), guardar: (i) => guardar(i),
     darPremio: (r, xp, f) => darPremio(r, xp, f), paquete: (c, v, t) => paquete(c, v, t), avanzar: (ev) => avanzarMision(ev),
@@ -1795,6 +1796,26 @@
         } });
     });
   }
+  // ---------- Fichas de los minijuegos de entretención: cada partida cuesta 1 ficha y se gana 1 cada 3 aciertos ----------
+  const FICHAS_MAX = 10, ACIERTOS_FICHA = 3;
+  const fichas = () => { if (!S) return 0; if (S.fichas == null) S.fichas = 3; return S.fichas; };   // partidas antiguas parten con 3
+  function fichaPorAcierto() {
+    if (!S || esDocente()) return;
+    fichas();
+    S.fichaAc = (S.fichaAc || 0) + 1;
+    if (S.fichaAc < ACIERTOS_FICHA) return;
+    S.fichaAc = 0;
+    if (S.fichas >= FICHAS_MAX) return;
+    S.fichas += 1;
+    if (S.fichas <= 2) toast(`🎟️ ¡Ganaste una ficha de minijuego! Tienes ${S.fichas}. Úsalas en los minijuegos de entretención.`);
+  }
+  function gastarFicha() {
+    if (!S) return false;
+    if (esDocente()) return true;
+    if (fichas() < 1) return false;
+    S.fichas -= 1; guardar();
+    return true;
+  }
   function registrar(tema, acierto) {
     if (!acierto) anotarErrorAlt(tema);
     anotarRespuesta(acierto);
@@ -1808,6 +1829,7 @@
     repasoRegistrar(tema, acierto); mantenerRegistrar(tema, acierto); eventoSemanaRegistrar(acierto); semanaRegistrar(acierto); semanalRegistrar(acierto); mascotaRegistrar(acierto);
     maestriaRegistrar(tema, acierto, Preguntas.difDe ? Preguntas.difDe(tema) : 1); bonoRespuesta(acierto); reliquiaRegistrar(acierto);
     if (acierto) avanzarMision('acierto', tema);
+    if (acierto) fichaPorAcierto();
     if (acierto) eventoDesafio('acierto', tema);
   }
   function alternativasHTML(d, elegida, fallidas, resuelto) {
