@@ -923,15 +923,24 @@
     const u = escena && MUNDOS[escena.zona] ? escena.zona : null;
     const Dd = diaria();
     const fila = (txt, p, n) => `<li class="${p >= n ? 'ok' : ''}"><span>${esc(txt)}</span><b>${Math.min(p, n)}/${n}</b></li>`;
-    let html = extraMisionesHTML();
-    if (u) {
+    // Durante el primer capítulo (primer mundo) el panel muestra solo el objetivo actual y el diagnóstico (antes eran ~9 líneas);
+    // las misiones del jefe y la diaria aparecen al cerrar el capítulo. Lo que pide el profesor se muestra siempre.
+    const Hc = capituloActual(), inicio = Boolean(Hc && Hc.i === 0);
+    let html = extraMisionesHTML(inicio);
+    if (inicio) {
+      const tit = esc(Hc.c.titulo.split(' · ')[0]);
+      const o = Hc.activo ? (Hc.c.obj.find(([k, n]) => Hc.p[k] < n) || Hc.c.obj[Hc.c.obj.length - 1]) : null;
+      html += `<strong>📖 ${tit}</strong><ul>${o ? fila(o[2], Hc.p[o[0]], o[1]) : `<li><span>Viaja a ${esc(nombreMundo(Hc.c.u))} para comenzar</span></li>`}</ul>`;
+      if (!S.diagnostico) html += '<strong>🧭 Diagnóstico inicial</strong><ul><li><span>12 preguntas, sin nota: ábrelo en Misiones (N)</span></li></ul>';
+    }
+    if (u && !inicio) {
       const M = misionesDe(u);
       html += `<strong>${M.ok ? 'Jefe final desbloqueado' : 'Misiones para el jefe'}</strong><ul>${M.lista.map((m) => fila(textoMision(m), m.p, m.n)).join('')}</ul>`;
     }
-    html += `<strong>Misión diaria${Dd.cobrada ? ' · cobrada' : Dd.p >= Dd.n ? ' · ¡reclámala!' : ''}</strong><ul>${fila(TIPOS_DIARIA[Dd.t].txt, Dd.p, Dd.n)}</ul>`;
+    if (!inicio) html += `<strong>Misión diaria${Dd.cobrada ? ' · cobrada' : Dd.p >= Dd.n ? ' · ¡reclámala!' : ''}</strong><ul>${fila(TIPOS_DIARIA[Dd.t].txt, Dd.p, Dd.n)}</ul>`;
     const oculto = misionesOcultas();
     const hechas = u ? misionesDe(u).lista.filter((m) => m.p >= m.n).length : null;
-    const resumen = u ? `${hechas}/${misionesDe(u).lista.length}` : Dd.p >= Dd.n ? (Dd.cobrada ? '✓' : '¡lista!') : `${Math.min(Dd.p, Dd.n)}/${Dd.n}`;
+    const resumen = inicio ? `${Hc.c.obj.filter(([k, n]) => Hc.activo && Hc.p[k] >= n).length}/${Hc.c.obj.length}` : u ? `${hechas}/${misionesDe(u).lista.length}` : Dd.p >= Dd.n ? (Dd.cobrada ? '✓' : '¡lista!') : `${Math.min(Dd.p, Dd.n)}/${Dd.n}`;
     el.classList.toggle('plegado', oculto);
     el.innerHTML = `<div class="hm-cab"><span>Misiones${oculto ? ` · ${resumen}` : ''}</span><button type="button" class="hm-plegar" data-plegar aria-expanded="${!oculto}">${oculto ? 'Mostrar' : 'Ocultar'}</button></div>`
       + (oculto ? '' : `<button type="button" class="hm-cuerpo" data-ver-misiones aria-label="Ver detalle de tus misiones">${html}</button>`);
@@ -5284,11 +5293,12 @@
     }
     pintarMisiones();
   }
-  function extraMisionesHTML() {
+  function extraMisionesHTML(soloProfesor = false) {
     let h = '';
     const F = extraE && extraE.foco, R = refuerzoActivo();
     if (F) h += `<strong>📚 Tema de la clase</strong><ul><li><span>${esc((F.titulos || []).join(', '))}</span></li></ul>`;
     if (R) { const p = Math.min(R.meta, (S.refuerzos || {})[R.id] || 0); h += `<strong>🎯 Refuerzo de tu profesor</strong><ul><li class="${p >= R.meta ? 'ok' : ''}"><span>${esc(R.titulo)}</span><b>${p}/${R.meta}</b></li></ul>`; }
+    if (soloProfesor) return h;
     const Hc = capituloActual();
     if (Hc) h += `<strong>📖 ${esc(Hc.c.titulo.split(' · ')[0])}</strong><ul>${Hc.activo ? Hc.c.obj.map(([k, n, txt]) => `<li class="${Hc.p[k] >= n ? 'ok' : ''}"><span>${esc(txt)}</span><b>${Math.min(n, Hc.p[k])}/${n}</b></li>`).join('') : `<li><span>Viaja a ${esc(nombreMundo(Hc.c.u))} para comenzar</span></li>`}</ul>`;
     const W = extraE && extraE.semana;
