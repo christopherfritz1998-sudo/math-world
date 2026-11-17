@@ -3098,6 +3098,33 @@
     pintar();
   }
 
+  // Ventana común de los combates contra jefes con «Retirarse (−2 ❤)» (Rey Jabalí, Faraón, Coloso, Dragón y dioses del altar).
+  // Cada jefe arma su cuerpo (mensaje final o pregunta) y su mecánica; aquí se dibuja la cabecera, los botones y las teclas.
+  function ventanaJefe(o) {
+    const cuerpo = o.fin ? o.cuerpo : `${o.cuerpo}
+          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${o.listo ? '' : 'disabled'}>¡Atacar!</button></div></div>`;
+    ui.abrir(`
+        <div class="combate-cab">
+          <div class="luchador"><img class="px" src="${o.retrato}" alt="" width="72" height="72">
+            <div><span class="etq" style="color: var(--coral)">${o.etiqueta}</span><h2 id="modal-titulo">${o.nombre}</h2>
+              <div class="barra enemigo" role="img" aria-label="${o.aria}: ${Math.max(0, o.hp)} de ${o.max}"><i style="width:${o.pct}%"></i></div>
+              ${o.extra}</div></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${o.golpe}</span></div>
+        </div>${cuerpo}`, o.clase);
+    document.querySelectorAll(o.selAlt || '.alt').forEach((b) => b.addEventListener('click', () => o.elegir(Number(b.dataset.i))));
+    if (o.alConectar) o.alConectar();
+    const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
+    const terminar = () => { const fin = o.fin; ui.alCerrar = () => o.cerrar(fin); ui.cerrar(); };
+    on('r-ok', o.atacar);
+    on('hab-usar', () => usarHabilidad(o.especial));
+    on('r-huir', () => { if (o.fin) return; o.huir(); S.vida = Math.max(1, S.vida - 2); pintarHUD(); o.pintar(); });
+    on('r-fin', terminar);
+    ui.teclas = (e) => {
+      if (o.fin) { if (e.key === 'Enter') { e.preventDefault(); terminar(); } return; }
+      if (!o.abierta && /^[1-4]$/.test(e.key)) o.elegir(Number(e.key) - 1); else if (e.key === 'Enter') { e.preventDefault(); o.atacar(); }
+    };
+  }
+
   // ---------- Coloso de Magma: jefe de las Profundidades (solo, 3 fases) ----------
   const COLOSO = { nombre: 'Coloso de Magma', vida: 63, premio: { magma: 10, cristal_eco: 8, amatista: 6, plata: 10 }, xp: 260 };
   function abrirColoso() {
@@ -3137,26 +3164,12 @@
       else cuerpo = `${banner}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
-          ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
-      ui.abrir(`
-        <div class="combate-cab">
-          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u3b_retrato')}" alt="" width="72" height="72">
-            <div><span class="etq" style="color: var(--coral)">Jefe de las Profundidades · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${COLOSO.nombre}</h2>
-              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
-              ${J.coraza > 0 ? `<span class="rey-escudo">🪨 Coraza de magma: ${J.coraza}</span>` : ''}${J.fase === 3 ? `<span class="rey-escudo">🔥 Racha: ${J.racha} de 2</span>` : ''}</div></div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
-        </div>${cuerpo}`, 'combate jefe rey coloso');
-      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
-      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
-      on('r-ok', atacar);
-      on('hab-usar', () => usarHabilidad(especial));
-      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
-      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
-      ui.teclas = (e) => {
-        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
-        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
-      };
+          ${alternativasHTML(d, elegida, fallidas, false)}`;
+      ventanaJefe({
+        fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u3b_retrato'), etiqueta: `Jefe de las Profundidades · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}`, nombre: COLOSO.nombre,
+        aria: 'Vida del jefe', hp: J.hp, max: J.max, pct: pct, extra: `${J.coraza > 0 ? `<span class="rey-escudo">🪨 Coraza de magma: ${J.coraza}</span>` : ''}${J.fase === 3 ? `<span class="rey-escudo">🔥 Racha: ${J.racha} de 2</span>` : ''}`, golpe: danio(), clase: 'combate jefe rey coloso',
+        elegir: (x) => { elegida = x; pintar(); }, atacar, especial, huir: () => { fin = 'huir'; }, pintar, cerrar,
+      });
     };
     const golpeRecibido = (motivo) => {
       sfx('dano'); J.racha = 0;
@@ -3771,26 +3784,12 @@
       else cuerpo = `${banners[J.fase]}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
-          ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
-      ui.abrir(`
-        <div class="combate-cab">
-          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u4b_retrato')}" alt="" width="72" height="72">
-            <div><span class="etq" style="color: var(--coral)">Jefe de la Cima del Glaciar · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${DRAGON.nombre}</h2>
-              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
-              ${J.muro > 0 ? `<span class="rey-escudo">🧊 Muro de hielo: ${J.muro}</span>` : ''}${J.fase === 4 ? `<span class="rey-escudo">🌌 Racha: ${J.racha} de 3</span>` : ''}</div></div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
-        </div>${cuerpo}`, 'combate jefe rey dragon');
-      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
-      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
-      on('r-ok', atacar);
-      on('hab-usar', () => usarHabilidad(especial));
-      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
-      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
-      ui.teclas = (e) => {
-        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
-        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
-      };
+          ${alternativasHTML(d, elegida, fallidas, false)}`;
+      ventanaJefe({
+        fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u4b_retrato'), etiqueta: `Jefe de la Cima del Glaciar · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}`, nombre: DRAGON.nombre,
+        aria: 'Vida del jefe', hp: J.hp, max: J.max, pct: pct, extra: `${J.muro > 0 ? `<span class="rey-escudo">🧊 Muro de hielo: ${J.muro}</span>` : ''}${J.fase === 4 ? `<span class="rey-escudo">🌌 Racha: ${J.racha} de 3</span>` : ''}`, golpe: danio(), clase: 'combate jefe rey dragon',
+        elegir: (x) => { elegida = x; pintar(); }, atacar, especial, huir: () => { fin = 'huir'; }, pintar, cerrar,
+      });
     };
     const golpeRecibido = (motivo) => {
       sfx('dano'); J.racha = 0;
@@ -3893,26 +3892,12 @@
       else cuerpo = `${banners[J.fase]}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
-          ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
-      ui.abrir(`
-        <div class="combate-cab">
-          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u2b_retrato')}" alt="" width="72" height="72">
-            <div><span class="etq" style="color: var(--coral)">Jefe del Valle de la Esfinge · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${FARAON.nombre}</h2>
-              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
-              ${J.vendas > 0 ? `<span class="rey-escudo">🩹 Vendas malditas: ${J.vendas}</span>` : ''}${J.fase === 4 ? `<span class="rey-escudo">☀️ Racha: ${J.racha} de 2</span>` : ''}</div></div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
-        </div>${cuerpo}`, 'combate jefe rey faraon');
-      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
-      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
-      on('r-ok', atacar);
-      on('hab-usar', () => usarHabilidad(especial));
-      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
-      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
-      ui.teclas = (e) => {
-        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
-        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
-      };
+          ${alternativasHTML(d, elegida, fallidas, false)}`;
+      ventanaJefe({
+        fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u2b_retrato'), etiqueta: `Jefe del Valle de la Esfinge · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}`, nombre: FARAON.nombre,
+        aria: 'Vida del jefe', hp: J.hp, max: J.max, pct: pct, extra: `${J.vendas > 0 ? `<span class="rey-escudo">🩹 Vendas malditas: ${J.vendas}</span>` : ''}${J.fase === 4 ? `<span class="rey-escudo">☀️ Racha: ${J.racha} de 2</span>` : ''}`, golpe: danio(), clase: 'combate jefe rey faraon',
+        elegir: (x) => { elegida = x; pintar(); }, atacar, especial, huir: () => { fin = 'huir'; }, pintar, cerrar,
+      });
     };
     const golpeRecibido = (motivo) => {
       sfx('dano'); J.racha = 0;
@@ -6040,27 +6025,13 @@
       else cuerpo = `${banner}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
           <p class="enunciado">${mate(d.enunciado)}</p>
-          ${abierta ? abiertaHTML(escrito) : alternativasHTML(d, elegida, new Set(), false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${(abierta ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
-      ui.abrir(`
-        <div class="combate-cab">
-          <div class="luchador"><img class="px" src="${retrato}" alt="" width="72" height="72">
-            <div><span class="etq" style="color: var(--coral)">${esHades ? `Jefe final · Fase ${J.fase} de 3` : `Altar ${i + 1} de 5`} · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${esc(D.nombre)}</h2>
-              <div class="barra enemigo" role="img" aria-label="Vida: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct()}%"></i></div>
-              <div class="dios-mec">${mecHTML()}</div></div></div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${golpe()}</span></div>
-        </div>${cuerpo}`, `combate jefe rey dios-${D.id}`);
-      document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
-      conectarAbierta((v) => { escrito = v; const b = $('r-ok'); if (b) b.disabled = !v.trim(); });
-      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
-      on('r-ok', atacar);
-      on('hab-usar', () => usarHabilidad(especial));
-      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
-      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
-      ui.teclas = (e) => {
-        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
-        if (!abierta && /^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
-      };
+          ${abierta ? abiertaHTML(escrito) : alternativasHTML(d, elegida, new Set(), false)}`;
+      ventanaJefe({
+        fin, cuerpo, listo: !((abierta ? !escrito.trim() : elegida === null)), retrato: retrato, etiqueta: `${esHades ? `Jefe final · Fase ${J.fase} de 3` : `Altar ${i + 1} de 5`} · ${esc(d ? d.titulo : '')}`, nombre: esc(D.nombre),
+        aria: 'Vida', hp: J.hp, max: J.max, pct: pct(), extra: `<div class="dios-mec">${mecHTML()}</div>`, golpe: golpe(), clase: `combate jefe rey dios-${D.id}`, selAlt: '#modal .alt', abierta,
+        elegir: (x) => { elegida = x; pintar(); }, atacar, especial, huir: () => { fin = 'huir'; }, pintar, cerrar,
+        alConectar: () => conectarAbierta((v) => { escrito = v; const b = $('r-ok'); if (b) b.disabled = !v.trim(); }),
+      });
     };
     const herir = (n) => {
       const antes = J.hp; J.hp -= n;
@@ -7306,26 +7277,12 @@
       else cuerpo = `${banner}${ultimo}
           ${J.limite ? `<div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>` : ''}
           <p class="enunciado">${mate(d.enunciado)}</p>
-          ${alternativasHTML(d, elegida, fallidas, false)}
-          <div class="acciones"><div><button type="button" class="btn" id="r-huir">Retirarse (−2 ❤)</button></div><div>${habBtnHTML()}<button type="button" class="btn pri" id="r-ok" ${elegida === null ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
-      ui.abrir(`
-        <div class="combate-cab">
-          <div class="luchador"><img class="px" src="${sc.imagenTex('jefe_u1b_retrato')}" alt="" width="72" height="72">
-            <div><span class="etq" style="color: var(--coral)">Jefe del Bosque profundo · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}</span><h2 id="modal-titulo">${REY.nombre}</h2>
-              <div class="barra enemigo" role="img" aria-label="Vida del jefe: ${Math.max(0, J.hp)} de ${J.max}"><i style="width:${pct}%"></i></div>
-              ${J.escudo > 0 ? `<span class="rey-escudo">🛡️ Escudo de raíces: ${J.escudo}</span>` : ''}</div></div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
-        </div>${cuerpo}`, 'combate jefe rey');
-      document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
-      const on = (id, f) => { const el = $(id); if (el) el.addEventListener('click', f); };
-      on('r-ok', atacar);
-      on('hab-usar', () => usarHabilidad(especial));
-      on('r-huir', () => { if (fin) return; fin = 'huir'; S.vida = Math.max(1, S.vida - 2); pintarHUD(); pintar(); });
-      on('r-fin', () => { const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); });
-      ui.teclas = (e) => {
-        if (fin) { if (e.key === 'Enter') { e.preventDefault(); const f = fin; ui.alCerrar = () => cerrar(f); ui.cerrar(); } return; }
-        if (/^[1-4]$/.test(e.key)) { elegida = Number(e.key) - 1; pintar(); } else if (e.key === 'Enter') { e.preventDefault(); atacar(); }
-      };
+          ${alternativasHTML(d, elegida, fallidas, false)}`;
+      ventanaJefe({
+        fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u1b_retrato'), etiqueta: `Jefe del Bosque profundo · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}`, nombre: REY.nombre,
+        aria: 'Vida del jefe', hp: J.hp, max: J.max, pct: pct, extra: `${J.escudo > 0 ? `<span class="rey-escudo">🛡️ Escudo de raíces: ${J.escudo}</span>` : ''}`, golpe: danio(), clase: 'combate jefe rey',
+        elegir: (x) => { elegida = x; pintar(); }, atacar, especial, huir: () => { fin = 'huir'; }, pintar, cerrar,
+      });
     };
     const golpeRecibido = (motivo) => {
       sfx('dano');
