@@ -4,8 +4,11 @@
 (function () {
   'use strict';
   const J = () => window.MWJ;
-  const R = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
-  const pick = (l) => l[Math.floor(Math.random() * l.length)];
+  // azar del juego: en una competencia todos usan la misma semilla, así la partida empieza igual para todos
+  let rnd = Math.random;
+  const semilla = (s) => () => { s = (s + 0x6d2b79f5) | 0; let t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  const R =(a, b) => a + Math.floor(rnd() * (b - a + 1));
+  const pick = (l) => l[Math.floor(rnd() * l.length)];
   const esc = (s) => J().esc(s);
   const $ = (id) => document.getElementById(id);
   const W = 400, H = 300;
@@ -48,7 +51,7 @@
   function sortear(items, bonus = 0) {
     // bonus (0..1) hace más probables las rarezas altas
     const pesos = items.map((x) => RAREZAS[x.rareza] * (x.rareza === 'Común' ? 1 - bonus * 0.5 : 1 + bonus));
-    let t = Math.random() * pesos.reduce((a, b) => a + b, 0);
+    let t = rnd() * pesos.reduce((a, b) => a + b, 0);
     for (let i = 0; i < items.length; i++) { t -= pesos[i]; if (t <= 0) return items[i]; }
     return items[items.length - 1];
   }
@@ -90,6 +93,12 @@
   function texto(ctx, s, x, y, t = 14, c = '#fff', al = 'center') { ctx.font = `700 ${t}px Fredoka, Nunito, sans-serif`; ctx.textAlign = al; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.strokeText(s, x, y); ctx.fillStyle = c; ctx.fillText(s, x, y); }
   function fondo(ctx, a, b) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, a); g.addColorStop(1, b); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
   function caja(ctx, x, y, w, h, c, r = 10) { ctx.fillStyle = c; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, r) : ctx.rect(x, y, w, h); ctx.fill(); }
+  // diana dibujada (anillos rellenos con contorno), sobre un poste de madera
+  function diana(ctx, x, y, r) {
+    ctx.fillStyle = '#6b4220'; ctx.fillRect(x - 3, y + r - 4, 6, 26 - r * 0.4);
+    ctx.lineWidth = 2.5; ctx.strokeStyle = '#2a1408';
+    [[1, '#ffffff'], [0.78, '#e8322f'], [0.56, '#ffffff'], [0.34, '#e8322f'], [0.14, '#ffd23a']].forEach(([k, c]) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x, y, r * k, 0, 7); ctx.fill(); ctx.stroke(); });
+  }
   const dentro = (px, py, x, y, r) => (px - x) ** 2 + (py - y) ** 2 <= r * r;
   const corazones = (n, max = 3) => '❤️'.repeat(Math.max(0, n)) + '🖤'.repeat(Math.max(0, max - n));
   // dirección a la que apunta el jugador: flechas o tocar/mantener a un lado del lienzo
@@ -113,7 +122,7 @@
         const st = G.st; st.spawn -= dt;
         if (st.spawn <= 0) {
           st.spawn = Math.max(0.28, 0.6 - G.t * 0.01);
-          const tipo = Math.random() < 0.12 ? 'd' : Math.random() < 0.18 ? 'r' : 'n';
+          const tipo = rnd() < 0.12 ? 'd' : rnd() < 0.18 ? 'r' : 'n';
           st.bichos.push({ x: R(30, W - 30), y: R(50, H - 30), vx: R(-40, 40), vy: R(-30, 30), vida: tipo === 'd' ? 1.6 : 2.6, tipo });
         }
         st.bichos.forEach((b) => { b.x += b.vx * dt; b.y += b.vy * dt; b.vida -= dt; if (b.x < 20 || b.x > W - 20) b.vx *= -1; if (b.y < 40 || b.y > H - 20) b.vy *= -1; });
@@ -137,7 +146,7 @@
     ar_tala: { zona: 'u1', ico: '🪓', nombre: 'Tala a ritmo', vidas: 3,
       desc: 'La marca va y viene sobre la barra: toca (o espacio) cuando esté en la zona verde. 12 hachazos derriban el árbol; justo al centro vale doble.',
       iniciar(G) { G.st = { pos: 0, dir: 1, vel: 0.9, zona: this.nueva(0.26), golpes: 0, flash: 0, combo: 0 }; },
-      nueva(ancho) { const c = 0.15 + Math.random() * (0.7 - ancho); return [c, c + ancho]; },
+      nueva(ancho) { const c = 0.15 + rnd() * (0.7 - ancho); return [c, c + ancho]; },
       paso(G, dt) {
         const st = G.st; st.pos += st.dir * st.vel * dt; if (st.pos > 1) { st.pos = 1; st.dir = -1; } if (st.pos < 0) { st.pos = 0; st.dir = 1; }
         st.flash = Math.max(0, st.flash - dt);
@@ -211,8 +220,8 @@
         const st = G.st, piso = 240;
         st.vel = Math.min(380, 170 + G.t * 6); st.dist += st.vel * dt; G.puntos = Math.floor(st.dist / 150) + (st.monedas || 0);
         st.vy += 900 * dt; st.y = Math.min(0, st.y + st.vy * dt); if (st.y === 0) st.vy = 0;
-        st.prox -= dt; if (st.prox <= 0) { st.obs.push({ x: W + 20, e: pick(['🌵', '🪨', '🌵']) }); st.prox = Math.max(0.65, 1.5 - G.t * 0.02) + Math.random() * 0.7; }
-        st.proxM -= dt; if (st.proxM <= 0) { st.mon.push({ x: W + 20, y: piso - R(40, 110) }); st.proxM = 1 + Math.random() * 1.5; }
+        st.prox -= dt; if (st.prox <= 0) { st.obs.push({ x: W + 20, e: pick(['🌵', '🪨', '🌵']) }); st.prox = Math.max(0.65, 1.5 - G.t * 0.02) + rnd() * 0.7; }
+        st.proxM -= dt; if (st.proxM <= 0) { st.mon.push({ x: W + 20, y: piso - R(40, 110) }); st.proxM = 1 + rnd() * 1.5; }
         st.obs.forEach((o) => { o.x -= st.vel * dt; }); st.mon.forEach((m) => { m.x -= st.vel * dt; });
         st.obs = st.obs.filter((o) => o.x > -30); st.mon = st.mon.filter((m) => m.x > -30 && !m.ok);
         const px = 80, py = piso + st.y;
@@ -291,8 +300,8 @@
         st.prox -= dt;
         if (st.prox <= 0) {
           const libre = R(0, 2);
-          [0, 1, 2].forEach((r) => { if (r !== libre && Math.random() < 0.55) st.obs.push({ r, y: -20, e: pick(['🪨', '🪨', '💥']) }); });
-          if (Math.random() < 0.5) st.obs.push({ r: libre, y: -60, e: '💎', gema: true });
+          [0, 1, 2].forEach((r) => { if (r !== libre && rnd() < 0.55) st.obs.push({ r, y: -20, e: pick(['🪨', '🪨', '💥']) }); });
+          if (rnd() < 0.5) st.obs.push({ r: libre, y: -60, e: '💎', gema: true });
           st.prox = Math.max(0.5, 1.15 - G.t * 0.012);
         }
         st.obs.forEach((o) => { o.y += st.vel * dt; });
@@ -344,7 +353,7 @@
       paso(G, dt) {
         const st = G.st; st.x = Math.max(20, Math.min(W - 20, st.x + dirX(G, st.x) * 230 * dt)); st.inv = Math.max(0, st.inv - dt);
         st.prox -= dt;
-        if (st.prox <= 0) { const gema = Math.random() < 0.15; st.caen.push({ x: R(15, W - 15), y: -20, v: R(120, 170) + G.t * 4, gema }); st.prox = Math.max(0.18, 0.7 - G.t * 0.012); }
+        if (st.prox <= 0) { const gema = rnd() < 0.15; st.caen.push({ x: R(15, W - 15), y: -20, v: R(120, 170) + G.t * 4, gema }); st.prox = Math.max(0.18, 0.7 - G.t * 0.012); }
         st.caen.forEach((c) => { c.y += c.v * dt; });
         st.caen.forEach((c) => {
           if (!c.ok && Math.abs(c.x - st.x) < 22 && Math.abs(c.y - 255) < 20) {
@@ -370,7 +379,7 @@
         const st = G.st; st.vel = Math.min(360, 140 + G.t * 6); st.dist += st.vel * dt; st.inv = Math.max(0, st.inv - dt);
         st.x = Math.max(20, Math.min(W - 20, st.x + dirX(G, st.x) * 240 * dt));
         st.prox -= dt;
-        if (st.prox <= 0) { const copo = Math.random() < 0.3; st.cosas.push({ x: R(15, W - 15), y: H + 20, copo, e: copo ? '❄️' : pick(['🌲', '🌲', '🪨']) }); st.prox = Math.max(0.22, 0.6 - G.t * 0.01); }
+        if (st.prox <= 0) { const copo = rnd() < 0.3; st.cosas.push({ x: R(15, W - 15), y: H + 20, copo, e: copo ? '❄️' : pick(['🌲', '🌲', '🪨']) }); st.prox = Math.max(0.22, 0.6 - G.t * 0.01); }
         st.cosas.forEach((c) => { c.y -= st.vel * dt; });
         st.cosas.forEach((c) => {
           if (!c.ok && Math.abs(c.x - st.x) < 20 && Math.abs(c.y - 80) < 20) {
@@ -392,11 +401,11 @@
       paso(G, dt) {
         const st = G.st; st.prox -= dt;
         if (st.prox <= 0) {
-          const nivel = Math.random() < 0.5 ? 0 : Math.random() < 0.65 ? 1 : 2, P = this.PROF[nivel], izq = Math.random() < 0.5;
-          let id = pick(P.items); if (id === 'ballena' && Math.random() < 0.75) id = 'pulpo'; if (id === 'pulpo' && Math.random() < 0.4) id = 'calamar';
+          const nivel = rnd() < 0.5 ? 0 : rnd() < 0.65 ? 1 : 2, P = this.PROF[nivel], izq = rnd() < 0.5;
+          let id = pick(P.items); if (id === 'ballena' && rnd() < 0.75) id = 'pulpo'; if (id === 'pulpo' && rnd() < 0.4) id = 'calamar';
           const item = ALBUMES.peces_hielo.items.find((x) => x.id === id);
           st.peces.push({ x: izq ? -20 : W + 20, y: P.y + R(-10, 10), v: R(P.v[0], P.v[1]) * (izq ? 1 : -1), item, nivel });
-          st.prox = 0.5 + Math.random() * 0.6;
+          st.prox = 0.5 + rnd() * 0.6;
         }
         st.peces.forEach((p) => { p.x += p.v * dt; }); st.peces = st.peces.filter((p) => p.x > -40 && p.x < W + 40);
         if (st.baja) {
@@ -425,7 +434,7 @@
       nuevo(G) {
         const C = this.COLS, F = this.FILAS;
         for (let intento = 0; intento < 400; intento++) {
-          const m = Array.from({ length: F }, () => Array.from({ length: C }, () => Math.random() < 0.22));
+          const m = Array.from({ length: F }, () => Array.from({ length: C }, () => rnd() < 0.22));
           const s = [R(0, C - 1), R(0, F - 1)], g = [R(0, C - 1), R(0, F - 1)]; if (s[0] === g[0] && s[1] === g[1]) continue;
           m[s[1]][s[0]] = false; m[g[1]][g[0]] = false; m.meta = g;
           const vistos = new Map([[s.join(','), 0]]), cola = [s]; let min = -1;
@@ -478,7 +487,7 @@
       iniciar(G) { G.st = { dianas: [], flechas: 15, prox: 0, impactos: [] }; },
       paso(G, dt) {
         const st = G.st; st.prox -= dt;
-        if (st.prox <= 0 && st.dianas.length < 4) { const fila = R(0, 2), izq = Math.random() < 0.5; st.dianas.push({ x: izq ? -20 : W + 20, y: 80 + fila * 60, v: (90 - fila * 22 + G.t * 2) * (izq ? 1 : -1) * (fila === 0 ? 1.6 : fila === 1 ? 1.25 : 1), val: 3 - fila }); st.prox = 0.6; }
+        if (st.prox <= 0 && st.dianas.length < 4) { const fila = R(0, 2), izq = rnd() < 0.5; st.dianas.push({ x: izq ? -20 : W + 20, y: 80 + fila * 60, v: (90 - fila * 22 + G.t * 2) * (izq ? 1 : -1) * (fila === 0 ? 1.6 : fila === 1 ? 1.25 : 1), val: 3 - fila }); st.prox = 0.6; }
         st.dianas.forEach((d) => { d.x += d.v * dt; }); st.dianas = st.dianas.filter((d) => d.x > -30 && d.x < W + 30 && !d.ok);
         st.impactos.forEach((i) => { i.t -= dt; }); st.impactos = st.impactos.filter((i) => i.t > 0);
         if (G.t >= this.dura || st.flechas <= 0) G.fin = true;
@@ -490,8 +499,9 @@
       },
       dibujar(ctx, G) {
         const st = G.st; fondo(ctx, '#a6d98a', '#6aa851');
-        [80, 140, 200].forEach((y) => { ctx.fillStyle = 'rgba(0,0,0,.08)'; ctx.fillRect(0, y - 24, W, 48); });
-        st.dianas.forEach((d) => emoji(ctx, '🎯', d.x, d.y, 34));
+        // tres carriles de madera (sólidos) donde corren las dianas
+        [80, 140, 200].forEach((y, i) => { caja(ctx, 0, y - 24, W, 48, ['#c98f52', '#b97f45', '#a9703a'][i], 0); ctx.fillStyle = '#5a3418'; ctx.fillRect(0, y + 20, W, 4); ctx.fillRect(0, y - 24, W, 2); texto(ctx, `${3 - i} pts`, 22, y, 11, '#fff3c4'); });
+        st.dianas.forEach((d) => diana(ctx, d.x, d.y, 19));
         st.impactos.forEach((i) => texto(ctx, i.txt, i.x, i.y - (0.6 - i.t) * 30, 16, '#ffd27a'));
         texto(ctx, `🏹 ${st.flechas} · ⏱️ ${Math.max(0, Math.ceil(this.dura - G.t))} s`, 200, 30, 15);
       } },
@@ -519,10 +529,19 @@
       animar(G) { if (G.st.fase === 'corre') G.st.toques.push(G.t); },
       toque(G) { this.animar(G); }, tecla(G, k) { if (k === ' ' || k === 'Enter') this.animar(G); },
       dibujar(ctx, G) {
-        const st = G.st; fondo(ctx, '#bfe8a8', '#8ccf6f');
-        const carriles = [st.yo, ...st.rivales];
-        carriles.forEach((c, i) => { const y = 70 + i * 55; ctx.fillStyle = i === 0 ? 'rgba(255,210,122,.35)' : 'rgba(255,255,255,.25)'; ctx.fillRect(0, y - 22, W, 44); emoji(ctx, c.e, c.x, y, 32); });
-        ctx.fillStyle = '#fff'; for (let y = 48; y < 290; y += 16) ctx.fillRect(362, y, 6, 8);
+        const st = G.st; fondo(ctx, '#7fc463', '#5aa144');
+        const carriles = [st.yo, ...st.rivales], COL = ['#ffb43c', '#f2f2f2', '#e8743a', '#5aa86a'];
+        carriles.forEach((c, i) => {
+          const y = 70 + i * 55;
+          // pista de tierra sólida con borde, y la mascota sobre una ficha de color con contorno marcado
+          caja(ctx, 0, y - 22, W, 44, i === 0 ? '#e6b873' : '#d2a467', 0);
+          ctx.fillStyle = '#7a4f26'; ctx.fillRect(0, y - 22, W, 3); ctx.fillRect(0, y + 19, W, 3);
+          ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(c.x, y + 15, 17, 5, 0, 0, 7); ctx.fill();
+          ctx.fillStyle = COL[i]; ctx.strokeStyle = '#1d2b25'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(c.x, y - 2, 18, 0, 7); ctx.fill(); ctx.stroke();
+          emoji(ctx, c.e, c.x, y - 1, 26);
+          if (i === 0) texto(ctx, 'TÚ', c.x, y - 28, 11, '#ffd27a');
+        });
+        for (let y = 48; y < 290; y += 16) { ctx.fillStyle = '#fff'; ctx.fillRect(362, y, 6, 8); ctx.fillStyle = '#1d2b25'; ctx.fillRect(362, y + 8, 6, 8); }
         texto(ctx, st.fase === 'cuenta' ? `${Math.ceil(st.t)}…` : st.fase === 'fin' ? `¡Llegaste ${['', '1.°', '2.°', '3.°', '4.°'][st.lugar]}!` : '¡Toca rápido para animar!', 200, 24, 16);
       } },
 
@@ -540,7 +559,7 @@
       },
       toque(G, x) {
         const st = G.st, i = [0, 1, 2, 3].find((k) => Math.abs(x - this.px(k)) < 40); if (i === undefined) return;
-        if (i === st.luz) { G.puntos += 1; st.luz = -1; st.t = 0.25 + Math.random() * 0.5; st.ventana = Math.max(0.42, st.ventana * 0.96); J().sfx('acierto'); }
+        if (i === st.luz) { G.puntos += 1; st.luz = -1; st.t = 0.25 + rnd() * 0.5; st.ventana = Math.max(0.42, st.ventana * 0.96); J().sfx('acierto'); }
         else { G.vidas -= 1; J().sfx('error'); if (G.vidas <= 0) G.fin = true; }
       },
       tecla(G, k) { const i = ['1', '2', '3', '4'].indexOf(k); if (i >= 0) this.toque(G, this.px(i)); },
@@ -575,22 +594,43 @@
       <div class="ar-portada"><div class="ar-portada-ico" aria-hidden="true">${d.ico}</div><p class="enunciado">${esc(d.desc)}</p>
         <ul class="mjx-fichas"><li><b>🏆 ${r}</b> tu récord</li>${d.dura ? `<li><b>⏱️ ${d.dura} s</b></li>` : ''}${d.vidas > 1 ? `<li><b>${'❤️'.repeat(d.vidas)}</b></li>` : ''}${d.album ? `<li><b>📖 ${albumTengo(d.album)}/${ALBUMES[d.album].items.length}</b> álbum</li>` : ''}</ul>
         <p class="nota">${textoPremio(veces)}${d.album ? ' Al jugar puedes ganar objetos para tu álbum.' : ''}</p></div>
-      <div class="acciones">${d.album ? `<button type="button" class="btn sec" id="ar-album">📖 Ver álbum</button>` : '<span></span>'}<button type="button" class="btn pri" id="ar-si" data-foco>▶ ¡Jugar!</button></div>`, 'ar-modal');
+      <div class="acciones">${d.album ? `<button type="button" class="btn sec" id="ar-album">📖 Ver álbum</button>` : '<span></span>'}<div>${puedeCompetir(d) ? '<button type="button" class="btn sec" id="ar-comp">🏁 Competir con compañeros</button> ' : ''}<button type="button" class="btn pri" id="ar-si" data-foco>▶ ¡Jugar!</button></div></div>`, 'ar-modal');
     $('ar-no').addEventListener('click', () => J().ui.cerrar());
     $('ar-si').addEventListener('click', () => empezar(id));
+    const cp = $('ar-comp'); if (cp) cp.addEventListener('click', () => abrirComp(id));
     const al = $('ar-album'); if (al) al.addEventListener('click', () => abrirAlbum(d.album, id));
   }
 
-  function empezar(id) {
+  // El lienzo ocupa todo el espacio libre de la pantalla (sin barras de desplazamiento) y mantiene 4:3;
+  // su resolución interna sigue al tamaño real para que se vea nítido en pantallas grandes y celulares.
+  function encajarLienzo(cv) {
+    const zona = cv.parentElement;
+    const ajustar = () => {
+      if (!cv.isConnected) { if (ro) ro.disconnect(); return; }
+      const w = zona.clientWidth, h = zona.clientHeight; if (w <= 0 || h <= 0) return;
+      let ww = w, hh = (w * H) / W; if (hh > h) { hh = h; ww = (h * W) / H; }
+      cv.style.width = `${Math.floor(ww)}px`; cv.style.height = `${Math.floor(hh)}px`;
+      const k = Math.min(3, window.devicePixelRatio || 1);
+      cv.width = Math.max(W, Math.round(ww * k)); cv.height = Math.round((cv.width * H) / W);
+    };
+    const ro = window.ResizeObserver ? new ResizeObserver(ajustar) : null;
+    if (ro) ro.observe(zona); else window.addEventListener('resize', ajustar);
+    ajustar();
+  }
+
+  function empezar(id, semillaComp) {
     const d = DEF[id];
     parar();
-    G = { id, d, t: 0, puntos: 0, vidas: d.vidas || 1, fin: false, keys: {}, ptr: null, t0: Date.now(), st: {} };
-    J().ui.abrir(`<div class="modal-cab ar-cab"><div><span class="etq">${esc(J().nombreZona(d.zona))}</span><h2 id="modal-titulo">${d.ico} ${esc(d.nombre)}</h2></div>
+    rnd = semillaComp ? semilla(semillaComp) : Math.random;
+    G = { id, d, t: 0, puntos: 0, vidas: d.vidas || 1, fin: false, keys: {}, ptr: null, t0: Date.now(), st: {}, comp: Boolean(semillaComp), envio: 0 };
+    J().ui.abrir(`<div class="modal-cab ar-cab"><div><span class="etq">${esc(J().nombreZona(d.zona))}${G.comp ? ' · 🏁 Competencia' : ''}</span><h2 id="modal-titulo">${d.ico} ${esc(d.nombre)}</h2></div>
         <div class="ar-hud"><span id="ar-pts">0</span><span id="ar-vid"></span></div><button type="button" class="btn" id="ar-salir">Salir</button></div>
+      ${G.comp ? '<div class="ar-rivales" id="ar-riv" aria-live="off"></div>' : ''}
       <div class="ar-lienzo"><canvas id="ar-cv" width="${W * 2}" height="${H * 2}" tabindex="0" aria-label="${esc(d.nombre)}"></canvas></div>
-      <p class="nota ar-ayuda">${esc(d.desc)}</p>`, 'ar-modal ar-juego', () => parar());
+      <p class="nota ar-ayuda">${esc(d.desc)}</p>`, 'ar-modal ar-juego', () => { parar(); salirComp(); });
     $('ar-salir').addEventListener('click', () => { parar(); J().ui.cerrar(); });
-    const cv = $('ar-cv'), ctx = cv.getContext('2d'); ctx.scale(2, 2);
+    const cv = $('ar-cv'), ctx = cv.getContext('2d');
+    encajarLienzo(cv);
     const coord = (e) => { const r = cv.getBoundingClientRect(); return [((e.clientX - r.left) * W) / r.width, ((e.clientY - r.top) * H) / r.height]; };
     cv.addEventListener('pointerdown', (e) => { if (!G || G.fin) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (er) { /* */ } const [x, y] = coord(e); G.ptr = { x, y }; if (d.toque) d.toque(G, x, y); });
     cv.addEventListener('pointermove', (e) => { if (!G) return; const [x, y] = coord(e); if (G.ptr || e.pointerType === 'mouse') G.ptr = { x, y, raton: e.pointerType === 'mouse' && !G.ptr }; });
@@ -612,9 +652,12 @@
       if (!G || !cv.isConnected) return parar();
       const dt = Math.min(0.05, (ahora - antes) / 1000); antes = ahora;
       if (!G.fin) { G.t += dt; d.paso(G, dt); }
+      const k = cv.width / W; ctx.setTransform(k, 0, 0, k, 0, 0);
       ctx.clearRect(0, 0, W, H); d.dibujar(ctx, G);
       const p = $('ar-pts'), v = $('ar-vid');
       if (p) p.textContent = `⭐ ${G.puntos}`; if (v) v.textContent = d.vidas > 1 ? corazones(G.vidas, d.vidas) : d.dura ? `⏱️ ${Math.max(0, Math.ceil(d.dura - G.t))}` : '';
+      // en competencia se envían los puntos cada medio segundo y se actualiza el marcador
+      if (G.comp && (G.t - G.envio >= 0.5 || G.fin)) { G.envio = G.t; compPuntos(G.puntos, false); pintarRivales(); }
       if (G.fin) { const g = G; parar(); setTimeout(() => terminar(g), 450); return; }
       raf = requestAnimationFrame(ciclo);
     };
@@ -623,11 +666,11 @@
   function parar() {
     cancelAnimationFrame(raf); raf = 0;
     if (G) { document.removeEventListener('keydown', G.kd, true); document.removeEventListener('keyup', G.ku, true); }
-    G = null;
+    G = null; rnd = Math.random;
   }
 
   function terminar(g) {
-    const M = J(), S = M.S(), d = g.d, id = g.id, D = dia(), veces = D.n[id] || 0;
+    const M = J(), S = M.S(), d = g.d, id = g.id, D = dia(), veces = D.n[id] || 0, comp = Boolean(g.comp && C);
     D.n[id] = veces + 1;
     const dur = Date.now() - g.t0, valido = dur >= MIN_MS && g.puntos > 0;
     const mult = !valido || veces >= PREMIO_MENOR ? 0 : veces >= PREMIO_COMPLETO ? 0.25 : 1;
@@ -643,7 +686,7 @@
     let hallazgos = [];
     if (d.album && valido && veces < PREMIO_MENOR) {
       if (id === 'ar_pesca_hielo') hallazgos = (g.st.atrapados || []).map((x) => registrar(d.album, x));
-      else if (Math.random() < Math.min(0.85, 0.3 + g.puntos / 30)) hallazgos = [registrar(d.album, sortear(ALBUMES[d.album].items, Math.min(1, g.puntos / 40)))];
+      else if (rnd() < Math.min(0.85, 0.3 + g.puntos / 30)) hallazgos = [registrar(d.album, sortear(ALBUMES[d.album].items, Math.min(1, g.puntos / 40)))];
     }
     const nuevos = hallazgos.filter((h) => h.nuevo), mejor = nuevos[0] || hallazgos[0];
     M.sfx(nuevoRec ? 'logro' : g.puntos ? 'acierto' : 'error'); if (nuevoRec && g.puntos >= 5) M.celebrar();
@@ -655,11 +698,141 @@
         <p class="enunciado">Puntos: <b>${g.puntos}</b> · Récord: <b>${Math.max(rec0, g.puntos)}</b></p>
         <ul class="mjx-fichas premio">${txt ? `<li><b>🎁</b> ${esc(txt)}</li>` : ''}${xp ? `<li><b>⭐ ${xp}</b> de experiencia</li>` : ''}</ul>
         ${mejor ? `<div class="ar-hallazgo"><span class="ar-ico" style="${mejor.item.color ? `--c:${mejor.item.color}` : ''}">${mejor.item.e}</span><div><b>${mejor.nuevo ? '¡Nuevo en tu álbum!' : 'Encontraste'}</b> ${esc(mejor.item.nombre)} <small class="rareza ${CLASE[mejor.item.rareza]}">${esc(mejor.item.rareza)}</small>${hallazgos.length > 1 ? `<br><small>y ${hallazgos.length - 1} más (${nuevos.length} nuevos)</small>` : ''}</div></div>` : ''}
-        ${motivo ? `<p class="nota">${motivo}</p>` : ''}</div>
-      <div class="acciones"><button type="button" class="btn" id="ar-fin" data-foco>Cerrar</button><div>${d.album ? '<button type="button" class="btn sec" id="ar-alb">📖 Álbum</button> ' : ''}<button type="button" class="btn pri" id="ar-otra">↻ Jugar otra vez</button></div></div>`, 'ar-modal');
+        ${motivo ? `<p class="nota">${motivo}</p>` : ''}
+        ${comp ? '<div class="ar-rank" id="ar-rank"></div>' : ''}</div>
+      <div class="acciones"><button type="button" class="btn" id="ar-fin" data-foco>${comp ? 'Salir de la sala' : 'Cerrar'}</button><div>${d.album && !comp ? '<button type="button" class="btn sec" id="ar-alb">📖 Álbum</button> ' : ''}${comp ? (C.host ? '<button type="button" class="btn pri" id="ar-revancha">↻ Revancha (misma sala)</button>' : '<span class="nota">El anfitrión puede pedir revancha.</span>') : '<button type="button" class="btn pri" id="ar-otra">↻ Jugar otra vez</button>'}</div></div>`, 'ar-modal', comp ? () => salirComp() : null);
     $('ar-fin').addEventListener('click', () => M.ui.cerrar());
-    $('ar-otra').addEventListener('click', () => abrir(id));
+    const ot = $('ar-otra'); if (ot) ot.addEventListener('click', () => abrir(id));
+    const rv = $('ar-revancha'); if (rv) rv.addEventListener('click', () => { if (C) { C.canal.emitir('ar', { t: 'sala', de: C.yo }); recibirComp({ t: 'sala', de: C.yo }); } });
     const al = $('ar-alb'); if (al) al.addEventListener('click', () => abrirAlbum(d.album, id));
+    if (comp) { compPuntos(g.puntos, true); pintarRanking(); }
+  }
+
+  // ===================================================================
+  // Modo competencia: varios compañeros juegan la misma partida a la vez (sala con código)
+  // ===================================================================
+  let C = null;   // sala en curso
+  const COMP_MAX = 8;
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const puedeCompetir = (d) => Boolean(d && !d.huerto && J() && J().coop() && !J().esDocente() && window.Coop);
+  function salirComp() {
+    if (!C) return;
+    try { C.canal.emitir('ar', { t: 'chao', de: C.yo }); C.canal.salir(); } catch (e) { /* */ }
+    clearTimeout(C.reloj); C = null;
+  }
+  function abrirComp(id, err) {
+    const d = DEF[id], M = J();
+    M.ui.abrir(`<div class="modal-cab"><div><span class="etq">Competencia · ${esc(d.nombre)}</span><h2 id="modal-titulo">🏁 Competir con compañeros</h2></div><button type="button" class="btn" id="ac-cerrar">Cerrar</button></div>
+      <p class="enunciado">Todos juegan <b>la misma partida a la vez</b> y ven los puntos de los demás en vivo. ¡Gana quien haga más puntos! (De 2 a ${COMP_MAX} jugadores.)</p>
+      <section class="tarjeta-mision"><strong>Crear una sala</strong><span class="nota">Te damos un código de 4 letras para que se lo digas a tus compañeros.</span><button type="button" class="btn pri" id="ac-crear">Crear sala</button></section>
+      <section class="tarjeta-mision"><strong>Unirme a una sala</strong><span class="nota">Escribe el código que te dio tu compañero.</span>
+        <input id="ac-codigo" class="du-codigo" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="ABCD" aria-label="Código de la sala">
+        <button type="button" class="btn" id="ac-unirme">Unirme</button>${err ? `<small class="nota" style="color:#ff9a8a">${esc(err)}</small>` : ''}</section>
+      <div class="acciones"><button type="button" class="btn sec" id="ac-volver">Volver</button><span class="nota">El premio es el mismo que jugando solo.</span></div>`, 'ar-modal', () => salirComp());
+    $('ac-cerrar').addEventListener('click', () => M.ui.cerrar());
+    $('ac-volver').addEventListener('click', () => { salirComp(); abrir(id); });
+    $('ac-crear').addEventListener('click', () => conectarComp(id, Array.from({ length: 4 }, () => letras[Math.floor(Math.random() * letras.length)]).join(''), true));
+    $('ac-unirme').addEventListener('click', () => {
+      const c = String($('ac-codigo').value || '').toUpperCase().replace(/[^A-Z]/g, '');
+      if (c.length !== 4) return abrirComp(id, 'El código tiene 4 letras.');
+      conectarComp(id, c, false);
+    });
+    $('ac-codigo').addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') $('ac-unirme').click(); });
+  }
+  function conectarComp(id, codigo, host) {
+    salirComp();
+    const M = J(), yo = `${M.nombreJug()}-${Math.random().toString(36).slice(2, 7)}`;
+    const canal = new window.Coop.Canal(`mw-ar-${M.cursoCanal()}-${id}-${codigo}`, yo, { nombre: M.nombreJug(), host });
+    C = { id, codigo, host, yo, canal, fase: 'sala', pres: {}, jug: { [yo]: { nombre: M.nombreJug(), pts: 0, fin: false, host } }, gano: false };
+    canal.alEstado = () => { if (C && C.canal === canal && C.fase === 'sala') pintarSala(); };
+    canal.alCambiarPresencia = (pres) => {
+      if (!C || C.canal !== canal) return;
+      C.pres = pres;
+      if (C.fase === 'sala') {
+        Object.entries(pres).forEach(([k, m]) => { if (!C.jug[k] && Object.keys(C.jug).length < COMP_MAX) C.jug[k] = { nombre: m.nombre || 'Compañero', pts: 0, fin: false, host: Boolean(m.host) }; });
+        Object.keys(C.jug).forEach((k) => { if (k !== yo && !pres[k]) delete C.jug[k]; });
+        pintarSala();
+      } else {
+        Object.keys(C.jug).forEach((k) => { if (k !== yo && !pres[k]) C.jug[k].salio = true; });
+        pintarRivales(); pintarRanking();
+      }
+    };
+    canal.on('ar', (m) => recibirComp(m));
+    pintarSala();
+  }
+  function pintarSala() {
+    if (!C) return;
+    const d = DEF[C.id], M = J(), lista = Object.entries(C.jug), conectado = C.canal.est === 'ok';
+    const hayHost = C.host || Object.values(C.pres).some((m) => m.host);
+    M.ui.abrir(`<div class="modal-cab"><div><span class="etq">Sala de competencia · ${esc(d.nombre)}</span><h2 id="modal-titulo">🏁 Código: <span class="ar-codigo">${C.codigo}</span></h2></div><button type="button" class="btn" id="as-cerrar">Salir</button></div>
+      <p class="nota">${!conectado ? '⏳ Conectando…' : C.host ? 'Dile el código a tus compañeros. Cuando estén todos, aprieta «¡Empezar!».' : hayHost ? 'Esperando que el anfitrión empiece la partida…' : '⏳ Buscando la sala: revisa que el código sea el correcto.'}</p>
+      <ul class="ar-sala">${lista.map(([k, j]) => `<li>${j.host ? '👑' : '🙂'} <b>${esc(j.nombre)}</b>${k === C.yo ? ' (tú)' : ''}</li>`).join('')}</ul>
+      <p class="nota">${lista.length} de ${COMP_MAX} jugadores. Todos juegan ${d.ico} ${esc(d.nombre)} al mismo tiempo.</p>
+      <div class="acciones"><span></span>${C.host ? `<button type="button" class="btn pri" id="as-ir" ${lista.length < 2 ? 'disabled' : ''}>¡Empezar!</button>` : ''}</div>`, 'ar-modal', () => salirComp());
+    $('as-cerrar').addEventListener('click', () => J().ui.cerrar());
+    const ir = $('as-ir');
+    if (ir) ir.addEventListener('click', () => {
+      if (!C || Object.keys(C.jug).length < 2) return;
+      const m = { t: 'go', de: C.yo, seed: Math.floor(Math.random() * 2 ** 31), jug: Object.keys(C.jug) };
+      C.canal.emitir('ar', m); recibirComp(m);
+    });
+  }
+  function recibirComp(m) {
+    if (!C || !m) return;
+    const j = C.jug[m.de];
+    if (m.t === 'go') {
+      if (C.fase !== 'sala') return;
+      if (!m.jug.includes(C.yo)) { salirComp(); return J().toast('La partida de esa sala ya empezó: crea una sala nueva o espera la revancha.', 'alerta'); }
+      Object.keys(C.jug).forEach((k) => { if (!m.jug.includes(k)) delete C.jug[k]; });
+      m.jug.forEach((k) => { if (!C.jug[k]) C.jug[k] = { nombre: (C.pres[k] && C.pres[k].nombre) || 'Compañero', pts: 0, fin: false }; });
+      Object.values(C.jug).forEach((x) => { x.pts = 0; x.fin = false; x.salio = false; });
+      C.fase = 'cuenta'; C.seed = m.seed; C.gano = false;
+      cuentaComp(3);
+    } else if (m.t === 'pts') {
+      if (j) { j.pts = m.p; j.fin = Boolean(m.fin); }
+      pintarRivales(); pintarRanking();
+    } else if (m.t === 'chao') {
+      if (j) { if (C.fase === 'sala') delete C.jug[m.de]; else j.salio = true; }
+      if (C.fase === 'sala') pintarSala(); else { pintarRivales(); pintarRanking(); }
+    } else if (m.t === 'sala') {
+      // revancha: todos vuelven a la sala (si alguien sigue jugando, termina su partida antes)
+      if (G && G.comp) return;
+      C.fase = 'sala';
+      Object.keys(C.jug).forEach((k) => { if (k !== C.yo && !C.pres[k]) delete C.jug[k]; else Object.assign(C.jug[k], { pts: 0, fin: false, salio: false }); });
+      pintarSala();
+    }
+  }
+  function cuentaComp(n) {
+    if (!C || C.fase !== 'cuenta') return;
+    if (n <= 0) { C.fase = 'juego'; return empezar(C.id, C.seed); }
+    const d = DEF[C.id];
+    J().ui.abrir(`<div class="ar-cuenta"><span class="etq">🏁 Competencia · ${esc(d.nombre)}</span><b>${n}</b><p class="nota">${esc(d.desc)}</p></div>`, 'ar-modal', () => salirComp());
+    J().sfx('clic');
+    C.reloj = setTimeout(() => cuentaComp(n - 1), 1000);
+  }
+  function compPuntos(p, fin) {
+    if (!C) return;
+    const yo = C.jug[C.yo]; if (yo) { yo.pts = p; yo.fin = yo.fin || fin; }
+    try { C.canal.emitir('ar', { t: 'pts', de: C.yo, p, fin: Boolean(fin) }); } catch (e) { /* */ }
+    if (fin) C.fase = 'fin';
+  }
+  const ordenados = () => Object.entries(C.jug).sort((a, b) => b[1].pts - a[1].pts);
+  function pintarRivales() {
+    const el = $('ar-riv'); if (!el || !C) return;
+    el.innerHTML = ordenados().map(([k, j], i) => `<span class="${k === C.yo ? 'yo' : ''}${j.salio ? ' salio' : ''}">${i + 1}. ${esc(j.nombre)} <b>${j.pts}</b>${j.fin ? ' 🏁' : ''}</span>`).join('');
+  }
+  function pintarRanking() {
+    const el = $('ar-rank'); if (!el || !C) return;
+    const lista = ordenados(), terminaron = lista.every(([, j]) => j.fin || j.salio);
+    const max = Math.max(...lista.filter(([, j]) => !j.salio).map(([, j]) => j.pts));
+    el.innerHTML = `<h3>${terminaron ? '🏆 Resultado de la competencia' : '⏳ Esperando que terminen los demás…'}</h3>
+      <ol>${lista.map(([k, j]) => `<li class="${k === C.yo ? 'yo' : ''}">${terminaron && j.pts === max && !j.salio && max > 0 ? '🥇 ' : ''}<b>${esc(j.nombre)}</b> · ${j.pts} pts ${j.salio ? '<small>(salió)</small>' : j.fin ? '' : '<small>(jugando…)</small>'}</li>`).join('')}</ol>`;
+    // ganar cuenta para el logro solo si compitieron al menos 2 que terminaron y se hizo algún punto
+    const yo = C.jug[C.yo], rivales = lista.filter(([k, j]) => k !== C.yo && j.fin).length;
+    if (terminaron && !C.gano && yo && yo.fin && rivales >= 1 && yo.pts === max && max > 0) {
+      C.gano = true; J().contar('ar_gana'); J().sfx('logro'); J().celebrar(); J().guardar(true);
+      J().toast(`🏆 ¡Ganaste la competencia de ${DEF[C.id].nombre}!`);
+    }
   }
 
   // ===================================================================
@@ -701,9 +874,62 @@
     }));
   }
 
+  // ===================================================================
+  // Objetos del mundo que representan cada minijuego (en vez de un letrero).
+  // Se dibujan en un lienzo de 64×60 (la base del objeto toca el borde de abajo, al centro).
+  // ===================================================================
+  const O = '#1d2b25';
+  const P = {
+    sombra(c, w = 24) { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(32, 55, w, 5, 0, 0, 7); c.fill(); },
+    rr(c, x, y, w, h, f, r = 3) { c.fillStyle = f; c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); c.fill(); c.stroke(); },
+    el(c, x, y, rx, ry, f) { c.fillStyle = f; c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, 7); c.fill(); c.stroke(); },
+    em(c, e, x, y, s = 22) { c.font = `${s}px ${FUENTE}`; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(e, x, y); },
+    tablas(c, y = 40, w = 50) { const x = 32 - w / 2; P.rr(c, x, y, w, 14, '#b07a42', 2); c.fillStyle = '#7a4f26'; for (let i = x + 9; i < x + w - 2; i += 9) c.fillRect(i, y + 1, 2, 12); },
+    rieles(c) { c.fillStyle = '#6b4a2a'; for (let x = 6; x < 60; x += 8) c.fillRect(x, 44, 4, 12); c.fillStyle = '#9aa3ad'; c.fillRect(2, 46, 60, 3); c.fillRect(2, 52, 60, 3); },
+    monticulo(c, f, f2) { P.el(c, 32, 50, 27, 9, f); c.fillStyle = f2; c.beginPath(); c.ellipse(26, 47, 10, 3, 0, 0, 7); c.fill(); },
+    poste(c, x = 32, y = 26, h = 30) { P.rr(c, x - 3, y, 6, h, '#8a5a2c', 1); },
+    pilar(c, x = 32, w = 18, h = 40, f = '#8e8aa8') { P.rr(c, x - w / 2, 56 - h, w, h, f, 2); P.rr(c, x - w / 2 - 3, 56 - h - 4, w + 6, 6, f, 2); },
+    puesto(c, a, b) { P.rr(c, 8, 34, 48, 22, '#a8743e', 2); for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? b : a; c.fillRect(6 + i * 9, 18, 9, 10); } c.strokeStyle = O; c.lineWidth = 2; c.strokeRect(6, 18, 54, 10); P.poste(c, 9, 26, 10); P.poste(c, 55, 26, 10); },
+  };
+  const PROPS = {
+    // ----- entretención -----
+    ar_luciernagas(c) { P.sombra(c, 14); P.rr(c, 20, 22, 24, 32, 'rgba(200,240,255,.55)', 6); P.rr(c, 22, 16, 20, 7, '#8a5a2c', 2); c.fillStyle = '#fff27a'; [[27, 34], [36, 30], [31, 44], [38, 46]].forEach(([x, y]) => { c.globalAlpha = 0.35; c.beginPath(); c.arc(x, y, 5, 0, 7); c.fill(); c.globalAlpha = 1; c.beginPath(); c.arc(x, y, 2, 0, 7); c.fill(); }); },
+    ar_tala(c) { P.sombra(c); P.el(c, 32, 48, 18, 7, '#c9925a'); P.rr(c, 14, 40, 36, 9, '#8a5a2c', 0); P.el(c, 32, 40, 18, 7, '#e8c088'); c.strokeStyle = '#a8743e'; c.beginPath(); c.ellipse(32, 40, 9, 3, 0, 0, 7); c.stroke(); P.em(c, '🪓', 38, 28, 24); },
+    ar_duende(c) { P.sombra(c, 26); P.el(c, 20, 42, 14, 12, '#3f8a45'); P.el(c, 44, 42, 14, 12, '#3f8a45'); P.el(c, 32, 36, 15, 14, '#57a85c'); P.em(c, '🧝', 46, 28, 16); P.em(c, '🍄', 16, 48, 14); },
+    ar_tormenta(c) { P.monticulo(c, '#e2b36a', '#f3d49a'); P.em(c, '🌪️', 32, 28, 30); },
+    ar_jeroglificos(c) { P.sombra(c, 18); P.rr(c, 18, 10, 28, 46, '#c9a46a', 8); c.fillStyle = '#6b4a22'; c.font = `9px ${FUENTE}`; P.em(c, '🪲', 32, 22, 11); P.em(c, '👁️', 32, 34, 11); P.em(c, '🐍', 32, 46, 11); },
+    ar_duna(c) { P.monticulo(c, '#e9c27a', '#f6dca4'); P.em(c, '💰', 24, 42, 16); P.em(c, '⛏️', 40, 34, 22); },
+    ar_vagoneta(c) { P.rieles(c); P.rr(c, 14, 28, 36, 18, '#6b6f78', 3); c.fillStyle = '#4a4d54'; c.fillRect(16, 31, 32, 3); P.el(c, 21, 47, 4, 4, '#2a2a2a'); P.el(c, 43, 47, 4, 4, '#2a2a2a'); P.em(c, '💎', 26, 26, 12); P.em(c, '🪨', 37, 26, 12); },
+    ar_linterna(c) { c.fillStyle = '#3a3127'; c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.moveTo(8, 56); c.lineTo(8, 30); c.quadraticCurveTo(32, 2, 56, 30); c.lineTo(56, 56); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#0b0806'; c.beginPath(); c.moveTo(16, 56); c.lineTo(16, 34); c.quadraticCurveTo(32, 14, 48, 34); c.lineTo(48, 56); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,240,150,.35)'; c.beginPath(); c.moveTo(30, 44); c.lineTo(48, 36); c.lineTo(48, 54); c.closePath(); c.fill(); P.em(c, '🔦', 26, 46, 16); },
+    ar_derrumbe(c) { P.sombra(c, 26); P.el(c, 20, 46, 13, 9, '#7a6a58'); P.el(c, 43, 47, 12, 8, '#8a7a66'); P.el(c, 31, 36, 12, 9, '#9a8a74'); P.em(c, '⛑️', 46, 30, 16); },
+    ar_trineo_bajada(c) { P.monticulo(c, '#eef8ff', '#ffffff'); P.em(c, '🛷', 32, 38, 28); },
+    ar_pesca_hielo(c) { P.el(c, 22, 48, 18, 7, '#e6f6ff'); P.el(c, 22, 48, 11, 4, '#1f5f86'); P.tablas(c, 42, 30); c.translate(14, 0); P.poste(c, 32, 46, 10); c.translate(-14, 0); P.em(c, '🎣', 40, 30, 24); },
+    ar_pinguinos(c) { P.sombra(c, 26); P.rr(c, 8, 38, 16, 16, '#bfe6ff', 2); P.rr(c, 40, 38, 16, 16, '#bfe6ff', 2); P.em(c, '🛖', 48, 26, 20); P.em(c, '🐧', 24, 30, 22); },
+    ar_huerto(c) { P.rr(c, 6, 40, 52, 16, '#6b4220', 3); c.fillStyle = '#4a2d14'; [12, 26, 40].forEach((x) => c.fillRect(x, 44, 10, 3)); P.em(c, '🌱', 17, 36, 14); P.em(c, '🥕', 32, 36, 14); P.em(c, '🌽', 47, 34, 16); },
+    ar_diana(c) { P.sombra(c, 16); P.poste(c, 26, 34, 22); P.poste(c, 38, 34, 22); [[16, '#ffffff'], [12.5, '#e8322f'], [9, '#ffffff'], [5.5, '#e8322f'], [2.5, '#ffd23a']].forEach(([r, f]) => P.el(c, 32, 26, r, r, f)); P.em(c, '🏹', 50, 46, 14); },
+    ar_mascotas(c) { P.sombra(c, 26); P.poste(c, 10, 18, 38); P.poste(c, 54, 18, 38); for (let i = 0; i < 6; i++) for (let j = 0; j < 2; j++) { c.fillStyle = (i + j) % 2 ? '#fff' : '#1d2b25'; c.fillRect(13 + i * 6.3, 16 + j * 6, 6.3, 6); } c.strokeStyle = O; c.lineWidth = 2; c.strokeRect(13, 16, 38, 12); P.em(c, '🐶', 32, 44, 18); },
+    ar_trueno(c) { P.sombra(c, 16); P.pilar(c, 32, 18, 36, '#6b6488'); P.em(c, '⚡', 32, 12, 22); },
+    // ----- minijuegos con preguntas -----
+    puente(c) { P.el(c, 32, 48, 28, 8, '#2a8fc4'); [16, 28, 40].forEach((x) => P.rr(c, x, 36, 10, 16, '#a8743e', 4)); },
+    frutos(c) { P.sombra(c, 18); P.em(c, '⚖️', 32, 32, 34); P.em(c, '🍎', 18, 48, 12); P.em(c, '🍐', 46, 48, 12); },
+    caravana(c) { P.monticulo(c, '#e2b36a', '#f3d49a'); P.em(c, '🐫', 28, 32, 28); P.em(c, '⚖️', 48, 40, 14); },
+    oasis(c) { P.el(c, 32, 48, 26, 8, '#3fa7d6'); P.em(c, '🌴', 22, 26, 30); P.em(c, '💧', 46, 44, 12); },
+    gemas(c) { P.sombra(c); P.rr(c, 12, 38, 40, 16, '#5a5f6a', 3); P.em(c, '💎', 32, 28, 26); },
+    rayo(c) { P.sombra(c, 18); P.pilar(c, 22, 10, 26, '#8e8aa8'); P.em(c, '🔦', 22, 22, 14); c.strokeStyle = '#ffe66b'; c.lineWidth = 2; c.beginPath(); c.moveTo(28, 22); c.lineTo(48, 22); c.lineTo(48, 40); c.stroke(); P.rr(c, 42, 38, 12, 14, '#cfe8f5', 2); },
+    carga(c) { P.sombra(c, 26); P.rr(c, 8, 36, 20, 20, '#c98f52', 2); P.rr(c, 30, 40, 16, 16, '#b97f45', 2); P.rr(c, 14, 20, 16, 16, '#d9a066', 2); P.em(c, '🛒', 50, 42, 18); },
+    trineo(c) { P.monticulo(c, '#eef8ff', '#ffffff'); P.em(c, '🛷', 28, 40, 22); P.em(c, '🎲', 46, 28, 16); },
+    meteo(c) { P.sombra(c, 14); P.poste(c, 32, 14, 42); P.rr(c, 22, 30, 20, 12, '#eef3f8', 2); P.em(c, '🌡️', 32, 36, 12); P.em(c, '🌬️', 44, 12, 14); },
+    mercado(c) { P.sombra(c, 28); P.puesto(c, '#e8322f', '#ffffff'); P.em(c, '🍎', 20, 40, 12); P.em(c, '🧀', 32, 40, 12); P.em(c, '🥖', 44, 40, 12); },
+    cerradura(c) { P.sombra(c); P.rr(c, 12, 26, 40, 30, '#a8743e', 4); P.rr(c, 12, 26, 40, 9, '#c9925a', 4); P.em(c, '🔐', 32, 44, 18); },
+  };
+  // dibuja el objeto del minijuego en un contexto de 64×60; devuelve false si no hay dibujo propio
+  function dibujarProp(ctx, id) { const f = PROPS[id]; if (!f) return false; ctx.save(); f(ctx); ctx.restore(); return true; }
+
   window.Arcade = {
+    dibujarProp,
     de: (zona) => Object.entries(DEF).filter(([, d]) => d.zona === zona).map(([id, d]) => ({ id, ico: d.ico, nombre: d.nombre })),
-    abrir, abrirAlbum, botonesAlbum, rec, jugados, albumTengo,
+    abrir, abrirAlbum, botonesAlbum, rec, jugados, albumTengo, prop: (id) => PROPS[id] || null,
+    _comp: () => C, _recibirComp: (m) => recibirComp(m),
     total: () => Object.keys(DEF).length,
     albumes: ALBUMES, _def: DEF, _partida: () => G,
   };

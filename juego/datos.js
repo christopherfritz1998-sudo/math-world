@@ -255,7 +255,9 @@ window.MWDatos = (function () {
   // Reportar un problema y Novedades (ideas para el profesor)
   // ===================================================================
   const NOVEDADES = [
-    ['🎪', '16 minijuegos nuevos', 'Luciérnagas, tala, duende, tormenta, jeroglíficos, tesoro en la duna, vagoneta, linterna, derrumbe, trineo, pesca en el hielo, pingüinos, huerto, tiro al blanco, carrera de mascotas y trueno. Busca sus letreros cerca de cada portal.'],
+    ['🏁', 'Modo competencia', 'En los minijuegos de entretención, «Competir con compañeros» crea una sala con código: todos juegan la misma partida a la vez y ven los puntos en vivo.'],
+    ['🗺️', 'Minijuegos repartidos por el mapa', 'Ya no están juntos junto al portal: cada uno tiene su propio objeto (el muelle de pesca, la vagoneta, la diana…). Búscalos por su ícono en el minimapa.'],
+    ['🎪', '16 minijuegos nuevos', 'Luciérnagas, tala, duende, tormenta, jeroglíficos, tesoro en la duna, vagoneta, linterna, derrumbe, trineo, pesca en el hielo, pingüinos, huerto, tiro al blanco, carrera de mascotas y trueno. Se juegan a pantalla completa.'],
     ['📖', '5 álbumes nuevos', 'Luciérnagas, amuletos, fósiles, peces bajo el hielo y cosechas: se llenan jugando. Míralos en Tu avance (tecla M).'],
     ['📦', 'Cofre personal y cofre del grupo', 'Lo que recolectas queda en tu cofre. Desde tu Equipo (Q) puedes compartir recursos con tu grupo: lo compartido lo puede usar cualquiera para fabricar.'],
     ['🤝', 'Reto en pareja', 'En tus Misiones: uno calcula y el otro verifica. Si aciertan 4 de 6, ¡ambos ganan premio!'],

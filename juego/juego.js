@@ -819,7 +819,7 @@
 
   const TIPOS_DIARIA = {
     talar: { n: 6, txt: 'Recolecta 6 veces de árboles, cactus, hongos o bayas' },
-    minijuego: { n: 1, txt: 'Termina 1 minijuego (letreros 🎲 cerca del portal de cada mundo o en la base)' },
+    minijuego: { n: 1, txt: 'Termina 1 minijuego (repartidos por cada mundo y la base: búscalos en el minimapa)' },
     pedido: { n: 1, txt: 'Haz un pedido al grupo desde tu Equipo, en la base', req: () => cofreComunitario() },
     diagnostico: { n: 1, txt: 'Completa tu diagnóstico inicial (12 preguntas, sin nota)', req: () => !S.diagnostico && !esDocente(), prioridad: true },
     picar: { n: 5, txt: 'Pica 5 rocas', req: () => tiene('pico') },
@@ -1601,7 +1601,7 @@
     abrir(html, clase = '', alCerrar = null) {
       if (juegoCerrado && clase !== 'bloqueo') return;
       const m = $('modal');
-      m.className = 'modal ' + clase + (/(^|\s)(excava-modal|laberinto|carrera|cristales-modal|escalada-modal|minijuego)(\s|$)/.test(clase) ? ' pantalla' : '');
+      m.className = 'modal ' + clase + (/(^|\s)(excava-modal|laberinto|carrera|cristales-modal|escalada-modal|minijuego|ar-juego)(\s|$)/.test(clase) ? ' pantalla' : '');
       m.innerHTML = html;
       { const en = /class="enunciado"[^>]*>([\s\S]{0,160})/.exec(html); if (en && en[1] !== ultEnunciado) { ultEnunciado = en[1]; tPregunta = Date.now(); } }
       $('capa').classList.remove('oculto');
@@ -1938,7 +1938,7 @@
         case 'esfinge': icono(o.x, o.y, '🏺', 11, 0.9); break;
         case 'muelle': icono(o.x, o.y, '⚓', 10, 0.85); break;
         case 'trotamundos': icono(o.x, o.y, '👹', 20, 1); break;
-        case 'mj': icono(o.x, o.y, '🎲', 10, 0.85); break;
+        case 'mj': icono(o.x, o.y, o.ico || '🎲', 10, 0.85); break;
         case 'carrera': icono(o.x, o.y, '🛒', 10, 0.85); break;
         case 'obra': if (!o.listo) icono(o.x, o.y, '🏗️', 11, 0.9); break;
         case 'santuario': case 'coloso': case 'dragon': case 'faraon': {
@@ -4166,6 +4166,7 @@
     L('alb_cosechas', 'coleccion', '🌻', 'Gran cosechador', 'Completa el álbum de cosechas del huerto.', 8, () => ARA('cosechas'), 'Gran Cosechador'),
     L('ar_todos', 'minijuegos', '🎪', 'Maestro de la entretención', 'Juega los 16 minijuegos de entretención de los mundos, la base y el altar.', 16, () => (window.Arcade ? Arcade.jugados() : 0), 'Maestro del Juego'),
     L('ar_100', 'minijuegos', '🕹️', 'Jugador incansable', 'Juega 100 partidas de minijuegos de entretención.', 100, () => CN('arcade'), 'Incansable'),
+    L('ar_campeon', 'minijuegos', '🏁', 'Campeón de competencias', 'Gana 5 competencias de minijuegos contra tus compañeros (modo competencia).', 5, () => CN('ar_gana'), 'Campeón del Recreo'),
   ];
   // El logro final: se desbloquea al completar todos los demás
   LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Te da el título «El rey del juego».', LOGROS.length,
@@ -5153,7 +5154,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-17b';
+  const VERSION_JUEGO = '2026-11-17c';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -10404,34 +10405,66 @@
       this.selloDragon.emitting = !abierto;
       this.dragonTag.setText(`Dragón de la Aurora\n(${!abierto ? 'dormido: necesitas el cetro de la aurora' : descansa ? `descansa: vuelve en ${Math.ceil(((S.dragonHasta || 0) - Date.now()) / 60000)} min` : '¡despierto! E para desafiarlo'})`);
     }
-    // Letreros de los minijuegos del mundo, cerca del portal (en lugares libres, separados entre sí)
+    // Estaciones de los minijuegos: repartidas por todo el mundo (en lugares alcanzables y separados entre sí),
+    // cada una con un objeto que la representa (muelle para la pesca, vagoneta en rieles, diana, etc.)
     crearEstacionesMJ() {
       // minijuegos de preguntas (minijuegos.js) y de entretención sin cálculos (arcade.js)
       const lista = [...((window.Minijuegos && Minijuegos.de(this.zona)) || []), ...((window.Arcade && Arcade.de(this.zona)) || [])];
       const por = this.objetos.find((o) => o.tipo === 'portal');
       if (!lista.length || !por) return;
-      const px = Math.floor(por.x / TILE), py = Math.floor(por.y / TILE), usados = [];
-      let k = 0;
-      for (let r = 3; r <= 40 && k < lista.length; r++) {
-        for (let dy = -r; dy <= r && k < lista.length; dy++) for (let dx = -r; dx <= r && k < lista.length; dx++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-          const x = px + dx, y = py + dy;
-          // el letrero ocupa un tile; abajo debe quedar espacio para pararse a leerlo
-          if (!this.libre(x, y) || !this.libre(x, y + 1) || !(this.libre(x - 1, y + 1) || this.libre(x + 1, y + 1))) continue;
-          if (usados.some(([ux, uy]) => Math.abs(ux - x) + Math.abs(uy - y) < 4)) continue;
-          if (this.objetos.some((o) => Math.abs(o.x / TILE - (x + 0.5)) < 1.6 && Math.abs(o.y / TILE - (y + 1)) < 1.6)) continue;
-          const mj = lista[k++]; usados.push([x, y]);
-          const s = this.sprite('letrero', x, y); this.solido(s.x, s.y - 8, 18, 10);
-          this.marcar(x, y); this.marcar(x, y + 1);
-          this.add.text(s.x, s.y - 44, `${mj.ico} ${mj.nombre}`, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffffff', stroke: '#1d2b25', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(s.y + 40);
-          this.objetos.push({ tipo: 'mj', mj: mj.id, nombre: mj.nombre, x: s.x, y: s.y + 4, activo: true });
+      const px = Math.floor(por.x / TILE), py = Math.floor(por.y / TILE);
+      const sirve = (x, y) => x >= 4 && y >= 4 && x < this.ancho - 4 && y < this.alto - 4 && this.libre(x, y) && this.libre(x, y + 1) && (this.libre(x - 1, y + 1) || this.libre(x + 1, y + 1)) && (!this.alcanzable || this.alcanzable(x * TILE + 16, y * TILE + 24));
+      // casillas caminables conectadas con el portal (así nunca queda una estación en un lugar al que no se llega);
+      // los caminos están reservados (no «libres») pero sí se caminan, por eso se recorre el terreno
+      const pis = (x, y) => x >= 2 && y >= 2 && x < this.ancho - 2 && y < this.alto - 2 && (this.pisables || PASTO).includes(this.terreno[y][x]) && (!this.alcanzable || this.alcanzable(x * TILE + 16, y * TILE + 16));
+      const vistos = new Set(), cola = [];
+      for (let y = py - 4; y <= py + 4; y++) for (let x = px - 4; x <= px + 4; x++) if (pis(x, y)) { vistos.add(`${x},${y}`); cola.push([x, y]); }
+      const cand = [];
+      for (let i = 0; i < cola.length && i < 60000; i++) {
+        const [x, y] = cola[i];
+        if (sirve(x, y) && !this.objetos.some((o) => Math.abs(o.x / TILE - (x + 0.5)) < 2 && Math.abs(o.y / TILE - (y + 1)) < 2)) cand.push([x, y]);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = `${x + dx},${y + dy}`; if (!vistos.has(k) && pis(x + dx, y + dy)) { vistos.add(k); cola.push([x + dx, y + dy]); } }
+      }
+      if (!cand.length) return;
+      // se reparten eligiendo cada vez el lugar más lejano a las estaciones ya puestas (y a más de 5 casillas del portal)
+      const puestos = [[px, py]], azarL = this.rnd || Math.random, elegidos = [];
+      for (const mj of lista) {
+        let mejor = null, dm = -1;
+        for (const [x, y] of cand) {
+          if (elegidos.some(([ux, uy]) => Math.abs(ux - x) + Math.abs(uy - y) < 4)) continue;
+          let d = Infinity; for (const [ux, uy] of puestos) d = Math.min(d, Math.hypot(ux - x, uy - y));
+          if (puestos.length === 1 && d < 5) continue;
+          d += azarL() * 1.5;
+          if (d > dm) { dm = d; mejor = [x, y]; }
         }
+        if (!mejor) break;
+        puestos.push(mejor); elegidos.push(mejor);
+        this.estacionMJ(mj, mejor[0], mejor[1]);
       }
       // la primera vez en cada lugar se avisa que hay minijuegos
+      const k = elegidos.length;
       if (k && S && !esDocente()) {
         const A = S.mjAviso || (S.mjAviso = {});
-        if (!A[this.zona]) { A[this.zona] = 1; setTimeout(() => toast(`🎲 Aquí hay ${k === 1 ? 'un minijuego' : `${k} minijuegos`}: busca los letreros cerca del portal (🎲 en el minimapa). ¡Dan recursos y experiencia!`), 4000); }
+        if (A[this.zona] !== 2) { A[this.zona] = 2; setTimeout(() => toast(`🎲 Aquí hay ${k === 1 ? 'un minijuego' : `${k} minijuegos`} repartidos por el mapa: búscalos en el minimapa (cada uno con su ícono). ¡Dan recursos y experiencia!`), 4000); }
       }
+    }
+    // un minijuego en el mundo: su objeto (dibujado por arcade.js) o, si no tiene, un letrero
+    estacionMJ(mj, x, y) {
+      const key = `mjprop_${mj.id}`;
+      if (!this.textures.exists(key) && window.Arcade && Arcade.dibujarProp) {
+        const t = this.textures.createCanvas(key, 128, 120), c = t.context;
+        c.scale(2, 2);
+        if (Arcade.dibujarProp(c, mj.id)) t.refresh(); else this.textures.remove(key);
+      }
+      let s;
+      if (this.textures.exists(key)) {
+        s = this.add.image(x * TILE + TILE / 2, (y + 1) * TILE + 2, key).setOrigin(0.5, 1).setScale(0.5).setDepth((y + 1) * TILE);
+        this.tweens.add({ targets: s, scaleY: 0.515, duration: 1300 + (x % 5) * 90, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
+        this.solido(s.x, s.y - 10, 36, 14);
+      } else { s = this.sprite('letrero', x, y); this.solido(s.x, s.y - 8, 18, 10); }
+      this.marcar(x, y); this.marcar(x, y + 1); this.marcar(x - 1, y); this.marcar(x + 1, y);
+      this.add.text(s.x, s.y - 66, `${mj.ico} ${mj.nombre}`, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#ffffff', stroke: '#1d2b25', strokeThickness: 4 }).setOrigin(0.5).setResolution(3).setDepth(s.y + 40);
+      this.objetos.push({ tipo: 'mj', mj: mj.id, nombre: mj.nombre, ico: mj.ico, x: s.x, y: s.y + 4, activo: true });
     }
     portal(tx, ty) {
       const p = this.add.image(tx * TILE + TILE / 2, ty * TILE + TILE / 2, 'portal').setScale(3).setDepth(-4);
