@@ -967,5 +967,41 @@
     },
   ];
 
+  // =====================================================================
+  // UNIDAD 3 con figura (C4): la variante agrega d.figura, un SVG dibujado con sus mismos números (juego/figuras.js)
+  // =====================================================================
+  const conFigura = (d, f) => (d && P.fig ? { ...d, figura: f() } : d);
+  N7.u3.cartesiano.push(() => {
+    const x = nz(-5, 5), y = nz(-5, 5), cu = x > 0 ? (y > 0 ? 'I' : 'IV') : (y > 0 ? 'II' : 'III');
+    return conFigura(C(`¿En qué cuadrante está el punto P del plano?`, `Cuadrante ${cu}`, ['I', 'II', 'III', 'IV'].filter((c) => c !== cu).map((c) => `Cuadrante ${c}`).concat(['Sobre el eje x']),
+      'Mira si P está a la derecha o izquierda del eje y, y arriba o abajo del eje x.', `P = ${pto(x, y)}: x ${x > 0 ? 'positiva' : 'negativa'} e y ${y > 0 ? 'positiva' : 'negativa'} → cuadrante ${cu}.`),
+    () => P.fig.plano({ puntos: [{ x, y, nombre: 'P' }], titulo: 'Punto P en el plano cartesiano' }));
+  });
+  N7.u3.vectores.push(() => {
+    const x1 = rnd(-4, 1), y1 = rnd(-4, 1), vx = nz(-3, 4), vy = nz(-3, 4), x2 = x1 + vx, y2 = y1 + vy;
+    return conFigura(D('¿Qué vector representa la flecha dibujada en el plano (desde su inicio hasta la punta)?', pto(vx, vy), [pto(-vx, -vy), pto(vy, vx), pto(x2, y2)], (k) => pto(vx + k, vy),
+      'Cuenta cuánto avanza en x (derecha +, izquierda −) y cuánto en y (arriba +, abajo −).', `Va de ${pto(x1, y1)} a ${pto(x2, y2)}: (${num(x2)} − ${par(x1)}, ${num(y2)} − ${par(y1)}) = ${pto(vx, vy)}.`),
+    () => P.fig.plano({ vectores: [{ x1, y1, x2, y2 }], puntos: [{ x: x1, y: y1, color: '#1f6fd1' }], titulo: 'Vector en el plano cartesiano' }));
+  });
+  N7.u3.circulo.push(() => {
+    const r = pick([2, 3, 4, 5, 6, 10]), diam = rnd(0, 1) === 1, A = redondear(3.14 * r * r, 2);
+    return conFigura(D(`Observa el círculo de la figura. ¿Cuál es su área? (π ≈ 3,14)`, `${num(A)} cm²`, [`${num(redondear(2 * 3.14 * r, 2))} cm²`, `${num(redondear(3.14 * 2 * r * 2 * r, 2))} cm²`, `${num(redondear(3.14 * r, 2))} cm²`], (k) => `${num(redondear(A + k * 3.14, 2))} cm²`,
+      diam ? 'El radio es la mitad del diámetro; luego usa A = π · r².' : 'Usa A = π · r².', `${diam ? `r = ${2 * r} : 2 = ${r} cm. ` : ''}A = 3,14 · ${r}² = ${num(A)} cm².`),
+    () => P.fig.circulo({ medida: diam ? 2 * r : r, diametro: diam, titulo: 'Círculo con su medida' }));
+  });
+  N7.u3.poligonos.push(() => {
+    const NOM = { 3: 'Triángulo', 4: 'Cuadrilátero', 5: 'Pentágono', 6: 'Hexágono', 7: 'Heptágono', 8: 'Octágono', 9: 'Eneágono', 10: 'Decágono' };
+    const k = rnd(5, 10), corr = NOM[k];
+    return conFigura(C('¿Cómo se llama el polígono regular de la figura?', corr, Object.values(NOM).filter((x) => x !== corr && x !== 'Triángulo' && x !== 'Cuadrilátero'),
+      'Cuenta sus lados (o sus vértices).', `Tiene ${k} lados: es un ${corr.toLowerCase()} regular.`),
+    () => P.fig.poligono({ lados: k, titulo: `Polígono regular` }));
+  });
+  N7.u3.areas.push(() => {
+    const b = rnd(3, 12), h = rnd(2, 10), A = (b * h) / 2;
+    return conFigura(D('¿Cuál es el área del triángulo de la figura?', `${num(A)} cm²`, [`${num(b * h)} cm²`, `${num(b + h)} cm²`, `${num(2 * (b + h))} cm²`], (k) => `${num(A + k)} cm²`,
+      'El área de un triángulo es base por altura dividido en 2.', `A = ${b} · ${h} : 2 = ${num(A)} cm².`),
+    () => P.fig.triangulo({ base: b, altura: h, titulo: 'Triángulo con base y altura' }));
+  });
+
   P.N7 = N7;
 })(typeof window !== 'undefined' ? window : globalThis);

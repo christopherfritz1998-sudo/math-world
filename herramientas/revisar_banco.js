@@ -19,7 +19,7 @@ const UMBRAL = 0.2;
 
 // archivos de preguntas en el orden de juego/index.html
 const html = fs.readFileSync(path.join(raiz, 'juego/index.html'), 'utf8');
-const archivos = [...html.matchAll(/<script src="((?:preguntas|banco)[^"?]*\.js)/g)].map((m) => m[1]);
+const archivos = [...html.matchAll(/<script src="((?:preguntas|banco|figuras)[^"?]*\.js)/g)].map((m) => m[1]);
 const ventana = {};
 ventana.window = ventana;
 const ctx = vm.createContext({ window: ventana, console, Math, Date, JSON, Intl });

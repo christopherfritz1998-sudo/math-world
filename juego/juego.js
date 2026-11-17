@@ -306,6 +306,8 @@
   // ===================================================================
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  // Enunciado de una pregunta y, si la trae, su figura (SVG armado por juego/figuras.js con los números de la pregunta)
+  const enunciadoHTML = (d) => `<p class="enunciado">${mate(d.enunciado)}</p>${d && d.figura ? `<div class="figura-preg">${d.figura}</div>` : ""}`;
   const mate = (s) => esc(s)
     .replace(/(\d+|\))\^(−?\d+)/g, '$1<sup>$2</sup>')
     .replace(/(−?\d+)\/(\d+)/g, '<span class="frac"><span>$1</span><span>$2</span></span>');
@@ -1879,7 +1881,7 @@
           <div class="pildoras"><span class="pildora">Dificultad ${dif} de 3</span><span class="pildora premio">${premio}</span>${clave && !resuelto && estadoBloq(clave)[0] ? `<span class="pildora errores-seguidos">❌ ${estadoBloq(clave)[0]} de ${BLOQ_FALLOS} errores seguidos</span>` : ''}</div>
         </div>
         ${clave && !resuelto && estadoBloq(clave)[0] === BLOQ_FALLOS - 1 ? '<p class="nota aviso-bloqueo">⚠️ Cuidado: si te equivocas otra vez, este recurso se bloquea por 5 minutos.</p>' : ''}
-        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${enunciadoHTML(d)}
         ${abierta ? (resuelto ? `<p class="resp-ok">✍️ Escribiste <b>${esc(escrito)}</b> ✓</p>` : abiertaHTML(escrito)) : alternativasHTML(d, elegida, fallidas, resuelto)}
         ${msg}
         <div class="acciones">
@@ -2696,7 +2698,7 @@
       let d = Preguntas.nuevo(S.curso, unidadActual(), difPara(2), S.stats), elegida = null, fallidas = new Set(), msg = '';
       const caja = document.createElement('div'); caja.className = 'lab-pregunta'; $('lb-cuadro').appendChild(caja);
       const pintarP = () => {
-        caja.innerHTML = `<div class="lab-esfinge"><img class="px" src="${ICONO('esfinge')}" alt=""><div><span class="etq">La esfinge pregunta · ${esc(d.titulo)}</span><p class="enunciado">${mate(d.enunciado)}</p></div></div>
+        caja.innerHTML = `<div class="lab-esfinge"><img class="px" src="${ICONO('esfinge')}" alt=""><div><span class="etq">La esfinge pregunta · ${esc(d.titulo)}</span>${enunciadoHTML(d)}</div></div>
           ${alternativasHTML(d, elegida, fallidas, false)}${msg}
           <div class="acciones"><span class="nota">Cada error: −15 segundos.</span><button type="button" class="btn pri" id="lb-ok" ${elegida === null ? 'disabled' : ''}>Responder</button></div>`;
         caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintarP(); }));
@@ -3194,7 +3196,7 @@
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El Coloso recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banner}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${alternativasHTML(d, elegida, fallidas, false)}`;
       ventanaJefe({
         fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u3b_retrato'), etiqueta: `Jefe de las Profundidades · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}`, nombre: COLOSO.nombre,
@@ -3299,7 +3301,7 @@
       st.pregunta = { d, fallo: false }; st.t0 = performance.now();
       const caja = document.createElement('div'); caja.className = 'es-pregunta'; caja.id = 'es-pregunta';
       caja.innerHTML = `<span class="etq" style="color: var(--coral)">❄️ ¡El hielo se quiebra! Responde para sujetarte · ${esc(d.titulo)}</span>
-        <div class="rey-tiempo"><i id="es-tiempo" style="width:100%"></i></div><p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}`;
+        <div class="rey-tiempo"><i id="es-tiempo" style="width:100%"></i></div>${enunciadoHTML(d)}${alternativasHTML(d, null, new Set(), false)}`;
       $('es-cuadro').appendChild(caja);
       caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responder(Number(b.dataset.i))));
       ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) responder(Number(e.key) - 1); };
@@ -3497,7 +3499,7 @@
     const caja = document.createElement('div'); caja.className = 'cr-pregunta mj-pregunta'; caja.id = 'mj-pregunta'; $('mj-cuadro').appendChild(caja);
     let bloqueo = 0;
     const pintar = (msg = '') => {
-      caja.innerHTML = `<span class="etq">${titulo} · ${esc(d.titulo)}</span><p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, fallidas, false)}${msg}`;
+      caja.innerHTML = `<span class="etq">${titulo} · ${esc(d.titulo)}</span>${enunciadoHTML(d)}${alternativasHTML(d, null, fallidas, false)}${msg}`;
       caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => resp(Number(b.dataset.i))));
     };
     const resp = (i) => {
@@ -3814,7 +3816,7 @@
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El dragón recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banners[J.fase]}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${alternativasHTML(d, elegida, fallidas, false)}`;
       ventanaJefe({
         fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u4b_retrato'), etiqueta: `Jefe de la Cima del Glaciar · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}`, nombre: DRAGON.nombre,
@@ -3922,7 +3924,7 @@
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El faraón recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banners[J.fase]}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${alternativasHTML(d, elegida, fallidas, false)}`;
       ventanaJefe({
         fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u2b_retrato'), etiqueta: `Jefe del Valle de la Esfinge · Fase ${J.fase} de 4 · ${esc(d ? d.titulo : '')}`, nombre: FARAON.nombre,
@@ -5439,7 +5441,7 @@
       const quedan = T.examen ? Math.max(1, Math.ceil((T.hasta - Date.now()) / 60000)) : 0;
       ui.abrir(`<div class="modal-cab"><div><span class="etq">${nomT} · pregunta ${i + 1} de ${total}${T.examen ? ` · ⏱️ quedan ${quedan} min` : ''}</span><h2 id="modal-titulo">${esc(d.titulo)}</h2></div><div class="pildoras"><span class="pildora">Un intento · sin pistas</span></div></div>
         <p class="nota">${T.examen ? 'Evaluación de tu profesor: sin pistas y con nota. Si tienes que salir, presiona «Más tarde»: seguirás desde esta pregunta mientras esté abierta.' : 'Tu profesor quiere saber qué aprendiste hoy. Responde con calma: tu resultado le llega directo.'}</p>
-        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${enunciadoHTML(d)}
         ${alternativasHTML({ ...d, repaso: false }, elegida, new Set(), false)}
         <div class="acciones"><button type="button" class="btn" id="tk-luego">Más tarde</button><button type="button" class="btn pri" id="tk-ok" ${elegida === null ? 'disabled' : ''}>${i + 1 < total ? 'Responder' : 'Terminar'}</button></div>`, 'ticket', () => { if (i < total) ticketAbierto = false; });
       document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
@@ -5592,7 +5594,7 @@
       ui.abrir(`<div class="modal-cab"><div><span class="etq">${etq} · ${i + 1} de ${preguntas.length}</span><h2 id="modal-titulo">${esc(titulo)}</h2></div><div class="pildoras"><span class="pildora">Aciertos: ${aciertos}</span></div></div>
         ${nota ? `<p class="nota">${nota}</p>` : ''}${msg}
         ${d.paso ? `<p class="paso-serie">${esc(d.paso)}</p>` : ''}${d.pistaVista ? `<div class="mensaje pista">💡 ${mate(d.pistaVista)}</div>` : ''}
-        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${enunciadoHTML(d)}
         ${d.ab ? abiertaHTML(escrito) : alternativasHTML({ ...d, repaso: false }, elegida, new Set(), false)}
         <div class="acciones"><button type="button" class="btn" id="se-salir">Salir</button><button type="button" class="btn pri" id="se-ok" ${(d.ab ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>Responder</button></div>`, 'serie');
       document.querySelectorAll('#modal .alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
@@ -6056,7 +6058,7 @@
       else if (fin === 'huir') cuerpo = `<div class="mensaje pista" role="status">Te retiraste. ${esc(D.nombre)} recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>`;
       else cuerpo = `${banner}${ultimo}
           <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${abierta ? abiertaHTML(escrito) : alternativasHTML(d, elegida, new Set(), false)}`;
       ventanaJefe({
         fin, cuerpo, listo: !((abierta ? !escrito.trim() : elegida === null)), retrato: retrato, etiqueta: `${esHades ? `Jefe final · Fase ${J.fase} de 3` : `Altar ${i + 1} de 5`} · ${esc(d ? d.titulo : '')}`, nombre: esc(D.nombre),
@@ -6269,7 +6271,7 @@
       if (fin) cuerpo = `<div class="mensaje ${R.piso > 1 ? 'bien' : 'mal'}" role="status" style="font-size:17px"><span>🗼 Tu escalada terminó en el <b>piso ${R.piso}</b>. Superaste <b>${R.piso - 1}</b> ${R.piso - 1 === 1 ? 'piso' : 'pisos'}.${R.piso - 1 >= (T.mejor || 0) && R.piso > 1 ? ' ¡Nuevo récord!' : ''}</span></div>${ultimo}<div class="acciones"><button type="button" class="btn" id="tw-otra">🔁 Volver a subir</button><button type="button" class="btn pri" id="tw-fin" data-foco>Cerrar</button></div>`;
       else cuerpo = `${R.regla ? `<div class="mensaje pista rey-fase">👑 Jefe del piso ${R.piso}: ${R.regla.txt}${R.tema ? ` (${esc(Preguntas.tituloDe(R.tema))})` : ''}</div>` : ''}${ultimo}
         <div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>
-        <p class="enunciado">${mate(d.enunciado)}</p>
+        ${enunciadoHTML(d)}
         ${abierta ? abiertaHTML(escrito) : alternativasHTML(d, elegida, new Set(), false)}
         <div class="acciones"><div><button type="button" class="btn" id="tw-salir">Rendirse</button></div><div><button type="button" class="btn pri" id="r-ok" ${(abierta ? !escrito.trim() : elegida === null) ? 'disabled' : ''}>¡Atacar!</button></div></div>`;
       ui.abrir(`<div class="combate-cab"><div class="luchador"><img class="px" src="${retrato}" alt="" width="72" height="72">
@@ -7073,7 +7075,7 @@
         <div class="ladron-lucha"><div class="ld-lado"><span class="ld-cara"></span>
           <div class="ld-barra ld-candados"><span class="etq">Para atraparlo</span><div>${Array.from({ length: 5 }, (_, i) => `<i class="${i < bien ? 'ok' : ''}">🔒</i>`).join('')}</div></div>
           <div class="ld-barra"><span class="etq">Errores (máximo 3)</span><div>${Array.from({ length: 3 }, (_, i) => `<i class="${i < mal ? 'mal' : ''}">${i < mal ? '💔' : '❤️'}</i>`).join('')}</div></div></div>
-          <div class="ld-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div></div>`, 'ladron bloqueo');
+          <div class="ld-preg">${fb}${enunciadoHTML(d)}${alternativasHTML(d, null, new Set(), false)}</div></div>`, 'ladron bloqueo');
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => resp(Number(b.dataset.i))));
       ui.teclas = (e) => { if (/^[1-4]$/.test(e.key)) resp(Number(e.key) - 1); };
     };
@@ -7131,7 +7133,7 @@
     let d = Preguntas.nuevo(S.curso, unidadDesafio(), difPara(1), S.stats), fb = '';
     const pintar = () => {
       ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">🔥 Racha imparable</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
-        <div class="des-cols"><div class="des-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
+        <div class="des-cols"><div class="des-preg">${fb}${enunciadoHTML(d)}${alternativasHTML(d, null, new Set(), false)}</div>
           <aside class="des-tabla racha-tabla"><span class="etq">Multiplicador</span><div class="racha-mult m${st.mult}">x${st.mult}</div>
             <div class="racha-llamas">${Array.from({ length: 5 }, (_, i) => `<i class="${i < st.mult ? 'on' : ''}">🔥</i>`).join('')}</div>
             <span class="nota">Puntos: <b>${st.puntos}</b> · Mejor racha: x${st.mejor}</span><span class="nota">Cada acierto seguido sube el multiplicador (hasta x5). Un error lo vuelve a x1.</span></aside></div>
@@ -7187,7 +7189,7 @@
         cuerpo = `
           ${ultimo}
           ${conReloj ? `<div class="horda-reloj"><span>⏱️ <b id="h-seg">${Math.ceil(resto / 1000)}</b> s</span><div class="rey-tiempo"><i id="h-tiempo" data-c="${cid}" style="width:${(resto / LIMITE_HORDA) * 100}%"></i></div><small>Si no respondes a tiempo: −2 ❤</small></div>` : ''}
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${alternativasHTML(d, elegida, fallidas, false)}
           ${pista ? `<div class="mensaje pista">${mate(d.pista)}</div>` : ''}
           <div class="acciones">
@@ -7320,7 +7322,7 @@
       else if (fin === 'huir') cuerpo = '<div class="mensaje pista" role="status">Te retiraste. El Rey Jabalí recuperó toda su vida.</div><div class="acciones"><span></span><button type="button" class="btn pri" id="r-fin" data-foco>Cerrar</button></div>';
       else cuerpo = `${banner}${ultimo}
           ${J.limite ? `<div class="rey-tiempo"><i id="r-tiempo" style="width:100%"></i></div>` : ''}
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${alternativasHTML(d, elegida, fallidas, false)}`;
       ventanaJefe({
         fin, cuerpo, listo: !(elegida === null), retrato: sc.imagenTex('jefe_u1b_retrato'), etiqueta: `Jefe del Bosque profundo · Fase ${J.fase} de 3 · ${esc(d ? d.titulo : '')}`, nombre: REY.nombre,
@@ -7420,7 +7422,7 @@
           <div class="acciones"><span></span><button type="button" class="btn pri" id="j-fin" data-foco>Cerrar</button></div>`;
       } else {
         cuerpo = `${ultimo}
-          <p class="enunciado">${mate(d.enunciado)}</p>
+          ${enunciadoHTML(d)}
           ${alternativasHTML(d, elegida, new Set(), false)}
           <div class="acciones">
             <div><button type="button" class="btn" id="j-salir">Retirarse</button></div>
@@ -8709,7 +8711,7 @@
         <div class="des-cols">
           <div class="des-preg">
             ${fb}
-            ${fuera() ? `<div class="mensaje mal" role="status" style="font-size:18px">Llegaste a ${DUELO_ERR_MAX} errores: quedaste fuera del duelo. Tus aciertos siguen contando en el ranking; espera el resultado.</div>` : `<p class="enunciado">${mate(d.enunciado)}</p>
+            ${fuera() ? `<div class="mensaje mal" role="status" style="font-size:18px">Llegaste a ${DUELO_ERR_MAX} errores: quedaste fuera del duelo. Tus aciertos siguen contando en el ranking; espera el resultado.</div>` : `${enunciadoHTML(d)}
             ${alternativasHTML(d, null, new Set(), false)}`}
           </div>
           <aside class="des-tabla" id="des-tabla">${tablaDesafioHTML()}</aside>
@@ -8753,7 +8755,7 @@
     ui.abrir(`
       <div class="modal-cab"><div><span class="etq">Desafío de tu profesor · ${esc(d.titulo)}</span><h2 id="modal-titulo">⚡ Pregunta relámpago</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
       <p class="nota">Tienes una sola oportunidad: mientras más rápido aciertes, mayor es el premio.</p>
-      <p class="enunciado">${mate(d.enunciado)}</p>
+      ${enunciadoHTML(d)}
       ${alternativasHTML(d, null, new Set(), false)}
       <div class="acciones"><span></span><button type="button" class="btn" id="dv-salir">Salir</button></div>`, 'desafio-vivo', () => { vivo.modal = false; });
     const responder = (i) => {
@@ -8848,7 +8850,7 @@
       ui.abrir(`<div class="modal-cab"><div><span class="etq">Desafío del curso · ${esc(d.titulo)}</span><h2 id="modal-titulo">👹 El trotamundos</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
         <div class="des-cols">
           <div class="des-preg">${fb}<div class="troto-estado"><span class="pildora">🛡️ Escudos: <b>${st.escudos}</b></span><span class="pildora">✅ Aciertos: <b>${st.aciertos}</b> · próximo escudo en ${5 - (st.aciertos % 5)}</span><span class="pildora">❤️ Intento ${caidasAntes + 1} de 2</span></div>
-            <p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
+            ${enunciadoHTML(d)}${alternativasHTML(d, null, new Set(), false)}</div>
           <aside class="des-tabla" id="troto-tabla">${trotoBarraHTML()}</aside>
         </div>
         <div class="acciones"><span class="nota">Si fallas sin escudo, caes. Si sales, no pierdes un intento, pero solo ganan quienes estén luchando cuando caiga.</span><button type="button" class="btn" id="dv-salir">Salir de la lucha</button></div>`, 'desafio-vivo troto', salir);
@@ -8917,7 +8919,7 @@
       ui.abrir(`
         <div class="modal-cab"><div><span class="etq">Recurso exclusivo · ${esc(d.titulo)}</span><h2 id="modal-titulo">🌈 Prisma estelar</h2></div><div class="des-reloj" id="des-reloj">${reloj(vivo.d.fin - ahoraSrv())}</div></div>
         <div class="des-cols">
-          <div class="des-preg">${fb}<p class="enunciado">${mate(d.enunciado)}</p>${alternativasHTML(d, null, new Set(), false)}</div>
+          <div class="des-preg">${fb}${enunciadoHTML(d)}${alternativasHTML(d, null, new Set(), false)}</div>
           <aside class="des-tabla" id="prisma-tabla">${tablaPrismaHTML()}</aside>
         </div>
         <div class="acciones"><span class="nota">Responde bien ${PRISMA_META} preguntas antes que tus compañeros de grupo para llevártelo. Errores: ${st.e || 0} de ${PRISMA_ERR_MAX}.</span><button type="button" class="btn" id="dv-salir">Salir</button></div>`, 'desafio-vivo prisma', () => { vivo.modal = false; });

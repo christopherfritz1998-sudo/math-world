@@ -150,7 +150,9 @@
   // ---------------- selección sin repetición ----------------
   const memoria = {};   // por curso y unidad: bolsa de temas, bolsas de variantes y enunciados recientes
   const RECIENTES = 40;
-  const firma = (d) => d.enunciado.replace(/\s+/g, ' ').trim();
+  // con figura, el mismo enunciado puede traer números distintos: la firma incluye un resumen de la figura
+  const hashTxt = (t) => { let h = 0; for (let i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) | 0; return h; };
+  const firma = (d) => d.enunciado.replace(/\s+/g, ' ').trim() + (d.figura ? `#${hashTxt(d.figura)}` : '');
 
   function sacarTema(M, claves, stats) {
     if (!M.bolsa.length) {
