@@ -5337,7 +5337,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-17c';
+  const VERSION_JUEGO = '2026-11-18a';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();

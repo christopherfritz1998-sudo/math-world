@@ -287,6 +287,12 @@ window.MWDatos = (function () {
   // Reportar un problema y Novedades (ideas para el profesor)
   // ===================================================================
   const NOVEDADES = [
+    ['🎟️', 'Fichas de minijuego', 'Cada partida de los minijuegos de entretención usa una ficha. Ganas una ficha cada 3 respuestas correctas en cualquier parte del juego.'],
+    ['💥', 'Combates con racha', 'Los enemigos aguantan más según tu espada (3 o 4 preguntas), pero 3 aciertos seguidos dan un golpe crítico doble.'],
+    ['🔎', '¿Dónde se consigue?', 'Toca cualquier recurso de tu mochila o cofre para ver en qué mundo, objeto o minijuego se obtiene.'],
+    ['🎁', 'Regalos al grupo', 'Al visitar la casa de un compañero de tu grupo puedes dejarle un regalo de tu cofre personal.'],
+    ['🏰', 'Arena entre clanes', 'En la Arena, «Retar a otro clan» te junta con jugadores de otros grupos de tu curso. Ahí no se pierde la mochila.'],
+    ['🐎', 'Montura de viaje', 'Al final del juego puedes fabricar una montura que te hace mucho más rápido en los mundos que ya visitaste.'],
     ['🏁', 'Modo competencia', 'En los minijuegos de entretención, «Competir con compañeros» crea una sala con código: todos juegan la misma partida a la vez y ven los puntos en vivo.'],
     ['🗺️', 'Minijuegos repartidos por el mapa', 'Ya no están juntos junto al portal: cada uno tiene su propio objeto (el muelle de pesca, la vagoneta, la diana…). Búscalos por su ícono en el minimapa.'],
     ['🎪', '16 minijuegos nuevos', 'Luciérnagas, tala, duende, tormenta, jeroglíficos, tesoro en la duna, vagoneta, linterna, derrumbe, trineo, pesca en el hielo, pingüinos, huerto, tiro al blanco, carrera de mascotas y trueno. Se juegan a pantalla completa.'],
