@@ -307,7 +307,9 @@
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   // Enunciado de una pregunta y, si la trae, su figura (SVG armado por juego/figuras.js con los números de la pregunta)
-  const enunciadoHTML = (d) => `<p class="enunciado">${mate(d.enunciado)}</p>${d && d.figura ? `<div class="figura-preg">${d.figura}</div>` : ""}`;
+  // (la figura puede llegar de un compañero en el modo pareja: solo se acepta un SVG de figuras.js, sin scripts, eventos ni enlaces)
+  const figuraSegura = (f) => typeof f === 'string' && f.length < 20000 && /^<svg class="fig" [^]*<\/svg>$/.test(f) && !/<script|<foreignObject|\son\w+\s*=|javascript:|href|<iframe|<image/i.test(f);
+  const enunciadoHTML = (d) => `<p class="enunciado">${mate(d.enunciado)}</p>${d && figuraSegura(d.figura) ? `<div class="figura-preg">${d.figura}</div>` : ''}`;
   const mate = (s) => esc(s)
     .replace(/(\d+|\))\^(−?\d+)/g, '$1<sup>$2</sup>')
     .replace(/(−?\d+)\/(\d+)/g, '<span class="frac"><span>$1</span><span>$2</span></span>');
@@ -1458,6 +1460,7 @@
   // Puente para los módulos aparte (minijuegos.js): acceso a la interfaz, premios y estadísticas
   window.MWJ = {
     get ui() { return ui; },
+    enunciadoHTML: (d) => enunciadoHTML(d),
     $: (id) => $(id), esc: (s) => esc(s), mate: (s) => mate(s), toast: (t, c) => toast(t, c), sfx: (k) => sfx(k),
     fichas: () => (esDocente() ? Infinity : fichas()), fichaAc: () => (S && S.fichaAc) || 0, gastarFicha: () => gastarFicha(), get ACIERTOS_FICHA() { return ACIERTOS_FICHA; },
     S: () => S, sesion: () => sesion, escena: () => escena, esDocente: () => esDocente(), hoy: () => diaChile(),
@@ -2113,7 +2116,7 @@
         case 'muelle': icono(o.x, o.y, '⚓', 10, 0.85); break;
         case 'trotamundos': icono(o.x, o.y, '👹', 20, 1); break;
         case 'mj': icono(o.x, o.y, o.ico || '🎲', 10, 0.85); break;
-        case 'carrera': icono(o.x, o.y, '🛒', 10, 0.85); break;
+        case 'carrera': icono(o.x, o.y, '🛤️', 10, 0.85); break;
         case 'obra': if (!o.listo) icono(o.x, o.y, '🏗️', 11, 0.9); break;
         case 'santuario': case 'coloso': case 'dragon': case 'faraon': {
           const hasta = { santuario: S.reyHasta, coloso: S.colosoHasta, dragon: S.dragonHasta, faraon: S.faraonHasta }[o.tipo] || 0;
@@ -2951,7 +2954,7 @@
     const caja = document.createElement('div'); caja.className = 'cr-pregunta'; caja.id = 'cr-pregunta'; $('cr-cuadro').appendChild(caja);
     const pintarP = (msg = '') => {
       const P = yo.pregunta; if (!P) return;
-      caja.innerHTML = `<span class="etq">🔀 Cambio de vías · ${esc(P.d.titulo)}</span><p class="enunciado">${mate(P.d.enunciado)}</p>${alternativasHTML(P.d, null, P.fallidas, false)}${msg}`;
+      caja.innerHTML = `<span class="etq">🔀 Cambio de vías · ${esc(P.d.titulo)}</span>${enunciadoHTML(P.d)}${alternativasHTML(P.d, null, P.fallidas, false)}${msg}`;
       caja.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => responderCruce(Number(b.dataset.i))));
     };
     preguntaCarrera = pintarP;

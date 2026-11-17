@@ -203,8 +203,10 @@
     for (let intento = 0; intento < 10; intento++) {
       const k = sacarTema(M, claves, stats), t = temas[k];
       // varias variantes del mismo tema hasta encontrar una válida que no haya salido hace poco
+      // en los temas que tienen preguntas con figura (geometría y estadística), la mitad de las veces sale una con figura
+      if (!t.conFig) t.conFig = t.variantes.map((f, x) => { const d = f(2); return d && d.figura ? x : -1; }).filter((x) => x >= 0);
       for (let j = 0; j < 6; j++) {
-        const i = sacarVariante(M, k, t.variantes.length);
+        const i = j === 0 && t.conFig.length && Math.random() < 0.5 ? t.conFig[Math.floor(Math.random() * t.conFig.length)] : sacarVariante(M, k, t.variantes.length);
         let d = null;
         const nv = nivelCon(nivel, k);
         for (let r = 0; r < 4 && !valido(d); r++) d = t.variantes[i](r < 2 ? nv : 1);

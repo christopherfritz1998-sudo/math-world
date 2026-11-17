@@ -40,7 +40,7 @@
       desc: ['Toca los clavos para tallar una gema con el área pedida (cada cuadrito mide 1).', 'Toca dos clavos para tallar un corte con la longitud pedida: usa el teorema de Pitágoras.'] },
     rayo: { zona: 'u3', ico: '🔦', nombre: 'Rayo de luz', tema: ['angulos', 'transformaciones'], rondas: 4,
       desc: ['Calcula el ángulo que falta para orientar el espejo y que el rayo ilumine el cristal.', 'El espejo refleja, gira o traslada el cristal: escribe dónde queda su imagen en el plano.'] },
-    carga: { zona: 'u3', ico: '🛒', nombre: 'Carga exacta', tema: ['areas', 'volumen'], rondas: 3,
+    carga: { zona: 'u3', ico: '⛏️', nombre: 'Carga exacta', tema: ['areas', 'volumen'], rondas: 3,
       desc: ['Elige las placas cuya área suma exactamente el piso de la vagoneta.', 'Elige los bloques cuyo volumen suma exactamente la capacidad de la vagoneta (usa π ≈ 3).'] },
     trineo: { zona: 'u4', ico: '🛷', nombre: 'Trineo del azar', tema: [null, null], rondas: 5,
       desc: ['En cada bifurcación elige el camino con mayor probabilidad de seguir adelante.', 'En cada bifurcación elige el camino con mayor probabilidad: hay dos dados, monedas y urnas.'] },
@@ -735,7 +735,7 @@
       let elegida = null;
       const pintarP = () => {
         W.ui.abrir(`${cab(MJ.cerradura, `Parte ${i + 1} de ${r.n} · ${E(d.titulo)}`, 'Resuelve tu parte', '<div class="mjx-estado"><span class="pildora">☝️ Un intento</span></div>')}
-          <p class="enunciado">${M(d.enunciado)}</p>
+          ${J().enunciadoHTML ? J().enunciadoHTML(d) : `<p class="enunciado">${M(d.enunciado)}</p>`}
           <div class="alternativas">${d.opciones.map((o, k) => `<button type="button" class="alt" data-k="${k}" aria-pressed="${elegida === k}">${M(o)}</button>`).join('')}</div>
           <div class="acciones"><button type="button" class="btn" id="ce-volver">Volver</button><button type="button" class="btn pri" id="ce-resp" ${elegida === null ? 'disabled' : ''}>Responder</button></div>`, clase('cerradura', 'parte'));
         document.querySelectorAll('#modal .alt').forEach((x) => x.addEventListener('click', () => { elegida = Number(x.dataset.k); pintarP(); }));
