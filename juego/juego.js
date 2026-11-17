@@ -11920,7 +11920,8 @@
           ganarXP(E.xp);
           avanzarMision(e.clase);
           this.vencerEnemigo(e);
-          if (!e.desafio) this.tregua = this.time.now + 15000;   // tras un combate, 15 s sin que otro enemigo te persiga
+          // tras un combate, 15 s sin que otro enemigo te persiga (25 s si te quedan menos de 3 corazones)
+          if (!e.desafio) this.tregua = this.time.now + (S.vida < 3 ? 25000 : 15000);
           if (e.desafio) eventoDesafio('vencer', e);
           guardar(true);
         } else if (resultado === 'huir') {
