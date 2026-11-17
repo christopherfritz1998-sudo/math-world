@@ -1960,3 +1960,6 @@ body.movil .ar-huerto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 /* Figura de la pregunta (geometría y estadística), dibujada con los números de la pregunta */
 .figura-preg { display: flex; justify-content: center; margin: 4px 0 10px; }
 .figura-preg svg { max-width: 100%; height: auto; max-height: 34vh; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,.25); }
+
+/* Guía «¿Dónde se consigue?»: los recursos del HUD y de la fabricación se pueden tocar */
+#hud-recursos .recurso, .recurso-fab[data-r] { cursor: pointer; }

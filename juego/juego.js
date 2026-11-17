@@ -6,7 +6,7 @@
   'use strict';
 
   // catálogos de datos: viven en datos.js
-  const { PERSONAJES, RECURSOS, MEJORAS, MUNDOS, ENEMIGOS, JEFES, OBRAS, PECES, GEMAS, PIEZAS_EXC, COPOS, CONSEJOS, NOVEDADES, TALENTOS, CAPITULOS, EVENTOS, DIOSES, OFRENDAS, RELIQUIAS, REGLAS_TORRE } = window.MWDatos;
+  const { PERSONAJES, RECURSOS, DONDE, MEJORAS, MUNDOS, ENEMIGOS, JEFES, OBRAS, PECES, GEMAS, PIEZAS_EXC, COPOS, CONSEJOS, NOVEDADES, TALENTOS, CAPITULOS, EVENTOS, DIOSES, OFRENDAS, RELIQUIAS, REGLAS_TORRE } = window.MWDatos;
   const REC = Object.fromEntries(RECURSOS.map((r) => [r.id, r]));
   const nombreRec = (id) => (REC[id] ? REC[id].nombre.toLowerCase() : id);
   const ICONO = (id) => `assets/iconos/${id}.png`;
@@ -1541,7 +1541,7 @@
     const G = enBase && cofreComunitario() ? S.cofreG || {} : null;
     $('hud-recursos').classList.toggle('muchos', lista.length > 4);
     $('hud-recursos').innerHTML = `<span class="rot">${esDocente() ? 'Docente · ilimitado' : enBase ? (G ? `Tu cofre · <i class="rg">+grupo ${sesion.grupo}</i>` : 'Cofre') : 'Mochila'}</span>` + lista.map((r) => `
-      <div class="recurso" data-r="${r.id}" title="${esc(r.nombre)}${G ? `: ${fuente[r.id] || 0} en tu cofre y ${G[r.id] || 0} en el cofre del grupo` : ''}">
+      <div class="recurso" data-r="${r.id}" role="button" tabindex="0" title="${esc(r.nombre)} (toca para ver dónde se consigue)${G ? `: ${fuente[r.id] || 0} en tu cofre y ${G[r.id] || 0} en el cofre del grupo` : ''}">
         <img class="px" src="${ICONO(r.id)}" alt="">
         <span><small>${r.corto || r.nombre}</small><b>${esDocente() ? '∞' : fuente[r.id] || 0}${G && G[r.id] ? `<i class="rg">+${G[r.id]}</i>` : ''}</b></span>
       </div>`).join('');
@@ -1807,6 +1807,27 @@
         } });
     });
   }
+  // ---------- Guía «¿Dónde se consigue?» (al tocar un recurso del HUD o de la fabricación) ----------
+  function abrirDonde(id) {
+    const r = RECURSOS.find((x) => x.id === id); if (!r) return;
+    const G = DONDE[id] || { txt: 'Se consigue explorando los mundos.' };
+    const txt = esc(G.txt).replace(/\{(\w+)\}/g, (m, k) => `<b>${esc(NOMBRE_MEJORA[k] || k)}</b>`);
+    const enemigos = [...new Set(Object.values(ENEMIGOS).filter((e) => e.botin && e.botin[id]).map((e) => e.nombre))];
+    const mjs = G.mundo ? [...((window.Minijuegos && Minijuegos.de(G.mundo)) || []), ...((window.Arcade && Arcade.de(G.mundo)) || [])] : [];
+    const dondeMundo = G.mundo ? `${esc(nombreZona(G.mundo))}${G.lugar ? ` · ${esc(G.lugar)}` : ''}` : 'Eventos especiales';
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">¿Dónde se consigue?</span><h2 id="modal-titulo"><img class="px" src="${ICONO(id)}" alt="" width="28" height="28" style="vertical-align:middle"> ${esc(r.nombre)}</h2></div><button type="button" class="btn" id="dn-cerrar">Cerrar</button></div>
+      <section class="tarjeta-mision"><div class="fila"><strong>🗺️ ${dondeMundo}</strong></div><p class="enunciado" style="font-size:16px">${txt}</p></section>
+      ${enemigos.length ? `<section class="tarjeta-mision"><div class="fila"><strong>⚔️ También lo sueltan</strong></div><span class="nota">${enemigos.map(esc).join(', ')}</span></section>` : ''}
+      ${mjs.length ? `<section class="tarjeta-mision"><div class="fila"><strong>🎲 Minijuegos de ese mundo</strong><small>pueden dar recursos de premio</small></div><span class="nota">${mjs.map((m) => `${m.ico} ${esc(m.nombre)}`).join(' · ')}</span></section>` : ''}
+      <p class="nota">Tienes ${esDocente() ? '∞' : `${S.cofre[id] || 0} en tu cofre y ${S.mochila[id] || 0} en la mochila`}. También puedes pedirlo a tu grupo desde el cofre del grupo.</p>`, 'donde-modal');
+    $('dn-cerrar').addEventListener('click', () => ui.cerrar());
+  }
+  document.addEventListener('click', (e) => {
+    const r = e.target.closest('#hud-recursos .recurso[data-r], .recurso-fab[data-r]');
+    if (r && S && !ui.abierto) abrirDonde(r.dataset.r);
+    else if (r && S && r.classList.contains('recurso-fab')) abrirDonde(r.dataset.r);
+  });
+
   // ---------- Fichas de los minijuegos de entretención: cada partida cuesta 1 ficha y se gana 1 cada 3 aciertos ----------
   const FICHAS_MAX = 10, ACIERTOS_FICHA = 3;
   const fichas = () => { if (!S) return 0; if (S.fichas == null) S.fichas = 3; return S.fichas; };   // partidas antiguas parten con 3
@@ -7543,7 +7564,7 @@
   function recursosFabricarHTML() {
     const lista = RECURSOS.filter((r) => r.grupo === 'u1' || r.grupo === 'u1p' || recursosVisibles().includes(r) || total(r.id) > 0);
     return `<section class="mis-recursos" aria-label="Tus recursos"><span class="etq">${esDocente() ? 'Tus recursos · docente: ilimitados' : 'Tus recursos recolectados'}</span>
-      <div class="lista">${lista.map((r) => `<div class="recurso-fab" title="${esc(r.nombre)}"><img class="px" src="${ICONO(r.id)}" alt=""><span><small>${esc(r.corto || r.nombre)}</small><b>${esDocente() ? '∞' : total(r.id)}</b></span></div>`).join('')}</div></section>`;
+      <div class="lista">${lista.map((r) => `<div class="recurso-fab" data-r="${r.id}" role="button" tabindex="0" title="${esc(r.nombre)}: toca para ver dónde se consigue"><img class="px" src="${ICONO(r.id)}" alt=""><span><small>${esc(r.corto || r.nombre)}</small><b>${esDocente() ? '∞' : total(r.id)}</b></span></div>`).join('')}</div></section>`;
   }
   function abrirFabricar(pestana) {
     if (!pestana) pestana = escena && escena.zona === 'pieza' ? 'pieza' : 'equipo';

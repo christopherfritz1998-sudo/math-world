@@ -46,6 +46,36 @@ window.MWDatos = (function () {
     // Se atrapan en el desafío "Eclipse de luciérnagas"
     { id: 'luciernaga', nombre: 'Luciérnagas', grupo: 'especial' },
   ];
+  // Guía «¿Dónde se consigue?» (D1): mundo, objeto y herramienta de cada recurso. {id} se reemplaza por el nombre de esa herramienta.
+  // El juego agrega además los enemigos que lo sueltan y los minijuegos de ese mundo.
+  const DONDE = {
+    madera: { mundo: 'u1', txt: 'Tala árboles con el hacha (tecla 1 y E). Hay árboles en todos los mundos; en el Bosque hay más. Con el {hacha2} sacas más.' },
+    piedra: { mundo: 'u1', txt: 'Pica rocas con el {pico} (tecla 2 y E) en cualquier mundo.' },
+    agua: { mundo: 'u1', txt: 'Saca agua de los lagos y charcos con el {balde}.' },
+    cristal: { mundo: 'u1', txt: 'A veces sale al picar rocas; con el {pico2} salen más.' },
+    resina: { mundo: 'u1', lugar: 'Bosque profundo (cruza el puente)', txt: 'Tala los árboles gigantes con el {hacha2}.' },
+    miel: { mundo: 'u1', lugar: 'Bosque profundo (cruza el puente)', txt: 'Recolecta las colmenas con el {ahumador} para calmar a las abejas.' },
+    fibra: { mundo: 'u2', txt: 'Corta los cactus del desierto.' },
+    arenisca: { mundo: 'u2', txt: 'Pica las rocas de arenisca del desierto.' },
+    cobre: { mundo: 'u2', txt: 'Sale de las vetas de las rocas del desierto y en las excavaciones con la {pala}.' },
+    oro: { mundo: 'u2', txt: 'Vetas doradas del desierto con el {pico3}; también en las excavaciones con la {pala}.' },
+    obsidiana: { mundo: 'u2', lugar: 'Valle de la Esfinge (sube el acantilado del desierto)', txt: 'Pica las vetas de obsidiana con el {pico3}; también en las excavaciones.' },
+    fosil: { mundo: 'u2', lugar: 'Valle de la Esfinge', txt: 'Excava los sitios arqueológicos con la {pala}.' },
+    carbon: { mundo: 'u3', txt: 'Pica las rocas de carbón de la mina.' },
+    plata: { mundo: 'u3', txt: 'Vetas de plata de la mina; con el {pico4} sacas más.' },
+    amatista: { mundo: 'u3', txt: 'Vetas de amatista de la mina con el {pico4}.' },
+    hongo: { mundo: 'u3', txt: 'Recolecta los hongos luminosos de la mina.' },
+    magma: { mundo: 'u3', lugar: 'Profundidades (baja por la fosa de la mina)', txt: 'Extrae las vetas de magma con los {guantes}.' },
+    cristal_eco: { mundo: 'u3', lugar: 'Profundidades', txt: 'Desprende los cristales resonantes con el {cincel}; también en el altar de cristal.' },
+    baya: { mundo: 'u4', txt: 'Recolecta los arbustos de bayas del glaciar.' },
+    hielo: { mundo: 'u4', txt: 'Pica los bloques de hielo del glaciar.' },
+    escarcha: { mundo: 'u4', txt: 'Vetas de escarcha del glaciar.' },
+    zafiro: { mundo: 'u4', txt: 'Vetas de zafiro del glaciar con el {pico5}.' },
+    hielo_eterno: { mundo: 'u4', lugar: 'Cima del Glaciar (escala la pared de hielo)', txt: 'Pica los pilares de hielo eterno con el {pico5}.' },
+    aurora: { mundo: 'u4', lugar: 'Cima del Glaciar', txt: 'Guarda el polvo de las flores de aurora con el {frasco_aurora}.' },
+    prisma: { txt: 'Solo en el desafío en vivo «Prisma estelar» que lanza tu profesor.' },
+    luciernaga: { txt: 'Se atrapan en el desafío «Eclipse de luciérnagas».' },
+  };
   // Herramientas y equipo (se fabrican una vez)
   const MEJORAS = [
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
@@ -337,5 +367,5 @@ window.MWDatos = (function () {
     { id: 'tema', txt: '📘 Todas las preguntas son de un solo tema' },
     { id: 'sinpista', txt: '🙈 Sin paso a paso: solo ves si acertaste' },
   ];
-  return { PERSONAJES, RECURSOS, MEJORAS, MUNDOS, ENEMIGOS, JEFES, OBRAS, PECES, GEMAS, PIEZAS_EXC, COPOS, CONSEJOS, NOVEDADES, TALENTOS, CAPITULOS, EVENTOS, DIOSES, OFRENDAS, RELIQUIAS, REGLAS_TORRE };
+  return { PERSONAJES, RECURSOS, DONDE, MEJORAS, MUNDOS, ENEMIGOS, JEFES, OBRAS, PECES, GEMAS, PIEZAS_EXC, COPOS, CONSEJOS, NOVEDADES, TALENTOS, CAPITULOS, EVENTOS, DIOSES, OFRENDAS, RELIQUIAS, REGLAS_TORRE };
 })();
