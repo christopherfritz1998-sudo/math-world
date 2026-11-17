@@ -575,8 +575,9 @@
   // ===================================================================
   let G = null, raf = 0;
   function dia() {
-    const S = J().S(), hoy = new Date().toISOString().slice(0, 10);
-    if (!S.arDia || S.arDia.f !== hoy) S.arDia = { f: hoy, n: {}, xp: 0 };
+    // "hoy" con la hora de Chile (antes era UTC y el día cambiaba a las 21:00); un día guardado "adelantado" se respeta
+    const S = J().S(), hoy = J().hoy ? J().hoy() : new Date().toISOString().slice(0, 10);
+    if (!S.arDia || (S.arDia.f !== hoy && !(S.arDia.f > hoy))) S.arDia = { f: hoy, n: {}, xp: 0 };
     return S.arDia;
   }
   const rec = (id) => { const S = J() && J().S(); return (S && S.arRec && S.arRec[id]) || 0; };

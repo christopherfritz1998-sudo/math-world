@@ -89,8 +89,9 @@
   const textoPremioDia = (veces) => (veces >= MJ_PREMIO_MENOR ? `Hoy ya jugaste ${veces} veces este minijuego: ahora es práctica libre (sin premio). Vuelve mañana por más.`
     : veces >= MJ_PREMIO_COMPLETO ? `Hoy ya jugaste ${veces} veces: el premio ahora es menor.` : `Premio completo en tus primeras ${MJ_PREMIO_COMPLETO} partidas del día (llevas ${veces}).`);
   function dia() {
-    const S = J().S(), hoy = new Date().toISOString().slice(0, 10);
-    if (!S.mjDia || S.mjDia.f !== hoy) S.mjDia = { f: hoy, n: {}, xp: 0 };
+    // "hoy" con la hora de Chile (antes era UTC y el día cambiaba a las 21:00); un día guardado "adelantado" se respeta
+    const S = J().S(), hoy = J().hoy ? J().hoy() : new Date().toISOString().slice(0, 10);
+    if (!S.mjDia || (S.mjDia.f !== hoy && !(S.mjDia.f > hoy))) S.mjDia = { f: hoy, n: {}, xp: 0 };
     return S.mjDia;
   }
   function empezar(id) {

@@ -573,8 +573,19 @@
   }
 
   // ---------- Avance de cada semana (lo ve tu profesor en tu informe) ----------
+  // ---------- "Hoy" en todo el juego: un solo cálculo, con la hora de Chile (no la del aparato ni UTC) ----------
+  const fmtChile = (() => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' }); } catch (e) { return null; } })();
+  // fecha "AAAA-MM-DD" en Chile, desplazada en días (−1 = ayer)
+  function diaChile(dias = 0) {
+    const d = new Date(Date.now() + dias * 86400000);
+    if (fmtChile) return fmtChile.format(d);
+    const c = new Date(d.getTime() - 3 * 3600000);   // sin Intl: aproximación con UTC−3
+    return c.toISOString().slice(0, 10);
+  }
+  // día de la semana en Chile (0 = domingo)
+  const diaSemanaChile = (dias = 0) => { const [a, m, d] = diaChile(dias).split('-').map(Number); return new Date(Date.UTC(a, m - 1, d)).getUTCDay(); };
   function semanaISO() {
-    const d = new Date(), t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    const [ca, cm, cd] = diaChile().split('-').map(Number), t = new Date(Date.UTC(ca, cm - 1, cd));
     const dia = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - dia);
     const w = Math.ceil(((t - new Date(Date.UTC(t.getUTCFullYear(), 0, 1))) / 86400000 + 1) / 7);
     return `${t.getUTCFullYear()}-S${String(w).padStart(2, '0')}`;
@@ -856,7 +867,7 @@
     decorar: { n: 3, txt: 'Coloca 3 objetos en tu base o tu pieza' },
   };
   const PREMIOS_DIARIA = [{ madera: 15, piedra: 10 }, { cristal: 4 }, { agua: 8, madera: 10 }, { piedra: 12, cristal: 2 }, { cobre: 5, arenisca: 8 }, { oro: 2, fibra: 6 }, { carbon: 8, hongo: 4 }, { plata: 4, amatista: 1 }, { hielo: 8, baya: 4 }, { escarcha: 4, zafiro: 1 }];
-  const hoy = () => { try { return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago' }).format(new Date()); } catch (e) { return new Date().toISOString().slice(0, 10); } };
+  const hoy = () => diaChile();
   function diaria() {
     const f = hoy();
     if (!S.diaria || S.diaria.fecha !== f) {
@@ -1430,7 +1441,7 @@
   window.MWJ = {
     get ui() { return ui; },
     $: (id) => $(id), esc: (s) => esc(s), mate: (s) => mate(s), toast: (t, c) => toast(t, c), sfx: (k) => sfx(k),
-    S: () => S, sesion: () => sesion, escena: () => escena, esDocente: () => esDocente(),
+    S: () => S, sesion: () => sesion, escena: () => escena, esDocente: () => esDocente(), hoy: () => diaChile(),
     registrar: (t, ok) => registrar(t, ok), contar: (k, n) => contar(k, n), guardar: (i) => guardar(i),
     darPremio: (r, xp, f) => darPremio(r, xp, f), paquete: (c, v, t) => paquete(c, v, t), avanzar: (ev) => avanzarMision(ev),
     nombreZona: (z) => (z === 'base' ? 'Tu base' : nombreZona(z)),
@@ -5192,7 +5203,7 @@
   // Mejoras: tema de la clase, refuerzo personalizado, reporte automático de errores, lectura en voz alta,
   // primeros pasos (tutorial), racha de días y temporada mensual
   // ===================================================================
-  const fechaLocal = (dias = 0) => { const d = new Date(Date.now() + dias * 86400000); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const fechaLocal = (dias = 0) => diaChile(dias);
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
@@ -6213,7 +6224,7 @@
       } catch (e) { const el = $('tr-ranking'); if (el) el.innerHTML = '<p class="nota">No se pudo cargar el ranking.</p>'; }
     }
   }
-  function semanaClave() { const d = new Date(), j = new Date(d.getFullYear(), 0, 1); return `${d.getFullYear()}-${Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7)}`; }
+  function semanaClave() { const [ca, cm, cd] = diaChile().split('-').map(Number), d = new Date(ca, cm - 1, cd, 12), j = new Date(d.getFullYear(), 0, 1); return `${d.getFullYear()}-${Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7)}`; }
   function escalarTorre() {
     const sc = escena, T = S.torre || (S.torre = { mejor: 0 });
     const maxV = vidaMax();
@@ -6531,7 +6542,7 @@
     const hoy = fechaLocal(), ayer = fechaLocal(-1);
     if (S.diaUltimo === hoy) return;
     // la racha cuenta días de clases: el fin de semana no la corta (basta haber jugado el día hábil anterior o después)
-    let habil = -1; while ([0, 6].includes(new Date(Date.now() + habil * 86400000).getDay())) habil -= 1;
+    let habil = -1; while ([0, 6].includes(diaSemanaChile(habil))) habil -= 1;
     const anterior = fechaLocal(habil);
     S.diasSeguidos = S.diaUltimo === ayer || (S.diaUltimo && S.diaUltimo >= anterior) ? (S.diasSeguidos || 0) + 1 : 1;
     S.diaUltimo = hoy; S.diasMax = Math.max(S.diasMax || 0, S.diasSeguidos);
