@@ -558,7 +558,9 @@
     return a.tipo === 'nivel' ? `${f}: intentó pasar del nivel ${d.antes} al ${d.ahora} en ${d.seg} s`
       : a.tipo === 'respuestas' ? `${f}: intentó sumar ${d.ahora - d.antes} respuestas en ${d.seg} s`
       : a.tipo === 'recursos' ? `${f}: intentó sumar ${Math.round(d.ahora - d.antes)} recursos en ${d.seg} s`
-      : a.tipo === 'cofre' ? `${f}: intentó depositar ${d.deposito} recursos de una vez en el cofre del grupo (máximo posible: ${d.tope})`
+      : a.tipo === 'cofre' ? `${f}: intentó compartir ${d.deposito} recursos con el cofre del grupo, más de lo que tenía guardado (máximo posible: ${d.tope})`
+      : a.tipo === 'experiencia' ? `${f}: intentó sumar ${Math.round(d.ahora - d.antes)} de experiencia en ${Math.round(d.seg / 60)} min con solo ${d.resp} respuestas`
+      : a.tipo === 'formato' ? `${f}: envió un progreso con datos mal formados (posible edición manual)`
       : `${f}: envió más aciertos que intentos en un tema`;
   };
   function alertasHTML(e) {

@@ -459,7 +459,7 @@
     if (r.rechazado) {
       // lo compartido vuelve a tu cofre personal: no se pierde nada
       Object.entries((env && env.don) || {}).forEach(([k, n]) => { S.cofre[k] = (S.cofre[k] || 0) + n; });
-      toast('⚠️ El cofre del grupo no aceptó lo que compartiste (era demasiado de una vez). Volvió a tu cofre personal.', 'alerta');
+      toast('⚠️ El cofre del grupo no aceptó lo que compartiste (no coincide con lo que tienes guardado). Volvió a tu cofre personal.', 'alerta');
     }
     const tot = r.recursos || {};
     for (const x of RECURSOS) {
