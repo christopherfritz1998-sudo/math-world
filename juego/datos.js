@@ -255,6 +255,8 @@ window.MWDatos = (function () {
   // Reportar un problema y Novedades (ideas para el profesor)
   // ===================================================================
   const NOVEDADES = [
+    ['🎪', '16 minijuegos nuevos', 'Luciérnagas, tala, duende, tormenta, jeroglíficos, tesoro en la duna, vagoneta, linterna, derrumbe, trineo, pesca en el hielo, pingüinos, huerto, tiro al blanco, carrera de mascotas y trueno. Busca sus letreros cerca de cada portal.'],
+    ['📖', '5 álbumes nuevos', 'Luciérnagas, amuletos, fósiles, peces bajo el hielo y cosechas: se llenan jugando. Míralos en Tu avance (tecla M).'],
     ['📦', 'Cofre personal y cofre del grupo', 'Lo que recolectas queda en tu cofre. Desde tu Equipo (Q) puedes compartir recursos con tu grupo: lo compartido lo puede usar cualquiera para fabricar.'],
     ['🤝', 'Reto en pareja', 'En tus Misiones: uno calcula y el otro verifica. Si aciertan 4 de 6, ¡ambos ganan premio!'],
     ['🔍', 'Tu error, explicado', 'Al equivocarte, el paso a paso ahora te dice qué se te pasó: el signo, la coma, la fracción invertida…'],

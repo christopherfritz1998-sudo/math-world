@@ -1910,3 +1910,23 @@ body.movil .hud-estrecho li { font-size: 10px; }
 .titan-info .titan-barra i { background: linear-gradient(90deg, #ff5a5a, #ff9a6a); }
 .titan-info .titan-pasos { margin: 6px 0 10px; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; line-height: 1.35; }
 .titan-info .titan-premio { padding: 8px 12px; border-radius: 12px; border: 2px solid #ffd27a; background: rgba(255, 210, 122, .1); margin-bottom: 10px; }
+/* ---------- Minijuegos de entretención (arcade.js) ---------- */
+.ar-portada { display: grid; justify-items: center; gap: 8px; text-align: center; }
+.ar-portada-ico { font-size: 56px; line-height: 1; filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .35)); }
+.modal.ar-juego { width: min(760px, 96vw); }
+.ar-cab { gap: 10px; }
+.ar-hud { display: flex; gap: 10px; align-items: center; font: 700 16px Fredoka, Nunito, sans-serif; margin-left: auto; }
+.ar-lienzo { display: grid; place-items: center; }
+.ar-lienzo canvas { width: 100%; max-width: 680px; aspect-ratio: 4 / 3; border-radius: 14px; border: 3px solid var(--line); touch-action: none; background: #000; outline: none; cursor: crosshair; }
+.ar-ayuda { text-align: center; margin: 6px 0 0; }
+.ar-ico { display: inline-grid; place-items: center; width: 54px; height: 54px; border-radius: 50%; font-size: 30px; background: radial-gradient(circle, var(--c, rgba(255, 255, 255, .15)) 0%, transparent 70%); }
+.ar-album .pez-card .ar-ico { margin-bottom: 2px; }
+.ar-hallazgo { display: flex; gap: 10px; align-items: center; justify-content: center; padding: 8px 12px; border-radius: 12px; border: 2px solid #ffd27a; background: rgba(255, 210, 122, .1); margin: 8px 0; }
+.ar-huerto { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ar-parcela { display: grid; justify-items: center; gap: 4px; padding: 10px 6px; border-radius: 14px; border: 2px solid #7a5a2e; background: rgba(122, 90, 46, .25); text-align: center; }
+.ar-parcela.lista { border-color: #ffd27a; background: rgba(255, 210, 122, .15); }
+.ar-planta { font-size: 34px; line-height: 1.1; }
+body.movil .modal.ar-juego { width: 100vw; }
+body.movil .ar-ayuda { font-size: 11px; }
+body.movil .ar-huerto { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (orientation: landscape) { body.movil .ar-lienzo canvas { max-height: calc(100dvh - 110px); width: auto; } body.movil .ar-ayuda { display: none; } }

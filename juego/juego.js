@@ -3935,6 +3935,8 @@
   // mascotas adultas: 200 respuestas correctas con cada una (ver ETAPAS_MASCOTA)
   const mascotaAdulta = (id) => (((S && S.mascotaXP) || {})[id] || 0) >= 200;
   const mascotasAdultas = () => ['buho', 'fenec', 'topo', 'pinguino', 'jabato', 'ajolote', 'dragon', 'gato', 'grifo', 'fenix', 'unicornio'].filter(mascotaAdulta).length;
+  const AR = (id) => (window.Arcade ? Arcade.rec(id) : 0);
+  const ARA = (id) => (window.Arcade ? Arcade.albumTengo(id) : 0);
   const LOGROS = [
     // Exploración
     L('viaje1', 'explorar', '🧭', 'Primer viaje', 'Viaja a tu primer mundo por el portal de tu base.', 1, () => ['u1', 'u2', 'u3', 'u4'].filter(visto).length, 'Pies Inquietos'),
@@ -4140,6 +4142,30 @@
     L('prisma_perfecto', 'recolectar', '💎', 'Prisma impecable', 'Consigue el prisma estelar sin cometer ningún error.', 1, () => CN('prisma_perfecto'), 'Luz Perfecta'),
     // ----- Aprender del error (recolección: tras fallar, aparece otra pregunta) -----
     L('recupera20', 'aprender', '🌱', 'Aprender del error', 'Al recolectar, responde bien la nueva pregunta después de equivocarte 20 veces.', 20, () => CN('recupera'), 'Aprende y Avanza'),
+    // ----- Minijuegos de entretención (arcade.js): récords, álbumes y constancia -----
+    L('ar_luciernagas', 'minijuegos', '✨', 'Cazador de luciérnagas', 'Logra 40 puntos en Caza de luciérnagas (Bosque).', 40, () => AR('ar_luciernagas'), 'Cazaluces'),
+    L('ar_tala', 'minijuegos', '🪓', 'Leñador rítmico', 'Logra 20 puntos en Tala a ritmo (Bosque).', 20, () => AR('ar_tala'), 'Hacha Certera'),
+    L('ar_duende', 'minijuegos', '🌿', 'Ojo de halcón', 'Logra 10 puntos en Escondite del duende (Bosque).', 10, () => AR('ar_duende'), 'Ojo de Halcón'),
+    L('ar_tormenta', 'minijuegos', '🌪️', 'Más rápido que el viento', 'Logra 40 puntos en Huida de la tormenta (Desierto).', 40, () => AR('ar_tormenta'), 'Corre Dunas'),
+    L('ar_jeroglificos', 'minijuegos', '📜', 'Memoria de faraón', 'Repite una secuencia de 10 jeroglíficos (Desierto).', 10, () => AR('ar_jeroglificos'), 'Memoria de Faraón'),
+    L('ar_duna', 'minijuegos', '🏝️', 'Buscador de tesoros', 'Logra 25 puntos en Tesoro en la duna (Desierto).', 25, () => AR('ar_duna'), 'Olfato de Tesoro'),
+    L('ar_vagoneta', 'minijuegos', '🛤️', 'Maquinista audaz', 'Logra 40 puntos en Vagoneta desbocada (Mina).', 40, () => AR('ar_vagoneta'), 'Maquinista Audaz'),
+    L('ar_linterna', 'minijuegos', '🔦', 'Explorador de la oscuridad', 'Logra 18 puntos en Linterna en la oscuridad (Mina).', 18, () => AR('ar_linterna'), 'Luz en la Mina'),
+    L('ar_derrumbe', 'minijuegos', '🪨', 'Esquivador de rocas', 'Logra 45 puntos en Derrumbe (Mina).', 45, () => AR('ar_derrumbe'), 'Esquiva Rocas'),
+    L('ar_trineo_bajada', 'minijuegos', '🛷', 'Rey de la ladera', 'Logra 40 puntos en Trineo cuesta abajo (Glaciar).', 40, () => AR('ar_trineo_bajada'), 'Rey de la Ladera'),
+    L('ar_pesca_hielo', 'minijuegos', '🎣', 'Pescador polar', 'Logra 35 puntos en Pesca en el hielo (Glaciar).', 35, () => AR('ar_pesca_hielo'), 'Pescador Polar'),
+    L('ar_pinguinos', 'minijuegos', '🐧', 'Guía de pingüinos', 'Logra 13 puntos en Pingüinos a casa (Glaciar).', 13, () => AR('ar_pinguinos'), 'Guía Polar'),
+    L('ar_huerto', 'minijuegos', '🌱', 'Mano verde', 'Cosecha 30 veces en el huerto de tu base.', 30, () => AR('ar_huerto'), 'Mano Verde'),
+    L('ar_diana', 'minijuegos', '🎯', 'Puntería perfecta', 'Logra 35 puntos en Tiro al blanco (base).', 35, () => AR('ar_diana'), 'Puntería Perfecta'),
+    L('ar_mascotas', 'minijuegos', '🐾', 'Campeón de la carrera', 'Gana la Carrera de mascotas (base).', 10, () => AR('ar_mascotas'), 'Campeón Peludo'),
+    L('ar_trueno', 'minijuegos', '⚡', 'Reflejos de rayo', 'Logra 30 puntos en Reflejos del trueno (Altar).', 30, () => AR('ar_trueno'), 'Reflejos de Rayo'),
+    L('alb_luciernagas', 'coleccion', '✨', 'Noche brillante', 'Completa el álbum de luciérnagas.', 8, () => ARA('luciernagas'), 'Noche Brillante'),
+    L('alb_amuletos', 'coleccion', '🪲', 'Tesoro del faraón', 'Completa el álbum de amuletos del desierto.', 8, () => ARA('amuletos'), 'Tesoro del Faraón'),
+    L('alb_fosiles', 'coleccion', '🦴', 'Paleontólogo', 'Completa el álbum de fósiles de la mina.', 8, () => ARA('fosiles'), 'Paleontólogo'),
+    L('alb_peces_hielo', 'coleccion', '🐋', 'Pescador del hielo', 'Completa el álbum de peces bajo el hielo.', 8, () => ARA('peces_hielo'), 'Señor del Hielo'),
+    L('alb_cosechas', 'coleccion', '🌻', 'Gran cosechador', 'Completa el álbum de cosechas del huerto.', 8, () => ARA('cosechas'), 'Gran Cosechador'),
+    L('ar_todos', 'minijuegos', '🎪', 'Maestro de la entretención', 'Juega los 16 minijuegos de entretención de los mundos, la base y el altar.', 16, () => (window.Arcade ? Arcade.jugados() : 0), 'Maestro del Juego'),
+    L('ar_100', 'minijuegos', '🕹️', 'Jugador incansable', 'Juega 100 partidas de minijuegos de entretención.', 100, () => CN('arcade'), 'Incansable'),
   ];
   // El logro final: se desbloquea al completar todos los demás
   LOGROS.push(L('rey_juego', 'rey', '👑', 'El rey del juego', 'Completa todos los demás logros del juego. Te da el título «El rey del juego».', LOGROS.length,
@@ -5127,7 +5153,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-17';
+  const VERSION_JUEGO = '2026-11-17b';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -7696,6 +7722,7 @@
       <div class="pildoras"><span class="pildora">Nivel ${S.nivel}</span><span class="pildora">Enemigos vencidos: ${S.vencidos || 0}</span><span class="pildora">Estás en: ${esc(nombreZona(escena.zona))}</span></div>
       <h3 class="avance-sub">Tus álbumes</h3>
       <div class="albumes-avance"><button type="button" class="btn sec" id="m-album">📖 Álbum de peces</button> <button type="button" class="btn sec" id="m-gemas">💎 Álbum de gemas</button> <button type="button" class="btn sec" id="m-copos">❄️ Álbum de copos</button> <button type="button" class="btn sec" id="m-gjefe">👑 Gemas de los jefes</button></div>
+      ${window.Arcade ? Arcade.botonesAlbum() : ''}
       <h3 class="avance-sub">Avance por unidad</h3>
       <div class="unidades-avance">${bloques}</div>
       <div class="acciones"><span class="nota">${sesion.modo === 'local' ? 'Modo sin conexión: el avance se guarda solo en este navegador.' : 'Tu avance se guarda en el sistema: puedes seguir desde cualquier dispositivo.'}</span>
@@ -10379,7 +10406,8 @@
     }
     // Letreros de los minijuegos del mundo, cerca del portal (en lugares libres, separados entre sí)
     crearEstacionesMJ() {
-      const lista = (window.Minijuegos && Minijuegos.de(this.zona)) || [];
+      // minijuegos de preguntas (minijuegos.js) y de entretención sin cálculos (arcade.js)
+      const lista = [...((window.Minijuegos && Minijuegos.de(this.zona)) || []), ...((window.Arcade && Arcade.de(this.zona)) || [])];
       const por = this.objetos.find((o) => o.tipo === 'portal');
       if (!lista.length || !por) return;
       const px = Math.floor(por.x / TILE), py = Math.floor(por.y / TILE), usados = [];
@@ -11947,7 +11975,7 @@
       if (o.tipo === 'prisma') return abrirPrisma();
       if (o.tipo === 'trotamundos') return abrirTrotamundos();
       if (o.tipo === 'obra') return o.listo ? null : abrirObra();
-      if (o.tipo === 'mj') return window.Minijuegos ? Minijuegos.abrir(o.mj) : null;
+      if (o.tipo === 'mj') return String(o.mj).startsWith('ar_') ? (window.Arcade ? Arcade.abrir(o.mj) : null) : window.Minijuegos ? Minijuegos.abrir(o.mj) : null;
       if (o.tipo === 'santuario') {
         if (!tiene('amuleto')) return toast('El santuario está sellado. Fabrica el amuleto ancestral (resina y miel) en la fogata de tu base.', 'alerta');
         if ((S.reyHasta || 0) > Date.now()) return toast(`El Rey Jabalí Ancestral descansa. Vuelve en ${Math.ceil((S.reyHasta - Date.now()) / 60000)} min.`);
