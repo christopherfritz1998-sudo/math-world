@@ -223,7 +223,7 @@
       <div class="muted">Jefes vencidos: ${Object.values(p.jefes || {}).reduce((a, b) => a + b, 0)}${p.reyVencido || p.faraonVencido || p.colosoVencido || p.dragonVencido ? ` · Ancestrales: ${(p.reyVencido || 0) + (p.faraonVencido || 0) + (p.colosoVencido || 0) + (p.dragonVencido || 0)}` : ''}${p.mascota ? ` · Mascota: ${esc(p.mascota)}` : ''}</div>
       <h4>Clave</h4>
       ${e.tiene_clave ? `<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">Si el estudiante olvidó su clave, restablécela: la próxima vez que entre creará una nueva.</span>
-        <button type="button" class="btn peligro" id="det-reset">Restablecer clave</button></div>` : '<span class="muted">Aún no crea su clave.</span>'}
+        <button type="button" class="btn peligro" id="det-reset">Restablecer clave</button></div>` : `<span class="muted">Aún no crea su clave.${codigoDe(e.id) ? ` Código de primer ingreso: <code style="font-size:16px;letter-spacing:2px;font-weight:800">${esc(codigoDe(e.id))}</code>` : ''}</span>`}
       ${e.curso === 'INV' ? `<h4>Perfil de invitado</h4><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="muted">${e.aprobado === false ? 'Esta persona pidió acceso y espera tu aprobación.' : 'Puede seguir jugando o puedes eliminar su perfil para liberar el cupo (se borra todo su avance).'}</span>
         ${e.aprobado === false ? '<button type="button" class="btn pri" id="det-aprobar">Aceptar</button>' : ''}<button type="button" class="btn peligro" id="det-eliminar">${e.aprobado === false ? 'Rechazar' : 'Eliminar perfil'}</button></div>` : ''}
       <div id="det-msg"></div>`;
@@ -238,7 +238,9 @@
       if (!confirm(`¿Restablecer la clave de ${e.nombre}?`)) return;
       try {
         await Nube.docenteRestablecer(token, e.id);
-        $('det-msg').innerHTML = '<div class="msg">Clave restablecida. El estudiante creará una nueva al entrar.</div>';
+        await cargarCodigos();
+        const cod = codigoDe(e.id);
+        $('det-msg').innerHTML = `<div class="msg">Clave restablecida. El estudiante creará una nueva al entrar${cod ? ` con este código de primer ingreso: <b style="letter-spacing:2px">${esc(cod)}</b>` : ''}.</div>`;
         rb.disabled = true; cargar();
       } catch (err) { $('det-msg').innerHTML = '<div class="err">No se pudo restablecer. Inténtalo otra vez.</div>'; }
     });
@@ -1086,6 +1088,32 @@
     btn.disabled = false; pintarCom();
   });
   $('anuncio-texto').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('anuncio-enviar').click(); });
+
+  // ---------- Códigos de primer ingreso (uno por estudiante, se renueva al restablecer la clave) ----------
+  let codigos = null, codCurso = CURSOS_G[0].id;
+  async function cargarCodigos() {
+    try { const r = await Nube.docenteCodigosIngreso(token); codigos = Array.isArray(r) ? r : []; } catch (e) { codigos = codigos || null; }
+    pintarCodigos();
+  }
+  const codigoDe = (id) => ((codigos || []).find((c) => c.id === id) || {}).codigo || '';
+  function pintarCodigos() {
+    if (!$('cod-lista')) return;
+    if (codigos === null) { $('cod-lista').innerHTML = '<p class="muted">Los códigos aparecerán cuando se aplique la actualización de la base de datos (revision_2026_11_17.sql).</p>'; return; }
+    $('cod-cursos').innerHTML = CURSOS_G.map((c) => `<button type="button" class="chk" data-cc="${c.id}" aria-pressed="${codCurso === c.id}">${c.nombre} <small>${codigos.filter((x) => x.curso === c.id).length} sin clave</small></button>`).join('');
+    $('cod-cursos').querySelectorAll('[data-cc]').forEach((b) => b.addEventListener('click', () => { codCurso = b.dataset.cc; pintarCodigos(); }));
+    const l = codigos.filter((x) => x.curso === codCurso);
+    $('cod-lista').innerHTML = l.length ? `<div class="tabla"><table><thead><tr><th>Estudiante</th><th>Código</th></tr></thead><tbody>${l.map((x) => `<tr><td>${esc(x.nombre)}</td><td><code style="font-size:18px;letter-spacing:3px;font-weight:800">${esc(x.codigo || '')}</code></td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="muted">Todos los estudiantes de este curso ya crearon su clave. 👍</p>';
+  }
+  $('cod-imprimir').addEventListener('click', () => {
+    const l = (codigos || []).filter((x) => x.curso === codCurso), c = CURSOS.find((x) => x.id === codCurso);
+    const w = window.open('', '_blank'); if (!w) return;
+    w.document.write(`<!doctype html><meta charset="utf-8"><title>Códigos ${esc(c.nombre)}</title><style>body{font-family:sans-serif}div{display:inline-block;width:46%;margin:6px;padding:10px;border:1px dashed #888;font-size:15px}b{font-size:22px;letter-spacing:3px}</style>
+      <h3>Math World · Códigos de primer ingreso · ${esc(c.nombre)}</h3>${l.map((x) => `<div>${esc(x.nombre)}<br>Código: <b>${esc(x.codigo || '')}</b></div>`).join('')}`);
+    w.document.close(); w.print();
+  });
+  cargarCodigos();
+  setInterval(cargarCodigos, 60000);
 
   // ---------- Buzón: problemas reportados e ideas ----------
   let reportes = [], buzonTab = 'problema', buzonCurso = '', avisoMostrado = false;
