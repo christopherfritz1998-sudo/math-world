@@ -432,3 +432,18 @@ begin
     select r.id, r.tipo, r.categoria, r.texto, r.zona, r.curso, r.leido, mw_ms_de(r.creado) as creado, e.nombre, r.marcado, r.motivo_marca
     from reportes r join estudiantes e on e.id = r.estudiante_id order by r.creado desc limit 300) x), '[]'::json);
 end $$;
+
+-- ===================================================================
+-- BLOQUE B · B5. Jefe cooperativo: el juego pide la mitad de los integrantes activos del grupo (entre 2 y 4).
+-- mw_grupo_estado entrega cuántos integrantes del grupo jugaron en los últimos 7 días.
+-- ===================================================================
+create or replace function public.mw_grupo_estado(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token);
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  return (select json_build_object('ok', true, 'grupo', e.grupo, 'curso', e.curso,
+      'activos', case when e.grupo is null then 0 else (select count(*) from estudiantes x
+        where x.curso = e.curso and x.grupo = e.grupo and x.ultimo_ping > now() - interval '7 days') end)
+    from estudiantes e where e.id = id_e);
+end $$;

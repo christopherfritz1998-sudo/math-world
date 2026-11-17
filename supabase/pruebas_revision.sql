@@ -120,6 +120,13 @@ do $$ declare r json; begin
   insert into resultados (caso, ok, detalle) select 'buzón: el docente recibe el campo marcado', mw_docente_reportes('00000000-0000-0000-0000-0000000000d1')::text like '%"marcado" : true%' or mw_docente_reportes('00000000-0000-0000-0000-0000000000d1')::text like '%"marcado":true%', null;
 end $$;
 
+-- ---------- B5: integrantes activos del grupo ----------
+do $$ declare r json; begin
+  update estudiantes set ultimo_ping = now() where id in ('00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000000000a2');
+  r := mw_grupo_estado('00000000-0000-0000-0000-0000000000b2');
+  insert into resultados (caso, ok, detalle) values ('grupo: entrega los integrantes activos en 7 días', (r->>'activos')::int >= 2, r::text);
+end $$;
+
 -- ---------- A1: límite de consultas fallidas (al final: bloquea el nivel por un minuto) ----------
 do $$ declare r json; i int; begin
   for i in 1..10 loop r := mw_estudiante_estado((1000 + i)::text || '-1', '8'); end loop;

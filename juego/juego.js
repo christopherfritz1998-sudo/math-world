@@ -294,7 +294,11 @@
   }
   setInterval(() => { if (S && escena && escena.jugador && !S.curva2) migrarCurva(); }, 1500);
   const VIDA_HUIR = 1, VIDA_COFRE = 2;
-  const JEFE_MIN = 4, JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 9, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
+  // Mínimo para el jefe cooperativo: la mitad de los integrantes del grupo activos en los últimos 7 días (redondeada
+  // hacia arriba), entre 2 y 4. Así un grupo con ausencias no queda bloqueado. Lo calcula el servidor (mw_grupo_estado).
+  let JEFE_MIN = 4;
+  const fijarJefeMin = (activos) => { const n = Number(activos); if (n > 0) JEFE_MIN = Math.max(2, Math.min(4, Math.ceil(n / 2))); };
+  const JEFE_MAX = 6, JEFE_VIDA_POR_JUGADOR = 9, JEFE_DESCANSO = 5 * 60000, JEFE_DANIO = 2;
   const JEFE_PREMIO = { cristal: 5, madera: 10, piedra: 10 };
 
   // ===================================================================
@@ -679,6 +683,7 @@
   // El docente cambió (o quitó) el grupo del estudiante desde el portal
   function cambioDeGrupo(g) {
     sesion.grupo = g;
+    if (g && sesion.token) Nube.grupoEstado(sesion.token).then((x) => { if (x) fijarJefeMin(x.activos); }).catch(() => {});
     for (const k of Object.keys(obraE)) obraE[k] = null;
     const enMundo = escena && MUNDOS[escena.zona];
     if (!g) { if (escena && escena.jugador) viajar('base'); pedirCodigoGrupo(); return; }
@@ -1193,6 +1198,7 @@
       guardar(true);
       let gr = null;
       try { gr = await Nube.grupoEstado(r.token); } catch (e) { gr = null; }
+      if (gr) fijarJefeMin(gr.activos);
       sesion.grupo = (gr && gr.grupo) || 0;
       if (gr && gr.ok && !gr.grupo) pedirCodigoGrupo(() => empezar());
       else empezar();
@@ -7718,6 +7724,7 @@
         const r = await Nube.grupoUnirse(sesion.token, cod);
         if (r && r.ok) {
           sesion.grupo = r.grupo; ui.cerrar();
+          Nube.grupoEstado(sesion.token).then((x) => { if (x) fijarJefeMin(x.activos); }).catch(() => {});
           if (alListo) alListo();
           trasCarga(() => toast(`¡Listo! Eres parte del Grupo ${r.grupo}. Viaja por el portal para jugar con tu equipo.`));
           return;
