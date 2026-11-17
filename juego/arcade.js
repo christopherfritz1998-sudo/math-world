@@ -89,6 +89,12 @@
   // ===================================================================
   // Utilidades de dibujo
   // ===================================================================
+  // Vagón de mina en pixel art (el mismo de la decoración «Vagoneta» del juego); antes se usaba el emoji 🛒, que parece un carro de supermercado
+  const IMG_VAGON = new Image(); IMG_VAGON.src = 'assets/iconos/vagoneta.png';
+  function vagon(ctx, x, y, t) {
+    if (IMG_VAGON.complete && IMG_VAGON.naturalWidth) { const s0 = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false; ctx.drawImage(IMG_VAGON, x - t / 2, y - t / 2, t, t); ctx.imageSmoothingEnabled = s0; return true; }
+    return false;
+  }
   function emoji(ctx, e, x, y, t = 24) { ctx.font = `${t}px ${FUENTE}`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(e, x, y); }
   function texto(ctx, s, x, y, t = 14, c = '#fff', al = 'center') { ctx.font = `700 ${t}px Fredoka, Nunito, sans-serif`; ctx.textAlign = al; ctx.textBaseline = 'middle'; ctx.lineWidth = 4; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.strokeText(s, x, y); ctx.fillStyle = c; ctx.fillText(s, x, y); }
   function fondo(ctx, a, b) { const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, a); g.addColorStop(1, b); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
@@ -316,7 +322,7 @@
         const st = G.st; fondo(ctx, '#2a2420', '#14100d');
         [0, 1, 2].forEach((r) => { const x = this.xR(r); ctx.fillStyle = '#6b5a4a'; ctx.fillRect(x - 22, 0, 4, H); ctx.fillRect(x + 18, 0, 4, H); for (let y = (st.dist % 30) - 30; y < H; y += 30) ctx.fillRect(x - 26, y, 52, 5); });
         st.obs.forEach((o) => emoji(ctx, o.e, this.xR(o.r), o.y, 30));
-        emoji(ctx, '🛒', this.xR(st.riel), 240, 40);
+        if (!vagon(ctx, this.xR(st.riel), 240, 54)) emoji(ctx, '⛏️', this.xR(st.riel), 240, 40);
       } },
     ar_linterna: { zona: 'u3', ico: '🔦', nombre: 'Linterna en la oscuridad', album: 'fosiles', dura: 40,
       desc: 'Solo ves lo que alumbra tu linterna. Muévela (arrastra el dedo, mueve el mouse o usa las flechas) y toca los 6 fósiles escondidos antes de que se acabe la batería.',
@@ -908,7 +914,7 @@
     ar_tormenta(c) { P.monticulo(c, '#e2b36a', '#f3d49a'); P.em(c, '🌪️', 32, 28, 30); },
     ar_jeroglificos(c) { P.sombra(c, 18); P.rr(c, 18, 10, 28, 46, '#c9a46a', 8); c.fillStyle = '#6b4a22'; c.font = `9px ${FUENTE}`; P.em(c, '🪲', 32, 22, 11); P.em(c, '👁️', 32, 34, 11); P.em(c, '🐍', 32, 46, 11); },
     ar_duna(c) { P.monticulo(c, '#e9c27a', '#f6dca4'); P.em(c, '💰', 24, 42, 16); P.em(c, '⛏️', 40, 34, 22); },
-    ar_vagoneta(c) { P.rieles(c); P.rr(c, 14, 28, 36, 18, '#6b6f78', 3); c.fillStyle = '#4a4d54'; c.fillRect(16, 31, 32, 3); P.el(c, 21, 47, 4, 4, '#2a2a2a'); P.el(c, 43, 47, 4, 4, '#2a2a2a'); P.em(c, '💎', 26, 26, 12); P.em(c, '🪨', 37, 26, 12); },
+    ar_vagoneta(c) { P.rieles(c); if (vagon(c, 32, 34, 40)) return; P.rr(c, 14, 28, 36, 18, '#6b6f78', 3); c.fillStyle = '#4a4d54'; c.fillRect(16, 31, 32, 3); P.el(c, 21, 47, 4, 4, '#2a2a2a'); P.el(c, 43, 47, 4, 4, '#2a2a2a'); P.em(c, '💎', 26, 26, 12); P.em(c, '🪨', 37, 26, 12); },
     ar_linterna(c) { c.fillStyle = '#3a3127'; c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.moveTo(8, 56); c.lineTo(8, 30); c.quadraticCurveTo(32, 2, 56, 30); c.lineTo(56, 56); c.closePath(); c.fill(); c.stroke(); c.fillStyle = '#0b0806'; c.beginPath(); c.moveTo(16, 56); c.lineTo(16, 34); c.quadraticCurveTo(32, 14, 48, 34); c.lineTo(48, 56); c.closePath(); c.fill(); c.fillStyle = 'rgba(255,240,150,.35)'; c.beginPath(); c.moveTo(30, 44); c.lineTo(48, 36); c.lineTo(48, 54); c.closePath(); c.fill(); P.em(c, '🔦', 26, 46, 16); },
     ar_derrumbe(c) { P.sombra(c, 26); P.el(c, 20, 46, 13, 9, '#7a6a58'); P.el(c, 43, 47, 12, 8, '#8a7a66'); P.el(c, 31, 36, 12, 9, '#9a8a74'); P.em(c, '⛑️', 46, 30, 16); },
     ar_trineo_bajada(c) { P.monticulo(c, '#eef8ff', '#ffffff'); P.em(c, '🛷', 32, 38, 28); },
