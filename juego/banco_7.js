@@ -978,7 +978,7 @@
     () => P.fig.plano({ puntos: [{ x, y, nombre: 'P' }], titulo: 'Punto P en el plano cartesiano' }));
   });
   N7.u3.vectores.push(() => {
-    const x1 = rnd(-4, 1), y1 = rnd(-4, 1), vx = nz(-3, 4), vy = nz(-3, 4), x2 = x1 + vx, y2 = y1 + vy;
+    const x1 = rnd(-2, 1), y1 = rnd(-2, 1), vx = nz(-3, 4), vy = nz(-3, 4), x2 = x1 + vx, y2 = y1 + vy;
     return conFigura(D('¿Qué vector representa la flecha dibujada en el plano (desde su inicio hasta la punta)?', pto(vx, vy), [pto(-vx, -vy), pto(vy, vx), pto(x2, y2)], (k) => pto(vx + k, vy),
       'Cuenta cuánto avanza en x (derecha +, izquierda −) y cuánto en y (arriba +, abajo −).', `Va de ${pto(x1, y1)} a ${pto(x2, y2)}: (${num(x2)} − ${par(x1)}, ${num(y2)} − ${par(y1)}) = ${pto(vx, vy)}.`),
     () => P.fig.plano({ vectores: [{ x1, y1, x2, y2 }], puntos: [{ x: x1, y: y1, color: '#1f6fd1' }], titulo: 'Vector en el plano cartesiano' }));
@@ -1001,6 +1001,61 @@
     return conFigura(D('¿Cuál es el área del triángulo de la figura?', `${num(A)} cm²`, [`${num(b * h)} cm²`, `${num(b + h)} cm²`, `${num(2 * (b + h))} cm²`], (k) => `${num(A + k)} cm²`,
       'El área de un triángulo es base por altura dividido en 2.', `A = ${b} · ${h} : 2 = ${num(A)} cm².`),
     () => P.fig.triangulo({ base: b, altura: h, titulo: 'Triángulo con base y altura' }));
+  });
+
+  N7.u3.angulos.push(() => {
+    const a1 = 5 * rnd(6, 16), a2 = 5 * rnd(6, Math.min(16, 31 - a1 / 5)), x = 180 - a1 - a2;
+    return conFigura(D('Observa el triángulo de la figura. ¿Cuánto mide el ángulo marcado con «?»?', `${x}°`, [`${360 - a1 - a2}°`, `${a1 + a2}°`, `${Math.abs(90 - x)}°`], (k) => `${x + 5 * k}°`,
+      'Los tres ángulos interiores de un triángulo suman 180°.', `180° − ${a1}° − ${a2}° = ${x}°.`),
+    () => P.fig.angulos3({ a1, a2 }));
+  });
+  N7.u3.angreg.push(() => {
+    const k = pick([3, 4, 5, 6, 8, 9, 10, 12]), ang = (180 * (k - 2)) / k;
+    return conFigura(D(`La figura es un polígono regular. ¿Cuánto mide cada uno de sus ángulos interiores?`, `${num(ang)}°`, [`${num(180 * (k - 2))}°`, `${num(360 / k)}°`, `${num(180 * (k - 1) / k)}°`], (j) => `${num(ang + 6 * j)}°`,
+      'Cuenta los lados (n). La suma de los ángulos interiores es 180° · (n − 2); repártela en n ángulos iguales.', `n = ${k}: 180° · ${k - 2} : ${k} = ${num(ang)}°.`),
+    () => P.fig.poligono({ lados: k, marcarAngulo: true }));
+  });
+  N7.u3.circulo.push(() => {
+    const r = pick([2, 3, 4, 5, 6, 7, 10]), diam = rnd(0, 1) === 1, Pm = redondear(2 * 3.14 * r, 2);
+    return conFigura(D('¿Cuál es el perímetro del círculo de la figura? (π ≈ 3,14)', `${num(Pm)} cm`, [`${num(redondear(3.14 * r * r, 2))} cm`, `${num(redondear(3.14 * r, 2))} cm`, `${num(redondear(4 * 3.14 * r, 2))} cm`], (k) => `${num(redondear(Pm + 3.14 * k, 2))} cm`,
+      diam ? 'Perímetro = π · d.' : 'Perímetro = 2 · π · r.', diam ? `P = 3,14 · ${2 * r} = ${num(Pm)} cm.` : `P = 2 · 3,14 · ${r} = ${num(Pm)} cm.`),
+    () => P.fig.circulo({ medida: diam ? 2 * r : r, diametro: diam }));
+  });
+  N7.u3.areas.push(() => {
+    const b = rnd(2, 8), B = b + 2 * rnd(1, 4), h = rnd(2, 9), A = ((B + b) * h) / 2;
+    return conFigura(D('¿Cuál es el área del trapecio de la figura?', `${num(A)} cm²`, [`${num((B + b) * h)} cm²`, `${num(B * b * h)} cm²`, `${num(B * h)} cm²`], (k) => `${num(A + k)} cm²`,
+      'Área del trapecio = (base mayor + base menor) · altura : 2.', `(${B} + ${b}) · ${h} : 2 = ${num(A)} cm².`),
+    () => P.fig.trapecio({ B, b, h }));
+  });
+  // ---------- Unidad 4 con gráfico de barras ----------
+  const datosBarras = (n, min, max) => {
+    const cats = shuffle(['Fútbol', 'Básquet', 'Vóley', 'Tenis', 'Ajedrez', 'Natación']).slice(0, n);
+    let vals; do { vals = cats.map(() => rnd(min, max)); } while (new Set(vals).size < n);   // valores distintos: una sola moda
+    return cats.map((c, i) => [c, vals[i]]);
+  };
+  N7.u4.graficos.push(() => {
+    const D0 = datosBarras(4, 2, 12), [ca, va] = pick(D0);
+    return conFigura(D(`El gráfico muestra el deporte favorito de un curso. ¿Cuántos estudiantes eligieron ${ca}?`, String(va), D0.filter(([c]) => c !== ca).map(([, v]) => String(v)), (k) => String(va + k),
+      'Sigue la barra hasta arriba y lee el valor en el eje vertical.', `La barra de ${ca} llega a ${va}.`),
+    () => P.fig.barras({ datos: D0, eje: 'Deporte favorito (estudiantes)' }));
+  });
+  N7.u4.graficos.push(() => {
+    const D0 = datosBarras(4, 2, 12), [cm] = D0.reduce((m, x) => (x[1] > m[1] ? x : m));
+    return conFigura(C('Según el gráfico, ¿cuál es la moda (el deporte que más se eligió)?', cm, D0.map(([c]) => c).filter((c) => c !== cm),
+      'La moda es el dato con mayor frecuencia: la barra más alta.', `La barra más alta es ${cm}.`), () => P.fig.barras({ datos: D0, eje: 'Deporte favorito (estudiantes)' }));
+  });
+  N7.u4.tablas.push(() => {
+    const D0 = datosBarras(4, 2, 12), tot = D0.reduce((s, [, v]) => s + v, 0);
+    return conFigura(D('El gráfico muestra cuántos estudiantes eligieron cada deporte. ¿Cuántos estudiantes respondieron la encuesta (frecuencia total)?', String(tot), [String(D0.length), String(Math.max(...D0.map(([, v]) => v))), String(tot - D0[0][1])], (k) => String(tot + k),
+      'La frecuencia total es la suma de las frecuencias de todas las barras.', `${D0.map(([, v]) => v).join(' + ')} = ${tot}.`),
+    () => P.fig.barras({ datos: D0, eje: 'Deporte favorito (estudiantes)' }));
+  });
+  N7.u4.tendencia.push(() => {
+    const m = rnd(3, 8), dif = pick([[-2, -1, 1, 2], [-1, -1, 1, 1], [-3, 0, 1, 2], [-2, 0, 0, 2]]), vals = shuffle(dif).map((d) => m + d);
+    const D0 = vals.map((v, i) => [`P${i + 1}`, v]);
+    return conFigura(D('El gráfico muestra los goles de tu equipo en 4 partidos (P1 a P4). ¿Cuál es el promedio (media) de goles por partido?', String(m), [String(m + 1), String(Math.max(...vals)), String(vals.reduce((a, b) => a + b, 0))], (k) => num(m + k / 2),
+      'Suma los goles de todos los partidos y divide por la cantidad de partidos.', `(${vals.join(' + ')}) : 4 = ${vals.reduce((a, b) => a + b, 0)} : 4 = ${m}.`),
+    () => P.fig.barras({ datos: D0, eje: 'Goles por partido' }));
   });
 
   P.N7 = N7;

@@ -85,5 +85,60 @@
     return svg(W, H, s, titulo);
   }
 
-  P.fig = { plano, poligono, circulo, triangulo, barras, cajon };
+  // Triángulo rectángulo con catetos a (horizontal) y b (vertical) e hipotenusa c; el lado «oculto» ('a', 'b' o 'c') se rotula «?»
+  function rectangulo({ a, b, c = Math.hypot(a, b), oculto = 'c', unidad = 'cm', titulo = 'Triángulo rectángulo' }) {
+    const W = 260, H = 200, k = Math.min(190 / a, 140 / b), x0 = 70, y0 = H - 32, xa = x0 + a * k, yb = y0 - b * k;
+    const rot = (lado, v) => (oculto === lado ? '?' : `${n(v)} ${unidad}`), tam = (lado) => (oculto === lado ? 18 : 13);
+    let s = `<rect width="${W}" height="${H}" rx="10" fill="#fffdf4"/><polygon points="${x0},${y0} ${xa},${y0} ${x0},${yb}" fill="${RELLENO}" stroke="${TINTA}" stroke-width="2.4" stroke-linejoin="round"/>`;
+    s += `<rect x="${x0}" y="${y0 - 12}" width="12" height="12" fill="none" stroke="${TINTA}" stroke-width="1.5"/>`;
+    s += txt((x0 + xa) / 2, y0 + 16, rot('a', a), { color: ACENTO, tam: tam('a') }) + txt(x0 - 6, (y0 + yb) / 2, rot('b', b), { color: ACENTO, ancla: 'end', tam: tam('b') });
+    s += txt((x0 + xa) / 2 + 14, (y0 + yb) / 2 - 8, rot('c', c), { color: AZUL, tam: tam('c'), ancla: 'start' });
+    return svg(W, H, s, titulo);
+  }
+
+  // Trapecio con bases B (abajo) y b (arriba) y altura h
+  function trapecio({ B, b, h, unidad = 'cm', titulo = 'Trapecio' }) {
+    const W = 270, H = 200, k = Math.min(210 / B, 130 / h), x0 = (W - B * k) / 2, y0 = H - 34, xb = x0 + ((B - b) * k) / 2;
+    let s = `<rect width="${W}" height="${H}" rx="10" fill="#fffdf4"/><polygon points="${x0},${y0} ${x0 + B * k},${y0} ${xb + b * k},${y0 - h * k} ${xb},${y0 - h * k}" fill="${RELLENO}" stroke="${TINTA}" stroke-width="2.4" stroke-linejoin="round"/>`;
+    s += `<line x1="${xb}" y1="${y0 - h * k}" x2="${xb}" y2="${y0}" stroke="${AZUL}" stroke-width="2" stroke-dasharray="5 4"/>`;
+    s += txt(x0 + (B * k) / 2, y0 + 16, `B = ${n(B)} ${unidad}`, { color: ACENTO }) + txt(xb + (b * k) / 2, y0 - h * k - 12, `b = ${n(b)} ${unidad}`, { color: ACENTO }) + txt(xb + 8, y0 - (h * k) / 2, `h = ${n(h)}`, { color: AZUL, ancla: 'start' });
+    return svg(W, H, s, titulo);
+  }
+
+  // Triángulo con dos ángulos rotulados y el tercero con «?»
+  function angulos3({ a1, a2, titulo = 'Triángulo con sus ángulos' }) {
+    const W = 270, H = 190, base = 200, x0 = 35, y0 = H - 30, r1 = (a1 * Math.PI) / 180, r2 = (a2 * Math.PI) / 180;
+    // vértice superior: intersección de los lados que salen con los ángulos a1 (izquierda) y a2 (derecha)
+    const t = base * Math.sin(r2) / Math.sin(r1 + r2), xv = x0 + t * Math.cos(r1), yv = y0 - t * Math.sin(r1);
+    const esc0 = Math.min(1, (y0 - 22) / Math.max(1, y0 - yv));
+    const X = (x) => x0 + (x - x0) * esc0, Y = (y) => y0 - (y0 - y) * esc0, xb = X(x0 + base);
+    let s = `<rect width="${W}" height="${H}" rx="10" fill="#fffdf4"/><polygon points="${x0},${y0} ${xb},${y0} ${X(xv)},${Y(yv)}" fill="${RELLENO}" stroke="${TINTA}" stroke-width="2.4" stroke-linejoin="round"/>`;
+    s += txt(x0 + 30, y0 - 12, `${a1}°`, { color: ACENTO }) + txt(xb - 30, y0 - 12, `${a2}°`, { color: ACENTO }) + txt(X(xv), Y(yv) + 26, '?', { color: AZUL, tam: 17 });
+    return svg(W, H, s, titulo);
+  }
+
+  // Prisma rectangular (largo × ancho × alto) en perspectiva
+  function prisma({ l, a, h, unidad = 'cm', titulo = 'Prisma rectangular' }) {
+    const W = 270, H = 210, k = Math.min(140 / l, 110 / h, 90 / a), L = l * k, Ah = h * k, D = a * k * 0.6, x0 = 40, y0 = H - 30;
+    const p = (x, y) => `${x},${y}`;
+    let s = `<rect width="${W}" height="${H}" rx="10" fill="#fffdf4"/>`;
+    s += `<polygon points="${p(x0, y0)} ${p(x0 + L, y0)} ${p(x0 + L, y0 - Ah)} ${p(x0, y0 - Ah)}" fill="${RELLENO}" stroke="${TINTA}" stroke-width="2.2"/>`;
+    s += `<polygon points="${p(x0, y0 - Ah)} ${p(x0 + D, y0 - Ah - D)} ${p(x0 + L + D, y0 - Ah - D)} ${p(x0 + L, y0 - Ah)}" fill="#e3f2ea" stroke="${TINTA}" stroke-width="2.2"/>`;
+    s += `<polygon points="${p(x0 + L, y0)} ${p(x0 + L + D, y0 - D)} ${p(x0 + L + D, y0 - Ah - D)} ${p(x0 + L, y0 - Ah)}" fill="#b9dccb" stroke="${TINTA}" stroke-width="2.2"/>`;
+    s += txt(x0 + L / 2, y0 + 15, `${n(l)} ${unidad}`, { color: ACENTO }) + txt(x0 - 6, y0 - Ah / 2, `${n(h)} ${unidad}`, { color: ACENTO, ancla: 'end' }) + txt(x0 + L + D / 2 + 6, y0 - D / 2 + 6, `${n(a)} ${unidad}`, { color: ACENTO, ancla: 'start' });
+    return svg(W, H, s, titulo);
+  }
+
+  // Cilindro con radio y altura
+  function cilindro({ r, h, unidad = 'cm', titulo = 'Cilindro' }) {
+    const W = 240, H = 220, k = Math.min(70 / r, 140 / h), R = r * k, A = h * k, cx = W / 2, yt = (H - A) / 2 + 6, e = R * 0.32;
+    let s = `<rect width="${W}" height="${H}" rx="10" fill="#fffdf4"/>`;
+    s += `<path d="M ${cx - R} ${yt} L ${cx - R} ${yt + A} A ${R} ${e} 0 0 0 ${cx + R} ${yt + A} L ${cx + R} ${yt} Z" fill="${RELLENO}" stroke="${TINTA}" stroke-width="2.2"/>`;
+    s += `<ellipse cx="${cx}" cy="${yt}" rx="${R}" ry="${e}" fill="#e3f2ea" stroke="${TINTA}" stroke-width="2.2"/>`;
+    s += `<line x1="${cx}" y1="${yt}" x2="${cx + R}" y2="${yt}" stroke="${ACENTO}" stroke-width="2.4"/>${txt(cx + R / 2, yt - e - 8, `r = ${n(r)} ${unidad}`, { color: ACENTO })}`;
+    s += `<line x1="${cx + R + 12}" y1="${yt}" x2="${cx + R + 12}" y2="${yt + A}" stroke="${AZUL}" stroke-width="2" stroke-dasharray="5 4"/>${txt(cx + R + 16, yt + A / 2, `h = ${n(h)}`, { color: AZUL, ancla: 'start' })}`;
+    return svg(W, H, s, titulo);
+  }
+
+  P.fig = { plano, poligono, circulo, triangulo, barras, cajon, rectangulo, trapecio, angulos3, prisma, cilindro };
 })(window);
