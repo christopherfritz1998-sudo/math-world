@@ -98,12 +98,19 @@
 
   const marcar = () => document.body.classList.toggle('cu-abierto', !panel.classList.contains('oculto'));
   new MutationObserver(marcar).observe(panel, { attributes: true, attributeFilter: ['class'] });
+  // El botón va en la cabecera de la pregunta, junto a 🔊 (antes flotaba abajo y en celular tapaba las alternativas)
   function revisarBoton() {
     const hay = !modal.closest('.oculto') && Boolean(modal.querySelector('.alternativas, .alt'));
+    const en = hay ? modal.querySelector('.enunciado') : null;
+    if (en && btn.parentNode !== en) {
+      const voz = en.querySelector(':scope > .btn-voz');
+      if (voz) voz.after(btn); else en.prepend(btn);
+    } else if (!en && btn.parentNode !== document.body) document.body.append(btn);
+    btn.classList.toggle('en-pregunta', Boolean(en));
     btn.classList.toggle('oculto', !hay);
     if (!hay && !panel.classList.contains('oculto')) panel.classList.add('oculto');
   }
-  btn.addEventListener('click', () => { panel.classList.toggle('oculto'); if (!panel.classList.contains('oculto')) ajustarLienzo(); });
+  btn.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('oculto'); if (!panel.classList.contains('oculto')) ajustarLienzo(); });
   panel.querySelector('.cu-x').addEventListener('click', () => panel.classList.add('oculto'));
   // que las teclas escritas en el cuaderno no respondan el ejercicio ni muevan al personaje
   for (const ev of ['keydown', 'keyup']) panel.addEventListener(ev, (e) => { if (e.key !== 'Escape') e.stopPropagation(); });
