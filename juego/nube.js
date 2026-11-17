@@ -37,6 +37,8 @@
     // el código solo se envía en el primer ingreso (crear la clave)
     entrar: (r, nivel, clave, codigo) => rpc('mw_estudiante_entrar', codigo ? { p_rut: r, p_nivel: nivel, p_clave: clave, p_codigo: codigo } : { p_rut: r, p_nivel: nivel, p_clave: clave }),
     progreso: (token) => rpc('mw_progreso', { p_token: token }),
+    regaloDejar: (token, para, recursos) => rpc('mw_regalo_dejar', { p_token: token, p_para: para, p_recursos: recursos }),
+    regalosCobrar: (token) => rpc('mw_regalos_cobrar', { p_token: token }),
     docenteCodigosIngreso: (token) => rpc('mw_docente_codigos_ingreso', { p_token: token }),
     guardar: (token, progreso, zona, keepalive) => rpc('mw_guardar', { p_token: token, p_progreso: progreso, p_zona: zona }, { keepalive }),
     ping: (token, zona) => rpc('mw_ping', { p_token: token, p_zona: zona }),

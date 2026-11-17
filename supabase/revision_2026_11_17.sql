@@ -447,3 +447,62 @@ begin
         where x.curso = e.curso and x.grupo = e.grupo and x.ultimo_ping > now() - interval '7 days') end)
     from estudiantes e where e.id = id_e);
 end $$;
+
+-- ===================================================================
+-- BLOQUE D · D2. Regalos entre compañeros del mismo grupo (al visitar su casa en la base).
+-- Sale del cofre personal guardado en el servidor; máximo 200 recursos por regalo y 3 regalos al día.
+-- (Topes chicos a propósito: así un regalo nunca choca con los topes de mw_guardar.)
+-- ===================================================================
+create table if not exists public.regalos (
+  id bigserial primary key,
+  de uuid not null references public.estudiantes (id) on delete cascade,
+  para uuid not null references public.estudiantes (id) on delete cascade,
+  recursos jsonb not null,
+  creado timestamptz not null default now(),
+  cobrado timestamptz
+);
+create index if not exists regalos_para on public.regalos (para) where cobrado is null;
+create index if not exists regalos_de on public.regalos (de, creado);
+alter table public.regalos enable row level security;
+revoke all on public.regalos from anon, authenticated;
+
+create or replace function public.mw_regalo_dejar(p_token uuid, p_para uuid, p_recursos jsonb)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); yo estudiantes; otro estudiantes; k text; v text; tot int := 0; limpio jsonb := '{}'::jsonb; tiene numeric;
+begin
+  if id_e is null then return json_build_object('ok', false, 'error', 'sesion'); end if;
+  select * into yo from estudiantes where id = id_e;
+  select * into otro from estudiantes where id = p_para;
+  if not found or otro.id = yo.id or yo.grupo is null or otro.grupo is distinct from yo.grupo or otro.curso <> yo.curso then
+    return json_build_object('ok', false, 'error', 'grupo');
+  end if;
+  if (select count(*) from regalos where de = id_e and (creado at time zone 'America/Santiago')::date = (now() at time zone 'America/Santiago')::date) >= 3 then
+    return json_build_object('ok', false, 'error', 'limite');
+  end if;
+  if p_recursos is null or jsonb_typeof(p_recursos) <> 'object' then return json_build_object('ok', false, 'error', 'cantidad'); end if;
+  for k, v in select * from jsonb_each_text(p_recursos) loop
+    if k !~ '^[a-z_]{1,24}$' or v !~ '^[0-9]{1,3}$' or v::int < 1 then return json_build_object('ok', false, 'error', 'cantidad'); end if;
+    tot := tot + v::int;
+    -- lo que el servidor sabe que tiene en su cofre, menos lo que ya regaló después de su último guardado
+    tiene := mw_num(yo.progreso->'cofre'->k) - coalesce((select sum((r.recursos->>k)::int) from regalos r
+               where r.de = id_e and r.creado > coalesce(yo.actualizado, now()) and r.recursos ? k), 0);
+    if v::int > tiene then return json_build_object('ok', false, 'error', 'no_tienes', 'recurso', k); end if;
+    limpio := limpio || jsonb_build_object(k, v::int);
+  end loop;
+  if tot < 1 or tot > 200 then return json_build_object('ok', false, 'error', 'cantidad'); end if;
+  insert into regalos (de, para, recursos) values (id_e, p_para, limpio);
+  return json_build_object('ok', true, 'para', mw_nombre_corto(otro.nombre));
+end $$;
+
+create or replace function public.mw_regalos_cobrar(p_token uuid)
+returns json language plpgsql security definer set search_path = public as $$
+declare id_e uuid := mw_sesion_estudiante(p_token); res json;
+begin
+  if id_e is null then return json_build_object('ok', false); end if;
+  with c as (update regalos set cobrado = now() where para = id_e and cobrado is null returning de, recursos)
+  select coalesce(json_agg(json_build_object('de', mw_nombre_corto(e.nombre), 'recursos', c.recursos)), '[]'::json) into res
+    from c join estudiantes e on e.id = c.de;
+  return json_build_object('ok', true, 'regalos', res);
+end $$;
+revoke all on function public.mw_regalo_dejar(uuid, uuid, jsonb), public.mw_regalos_cobrar(uuid) from public, authenticated;
+grant execute on function public.mw_regalo_dejar(uuid, uuid, jsonb), public.mw_regalos_cobrar(uuid) to anon;

@@ -127,6 +127,22 @@ do $$ declare r json; begin
   insert into resultados (caso, ok, detalle) values ('grupo: entrega los integrantes activos en 7 días', (r->>'activos')::int >= 2, r::text);
 end $$;
 
+-- ---------- D2: regalos entre compañeros del mismo grupo ----------
+update estudiantes set progreso = '{"v":3,"nivel":6,"xp":0,"stats":{},"cofre":{"madera":150},"mochila":{},"cofreV2":1,"curva2":1}',
+  actualizado = now() - interval '1 minute' where id = '00000000-0000-0000-0000-0000000000a2';
+do $$ declare r json; begin
+  r := mw_regalo_dejar('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a1', '{"madera":100}');
+  insert into resultados (caso, ok, detalle) values ('regalo: dejar lo que se tiene funciona', (r->>'ok')::boolean, r::text);
+  r := mw_regalo_dejar('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a1', '{"madera":100}');
+  insert into resultados (caso, ok, detalle) values ('regalo: repetir sin tener los recursos se rechaza', r->>'error' = 'no_tienes', r::text);
+  r := mw_regalo_dejar('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a1', '{"madera":500}');
+  insert into resultados (caso, ok, detalle) values ('regalo: más de 200 recursos se rechaza', r->>'error' in ('cantidad', 'no_tienes'), r::text);
+  r := mw_regalo_dejar('00000000-0000-0000-0000-0000000000b2', '00000000-0000-0000-0000-0000000000a2', '{"madera":1}');
+  insert into resultados (caso, ok, detalle) values ('regalo: no se puede regalar a uno mismo', r->>'error' = 'grupo', r::text);
+  r := mw_regalos_cobrar('00000000-0000-0000-0000-0000000000b1');
+  insert into resultados (caso, ok, detalle) values ('regalo: el compañero lo recibe una sola vez', json_array_length(r->'regalos') = 1 and json_array_length(mw_regalos_cobrar('00000000-0000-0000-0000-0000000000b1')->'regalos') = 0, r::text);
+end $$;
+
 -- ---------- A1: límite de consultas fallidas (al final: bloquea el nivel por un minuto) ----------
 do $$ declare r json; i int; begin
   for i in 1..10 loop r := mw_estudiante_estado((1000 + i)::text || '-1', '8'); end loop;

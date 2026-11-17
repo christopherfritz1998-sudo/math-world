@@ -1211,6 +1211,7 @@
       try { gr = await Nube.grupoEstado(r.token); } catch (e) { gr = null; }
       if (gr) fijarJefeMin(gr.activos);
       sesion.grupo = (gr && gr.grupo) || 0;
+      setTimeout(cobrarRegalos, 4000);
       if (gr && gr.ok && !gr.grupo) pedirCodigoGrupo(() => empezar());
       else empezar();
     } catch (e) {
@@ -1827,6 +1828,67 @@
     if (r && S && !ui.abierto) abrirDonde(r.dataset.r);
     else if (r && S && r.classList.contains('recurso-fab')) abrirDonde(r.dataset.r);
   });
+
+  // ---------- Regalos (D2): al visitar la casa de un compañero del grupo se le puede dejar algo del cofre personal ----------
+  const REGALO_MAX = 200;
+  function botonRegalo(sala) {
+    let b = $('btn-regalo');
+    const puede = sala && !esDocente() && !visitaDoc && sesion.modo === 'nube' && window.Nube && Nube.regaloDejar;
+    if (!puede) { if (b) b.remove(); return; }
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'btn-regalo'; b.className = 'btn-regalo'; document.body.append(b); }
+    b.innerHTML = '🎁 <b>Dejar un regalo</b>'; b.setAttribute('aria-label', `Dejar un regalo a ${sala.nombre}`);
+    b.onclick = () => abrirRegalo(sala);
+  }
+  function abrirRegalo(sala) {
+    const lista = RECURSOS.filter((r) => (S.cofre[r.id] || 0) > 0);
+    const sel = {};
+    const total = () => Object.values(sel).reduce((a, n) => a + n, 0);
+    const pintar = (msg = '') => {
+      ui.abrir(`<div class="modal-cab"><div><span class="etq">Regalo</span><h2 id="modal-titulo">🎁 Regalo para ${esc(sala.nombre)}</h2></div><button type="button" class="btn" id="rg-cerrar">Cerrar</button></div>
+        <p class="nota">Elige recursos de tu cofre personal (máximo ${REGALO_MAX} en total, 3 regalos al día). Le llegarán la próxima vez que entre al juego.</p>
+        ${lista.length ? `<div class="rg-lista">${lista.map((r) => `<div class="rg-fila"><img class="px" src="${ICONO(r.id)}" alt=""><span>${esc(r.nombre)} <small>(tienes ${S.cofre[r.id]})</small></span>
+          <button type="button" class="btn mini" data-rg="${r.id}" data-d="-10">−10</button><b>${sel[r.id] || 0}</b><button type="button" class="btn mini" data-rg="${r.id}" data-d="10">+10</button></div>`).join('')}</div>`
+          : '<p class="enunciado">Tu cofre personal está vacío: recolecta recursos para poder regalar.</p>'}
+        ${msg}
+        <div class="acciones"><span class="nota">Total: ${total()} de ${REGALO_MAX}</span><button type="button" class="btn pri" id="rg-ok" ${total() ? '' : 'disabled'}>Dejar regalo</button></div>`, 'regalo-modal');
+      $('rg-cerrar').addEventListener('click', () => ui.cerrar());
+      document.querySelectorAll('[data-rg]').forEach((x) => x.addEventListener('click', () => {
+        const k = x.dataset.rg, d = Number(x.dataset.d), libre = REGALO_MAX - total() + (sel[k] || 0);
+        sel[k] = Math.max(0, Math.min((sel[k] || 0) + d, S.cofre[k] || 0, libre)); if (!sel[k]) delete sel[k];
+        pintar();
+      }));
+      const ok = $('rg-ok'); if (ok) ok.addEventListener('click', enviar);
+    };
+    let enviando = false;
+    async function enviar() {
+      if (enviando || !total()) return;
+      enviando = true;
+      await subir();   // el servidor valida contra el cofre del último guardado
+      let r = null; try { r = await Nube.regaloDejar(sesion.token, sala.id, sel); } catch (e) { r = null; }
+      enviando = false;
+      if (!r || !r.ok) {
+        const m = { limite: 'Ya dejaste 3 regalos hoy. Mañana puedes dejar más.', no_tienes: 'Tu cofre guardado no tiene tanto de ese recurso (espera unos segundos a que se guarde y vuelve a intentarlo).', grupo: 'Solo puedes regalar a compañeros de tu grupo.', cantidad: `El regalo debe tener entre 1 y ${REGALO_MAX} recursos.` };
+        return pintar(`<div class="mensaje mal" role="status">${m[r && r.error] || 'No se pudo dejar el regalo. Revisa tu conexión.'}</div>`);
+      }
+      Object.entries(sel).forEach(([k, n]) => { S.cofre[k] = Math.max(0, (S.cofre[k] || 0) - n); });
+      contar('regalo'); guardar(true); pintarHUD(); sfx('logro');
+      ui.cerrar();
+      toast(`🎁 Le dejaste un regalo a ${sala.nombre}. ¡Qué buen compañero!`);
+    }
+    pintar();
+  }
+  // Regalos recibidos: se revisan al entrar y cada minuto
+  async function cobrarRegalos() {
+    if (!S || esDocente() || sesion.modo !== 'nube' || !window.Nube || !Nube.regalosCobrar) return;
+    let r = null; try { r = await Nube.regalosCobrar(sesion.token); } catch (e) { return; }
+    const L = (r && r.ok && Array.isArray(r.regalos)) ? r.regalos : [];
+    if (!L.length) return;
+    for (const g of L) Object.entries(g.recursos || {}).forEach(([k, n]) => { if (RECURSOS.some((x) => x.id === k)) S.cofre[k] = (S.cofre[k] || 0) + (Number(n) || 0); });
+    guardar(true); pintarHUD(); sfx('logro');
+    const txt = L.map((g) => `${g.de}: ${Object.entries(g.recursos || {}).map(([k, n]) => `${n} ${nombreRec(k)}`).join(', ')}`).join(' · ');
+    trasCarga(() => toast(`🎁 ¡Recibiste ${L.length === 1 ? 'un regalo' : `${L.length} regalos`} de tu grupo! ${txt}. Ya está en tu cofre.`));
+  }
+  setInterval(cobrarRegalos, 60000);
 
   // ---------- Fichas de los minijuegos de entretención: cada partida cuesta 1 ficha y se gana 1 cada 3 aciertos ----------
   const FICHAS_MAX = 10, ACIERTOS_FICHA = 3;
@@ -9289,7 +9351,8 @@
       if (vivo.fase === 'activo') montarDesafio(this);
       this.time.delayedCall(250, () => prepararMinimapa(this));
       if (this.zona === 'pieza' && this.sala.tipo === 'mia' && !(S.pieza || []).length) setTimeout(() => toast('¡Esta es tu casa! Fabrica muebles con B (pestaña Muebles) y colócalos con G.'), 700);
-      if (this.zona === 'pieza' && this.sala.tipo === 'visita') setTimeout(() => toast(`Estás de visita en la casa de ${this.sala.nombre}: puedes mirar, pero no cambiar nada.`), 700);
+      if (this.zona === 'pieza' && this.sala.tipo === 'visita') setTimeout(() => toast(`Estás de visita en la casa de ${this.sala.nombre}: puedes mirar y dejarle un regalo (🎁).`), 700);
+      botonRegalo(this.zona === 'pieza' && this.sala.tipo === 'visita' ? this.sala : null);
       if (this.zona === 'pieza' && this.sala.tipo === 'comun') setTimeout(() => toast('Carpa común: todo el grupo puede decorarla con G. Cada uno puede guardar solo lo que puso.'), 700);
       if (this.zona === 'base' || (this.zona === 'pieza' && this.sala.tipo === 'comun')) cargarBase();
       if (this.zona === 'altar') this.time.delayedCall(600, () => entrarAltar(this));
