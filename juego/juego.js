@@ -4951,16 +4951,25 @@
       else if (d.t === 'fin') ganarDuelo(d.mochila || {});
     }
   }
-  function datosYo() { return { nombre: nombreJug(), pj: S.pj, tex: texArmadura(S.armadura), vm: vidaPvp(), dmg: golpePvp(), mochila: mochilaTotal(), w: S.arma || '' }; }
-  function abrirArena() {
+  function datosYo() { return { g: sesion.grupo || 0, nombre: nombreJug(), pj: S.pj, tex: texArmadura(S.armadura), vm: vidaPvp(), dmg: golpePvp(), mochila: mochilaTotal(), w: S.arma || '' }; }
+  function abrirArena(entreClanes = false) {
     if (!sistemaListo('arena')) return;
     pvp = { fase: 'sala', gente: new Map(), reto: null, retoDe: null, aviso: '', limpiar: [] };
-    ui.abrir(`<div class="modal-cab"><div><span class="etq">Arena · ${escena && escena.canal ? `Grupo ${S.grupo}` : 'sin compañeros: puedes practicar'}</span><h2 id="modal-titulo">⚔️ Arena PvP</h2></div><button type="button" class="btn" id="pv-salir">Salir</button></div>
+    // D3 · Arena entre clanes: canal de todo el curso; solo aparecen jugadores de OTROS grupos y nadie pierde la mochila
+    const puedeClanes = Boolean(window.Coop && Coop.Canal && sesion.modo === 'nube' && sesion.grupo && cursoCanal() !== 'INV' && !esDocente());
+    if (entreClanes && puedeClanes) {
+      pvp.amistoso = true;
+      const c = new Coop.Canal(`mw-arena-${cursoCanal()}`, idJuego, { nombre: S.nombre, g: sesion.grupo }, 0);
+      c.on('pvp', (d) => recibirPvp(d));
+      pvp.canal = c; pvp.limpiar.push(() => { try { c.salir(); } catch (e) { /* */ } });
+    }
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Arena · ${pvp.amistoso ? `Entre clanes del curso · tu clan: ${esc(nombreClan(sesion.grupo))}` : escena && escena.canal ? `Grupo ${S.grupo}` : 'sin compañeros: puedes practicar'}</span><h2 id="modal-titulo">⚔️ Arena PvP</h2></div><button type="button" class="btn" id="pv-salir">Salir</button></div>
       <div class="carrera-sala" id="pv-cuerpo">
         <div><p class="nota">Reta a un compañero de tu grupo a un duelo 1 contra 1. Solo te mueves a la <b>izquierda y derecha</b> (<kbd>A</kbd> <kbd>D</kbd> o flechas), <b>atacas</b> con <kbd>J</kbd> o <kbd>Espacio</kbd> y <b>bloqueas</b> manteniendo <kbd>K</kbd>. Tu <b>armadura</b> define tu vida y tu <b>espada</b> el daño de cada golpe.</p>
-          <p class="mensaje mal pv-riesgo">⚠️ Quien pierde vuelve a su base y el ganador se queda con <b>todo lo que llevaba en la mochila</b>.</p>
+          ${pvp.amistoso ? '<p class="mensaje pista">🏰 Duelos contra jugadores de <b>otros clanes</b> de tu curso. Aquí <b>no se pierde la mochila</b>: el ganador suma un triunfo para su clan y experiencia.</p>'
+            : '<p class="mensaje mal pv-riesgo">⚠️ Quien pierde vuelve a su base y el ganador se queda con <b>todo lo que llevaba en la mochila</b>.</p>'}
           <ul class="carrera-lista pv-lista" id="pv-lista"></ul><div id="pv-reto"></div></div>
-        <div class="carrera-premios"><span class="etq">Tu luchador</span><div id="pv-yo"></div><button type="button" class="btn sec" id="pv-practica">Practicar contra el muñeco</button><span class="nota">La práctica no tiene premio ni castigo.</span></div>
+        <div class="carrera-premios"><span class="etq">Tu luchador</span><div id="pv-yo"></div><button type="button" class="btn sec" id="pv-practica">Practicar contra el muñeco</button>${!pvp.amistoso && puedeClanes ? '<button type="button" class="btn sec" id="pv-clanes">🏰 Retar a otro clan</button>' : ''}<span class="nota">La práctica no tiene premio ni castigo.</span></div>
       </div>
       <div class="acciones"><span class="nota" id="pv-nota"></span><span></span></div>`, 'minijuego pvp', () => {
       if (!pvp) return;
@@ -4972,6 +4981,7 @@
     });
     $('pv-salir').addEventListener('click', () => ui.cerrar());
     $('pv-practica').addEventListener('click', () => arrancarDuelo(null));
+    if ($('pv-clanes')) $('pv-clanes').addEventListener('click', () => { ui.alCerrar = () => setTimeout(() => abrirArena(true), 50); ui.cerrar(); });
     const latir = () => { if (!pvp || pvp.fase !== 'sala') return; emitirPvp({ t: 'aqui', ...datosYo() }); for (const [id, x] of pvp.gente) if (Date.now() - x.visto > 5000) pvp.gente.delete(id); pintarSalaPvp(); };
     pvp.latido = setInterval(latir, 1500); latir();
   }
@@ -4979,10 +4989,10 @@
     if (!pvp || pvp.fase !== 'sala' || !$('pv-lista')) return;
     const y = datosYo();
     $('pv-yo').innerHTML = `<div class="pv-ficha"><span class="cr-cara" style="background-image:url('assets/pj/${esc(S.pj)}_${esc(y.tex)}.png')"></span><div><b>${esc(y.nombre)}</b><small>❤️ Vida ${y.vm} · ⚔️ Golpe ${y.dmg}</small><small>🎒 Mochila: ${y.mochila} recursos en juego</small></div></div>`;
-    const gente = [...pvp.gente.entries()];
-    const html = gente.length ? gente.map(([id, g]) => `<li><span class="cr-cara" style="background-image:url('assets/pj/${esc(g.pj)}_${esc(g.tex || 'nada')}.png')"></span><b>${esc(g.nombre)}</b><small>❤️ ${g.vm} · ⚔️ ${g.dmg} · 🎒 ${g.mochila}</small>
+    const gente = [...pvp.gente.entries()].filter(([, g]) => !pvp.amistoso || (g.g && g.g !== sesion.grupo));
+    const html = gente.length ? gente.map(([id, g]) => `<li><span class="cr-cara" style="background-image:url('assets/pj/${esc(g.pj)}_${esc(g.tex || 'nada')}.png')"></span><b>${esc(g.nombre)}</b><small>${pvp.amistoso ? `🏰 ${esc(nombreClan(g.g))} · ` : ''}❤️ ${g.vm} · ⚔️ ${g.dmg}${pvp.amistoso ? '' : ` · 🎒 ${g.mochila}`}</small>
         <button type="button" class="btn pri chico" data-retar="${esc(id)}" ${pvp.reto ? 'disabled' : ''}>${pvp.reto === id ? 'Esperando…' : 'Retar'}</button></li>`).join('')
-      : '<li class="vacio">Aún no hay compañeros en la arena. Pídeles que entren (está cerca del portal de cada mundo).</li>';
+      : pvp.amistoso ? '<li class="vacio">Aún no hay jugadores de otros clanes en la arena entre clanes. Cuando alguien de otro grupo entre, aparecerá aquí.</li>' : '<li class="vacio">Aún no hay compañeros en la arena. Pídeles que entren (está cerca del portal de cada mundo).</li>';
     if (html === pvp.htmlLista) return pintarRetoPvp();
     pvp.htmlLista = html; $('pv-lista').innerHTML = html;
     $('pv-lista').querySelectorAll('[data-retar]').forEach((b) => b.addEventListener('click', () => {
@@ -5021,7 +5031,7 @@
     pvp.yo = { x: izq ? 220 : 580, dir: izq ? 'right' : 'left', hp: yoD.vm, max: yoD.vm, dmg: yoD.dmg, bloq: false, atk: 0, atkN: 0, img: imgPj(S.pj, yoD.tex), nombre: yoD.nombre, golpeado: 0, arma: yoD.w };
     pvp.rival = bot
       ? { bot: true, id: 'muneco', x: 580, tx: 580, dir: 'left', hp: 30, max: 30, dmg: 3, bloq: false, atk: 0, img: imgPj('lobo', 'cuero'), nombre: 'Muñeco de práctica', ia: 1, visto: performance.now(), arma: 'espada' }
-      : { id: rival.id, x: izq ? 580 : 220, tx: izq ? 580 : 220, dir: izq ? 'left' : 'right', hp: rival.vm, max: rival.vm, dmg: rival.dmg, bloq: false, atk: 0, img: imgPj(rival.pj, rival.tex || 'nada'), nombre: rival.nombre, visto: performance.now(), arma: ARMAS[rival.w] ? rival.w : '' };
+      : { id: rival.id, x: izq ? 580 : 220, tx: izq ? 580 : 220, dir: izq ? 'left' : 'right', hp: rival.vm, max: rival.vm, dmg: rival.dmg, bloq: false, atk: 0, img: imgPj(rival.pj, rival.tex || 'nada'), nombre: rival.nombre, g: rival.g, visto: performance.now(), arma: ARMAS[rival.w] ? rival.w : '' };
     pvp.mov = { l: false, r: false }; pvp.t = -3; pvp.cuenta = 3.2; pvp.ultPos = 0;
     $('pv-cuerpo').outerHTML = `<div class="minijuego-juego"><div class="mj-cuadro zona-lienzo" id="mj-cuadro"><canvas id="pv-canvas" width="${PVP_W}" height="${PVP_H}"></canvas><div class="cr-cuenta" id="mj-cuenta">3</div></div>
       <div class="mj-controles pv-controles"><div class="pv-mover"><button type="button" class="btn" data-pv="l">◀</button><button type="button" class="btn" data-pv="r">▶</button></div>
@@ -5139,6 +5149,12 @@
   function perderDuelo(motivo) {
     if (!pvp || pvp.terminado) return;
     pvp.terminado = true;
+    if (pvp.amistoso) {
+      emitirPvp({ t: 'fin', a: pvp.rival.id, mochila: {} });
+      contar('pvp_derrota'); guardar(true);
+      mostrarFinPvp('💥 Perdiste el duelo entre clanes', `${motivo ? motivo + ' ' : ''}${pvp.rival.nombre} ganó para su clan. Tu mochila está a salvo: en la arena entre clanes no se pierde nada.`);
+      return;
+    }
     if (pvp.clan) {
       emitirPvp({ t: 'fin', a: pvp.rival.id, mochila: {} });
       reportarDueloClan('perdi');
@@ -5156,6 +5172,12 @@
   function ganarDuelo(mochila) {
     if (!pvp || pvp.terminado) return;
     pvp.terminado = true;
+    if (pvp.amistoso) {
+      ganarXP(40); contar('pvp_victoria'); contar('duelo_clan'); guardar(true); sfx('victoria');
+      if (escena) escena.celebrar();
+      mostrarFinPvp('🏆 ¡Ganaste el duelo entre clanes!', `Venciste a ${pvp.rival.nombre} (${esc(nombreClan(pvp.rival.g))}). ¡Un triunfo para tu clan! +40 de experiencia.`);
+      return;
+    }
     if (pvp.clan) {
       ganarXP(60); contar('duelo_clan'); guardar(true); sfx('victoria');
       if (escena) escena.celebrar();
