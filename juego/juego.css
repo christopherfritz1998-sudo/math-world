@@ -1903,3 +1903,10 @@ body.movil .hud-estrecho { padding-left: 6px; padding-right: 4px; }
 body.movil .hud-estrecho .hm-cab { gap: 4px; font-size: 9px; letter-spacing: .02em; }
 body.movil .hud-estrecho .hm-plegar { padding: 2px 6px; font-size: 10px; }
 body.movil .hud-estrecho li { font-size: 10px; }
+/* ---------- Invasión semanal: cuadro informativo del titán ---------- */
+.titan-info .titan-vida { margin: 4px 0 10px; }
+.titan-info .titan-vida .fila { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px; }
+.titan-info .titan-barra { height: 14px; border-radius: 8px; }
+.titan-info .titan-barra i { background: linear-gradient(90deg, #ff5a5a, #ff9a6a); }
+.titan-info .titan-pasos { margin: 6px 0 10px; padding-left: 22px; display: grid; gap: 6px; font-size: 15px; line-height: 1.35; }
+.titan-info .titan-premio { padding: 8px 12px; border-radius: 12px; border: 2px solid #ffd27a; background: rgba(255, 210, 122, .1); margin-bottom: 10px; }

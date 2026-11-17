@@ -5127,7 +5127,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-16g';
+  const VERSION_JUEGO = '2026-11-17';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -6249,8 +6249,36 @@
     if (!I || !sc || sc.zona !== 'base' || !sc.textures.exists(`${I.tex}_hoja`)) return;
     const x = 37 * TILE, y = 12 * TILE;
     sc.titan = sc.add.sprite(x, y, `${I.tex}_hoja`, DIRS.left * 9).setOrigin(0.5, 0.92).setScale(4.4).setDepth(y).setTint(I.caido ? 0x555555 : I.color).setAlpha(I.caido ? 0.5 : 1);
+    // al acercarse y apretar E (o Acción) se abre la explicación de cómo derrotarlo
+    sc.objetos = (sc.objetos || []).filter((o) => o.tipo !== 'titan');
+    sc.objetos.push({ tipo: 'titan', x, y: y - 8, activo: true });
     if (!I.caido) sc.tweens.add({ targets: sc.titan, scaleY: 4.55, duration: 1300, yoyo: true, repeat: -1, ease: 'Sine.inOut' });
     sc.titanTag = sc.add.text(x, y - 300, `${I.caido ? '☠️' : '⚔️'} Invasión: ${I.nombre}\n${I.caido ? '¡Derrotado por el curso!' : `Vida: ${I.vida - I.hecho} de ${I.vida} · cada acierto del curso lo hiere`}`, { fontFamily: 'Fredoka, Nunito, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#ffd27a', stroke: '#12201a', strokeThickness: 5, align: 'center' }).setOrigin(0.5).setResolution(3).setDepth(99980);
+  }
+  function abrirTitan() {
+    const I = invasion();
+    if (!I) return toast('La invasión semanal es para los cursos: aparece cuando juegas con tu cuenta del curso.', 'alerta');
+    const queda = Math.max(0, I.vida - I.hecho), pct = Math.round((queda / I.vida) * 100), tope = 400;
+    const cobrado = (S.invasionesCobradas || []).includes(I.semana);
+    const cuerpo = I.caido
+      ? `<div class="mensaje bien" role="status">☠️ <b>¡Tu curso ya lo derrotó esta semana!</b> ${I.mio ? (cobrado ? 'Ya recibiste tu cofre épico.' : 'Tu cofre épico llegará en unos segundos.') : 'Esta vez no aportaste: la próxima semana responde al menos una pregunta bien para ganar el premio.'}</div>
+         <p class="nota">El lunes llega un titán nuevo con más vida si el curso es más grande.</p>`
+      : `<h3>¿Cómo se derrota?</h3>
+         <ol class="titan-pasos">
+           <li><b>No se lucha cuerpo a cuerpo.</b> Es tan grande que lo vence todo el curso junto.</li>
+           <li><b>Cada respuesta correcta le quita 1 de vida</b>: al recolectar, fabricar, combatir, repasar y en los desafíos. ¡Casi cualquier pregunta del juego cuenta!</li>
+           <li>Cuentan los aciertos de <b>todos tus compañeros del curso</b>, estén donde estén.</li>
+           <li>Las respuestas equivocadas no lo curan, pero tampoco lo hieren: piensa antes de responder.</li>
+         </ol>
+         <div class="titan-premio">🎁 <b>Premio:</b> cuando caiga, <b>todos los que aportaron al menos un acierto</b> esta semana reciben un <b>cofre épico</b> y <b>250 de experiencia</b>.</div>`;
+    ui.abrir(`<div class="modal-cab"><div><span class="etq">Invasión semanal · todo el curso</span><h2 id="modal-titulo">${I.caido ? '☠️' : '⚔️'} ${esc(I.nombre)}</h2></div><button type="button" class="btn" id="ti-cerrar">Cerrar</button></div>
+      <div class="titan-vida"><div class="fila"><span>Vida del titán</span><b>${queda} de ${I.vida}</b></div><div class="barra titan-barra"><i style="width:${pct}%"></i></div></div>
+      ${cuerpo}
+      <div class="pildoras"><span class="pildora">⚔️ Tus golpes esta semana: <b>${I.mio}</b>${I.mio >= tope ? ' (máximo)' : ''}</span><span class="pildora">👥 Golpes del curso: <b>${I.hecho}</b></span></div>
+      <p class="nota">La vida se actualiza cada unos segundos. Cada estudiante aporta como máximo ${tope} golpes por semana, para que sea un trabajo de todo el curso.</p>
+      <div class="acciones"><span></span><button type="button" class="btn pri" id="ti-ok" data-foco>${I.caido ? 'Entendido' : '¡A responder!'}</button></div>`, 'titan-info');
+    $('ti-cerrar').addEventListener('click', () => ui.cerrar());
+    $('ti-ok').addEventListener('click', () => ui.cerrar());
   }
   function revisarInvasion() {
     const I = invasion(); if (!S || !I || !I.caido || !I.mio || esDocente()) return;
@@ -11819,7 +11847,7 @@
       for (const o of this.objetos) {
         if (!o.activo) continue;
         const d = Phaser.Math.Distance.Between(px, py, o.x, o.y);
-        const lim = o.tipo === 'trotamundos' ? 150 : o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' || o.tipo === 'dios' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
+        const lim = o.tipo === 'trotamundos' ? 150 : o.tipo === 'titan' ? 120 : o.tipo === 'arena' ? 110 : o.tipo === 'comun' ? 70 : o.tipo === 'jefe' || o.tipo === 'santuario' || o.tipo === 'coloso' || o.tipo === 'dragon' || o.tipo === 'faraon' || o.tipo === 'dios' ? 80 : ['bolas', 'movedizo', 'escalar', 'rapel'].includes(o.tipo) ? 56 : o.tipo === 'esfinge' ? 60 : ['fogata', 'portal', 'cofre_base', 'comercio', 'letrero_clan', 'ladron', 'tesoro', 'runa', 'mimico', 'casa', 'puerta', 'prisma', 'muelle', 'obra', 'sitio', 'carrera', 'altar'].includes(o.tipo) || o.carpa ? 50 : o.piso ? 44 : 36;
         const pena = o.piso ? 30 : 0;
         if (d < lim && d - lim + pena < puntaje) { mejor = o; puntaje = d - lim + pena; }
       }
@@ -11854,6 +11882,7 @@
         case 'cofre_base': return cofreComunitario() ? 'Ver el cofre del grupo' : 'Ver tu cofre';
         case 'comercio': return 'Cofre de comercio: intercambiar con tu curso';
         case 'arena': return 'Entrar a la arena PvP (duelo 1 contra 1)';
+        case 'titan': { const I = invasion(); return I && I.caido ? 'Titán derrotado: ver la invasión' : 'Titán invasor: ¿cómo se derrota?'; }
         case 'ladron': return '¡Atrapar al ladrón!';
         case 'tesoro': return 'Cavar el tesoro (responde 3 preguntas)';
         case 'portal': return 'Usar el portal';
@@ -11903,6 +11932,7 @@
       if (o.tipo === 'fogata') { if (S.vida < vidaMax()) { S.vida = vidaMax(); pintarHUD(); toast('Descansaste junto al fuego: recuperaste tu vida.'); } return abrirFabricar(); }
       if (o.tipo === 'cofre_base') return abrirCofre();
       if (o.tipo === 'comercio') return abrirComercio();
+      if (o.tipo === 'titan') return abrirTitan();
       if (o.tipo === 'letrero_clan') return abrirClan();
       if (o.tipo === 'arena') return abrirArena();
       if (o.tipo === 'ladron') return desActivo('ladron') && abrirLadron(vivo.st);
