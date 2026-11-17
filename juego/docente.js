@@ -1132,6 +1132,8 @@
     const partes = [];
     if (prob) partes.push(`<b>${prob}</b> ${prob === 1 ? 'problema reportado' : 'problemas reportados'}`);
     if (ideas) partes.push(`<b>${ideas}</b> ${ideas === 1 ? 'idea nueva' : 'ideas nuevas'}`);
+    const marc = reportes.filter((r) => r.marcado && !r.leido).length;
+    if (marc) partes.push(`<b style="color:#b23a1d">🚩 ${marc} para revisar</b>`);
     av.innerHTML = `<span><span class="ico">🔔</span>Tienes ${partes.join(' y ')} de tus estudiantes sin leer.</span><span style="display:flex;gap:8px"><button type="button" class="btn pri" id="av-ver">Abrir buzón</button><button type="button" class="btn" id="av-ocultar">Más tarde</button></span>`;
     if (!avisoMostrado || !av.dataset.oculto) av.hidden = false;
     avisoMostrado = true;
@@ -1144,8 +1146,10 @@
     $('buzon-tabs').innerHTML = [['problema', '⚠️ Problemas'], ['idea', '💡 Ideas'], ['error', '🐞 Errores automáticos']].map(([t, nom]) => `<button type="button" class="tab" data-bt="${t}" aria-selected="${buzonTab === t}">${nom}${n(t) ? ` <span class="etq-r nuevo">${n(t)} sin leer</span>` : ''}</button>`).join('')
       + `<select id="buzon-curso" aria-label="Filtrar por curso" style="height:44px;border-radius:10px;border:1px solid #c9c0ae;font:inherit;font-weight:700;padding:0 8px"><option value="">Todos los cursos</option>${CURSOS.map((c) => `<option value="${c.id}" ${buzonCurso === c.id ? 'selected' : ''}>${c.nombre}</option>`).join('')}</select>`
       + '<span style="flex:1"></span><button type="button" class="btn mini" id="buzon-todos">Marcar todo como leído</button>';
-    const lista = reportes.filter((r) => r.tipo === buzonTab && (!buzonCurso || r.curso === buzonCurso));
-    $('buzon-lista').innerHTML = lista.length ? lista.map((r) => `<div class="rep ${r.leido ? '' : 'nuevo'}">
+    // los marcados para revisar (insultos o nombres de compañeros) van primero
+    const lista = reportes.filter((r) => r.tipo === buzonTab && (!buzonCurso || r.curso === buzonCurso)).sort((a, b) => (b.marcado && !b.leido ? 1 : 0) - (a.marcado && !a.leido ? 1 : 0));
+    $('buzon-lista').innerHTML = lista.length ? lista.map((r) => `<div class="rep ${r.leido ? '' : 'nuevo'}"${r.marcado ? ' style="border:2px solid #e76f51;background:#fff4f1"' : ''}>
+        ${r.marcado ? `<div style="color:#b23a1d;font-weight:800;font-size:14px">🚩 Revisar: ${esc(r.motivo_marca || 'posible agresión')}</div>` : ''}
         <div class="cab-r"><span><b style="color:var(--text)">${esc(r.nombre)}</b> · ${esc((CURSOS.find((c) => c.id === r.curso) || {}).nombre || r.curso)}${r.zona ? ` · ${esc(r.zona)}` : ''}</span><span>${esc(fecha(r.creado))}</span></div>
         ${r.tipo === 'problema' && r.categoria ? `<span><span class="etq-r">${esc(r.categoria)}</span></span>` : ''}
         <p>${esc(r.texto)}</p>

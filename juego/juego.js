@@ -4442,6 +4442,7 @@
       <div class="rp-cats" role="radiogroup" aria-label="Tipo de problema">${CATS_PROBLEMA.map((c) => `<button type="button" class="pildora-btn" data-cat="${esc(c)}" role="radio" aria-checked="false">${esc(c)}</button>`).join('')}</div>
       <textarea id="rp-texto" class="rp-texto" maxlength="500" rows="4" placeholder="Ej: al responder la pregunta del puente, el juego se quedó pegado."></textarea>
       <div class="rp-pie"><small id="rp-cuenta">0/500</small><small>Zona: ${esc(escena ? nombreZona(escena.zona) : 'Tu base')}</small></div>
+      <p class="nota">🔒 El buzón lo lee tu profesor, con tu nombre. Escribe con respeto: los mensajes con insultos o que se burlan de un compañero le llegan destacados.</p>
       <div class="mensaje oculto" id="rp-msg" role="status"></div>
       <div class="acciones"><span></span><button type="button" class="btn pri" id="rp-enviar">Enviar al profesor</button></div>`, 'reporte-modal');
     $('rp-cerrar').addEventListener('click', () => ui.cerrar());
@@ -4460,6 +4461,7 @@
         <div class="nv-idea"><h3>¿Tienes una idea?</h3><p class="nota">Cuéntale a tu profesor qué te gustaría ver en el juego: un minijuego, un objeto, un mundo…</p>
           <textarea id="nv-texto" class="rp-texto" maxlength="500" rows="5" placeholder="Me gustaría que…"></textarea>
           <div class="rp-pie"><small id="nv-cuenta">0/500</small></div>
+          <p class="nota">🔒 El buzón lo lee tu profesor, con tu nombre.</p>
           <div class="mensaje oculto" id="nv-msg" role="status"></div>
           <button type="button" class="btn pri" id="nv-enviar">Enviar idea</button></div>
       </div>`, 'novedades-modal');
