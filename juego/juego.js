@@ -7152,6 +7152,15 @@
     const conReloj = Boolean(enemigo.horda), LIMITE_HORDA = 20000;
     let t0 = performance.now(), reloj = 0; const cid = String(Math.random());
     const fin = unaVez((r) => { clearInterval(reloj); alTerminar(r); });
+    // La vida del enemigo crece con el arma equipada: cada combate dura unas 3 o 4 preguntas
+    // (antes, con una buena espada, todo caía en una). En la horda no, porque ya tiene reloj y muchos enemigos.
+    if (!enemigo.escalado && !conReloj) {
+      enemigo.escalado = true;
+      const base = enemigo.vidaMax || E.vida, golpes = E.vida <= 3 ? 3 : 4, nueva = Math.max(base, golpes * danio());
+      enemigo.vida = nueva - (base - enemigo.vida); enemigo.vidaMax = nueva;
+    }
+    // Racha del combate: 3 aciertos seguidos dan un golpe crítico (doble); un error la rompe
+    let rachaC = 0;
 
     const pintar = () => {
       const vidaE = Math.max(0, enemigo.vida);
@@ -7183,7 +7192,7 @@
             <div><span class="etq" style="color: var(--coral)">Combate · ${esc(d.titulo)}</span><h2 id="modal-titulo">${esc(E.nombre)}</h2>
               <div class="barra enemigo" role="img" aria-label="Vida del enemigo: ${vidaE} de ${enemigo.vidaMax}"><i style="width: ${(vidaE / enemigo.vidaMax) * 100}%"></i></div></div>
           </div>
-          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}</span></div>
+          <div class="tu-vida"><span class="etq">Tu vida</span><div class="corazones">${corazones(S.vida, vidaMax())}</div><span class="nota">Tu golpe quita ${danio()}${conReloj ? '' : ` · 🔥 Racha ${rachaC} de 3`}</span></div>
         </div>
         ${cuerpo}`, 'combate');
       document.querySelectorAll('.alt').forEach((b) => b.addEventListener('click', () => { elegida = Number(b.dataset.i); pintar(); }));
@@ -7206,12 +7215,15 @@
       const ok = elegida === d.correcta;
       registrar(d.tema, ok);
       if (ok) {
-        enemigo.vida -= danio(); sfx('golpe');
+        rachaC += 1;
+        const critico = !conReloj && rachaC >= 3, golpe = danio() * (critico ? 2 : 1);
+        if (critico) rachaC = 0;
+        enemigo.vida -= golpe; sfx('golpe');
         ganarXP(4 + 2 * dif);
-        escena.golpeEnemigo(enemigo, danio());
-        ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
+        escena.golpeEnemigo(enemigo, golpe);
+        ultimo = `<div class="mensaje bien" role="status">${critico ? `💥 ¡Golpe crítico! (3 aciertos seguidos: −${golpe})` : '¡Golpe!'} ${mate(d.explicacion)}</div>`;
         if (enemigo.vida <= 0) { fase = 'victoria'; setTimeout(() => sfx('victoria'), 150); }
-      } else if (escudoActivo()) {
+      } else if ((rachaC = 0, escudoActivo())) {
         vivo.st.bloqueos = (vivo.st.bloqueos || 0) + 1;
         ultimo = `<div class="mensaje pista" role="status">¡Tu escudo de cristal bloqueó el golpe! La respuesta era ${mate(d.opciones[d.correcta])}. ${mate(d.explicacion)}</div>`;
       } else {
