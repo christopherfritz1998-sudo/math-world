@@ -712,5 +712,80 @@
     },
   ];
 
+  // =====================================================================
+  // Unidades 3 y 4 con figura (C4): la variante agrega d.figura, un SVG con sus mismos números (juego/figuras.js)
+  // =====================================================================
+  const conFigura = (d, f) => (d && P.fig ? { ...d, figura: f() } : d);
+  const TRIOS_F = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [12, 16, 20], [7, 24, 25], [15, 20, 25]];
+  N8.u3.pitagoras.push(() => {
+    const [a, b, c] = pick(TRIOS_F);
+    return conFigura(D('¿Cuánto mide la hipotenusa del triángulo rectángulo de la figura?', `${c} cm`, [`${a + b} cm`, `${a * a + b * b} cm`, `${Math.abs(b - a) + 1} cm`], (k) => `${c + k} cm`,
+      'Teorema de Pitágoras: c² = a² + b².', `c² = ${a}² + ${b}² = ${a * a} + ${b * b} = ${c * c} → c = ${c} cm.`),
+    () => P.fig.rectangulo({ a, b, c, oculto: 'c' }));
+  });
+  N8.u3.pitagorasap.push(() => {
+    const [a, b, c] = pick(TRIOS_F), falta = pick(['a', 'b']), x = falta === 'a' ? a : b, otro = falta === 'a' ? b : a;
+    return conFigura(D('En el triángulo rectángulo de la figura, ¿cuánto mide el cateto marcado con «?»?', `${x} cm`, [`${c + otro} cm`, `${c - otro} cm`, `${c * c - otro * otro} cm`], (k) => `${x + k} cm`,
+      'Despeja el cateto: a² = c² − b².', `${c}² − ${otro}² = ${c * c} − ${otro * otro} = ${x * x} → el cateto mide ${x} cm.`),
+    () => P.fig.rectangulo({ a, b, c, oculto: falta }));
+  });
+  N8.u3.isometrias.push(() => {
+    const ax = rnd(-3, 1), ay = rnd(-3, 1), vx = nz(-2, 4), vy = nz(-2, 4);   // A y A' quedan dentro del plano (−5 a 5)
+    return conFigura(D(`En el plano, el punto A se trasladó hasta A'. ¿Cuál es el vector de traslación?`, pto(vx, vy), [pto(-vx, -vy), pto(vy, vx), pto(ax + vx, ay + vy)], (k) => pto(vx + k, vy),
+      'El vector de traslación es (x de A\' − x de A, y de A\' − y de A).', `A = ${pto(ax, ay)}, A' = ${pto(ax + vx, ay + vy)}: vector ${pto(vx, vy)}.`),
+    () => P.fig.plano({ puntos: [{ x: ax, y: ay, nombre: 'A', color: '#1f6fd1' }, { x: ax + vx, y: ay + vy, nombre: "A'" }], vectores: [{ x1: ax, y1: ay, x2: ax + vx, y2: ay + vy }] }));
+  });
+  N8.u3.transformaciones.push(() => {
+    const x = nz(-5, 5), y = nz(-5, 5), eje = pick(['x', 'y']), r = eje === 'x' ? [x, -y] : [-x, y];
+    return conFigura(D(`¿Cuáles son las coordenadas del punto P' que se obtiene al reflejar el punto P de la figura respecto del eje ${eje}?`, pto(...r), [pto(x, y), pto(-x, -y), eje === 'x' ? pto(-x, y) : pto(x, -y)], (k) => pto(r[0] + k, r[1]),
+      `Al reflejar respecto del eje ${eje}, cambia de signo la coordenada ${eje === 'x' ? 'y' : 'x'}.`, `P = ${pto(x, y)} → P' = ${pto(...r)}.`),
+    () => P.fig.plano({ puntos: [{ x, y, nombre: 'P' }] }));
+  });
+  N8.u3.volumen.push(() => {
+    const l = rnd(2, 10), a = rnd(2, 6), h = rnd(2, 8), V = l * a * h;
+    return conFigura(D('¿Cuál es el volumen del prisma rectangular de la figura?', `${V} cm³`, [`${2 * (l * a + l * h + a * h)} cm³`, `${l + a + h} cm³`, `${l * a} cm³`], (k) => `${V + k} cm³`,
+      'Volumen del prisma = largo · ancho · alto.', `${l} · ${a} · ${h} = ${V} cm³.`),
+    () => P.fig.prisma({ l, a, h }));
+  });
+  N8.u3.volumen.push(() => {
+    const r = rnd(1, 5), h = rnd(2, 10), V = redondear(3.14 * r * r * h, 2);
+    return conFigura(D('¿Cuál es el volumen del cilindro de la figura? (π ≈ 3,14)', `${num(V)} cm³`, [`${num(redondear(2 * 3.14 * r * h, 2))} cm³`, `${num(redondear(3.14 * r * h, 2))} cm³`, `${num(redondear(3.14 * 4 * r * r * h, 2))} cm³`], (k) => `${num(redondear(V + 3.14 * k, 2))} cm³`,
+      'Volumen del cilindro = π · r² · h.', `3,14 · ${r}² · ${h} = ${num(V)} cm³.`),
+    () => P.fig.cilindro({ r, h }));
+  });
+  // ---------- Unidad 4: gráficos de barras y diagramas de cajón ----------
+  const partir = (tot, n) => { let v; do { const c = Array.from({ length: n - 1 }, () => rnd(1, tot - 1)).sort((x, y) => x - y); v = [...c, tot].map((x, i, A) => x - (i ? A[i - 1] : 0)); } while (v.some((x) => x < 1) || new Set(v).size < n); return v; };
+  N8.u4.graficos8.push(() => {
+    const cats = shuffle(['Perro', 'Gato', 'Pez', 'Ave', 'Conejo']).slice(0, 4), vals = partir(20, 4), D0 = cats.map((c, i) => [c, vals[i]]), [ca, va] = pick(D0), pc = va * 5;
+    return conFigura(D(`El gráfico muestra la mascota favorita de 20 estudiantes. ¿Qué porcentaje eligió ${ca}?`, `${pc} %`, [`${va} %`, `${100 - pc} %`, `${num(pc * 2 > 100 ? pc / 2 : pc * 2)} %`], (k) => `${pc + 5 * k} %`,
+      'Porcentaje = frecuencia : total · 100.', `${va} : 20 · 100 = ${pc} %.`),
+    () => P.fig.barras({ datos: D0, eje: 'Mascota favorita (20 estudiantes)' }));
+  });
+  N8.u4.tendencia8.push(() => {
+    const m = rnd(4, 9), vals = shuffle(pick([[-3, -1, 1, 3], [-2, -1, 0, 1, 2], [-2, -2, 1, 3], [-4, 1, 1, 2]])).map((d) => m + d), D0 = vals.map((v, i) => [`D${i + 1}`, v]), s = vals.reduce((a, b) => a + b, 0);
+    return conFigura(D(`El gráfico muestra los kilómetros que corrió una atleta durante ${vals.length} días. ¿Cuál es la media de kilómetros por día?`, `${m} km`, [`${Math.max(...vals)} km`, `${s} km`, `${m + 1} km`], (k) => `${num(m + k / 2)} km`,
+      'Media = suma de los datos : cantidad de datos.', `${s} : ${vals.length} = ${m} km.`),
+    () => P.fig.barras({ datos: D0, eje: 'Kilómetros por día' }));
+  });
+  const cincoNum = () => { const mn = rnd(2, 20), q1 = mn + rnd(3, 8), me = q1 + rnd(3, 8), q3 = me + rnd(3, 8), mx = q3 + rnd(3, 10); return [mn, q1, me, q3, mx]; };
+  N8.u4.cajon.push(() => {
+    const c = cincoNum();
+    return conFigura(D('El diagrama de cajón muestra las notas de un curso. ¿Cuál es la mediana?', String(c[2]), [String(c[1]), String(c[3]), String(Math.round((c[0] + c[4]) / 2) === c[2] ? c[2] + 1 : Math.round((c[0] + c[4]) / 2))], (k) => String(c[2] + k),
+      'En el diagrama de cajón, la línea dentro de la caja es la mediana.', `La línea de la caja está en ${c[2]}.`),
+    () => P.fig.cajon({ cinco: c }));
+  });
+  N8.u4.cajon.push(() => {
+    const c = cincoNum(), ri = c[3] - c[1];
+    return conFigura(D('Según el diagrama de cajón, ¿cuál es el rango intercuartil (Q₃ − Q₁)?', String(ri), [String(c[4] - c[0]), String(c[3] - c[2]), String(c[2] - c[1] === ri ? ri + 1 : c[2] - c[1])], (k) => String(ri + k),
+      'El rango intercuartil es el largo de la caja: Q₃ − Q₁.', `Q₃ − Q₁ = ${c[3]} − ${c[1]} = ${ri}.`),
+    () => P.fig.cajon({ cinco: c }));
+  });
+  N8.u4.posicion.push(() => {
+    const c = cincoNum(), cual = pick([1, 3]);
+    return conFigura(D(`Según el diagrama de cajón, ¿cuál es el ${cual === 1 ? 'primer cuartil (Q₁)' : 'tercer cuartil (Q₃)'}?`, String(c[cual]), [String(c[2]), String(c[cual === 1 ? 3 : 1]), String(c[cual === 1 ? 0 : 4])], (k) => String(c[cual] + k),
+      'Q₁ es el borde izquierdo de la caja y Q₃ el borde derecho.', `${cual === 1 ? 'Q₁' : 'Q₃'} = ${c[cual]}.`),
+    () => P.fig.cajon({ cinco: c }));
+  });
+
   P.N8 = N8;
 })(typeof window !== 'undefined' ? window : globalThis);
