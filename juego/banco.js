@@ -114,6 +114,14 @@
     };
   }
 
+  // Algunas variantes descartan números al azar que no sirven (devuelven null) o, rara vez, generan opciones repetidas:
+  // se reintenta dentro de la misma variante, así la pregunta sigue siendo del mismo tema y tipo (antes se perdía la variante).
+  function reintentar(fn) {
+    const f = (dif) => { for (let i = 0; i < 15; i++) { const d = fn(dif); if (valido(d)) return d; } return null; };
+    f.base = fn;
+    return f;
+  }
+
   const BANCO = {};
   for (const [curso, unidades] of Object.entries(PLAN)) {
     BANCO[curso] = {};
@@ -126,9 +134,9 @@
           if (!t) continue;
           const lista = t.variantes || [t.gen.bind(t)];
           const idx = f.idx === 'todos' ? lista.map((_, i) => i) : f.idx;
-          for (const i of idx) if (lista[i]) variantes.push(deViejo(lista[i], f.filtro));
+          for (const i of idx) if (lista[i]) variantes.push(reintentar(deViejo(lista[i], f.filtro)));
         }
-        for (const fn of nuevas || []) variantes.push(fn);
+        for (const fn of nuevas || []) variantes.push(reintentar(fn));
         const tema = {
           titulo, variantes,
           // compatibilidad: una variante al azar

@@ -216,7 +216,7 @@
     (dif, T, k) => {
       const a = rnd(2, 15), A = a * a;
       return desafio(k, T, `Un cuadrado de piedra tiene área ${A} m². ¿Cuál es su perímetro?`,
-        `${4 * a} m`, [`${a} m`, `${A / 2} m`, `${2 * a} m`], (j) => `${4 * a + 4 * j} m`,
+        `${4 * a} m`, [`${a} m`, `${num(A / 2)} m`, `${2 * a} m`], (j) => `${4 * a + 4 * j} m`,
         'Primero calcula el lado con la raíz cuadrada del área; luego suma los 4 lados.', `Lado = √${A} = ${a} m. Perímetro = 4 · ${a} = ${4 * a} m.`);
     },
   ], 3);

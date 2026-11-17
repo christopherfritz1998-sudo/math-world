@@ -171,7 +171,7 @@
     () => {
       const L = rnd(2, 6), a = rnd(1, 3), b = pick([4, 5, 8]); if (a >= b) return null;
       const u = frac(L * a, b), resto = frac(L * b - L * a, b);
-      return D(`Tienes ${L} litros de jugo y usas ${a}/${b} de ellos en una receta. ¿Cuántos litros te quedan?`, `${fracTxt(resto)} L`, [`${fracTxt(u)} L`, `${fracTxt(frac(L - a, b))} L`, `${num(L - a)} L`], null,
+      return D(`Tienes ${L} litros de jugo y usas ${a}/${b} de ellos en una receta. ¿Cuántos litros te quedan?`, `${fracTxt(resto)} L`, [`${fracTxt(u)} L`, `${fracTxt(frac(L - a, b))} L`, `${num(L - a)} L`], (k) => `${fracTxt(frac(L * b - L * a + k, b))} L`,
         `Calcula ${a}/${b} de ${L} y réstalo del total.`, `${a}/${b} · ${L} = ${fracTxt(u)}; ${L} − ${fracTxt(u)} = ${fracTxt(resto)} L.`);
     },
   ];
@@ -185,7 +185,7 @@
     () => {
       const b = pick([2, 3, 4, 5, 10]), e = rnd(1, 3), r = 1 / b ** e, f = frac(1, b ** e);
       void r;
-      return D(`Calcula: ${b}^−${e}`, fracTxt(f), [num(-(b ** e)), num(-b * e), String(b ** e)], null,
+      return D(`Calcula: ${b}^−${e}`, fracTxt(f), [num(-(b ** e)), num(-b * e), String(b ** e)], (k) => fracTxt(frac(1, b * e + k)),
         'Un exponente negativo invierte la base: a^−n = 1 / a^n.', `${b}^−${e} = 1/${b}^${e} = ${fracTxt(f)}.`);
     },
     () => {
@@ -379,7 +379,7 @@
       const ys = xs.map(() => rnd(-9, 9)), pares = xs.map((x, i) => pto(x, ys[i])).join(', ');
       const dom = `{${[...xs].sort((p, q) => p - q).map(num).join(', ')}}`, rec = `{${[...new Set(ys)].sort((p, q) => p - q).map(num).join(', ')}}`;
       if (dom === rec) return null;
-      return D(`La función f está formada por los pares: ${pares}. ¿Cuál es su dominio?`, dom, [rec, `{${[...xs, ...ys].sort((p, q) => p - q).slice(0, 4).map(num).join(', ')}}`, `{${xs.map((x) => num(-x)).sort().join(', ')}}`].filter((x) => x !== dom), null,
+      return D(`La función f está formada por los pares: ${pares}. ¿Cuál es su dominio?`, dom, [rec, `{${[...xs, ...ys].sort((p, q) => p - q).slice(0, 4).map(num).join(', ')}}`, `{${xs.map((x) => num(-x)).sort().join(', ')}}`].filter((x) => x !== dom), (k) => `{${[...xs].sort((p, q) => p - q).map((x, i) => num(i === k % 4 ? x + Math.ceil(k / 4) : x)).join(', ')}}`,
         'El dominio es el conjunto de las primeras componentes (los valores de x).', `Dominio = ${dom}.`);
     },
     () => {
@@ -549,7 +549,7 @@
   N8.u3.volumen = [
     () => {
       const r = rnd(1, 6), h = rnd(2, 15), V = redondear(3.14 * r * r * h, 2);
-      return D(`Un estanque cilíndrico tiene radio ${r} m y altura ${h} m. ¿Cuál es su volumen? (π ≈ 3,14)`, `${num(V)} m³`, [`${num(redondear(2 * 3.14 * r * h, 2))} m³`, `${num(redondear(3.14 * r * h, 2))} m³`, `${num(redondear(3.14 * 2 * r * h * r, 2))} m³`].filter((x) => x !== `${num(V)} m³`), null,
+      return D(`Un estanque cilíndrico tiene radio ${r} m y altura ${h} m. ¿Cuál es su volumen? (π ≈ 3,14)`, `${num(V)} m³`, [`${num(redondear(2 * 3.14 * r * h, 2))} m³`, `${num(redondear(3.14 * r * h, 2))} m³`, `${num(redondear(3.14 * 2 * r * h * r, 2))} m³`].filter((x) => x !== `${num(V)} m³`), (k) => `${num(redondear(V + k * 3.14, 2))} m³`,
         'Volumen del cilindro = π · r² · h.', `3,14 · ${r}² · ${h} = ${num(V)} m³.`);
     },
     () => {
@@ -595,7 +595,7 @@
     },
     () => {
       const T = intervalos();
-      return D(`En una tabla los intervalos son ${T.ints.map(([a, b]) => `[${a}, ${b}[`).join(', ')}. ¿Cuál es la amplitud de cada intervalo?`, String(T.amp), [String(T.amp * 4), String(T.ini + T.amp), String(T.amp / 2)], cerca(T.amp),
+      return D(`En una tabla los intervalos son ${T.ints.map(([a, b]) => `[${a}, ${b}[`).join(', ')}. ¿Cuál es la amplitud de cada intervalo?`, num(T.amp), [num(T.amp * 4), num(T.ini + T.amp), num(T.amp / 2)], cerca(T.amp),
         'La amplitud es la diferencia entre el límite superior y el inferior.', `${T.ints[0][1]} − ${T.ints[0][0]} = ${T.amp}.`);
     },
     () => {

@@ -349,7 +349,7 @@
           const l = rnd(4, dif === 3 ? 25 : 15);
           return desafio('raiz', this.titulo,
             `Quieres construir un corral cuadrado de ${l * l} m² de área. ¿Cuánto debe medir cada lado?`,
-            l + ' m', [(l * l) / 4 + ' m', l * 2 + ' m', (l + 2) + ' m'], (k) => (l + k) + ' m',
+            l + ' m', [num((l * l) / 4) + ' m', l * 2 + ' m', (l + 2) + ' m'], (k) => (l + k) + ' m',
             'El área de un cuadrado es lado · lado. Busca la raíz cuadrada del área.',
             `√${l * l} = ${l}, porque ${l} · ${l} = ${l * l}. Cada lado mide ${l} m.`);
         }

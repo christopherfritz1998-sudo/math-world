@@ -185,13 +185,13 @@
       const a = rnd(1, 8), b = rnd(2, 9), c = rnd(1, 8), d = rnd(2, 9);
       if (a >= b && dif === 1) return null;
       const r = ftxt(a * c, b * d);
-      return D(`Calcula: ${a}/${b} · ${c}/${d}`, r, [ftxt(a * d, b * c), ftxt(a + c, b + d), ftxt(a * c, b + d)], null,
+      return D(`Calcula: ${a}/${b} · ${c}/${d}`, r, [ftxt(a * d, b * c), ftxt(a + c, b + d), ftxt(a * c, b + d)], (k) => ftxt(a * c + k, b * d),
         'Multiplica numerador por numerador y denominador por denominador; luego simplifica.', `${a}/${b} · ${c}/${d} = ${a * c}/${b * d}${r !== `${a * c}/${b * d}` ? ' = ' + r : ''}.`);
     },
     () => {
       const a = rnd(1, 8), b = rnd(2, 9), c = rnd(1, 8), d = rnd(2, 9);
       const r = ftxt(a * d, b * c);
-      return D(`Calcula: ${a}/${b} : ${c}/${d}`, r, [ftxt(a * c, b * d), ftxt(b * c, a * d), ftxt(a * d, b * d)], null,
+      return D(`Calcula: ${a}/${b} : ${c}/${d}`, r, [ftxt(a * c, b * d), ftxt(b * c, a * d), ftxt(a * d, b * d)], (k) => ftxt(a * d + k, b * c),
         'Dividir por una fracción es multiplicar por su inverso.', `${a}/${b} : ${c}/${d} = ${a}/${b} · ${d}/${c} = ${a * d}/${b * c}${r !== `${a * d}/${b * c}` ? ' = ' + r : ''}.`);
     },
     () => {
@@ -250,9 +250,9 @@
         'Busca el máximo común divisor (MCD) entre numerador y denominador.', `MCD(${n0 * k}, ${d0 * k}) = ${k}. Queda ${n0}/${d0}.`);
     },
     () => {
-      const tot = pick([12, 18, 20, 24, 30, 36, 40, 48]), parte = rnd(2, tot - 2), r = ftxt(parte, tot);
-      if (gcd(parte, tot) === 1) return null;
-      return D(`De ${tot} hongos recolectados, ${parte} son comestibles. ¿Qué fracción irreducible de los hongos es comestible?`, r, [`${parte}/${tot}`, ftxt(tot - parte, tot), ftxt(tot, parte)], null,
+      // la parte se arma como múltiplo de un divisor del total, así siempre se puede simplificar
+      const tot = pick([12, 18, 20, 24, 30, 36, 40, 48]), g = pick([2, 3, 4, 6].filter((x) => tot % x === 0)), parte = g * rnd(1, tot / g - 1), r = ftxt(parte, tot);
+      return D(`De ${tot} hongos recolectados, ${parte} son comestibles. ¿Qué fracción irreducible de los hongos es comestible?`, r, [`${parte}/${tot}`, ftxt(tot - parte, tot), ftxt(tot, parte)], (k) => ftxt(parte + k, tot),
         `Escribe ${parte}/${tot} y simplifica.`, `${parte}/${tot} = ${r} (dividiendo por ${gcd(parte, tot)}).`);
     },
   ];
@@ -267,7 +267,7 @@
     () => {
       const N = pick([20, 25, 40, 50, 80, 200, 400]), p = pick([10, 20, 25, 30, 40, 50, 75]), parte = (N * p) / 100;
       if (!Number.isInteger(parte)) return null;
-      return D(`¿Qué porcentaje de ${N} es ${parte}?`, p + ' %', [parte + ' %', (100 - p) + ' %', (p * 2 > 100 ? p / 2 : p * 2) + ' %'], (k) => (p + 5 * k) + ' %',
+      return D(`¿Qué porcentaje de ${N} es ${parte}?`, p + ' %', [parte + ' %', (100 - p) + ' %', (p * 2 > 100 ? num(p / 2) : p * 2) + ' %'], (k) => (p + 5 * k) + ' %',
         'Divide la parte por el total y multiplica por 100.', `${parte} : ${N} = ${num(parte / N)} → ${p} %.`);
     },
     () => {
@@ -362,8 +362,8 @@
     },
     () => {
       const t = terminoAzar(); if (Math.abs(t.c) === 1) t.c = 5;
-      const lit = termino(1, t.ls), otras = [termino(1, t.ls.map(([l, e]) => [l, e === 1 ? 2 : 1])), termino(t.c, t.ls), t.ls.map(([l]) => l).join(''), num(t.c)];
-      return C(`¿Cuál es el factor literal del término ${termino(t.c, t.ls)}?`, lit, otras.filter((o) => o !== lit),
+      const lit = termino(1, t.ls), otras = [termino(1, t.ls.map(([l, e]) => [l, e === 1 ? 2 : 1])), termino(t.c, t.ls), t.ls.map(([l]) => l).join(''), num(t.c), termino(1, t.ls.map(([l, e]) => [l, e + 1]))];
+      return C(`¿Cuál es el factor literal del término ${termino(t.c, t.ls)}?`, lit, [...new Set(otras)].filter((o) => o !== lit),
         'El factor literal son las letras con sus exponentes.', `El factor literal de ${termino(t.c, t.ls)} es ${lit}.`);
     },
     () => {
@@ -546,19 +546,21 @@
         `Plantea ${k}x − ${s} = ${r} y despeja.`, `${k}x = ${r + s} → x = ${n}.`);
     },
     () => {
-      const a = rnd(2, 6), b = rnd(1, 12), c = a * rnd(2, 10) + b + pick([0, 1, 2]), lim = (c - b) / a;
+      // se elige primero la solución entera (antes se probaban números al azar y se descartaba más de la mitad)
+      const a = rnd(2, 6), b = rnd(1, 12), lim = rnd(2, 10), c = a * lim + b;
       const sig = pick(['≤', '≥']);
-      const sol = Number.isInteger(lim) ? `x ${sig} ${num(lim)}` : `x ${sig} ${num(redondear(lim, 2))}`;
-      if (!Number.isInteger(lim)) return null;
-      return D(`Resuelve la inecuación: ${a}x + ${b} ${sig} ${c}`, sol, [`x ${sig === '≤' ? '≥' : '≤'} ${num(lim)}`, `x ${sig} ${num(c + b)}`, `x ${sig} ${num((c + b) / a)}`].filter((o) => o !== sol), null,
+      const sol = `x ${sig} ${num(lim)}`;
+      return D(`Resuelve la inecuación: ${a}x + ${b} ${sig} ${c}`, sol, [`x ${sig === '≤' ? '≥' : '≤'} ${num(lim)}`, `x ${sig} ${num(c + b)}`, `x ${sig} ${num(redondear((c + b) / a, 2))}`].filter((o) => o !== sol), (j) => `x ${sig} ${num(lim + j)}`,
         'Se despeja igual que una ecuación: resta y divide (por un número positivo no cambia el signo).', `${a}x ${sig} ${c - b} → x ${sig} ${num(lim)}.`);
     },
   ];
 
   N7.u2.razones = [
     () => {
-      const g = rnd(2, 6), a = rnd(1, 7), b = rnd(1, 7); if (gcd(a, b) !== 1 || a === b) return null;
-      return D(`En el oasis hay ${a * g} camellos y ${b * g} caballos. ¿Cuál es la razón entre camellos y caballos (simplificada)?`, `${a} : ${b}`, [`${b} : ${a}`, `${a * g} : ${(a + b) * g}`, `${a + 1} : ${b + 1}`], null,
+      // pares de números primos entre sí, en cualquier orden (antes se sorteaban y se descartaban)
+      const g = rnd(2, 6), par0 = pick([[1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [2, 3], [2, 5], [2, 7], [3, 4], [3, 5], [3, 7], [4, 5], [4, 7], [5, 6], [5, 7], [6, 7]]);
+      const [a, b] = rnd(0, 1) ? par0 : [par0[1], par0[0]];
+      return D(`En el oasis hay ${a * g} camellos y ${b * g} caballos. ¿Cuál es la razón entre camellos y caballos (simplificada)?`, `${a} : ${b}`, [`${b} : ${a}`, `${a * g} : ${(a + b) * g}`, `${a + 1} : ${b + 1}`], (j) => `${a} : ${b + j}`,
         'Escribe camellos : caballos y simplifica dividiendo por el mismo número.', `${a * g} : ${b * g} = ${a} : ${b} (dividiendo por ${g}).`);
     },
     () => {
@@ -573,7 +575,8 @@
         `Divide el total en ${a + b} partes iguales; el primero recibe ${a} de ellas.`, `${T} : ${a + b} = ${k}; ${a} · ${k} = ${a * k} monedas.`);
     },
     () => {
-      const a = rnd(1, 6), b = rnd(2, 9), k = rnd(2, 7); if (a === b || gcd(a, b) !== 1) return null;
+      // pares de números primos entre sí (antes se sorteaban y se descartaban)
+      const [a, b] = pick([[1, 2], [1, 3], [1, 4], [1, 5], [2, 3], [2, 5], [2, 7], [3, 4], [3, 5], [3, 7], [3, 8], [4, 5], [4, 7], [5, 6], [5, 7], [5, 8], [5, 9], [6, 7]]), k = rnd(2, 7);
       return D(`La razón entre el agua y la arena de una mezcla es ${a} : ${b}. Si usas ${a * k} litros de agua, ¿cuántos kilos de arena necesitas?`, `${b * k} kg`, [`${a * b} kg`, `${b + k} kg`, `${a * k + b} kg`], (j) => `${b * k + j} kg`,
         `Si el agua se multiplicó por ${k}, la arena también.`, `${a} : ${b} = ${a * k} : ${b * k}. Necesitas ${b * k} kg.`);
     },
@@ -640,7 +643,7 @@
   N7.u3.vectores = [
     () => {
       const ax = rnd(-7, 7), ay = rnd(-7, 7), vx = nz(-6, 6), vy = nz(-6, 6), bx = ax + vx, by = ay + vy;
-      return D(`Un vagón va del punto A${pto(ax, ay)} al punto B${pto(bx, by)}. ¿Qué vector describe su desplazamiento?`, pto(vx, vy), [pto(-vx, -vy), pto(ax + bx, ay + by), pto(vy, vx)], null,
+      return D(`Un vagón va del punto A${pto(ax, ay)} al punto B${pto(bx, by)}. ¿Qué vector describe su desplazamiento?`, pto(vx, vy), [pto(-vx, -vy), pto(ax + bx, ay + by), pto(vy, vx)], (k) => pto(vx + k, vy - k),
         'El vector desplazamiento es (x final − x inicial, y final − y inicial).', `(${num(bx)} − ${par(ax)}, ${num(by)} − ${par(ay)}) = ${pto(vx, vy)}.`);
     },
     () => {
@@ -660,7 +663,7 @@
     () => {
       const v1 = [nz(-5, 5), nz(-5, 5)], v2 = [nz(-5, 5), nz(-5, 5)];
       return D(`Un carro se mueve primero según el vector ${pto(...v1)} y luego según ${pto(...v2)}. ¿Qué único vector equivale a ambos movimientos?`, pto(v1[0] + v2[0], v1[1] + v2[1]),
-        [pto(v1[0] - v2[0], v1[1] - v2[1]), pto(v1[0] * v2[0], v1[1] * v2[1]), pto(v1[0] + v2[1], v1[1] + v2[0])], null,
+        [pto(v1[0] - v2[0], v1[1] - v2[1]), pto(v1[0] * v2[0], v1[1] * v2[1]), pto(v1[0] + v2[1], v1[1] + v2[0])], (k) => pto(v1[0] + v2[0] + k, v1[1] + v2[1] - k),
         'Los desplazamientos sucesivos se suman componente a componente.', `${pto(...v1)} + ${pto(...v2)} = ${pto(v1[0] + v2[0], v1[1] + v2[1])}.`);
     },
   ];
@@ -673,7 +676,7 @@
     },
     () => {
       const r = pick([2, 4, 6, 8, 10]), A = redondear((3.14 * r * r) / 2, 2);
-      return D(`Una ventana tiene forma de semicírculo de radio ${r} dm. ¿Cuál es su área? (π ≈ 3,14)`, `${num(A)} dm²`, [`${num(redondear(3.14 * r * r, 2))} dm²`, `${num(redondear(3.14 * r, 2))} dm²`, `${num(redondear(3.14 * r * r / 4, 2))} dm²`], null,
+      return D(`Una ventana tiene forma de semicírculo de radio ${r} dm. ¿Cuál es su área? (π ≈ 3,14)`, `${num(A)} dm²`, [`${num(redondear(3.14 * r * r, 2))} dm²`, `${num(redondear(3.14 * r, 2))} dm²`, `${num(redondear(3.14 * r * r / 4, 2))} dm²`], (k) => `${num(redondear(A + k * 3.14, 2))} dm²`,
         'El área del círculo es π · r²; un semicírculo es la mitad.', `3,14 · ${r}² : 2 = ${num(A)} dm².`);
     },
     () => {
@@ -881,7 +884,7 @@
       const tipo = pick(Object.keys(VARS)), v = pick(VARS[tipo]);
       const ej = { 'Cualitativa': 'rojo, azul, verde', 'Cuantitativa discreta': '0, 1, 2, 3', 'Cuantitativa continua': '1,52; 1,6; 1,735' }[tipo];
       return C(`Una encuesta pregunta por la variable "${v}". ¿Qué tipo de respuestas se esperan?`, { 'Cualitativa': 'Palabras o categorías (ej: rojo, azul, verde)', 'Cuantitativa discreta': 'Números enteros que se cuentan (ej: 0, 1, 2, 3)', 'Cuantitativa continua': 'Números que se miden y pueden tener decimales (ej: 1,52; 1,6)' }[tipo],
-        ['Palabras o categorías (ej: rojo, azul, verde)', 'Números enteros que se cuentan (ej: 0, 1, 2, 3)', 'Números que se miden y pueden tener decimales (ej: 1,52; 1,6)', 'Solo "sí" o "no", siempre'].filter((x) => !x.includes(ej)),
+        ['Palabras o categorías (ej: rojo, azul, verde)', 'Números enteros que se cuentan (ej: 0, 1, 2, 3)', 'Números que se miden y pueden tener decimales (ej: 1,52; 1,6)', 'Solo "sí" o "no", siempre'].filter((x) => !x.includes(ej.split(';').slice(0, 2).join(';'))),
         'Piensa cómo se respondería la pregunta.', `"${v}" es ${tipo.toLowerCase()}.`);
     },
   ];
