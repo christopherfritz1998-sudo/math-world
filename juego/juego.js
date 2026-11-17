@@ -602,12 +602,37 @@
       const ok = sesion.modo === 'docente'
         ? await Nube.docenteGuardar(sesion.token, S, zonaRed(), keepalive)
         : await Nube.guardar(sesion.token, S, zonaRed(), keepalive);
-      if (ok === false) { sesionVencida(); return; }
+      if (ok === null && sesion.modo === 'nube') return;   // error interno del servidor: no se guardó, se reintenta
+      if (ok === false) {
+        if (sesion.modo === 'nube' && await sesionVigente()) return guardadoRechazado();
+        sesionVencida(); return;
+      }
       sesion.ultimo = txt;
       sesion.avisoSinRed = false;
     } catch (e) {
       if (!sesion.avisoSinRed) { sesion.avisoSinRed = true; toast('Sin conexión: tu avance se guardará cuando vuelva internet.', 'alerta'); }
     }
+  }
+  // false del guardado puede ser sesión vencida o guardado rechazado por el servidor: el latido lo distingue
+  async function sesionVigente() {
+    try { const r = await Nube.latido(sesion.token, zonaRed()); return Boolean(r && r.ok); } catch (e) { return false; }
+  }
+  // El servidor no aceptó el avance (no es posible jugando): se vuelve al último progreso guardado allá
+  let recargando = false;
+  async function guardadoRechazado() {
+    if (recargando || !S) return;
+    recargando = true;
+    try {
+      const p = Nube.progreso ? await Nube.progreso(sesion.token) : null;
+      if (!p || !p.v) return;
+      const seccion = S.seccion, nombre = S.nombre;
+      S = normalizar(p, S.curso, nombre, S.pj);
+      S.seccion = seccion;
+      sesion.ultimo = JSON.stringify(S);
+      toast('Tu avance se recuperó desde el servidor (el último guardado no era válido).', 'alerta');
+      if (escena) escena.scene.restart({ zona: escena.zona === S.zona || !S.zona ? escena.zona : 'base', desde: 'recarga' });
+      pintarHUD();
+    } catch (e) { /* sin red: se reintenta en el próximo guardado */ } finally { recargando = false; }
   }
   function sesionVencida() {
     const docente = sesion.modo === 'docente';
