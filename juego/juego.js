@@ -1105,32 +1105,48 @@
     try {
       if (!ingreso.estado || ingreso.rut !== rut) {
         const est = await Nube.estado(rut, ingreso.nivel);
+        if (est && est.error === 'espera') return error('Hay muchos intentos de ingreso en este momento. Espera un minuto y vuelve a intentarlo.');
         if (!est || !est.existe) return error(`Tu RUT no está en las listas de ${ingreso.nivel}° básico. Revisa el curso elegido o habla con tu profesor.`);
-        if (est.abierto === false) return error(`El juego de ${est.curso[0]}°${est.curso[1]} está cerrado en este momento. Tu profesor lo abrirá en clases.`);
+        if (est.abierto === false) return error('El juego de tu curso está cerrado en este momento. Tu profesor lo abrirá en clases.');
         ingreso.estado = est; ingreso.rut = rut;
-        $('saludo').textContent = est.tiene_clave ? `Hola, ${est.nombre}. Escribe tu clave.` : `Hola, ${est.nombre}. Es tu primera vez: crea una clave de al menos 4 caracteres y elige tu personaje.`;
+        // código de primer ingreso (un servidor antiguo, que aún entrega el nombre, no lo pide)
+        ingreso.pideCodigo = !est.tiene_clave && !('nombre' in est);
+        // el servidor ya no entrega el nombre antes de entrar (protege los datos de los estudiantes)
+        $('saludo').textContent = est.tiene_clave ? '¡Hola! Escribe tu clave.' : !ingreso.pideCodigo ? 'Es tu primera vez: crea una clave de al menos 4 caracteres y elige tu personaje.'
+          : 'Es tu primera vez: escribe el código que te entregó tu profesor, crea una clave de al menos 4 caracteres y elige tu personaje.';
         $('bloque-clave').classList.remove('oculto');
+        $('codigo-fila').classList.toggle('oculto', !ingreso.pideCodigo);
         $('confirmar-fila').classList.toggle('oculto', est.tiene_clave);
         $('bloque-pj').classList.toggle('oculto', est.tiene_clave);
-        $('clave').value = ''; $('clave2').value = '';
+        $('clave').value = ''; $('clave2').value = ''; $('codigo').value = '';
         btn.textContent = 'Entrar al mundo';
-        $('clave').focus();
+        (ingreso.pideCodigo ? $('codigo') : $('clave')).focus();
         return error('');
       }
       const clave = $('clave').value;
+      const codigo = !ingreso.pideCodigo ? '' : $('codigo').value.replace(/\s/g, '').toUpperCase();
       if (!ingreso.estado.tiene_clave) {
+        if (ingreso.pideCodigo && codigo.length < 6) return error('Escribe el código de primer ingreso (6 letras y números) que te entregó tu profesor.');
         if (clave.length < 4) return error('La clave debe tener al menos 4 caracteres.');
         if (clave !== $('clave2').value) return error('Las dos claves no coinciden.');
       }
-      const r = await Nube.entrar(rut, ingreso.nivel, clave);
+      let r;
+      try { r = await Nube.entrar(rut, ingreso.nivel, clave, codigo); } catch (e) {
+        // servidor aún sin el código de primer ingreso: se entra como antes
+        if (codigo && /error_(400|404)/.test(e.message)) r = await Nube.entrar(rut, ingreso.nivel, clave); else throw e;
+      }
       if (!r || !r.ok) {
-        const msg = { clave_incorrecta: 'Clave incorrecta. Si la olvidaste, pide a tu profesor que la restablezca.', bloqueado: 'Demasiados intentos fallidos. Espera 10 minutos.', clave_corta: 'La clave debe tener al menos 4 caracteres.', cerrado: 'El juego de tu curso está cerrado en este momento. Tu profesor lo abrirá en clases.' };
+        const msg = { clave_incorrecta: 'Clave incorrecta. Si la olvidaste, pide a tu profesor que la restablezca.', bloqueado: 'Demasiados intentos fallidos. Espera 10 minutos.', clave_corta: 'La clave debe tener al menos 4 caracteres.', cerrado: 'El juego de tu curso está cerrado en este momento. Tu profesor lo abrirá en clases.',
+          codigo: 'El código de primer ingreso no es correcto. Revísalo o pídeselo a tu profesor (aparece en su portal).', espera: 'Hay muchos intentos de ingreso en este momento. Espera un minuto y vuelve a intentarlo.' };
+        if (r && r.error === 'codigo') { ingreso.pideCodigo = true; $('codigo-fila').classList.remove('oculto'); $('codigo').focus(); }
         return error(msg[r && r.error] || 'No se pudo entrar. Inténtalo otra vez.');
       }
       // Partida reiniciada (o sin avance) y aún no elige personaje: se le muestra el selector antes de entrar
       if ((!r.progreso || !r.progreso.v) && $('bloque-pj').classList.contains('oculto')) {
         $('bloque-pj').classList.remove('oculto');
-        $('saludo').textContent = `Hola, ${ingreso.estado.nombre}. Comienzas una aventura nueva: elige tu personaje y presiona Entrar al mundo.`;
+        $('codigo-fila').classList.add('oculto'); $('confirmar-fila').classList.add('oculto');
+        ingreso.estado = { ...ingreso.estado, tiene_clave: true }; ingreso.pideCodigo = false;
+        $('saludo').textContent = `Hola, ${(r.nombre || '').split(' ')[2] || 'explorador'}. Comienzas una aventura nueva: elige tu personaje y presiona Entrar al mundo.`;
         return error('');
       }
       sesion.modo = 'nube'; sesion.token = r.token; sesion.mundos = Array.isArray(r.mundos) ? r.mundos : null;

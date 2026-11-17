@@ -34,7 +34,10 @@
     activo,
     rut,
     estado: (r, nivel) => rpc('mw_estudiante_estado', { p_rut: r, p_nivel: nivel }),
-    entrar: (r, nivel, clave) => rpc('mw_estudiante_entrar', { p_rut: r, p_nivel: nivel, p_clave: clave }),
+    // el código solo se envía en el primer ingreso (crear la clave)
+    entrar: (r, nivel, clave, codigo) => rpc('mw_estudiante_entrar', codigo ? { p_rut: r, p_nivel: nivel, p_clave: clave, p_codigo: codigo } : { p_rut: r, p_nivel: nivel, p_clave: clave }),
+    progreso: (token) => rpc('mw_progreso', { p_token: token }),
+    docenteCodigosIngreso: (token) => rpc('mw_docente_codigos_ingreso', { p_token: token }),
     guardar: (token, progreso, zona, keepalive) => rpc('mw_guardar', { p_token: token, p_progreso: progreso, p_zona: zona }, { keepalive }),
     ping: (token, zona) => rpc('mw_ping', { p_token: token, p_zona: zona }),
     latido: (token, zona) => rpc('mw_latido', { p_token: token, p_zona: zona }),
