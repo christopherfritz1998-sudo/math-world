@@ -17,7 +17,9 @@ function comodin() {
 }
 function cargar(archivos) {
   const ventana = { MWJ: comodin(), addEventListener() {}, matchMedia: () => ({ matches: false }) };
-  const ctx = vm.createContext({ window: ventana, document: comodin(), navigator: { userAgent: '' }, localStorage: comodin(), console, Math, Date, JSON, setTimeout() {}, setInterval() {}, requestAnimationFrame() {} });
+  // objetos del navegador que los módulos crean al cargar (Image para dibujos pixel, etc.): basta con un sustituto vacío
+  function Image() { this.complete = false; this.naturalWidth = 0; }
+  const ctx = vm.createContext({ window: ventana, document: comodin(), navigator: { userAgent: '' }, localStorage: comodin(), console, Math, Date, JSON, Image, Audio: Image, setTimeout() {}, setInterval() {}, requestAnimationFrame() {} });
   ventana.window = ventana;
   for (const f of archivos) vm.runInContext(leer(f), ctx, { filename: f });
   return ventana;
