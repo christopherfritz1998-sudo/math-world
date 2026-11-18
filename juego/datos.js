@@ -81,8 +81,8 @@ window.MWDatos = (function () {
     { id: 'pico', nombre: 'Pico de piedra', desc: 'Permite picar rocas para sacar piedra.', icono: 'pickaxe', costo: { madera: 12 } },
     { id: 'balde', nombre: 'Balde', desc: 'Permite sacar agua de los lagos.', icono: 'agua', costo: { madera: 10, piedra: 4 }, requiere: 'pico' },
     { id: 'botas', nombre: 'Botas de viento', desc: 'Siempre activas: caminas un 30 % más rápido en todos los mundos.', icono: 'crampones', costo: { madera: 25, piedra: 15, cristal: 3 }, requiere: 'pico' },
-    // Montura (D4): se fabrica al final del juego con recursos de las cuatro zonas difíciles; solo acelera en mundos que ya visitaste
-    { id: 'montura', nombre: 'Montura de viaje', desc: 'Siempre activa: en los mundos que ya visitaste caminas el doble de rápido que sin botas (en un mundo nuevo, la primera vez, se explora a pie).', icono: 'crampones', costo: { obsidiana: 8, magma: 8, hielo_eterno: 8, aurora: 6, oro: 10 }, requiere: 'botas' },
+    // Zapatillas veloces: se gastan. Dan velocidad durante 5 minutos de juego en los mundos; después hay que fabricar otras (como la caña de pescar)
+    { id: 'zapatillas', nombre: 'Zapatillas veloces', desc: 'Corres más rápido que con las botas durante 5 minutos de juego en los mundos. Cuando se gastan, fabrica otro par.', icono: 'crampones', costo: { madera: 15, fibra: 6, cristal: 2 }, requiere: 'botas' },
     // Herramientas del Bosque profundo
     { id: 'ahumador', nombre: 'Ahumador', desc: 'Herramienta: calma a las abejas para recolectar miel de las colmenas del Bosque profundo.', icono: 'ahumador', costo: { madera: 12, piedra: 6, resina: 3 } },
     { id: 'hacha3', nombre: 'Hacha ancestral', desc: 'Más madera al talar y +2 de resina en los árboles gigantes del Bosque profundo.', icono: 'hacha3', costo: { resina: 12, madera: 30, cristal: 4 }, requiere: 'hacha2' },
@@ -292,7 +292,7 @@ window.MWDatos = (function () {
     ['🔎', '¿Dónde se consigue?', 'Toca cualquier recurso de tu mochila o cofre para ver en qué mundo, objeto o minijuego se obtiene.'],
     ['🎁', 'Regalos al grupo', 'Al visitar la casa de un compañero de tu grupo puedes dejarle un regalo de tu cofre personal.'],
     ['🏰', 'Arena entre clanes', 'En la Arena, «Retar a otro clan» te junta con jugadores de otros grupos de tu curso. Ahí no se pierde la mochila.'],
-    ['🐎', 'Montura de viaje', 'Al final del juego puedes fabricar una montura que te hace mucho más rápido en los mundos que ya visitaste.'],
+    ['👟', 'Zapatillas veloces', 'Fabrícalas en la fogata: corres más rápido durante 5 minutos en los mundos. Cuando se gastan, fabrica otro par.'],
     ['🏁', 'Modo competencia', 'En los minijuegos de entretención, «Competir con compañeros» crea una sala con código: todos juegan la misma partida a la vez y ven los puntos en vivo.'],
     ['🗺️', 'Minijuegos repartidos por el mapa', 'Ya no están juntos junto al portal: cada uno tiene su propio objeto (el muelle de pesca, la vagoneta, la diana…). Búscalos por su ícono en el minimapa.'],
     ['🎪', '16 minijuegos nuevos', 'Luciérnagas, tala, duende, tormenta, jeroglíficos, tesoro en la duna, vagoneta, linterna, derrumbe, trineo, pesca en el hielo, pingüinos, huerto, tiro al blanco, carrera de mascotas y trueno. Se juegan a pantalla completa.'],
