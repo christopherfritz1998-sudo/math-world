@@ -2498,7 +2498,9 @@
   }
   // Animación de K.O. (estilo juego de pelea) al derrotar a un jefe; si deja su gema, cae al final.
   // Se cierra sola (o con un clic) y no bloquea el resto del juego.
-  function animacionKO({ nombre, retrato, gema, nueva }) {
+  // cine: clave de la cinemática de derrota (cinematicas.js); con «reducir movimiento» se muestra este K.O. de siempre.
+  function animacionKO({ nombre, retrato, gema, nueva, cine }) {
+    if (cine && window.Cine && Cine.derrota(cine, { nueva: nueva !== false })) return;
     const viejo = document.getElementById('ko'); if (viejo) viejo.remove();
     const g = gema && GEMA_JEFE[gema];
     const el = document.createElement('div');
@@ -2522,6 +2524,32 @@
     const quitar = () => { if (!el.isConnected) return; el.classList.add('sale'); setTimeout(() => el.remove(), 450); };
     el.addEventListener('click', quitar);
     setTimeout(quitar, g ? 5800 : 4800);
+  }
+  // ---------- Cinemáticas de aparición (cinematicas.js) ----------
+  // Completa la primera vez que enfrentas a cada jefe o dios; después, solo la ficha del jefe (los dioses ya no la repiten).
+  // La cuenta docente siempre ve la completa. Mientras se ve, el reloj de las preguntas se detiene (enCine).
+  const enCine = () => Boolean(window.Cine && Cine.activa());
+  const hojaPjPropia = () => `assets/pj/${S.pj}_${texArmadura(S.armadura)}.png`;
+  function cineYaVista(id) {
+    if (esDocente()) return false;
+    S.cineVistas = S.cineVistas || [];
+    if (S.cineVistas.includes(id)) return true;
+    S.cineVistas.push(id); guardar();
+    return false;
+  }
+  // El jugador y los enemigos quedan quietos mientras se ve (como con una ventana abierta); después se abre el combate
+  function conCinematica(ver, abrir) {
+    if (!window.Cine || !S) return abrir();
+    const tenia = ui.abierto; ui.abierto = true;
+    Promise.resolve(ver()).catch(() => {}).then(() => { if (!tenia) ui.abierto = false; abrir(); });
+  }
+  const cineAncestral = (id, abrir) => conCinematica(() => Cine.jefe(id, { heroes: [hojaPjPropia()], corto: cineYaVista(id) }), abrir);
+  // Jefe de grupo: el lado izquierdo muestra a todo el grupo; quien se une a un combate ya empezado ve solo la ficha
+  function cineGrupo(abrir) {
+    const e = escena, J = e.jefe, part = J.part || [];
+    const heroes = part.map((id) => (id === idJuego ? hojaPjPropia() : `assets/pj/${(e.otros.get(id) || {}).pj || 'zorro'}_nada.png`));
+    const corto = cineYaVista(e.zona) || (J.max && J.hp < J.max);
+    conCinematica(() => Cine.jefe(e.zona, { heroes, grupo: `Tu grupo · ${part.length} ${part.length === 1 ? 'jugador' : 'jugadores'}`, corto }), abrir);
   }
 
   function abrirExcavacion(alTerminar) {
@@ -3251,7 +3279,7 @@
     const on = (id, fn) => { const el = $(id); if (el) el.addEventListener('click', fn); };
     const terminar = () => { const fin = o.fin; ui.alCerrar = () => o.cerrar(fin); ui.cerrar(); };
     on('r-ok', o.atacar);
-    on('hab-usar', () => usarHabilidad(o.especial));
+    on('hab-usar', () => usarHabilidad(o.especial, o.retrato));
     on('r-huir', () => { if (o.fin) return; o.huir(); S.vida = Math.max(1, S.vida - 2); pintarHUD(); o.pintar(); });
     on('r-fin', terminar);
     ui.teclas = (e) => {
@@ -3326,7 +3354,7 @@
       contar('hab_jefe');
       J.coraza = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez, cine: 'Jcoloso' }); }
       pintar();
     };
     const atacar = () => {
@@ -3341,7 +3369,7 @@
           if (J.racha >= 2) { herir(danio() * 2); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Doble golpe! ${mate(d.explicacion)}</div>`; }
           else ultimo = '<div class="mensaje bien" role="status">¡Bien! Un acierto más seguido y le darás un doble golpe.</div>';
         } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
-        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez }); }
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: COLOSO.nombre, retrato: sc.imagenTex('jefe_u3b_retrato'), gema: 'magma', nueva: primeraVez, cine: 'Jcoloso' }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -3359,6 +3387,7 @@
     pintar();
     reloj = setInterval(() => {
       if (fin || !J.limite) return;
+      if (enCine()) { J.t0 += 200; return; }
       const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
       if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
       if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
@@ -3947,7 +3976,7 @@
       contar('hab_jefe');
       J.muro = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez, cine: 'Jdragon' }); }
       pintar();
     };
     const atacar = () => {
@@ -3962,7 +3991,7 @@
           if (J.racha >= 3) { herir(danio() * 3); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Triple golpe de aurora! ${mate(d.explicacion)}</div>`; }
           else ultimo = `<div class="mensaje bien" role="status">¡Bien! ${3 - J.racha === 1 ? 'Un acierto más seguido' : 'Dos aciertos más seguidos'} y le darás un triple golpe.</div>`;
         } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
-        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez }); }
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: DRAGON.nombre, retrato: sc.imagenTex('jefe_u4b_retrato'), gema: 'aurora', nueva: primeraVez, cine: 'Jdragon' }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -3981,6 +4010,7 @@
     pintar();
     reloj = setInterval(() => {
       if (fin || !J.limite) return;
+      if (enCine()) { J.t0 += 200; return; }
       const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
       if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
       if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
@@ -4056,7 +4086,7 @@
       contar('hab_jefe');
       J.vendas = 0; herir(n); J.t0 = performance.now();
       ultimo = msgHab(n);
-      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez, cine: 'Jfaraon' }); }
       pintar();
     };
     const atacar = () => {
@@ -4071,7 +4101,7 @@
           if (J.racha >= 2) { herir(danio() * 2); J.racha = 0; ultimo = `<div class="mensaje bien" role="status">¡Doble golpe! ${mate(d.explicacion)}</div>`; }
           else ultimo = '<div class="mensaje bien" role="status">¡Bien! Un acierto más seguido y le darás un doble golpe.</div>';
         } else { herir(danio()); ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`; }
-        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez }); }
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: FARAON.nombre, retrato: sc.imagenTex('jefe_u2b_retrato'), gema: 'faraon', nueva: primeraVez, cine: 'Jfaraon' }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -4090,6 +4120,7 @@
     pintar();
     reloj = setInterval(() => {
       if (fin || !J.limite) return;
+      if (enCine()) { J.t0 += 200; return; }
       const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
       if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
       if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
@@ -4732,7 +4763,14 @@
   }
   const msgHab = (n) => { const h = habDe() || { icono: '✨', nombre: 'Habilidad especial' }; return `<div class="mensaje bien hab-msg" role="status">${h.icono} ¡${esc(h.nombre)}! Quitaste ${n} de vida de un solo golpe.</div>`; };
   // Transición a pantalla completa (la ve quien la usa y, en los jefes de grupo, también sus compañeros)
-  function fxHabilidad(h, tex, n, quien, alTerminar) {
+  // Con cinematicas.js se ve el movimiento especial completo contra el blanco (retrato del enemigo o jefe);
+  // corta: a doble velocidad (enemigos comunes). Con «reducir movimiento» queda este destello de siempre.
+  function fxHabilidad(h, tex, n, quien, alTerminar, blanco = '', corta = false) {
+    const p = PERSONAJES.find((x) => x.hab === h);
+    if (p && window.Cine && !(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+      Cine.habilidad({ id: p.id, nombre: p.nombre, hab: h, hojaPj: `assets/pj/${tex}.png`, blanco, n, quien: quien || '', corta }).then(() => { if (alTerminar) alTerminar(); });
+      return;
+    }
     const viejo = document.querySelector('.hab-fx'); if (viejo) viejo.remove();
     const el = document.createElement('div');
     el.className = `hab-fx ${h.clase} ${h.leyenda ? 'leyenda' : ''} ${quien ? 'otro' : ''}`; el.setAttribute('role', 'alert');
@@ -4747,18 +4785,19 @@
     const terminar = () => { if (hecho) return; hecho = true; el.classList.add('sale'); setTimeout(() => el.remove(), 350); if (alTerminar) alTerminar(); };
     setTimeout(terminar, quien ? 1300 : 1600); el.addEventListener('click', terminar);
   }
-  function usarHabilidad(aplicar) {
+  function usarHabilidad(aplicar, blanco, corta) {
     const h = habDe(); if (!h || !habLista()) return;
     S.habCarga = 0; guardar(); contar('habilidad');
     const b = $('hab-usar'); if (b) b.disabled = true;
     const n = danioHab();
-    fxHabilidad(h, `${S.pj}_${texArmadura(S.armadura)}`, n, null, () => aplicar(n));
+    fxHabilidad(h, `${S.pj}_${texArmadura(S.armadura)}`, n, null, () => aplicar(n), blanco, corta);
   }
   // Un compañero usó su habilidad contra el jefe del grupo
   function verHabilidadCompanero(d) {
     const p = d && PERSONAJES.find((x) => x.id === d.pj);
     if (!p || !p.hab || !escena || !escena.enJefe) return;
-    fxHabilidad(p.hab, `${p.id}_${TEX_ARMADURA.includes(d.tex) ? d.tex : 'nada'}`, Number(d.n) || 0, String(d.nombre || 'Un compañero').slice(0, 24));
+    const J0 = JEFES[escena.zona], blanco = J0 && escena.textures.exists(J0.retrato) ? escena.textures.getBase64(J0.retrato) : '';
+    fxHabilidad(p.hab, `${p.id}_${TEX_ARMADURA.includes(d.tex) ? d.tex : 'nada'}`, Number(d.n) || 0, String(d.nombre || 'Un compañero').slice(0, 24), null, blanco);
   }
   // Cada 5 s: si el personaje elegido ya no está disponible, se cambia; si se desbloqueó uno nuevo, se presenta
   setInterval(() => {
@@ -5356,7 +5395,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-23a';
+  const VERSION_JUEGO = '2026-11-23b';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -6100,7 +6139,7 @@
       <h3>Elige tu ofrenda para este combate</h3>
       <div class="ofrendas">${OFRENDAS.map((o) => `<button type="button" class="ofrenda" data-of="${o.id}"><span>${o.ico}</span><b>${o.nombre}</b><small>${o.desc}</small></button>`).join('')}</div>`, 'ancho dios-modal');
     $('of-cerrar').addEventListener('click', () => ui.cerrar());
-    document.querySelectorAll('#modal [data-of]').forEach((b) => b.addEventListener('click', () => abrirDios(i, b.dataset.of)));
+    document.querySelectorAll('#modal [data-of]').forEach((b) => b.addEventListener('click', () => conCinematica(() => !cineYaVista(D.id) && Cine.altar(D.id), () => abrirDios(i, b.dataset.of))));
   }
   function preguntaMezclada(dif) {
     const us = ['u1', 'u2', 'u3', 'u4'].filter((u) => Object.keys(Preguntas.titulos(S.curso, u)).length);
@@ -6201,7 +6240,7 @@
       }
       return antes;
     };
-    const ganar = () => { fin = 'victoria'; animacionKO({ nombre: D.nombre, retrato }); };
+    const ganar = () => { fin = 'victoria'; animacionKO({ nombre: D.nombre, retrato, cine: esHades ? (A.hades ? 'hadesCorto' : 'hades') : `D${D.id}` }); };
     const golpeRecibido = (motivo) => {
       sfx('dano'); J.racha = 0; J.combo = 0; J.fallos += 1;
       if (D.mec === 'reloj') J.reloj -= 12000;
@@ -6258,6 +6297,7 @@
           const f = faseDe();
           if (f > J.fase) {
             J.fase = f; sc.cameras.main.shake(700, 0.016); sc.cameras.main.flash(350, 170, 70, 255); sfx('rugido');
+            if (window.Cine) Cine.altar(f === 2 ? 'hades2' : 'hades3');
             if (f === 2) { J.escudo = 5; spr.setTint(0xd9b3ff); }
             if (f === 3) { J.racha = 0; spr.setTint(0xff6a6a); contar('hades_furia'); }
           }
@@ -6270,6 +6310,7 @@
     pintar();
     reloj = setInterval(() => {
       if (fin || !J.limite) return;
+      if (enCine()) { J.t0 += 200; tUlt = performance.now(); return; }
       const ahora = performance.now();
       if (D.mec === 'reloj') { J.reloj -= ahora - tUlt; const a = $('dz-arena'); if (a) { const s = Math.max(0, Math.ceil(J.reloj / 1000)); a.textContent = `⏳ ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; } if (J.reloj <= 0) { fin = 'derrota'; pintar(); return; } }
       tUlt = ahora;
@@ -7340,7 +7381,7 @@
         ultimo = msgHab(n); t0 = performance.now();
         if (enemigo.vida <= 0) { fase = 'victoria'; setTimeout(() => sfx('victoria'), 150); }
         pintar();
-      }));
+      }, retrato, true));
       on('c-pista', () => { pista = !pista; pintar(); });
       on('c-huir', () => { ui.alCerrar = () => fin('huir'); ui.cerrar(); });
       on('c-fin', () => { ui.alCerrar = () => fin(fase); ui.cerrar(); });
@@ -7391,6 +7432,7 @@
     if (conReloj) reloj = setInterval(() => {
       let barra = $('h-tiempo'); if (barra && barra.dataset.c !== cid) barra = null;
       if (fase !== 'pregunta' || !barra) { clearInterval(reloj); return; }
+      if (enCine()) { t0 += 200; return; }
       const resto = LIMITE_HORDA - (performance.now() - t0);
       barra.style.width = `${Math.max(0, (resto / LIMITE_HORDA) * 100)}%`;
       const sg = $('h-seg'); if (sg) { sg.textContent = Math.max(0, Math.ceil(resto / 1000)); sg.parentElement.classList.toggle('apura', resto < 6000); }
@@ -7471,7 +7513,7 @@
       sc.flotante(sc.rey.x, sc.rey.y - 120, `−${n}`, '#ffd27a');
       sc.tweens.add({ targets: sc.rey, x: sc.rey.x + 8, duration: 50, yoyo: true, repeat: 4 });
       ultimo = msgHab(n);
-      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez }); }
+      if (J.hp <= 0) { contar('hab_ko'); fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez, cine: 'Jrey' }); }
       pintar();
     };
     const atacar = () => {
@@ -7487,7 +7529,7 @@
           sc.tweens.add({ targets: sc.rey, x: sc.rey.x + 5, duration: 50, yoyo: true, repeat: 2 });
           ultimo = `<div class="mensaje bien" role="status">¡Golpe! ${mate(d.explicacion)}</div>`;
         }
-        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez }); }
+        if (J.hp <= 0) { fin = 'victoria'; animacionKO({ nombre: REY.nombre, retrato: sc.imagenTex('jefe_u1b_retrato'), gema: 'raices', nueva: primeraVez, cine: 'Jrey' }); }
       } else golpeRecibido(`La respuesta era ${mate(d.opciones[d.correcta])}.`);
       if (!fin) {
         const f = faseDe();
@@ -7505,6 +7547,7 @@
     pintar();
     reloj = setInterval(() => {
       if (fin || !J.limite) return;
+      if (enCine()) { J.t0 += 200; return; }
       const resto = J.limite - (performance.now() - J.t0), barra = $('r-tiempo');
       if (barra) barra.style.width = `${Math.max(0, (resto / J.limite) * 100)}%`;
       if (resto <= 0) { golpeRecibido('¡Se acabó el tiempo!'); if (!fin) nueva(); pintar(); }
@@ -7574,7 +7617,7 @@
         if (e.canal) e.canal.emitir('hab', { pj: S.pj, tex: texArmadura(S.armadura), nombre: S.nombre, n });
         contar('hab_jefe'); e.golpeLocal(n); ultimo = msgHab(n); if (e.jefe && e.jefe.hp <= 0) contar('hab_ko');
         revisar();
-      }));
+      }, retrato));
       on('j-salir', () => { e.salirDelJefe(); e.perderContraJefe(); jefeUI = null; ui.cerrar(); });
       on('j-fin', terminar);
       ui.teclas = (ev) => {
@@ -7613,7 +7656,7 @@
         if (!pagado) {
           pagado = true;
           S.jefes = S.jefes || {};
-          animacionKO({ nombre: J0.nombre, retrato, gema: GEMA_DE_ZONA[e.zona], nueva: !S.jefes[e.zona] });
+          animacionKO({ nombre: J0.nombre, retrato, gema: GEMA_DE_ZONA[e.zona], nueva: !S.jefes[e.zona], cine: `J${e.zona}` });
           Object.entries(J0.premio || JEFE_PREMIO).forEach(([r, n]) => sumar(r, n));
           S.jefes[e.zona] = (S.jefes[e.zona] || 0) + 1;
           S.misiones[e.zona] = nuevasMisiones(e.zona);
@@ -12204,7 +12247,7 @@
       if (o.tipo === 'santuario') {
         if (!tiene('amuleto')) return toast('El santuario está sellado. Fabrica el amuleto ancestral (resina y miel) en la fogata de tu base.', 'alerta');
         if ((S.reyHasta || 0) > Date.now()) return toast(`El Rey Jabalí Ancestral descansa. Vuelve en ${Math.ceil((S.reyHasta - Date.now()) / 60000)} min.`);
-        return abrirReyJabali();
+        return cineAncestral('rey', abrirReyJabali);
       }
       // desde aquí todo es recolección: un recurso bloqueado por 3 errores seguidos espera 5 minutos
       if (!esDocente()) {
@@ -12238,7 +12281,7 @@
       if (o.tipo === 'dragon') {
         if (!tiene('cetro_aurora')) return toast('El Dragón de la Aurora duerme. Fabrica el cetro de la aurora (polvo de aurora y hielo eterno) en la fogata de tu base.', 'alerta');
         if ((S.dragonHasta || 0) > Date.now()) return toast(`El Dragón de la Aurora descansa. Vuelve en ${Math.ceil((S.dragonHasta - Date.now()) / 60000)} min.`);
-        return abrirDragon();
+        return cineAncestral('dragon', abrirDragon);
       }
       if (o.tipo === 'arbol' && o.rec === 'aurora') {
         if (o.estado !== 'arbol') return toast('Esta flor todavía no vuelve a brillar.');
@@ -12254,12 +12297,12 @@
       if (o.tipo === 'faraon') {
         if (!tiene('ankh')) return toast('La tumba del Faraón está sellada. Fabrica el ankh de obsidiana (obsidiana, fósiles y oro) en la fogata de tu base.', 'alerta');
         if ((S.faraonHasta || 0) > Date.now()) return toast(`El Faraón de las Arenas Eternas descansa. Vuelve en ${Math.ceil((S.faraonHasta - Date.now()) / 60000)} min.`);
-        return abrirFaraon();
+        return cineAncestral('faraon', abrirFaraon);
       }
       if (o.tipo === 'coloso') {
         if (!tiene('corazon_cristal')) return toast('El Coloso está sellado. Fabrica el corazón de cristal (cristal resonante y magma) en la fogata de tu base.', 'alerta');
         if ((S.colosoHasta || 0) > Date.now()) return toast(`El Coloso de Magma descansa. Vuelve en ${Math.ceil((S.colosoHasta - Date.now()) / 60000)} min.`);
-        return abrirColoso();
+        return cineAncestral('coloso', abrirColoso);
       }
       if (o.tipo === 'arbol' && o.rec === 'cristal_eco') {
         if (o.estado !== 'arbol') return toast('Estos cristales todavía están creciendo.');
@@ -12692,7 +12735,7 @@
       if (!this.canal) return abrirInfoJefe(this.zona);
       const J = this.jefe;
       if (S.arma && S.herramienta !== 'espada') equipar('espada');
-      if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); } return; }
+      if (J.estado === 'combate') { if (J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; cineGrupo(abrirJefe); } return; }
       if (!this.jefeDisponible()) return toast('El jefe se está recuperando. Vuelve en unos minutos.');
       if (!this.jefeVisible()) return toast(`El jefe sigue oculto: aparecerá cuando ${JEFE_MIN} jugadores de tu grupo cumplan sus misiones (van ${this.jugadoresListos().length}).`);
       const n = this.jugadoresEnGuarida().length;
@@ -12729,7 +12772,7 @@
     }
     alCambiarJefe() {
       const J = this.jefe;
-      if (J.estado === 'combate' && J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; abrirJefe(); }
+      if (J.estado === 'combate' && J.part.includes(idJuego) && !this.enJefe) { this.enJefe = true; cineGrupo(abrirJefe); }
       this.actualizarSello();
       actualizarJefeUI();
     }
