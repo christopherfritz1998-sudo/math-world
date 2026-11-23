@@ -2281,10 +2281,11 @@
     }
     return nuevo;
   }
-  // La caña dura 5 pescas; al agotarse se rompe y hay que fabricar otra
   // ---------- Zapatillas veloces: 5 minutos de juego en los mundos y se gastan (hay que fabricar otras) ----------
   const ZAP_MS = 5 * 60000;
   // solo cuentan las fabricadas de verdad (la cuenta docente tiene todo el equipo, pero no corre más rápido por eso)
+  // las zapatillas se fabrican de verdad incluso en la cuenta docente (tiene() le da todo el resto del equipo)
+  const hechaYa = (id) => (id === 'zapatillas' ? Boolean(S && S.mejoras.includes(id)) : tiene(id));
   const zapActivas = () => Boolean(S && S.mejoras.includes('zapatillas') && (S.zapRest || 0) > 0);
   const zapTexto = () => { const s = Math.max(0, Math.ceil((S.zapRest || 0) / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
   function gastarZapatillas(dt) {
@@ -2295,6 +2296,7 @@
       toast('👟 Tus zapatillas veloces se gastaron. Fabrica otro par en la fogata de tu base.', 'alerta'); guardar(true); pintarHUD();
     }
   }
+  // La caña dura 5 pescas; al agotarse se rompe y hay que fabricar otra
   const CANA_USOS = 5;
   function usosCana() { if (esDocente()) return CANA_USOS; return tiene('cana') ? (typeof S.canaUsos === 'number' ? S.canaUsos : CANA_USOS) : 0; }
   function gastarCana() {
@@ -5354,7 +5356,7 @@
   const mesActual = () => fechaLocal().slice(0, 7);
   const nombreMes = (m) => MESES[Number(String(m).slice(5, 7)) - 1] || '';
 
-  const VERSION_JUEGO = '2026-11-18b';
+  const VERSION_JUEGO = '2026-11-23a';
   // ---------- Reporte automático de errores (le llega al docente al buzón) ----------
   let erroresEnviados = 0;
   const erroresVistos = new Set();
@@ -7670,12 +7672,12 @@
   function abrirFabricar(pestana) {
     if (!pestana) pestana = escena && escena.zona === 'pieza' ? 'pieza' : 'equipo';
     const filasEquipo = MEJORAS.map((m) => {
-      const hecha = tiene(m.id), bloq = m.requiere && !tiene(m.requiere);
+      const hecha = hechaYa(m.id), bloq = m.requiere && !tiene(m.requiere);
       const faltaDominio = !hecha && !bloq && m.dominio && !esDocente() && temasDominados() < m.dominio;
       const equipable = ARMAS[m.id] || ARMADURAS[m.id];
       const puesta = S.arma === m.id || S.armadura === m.id;
       const der = hecha && equipable ? (puesta ? '<span class="estado-ok">Equipada</span>' : `<button type="button" class="btn sec" data-eq="${m.id}">Equipar</button>`)
-        : hecha ? `<span class="estado-ok">${m.id === 'cana' ? `Fabricada · ${usosCana()} de ${CANA_USOS} usos` : m.id === 'zapatillas' && !esDocente() ? `Puestas · quedan ${zapTexto()}` : 'Fabricado'}</span>`
+        : hecha ? `<span class="estado-ok">${m.id === 'cana' ? `Fabricada · ${usosCana()} de ${CANA_USOS} usos` : m.id === 'zapatillas' ? `Puestas · quedan ${zapTexto()}` : 'Fabricado'}</span>`
         : bloq ? `<span class="nota" style="max-width: 150px">Primero: ${esc(NOMBRE_MEJORA[m.requiere])}</span>`
         : faltaDominio ? `<span class="nota" style="max-width: 170px">🥉 Domina ${m.dominio} temas (llevas ${temasDominados()}): responde bien para subir tu maestría.</span>`
           : `<button type="button" class="btn pri" data-m="${m.id}" ${alcanza(precio(m.costo)) ? '' : 'disabled'}>Fabricar</button>`;
@@ -7706,7 +7708,7 @@
       const m = MEJORAS.find((x) => x.id === b.dataset.m);
       const hacer = () => {
         const c = precio(m.costo);
-        if (!alcanza(c) || tiene(m.id) || (m.dominio && !esDocente() && temasDominados() < m.dominio)) return;
+        if (!alcanza(c) || hechaYa(m.id) || (m.dominio && !esDocente() && temasDominados() < m.dominio)) return;
         pagar(c); S.mejoras.push(m.id); sfx('fabricar'); eventoDesafio('fabricar', m.id);
         if (m.id === 'cana') S.canaUsos = CANA_USOS;
         if (m.id === 'zapatillas') S.zapRest = ZAP_MS;
@@ -11890,7 +11892,6 @@
     }
 
     update(t, dt) {
-      if (MUNDOS[this.zona] && zapActivas()) gastarZapatillas(dt);
       const j = this.jugador;
       if (!j) return;
       let vx = 0, vy = 0;
@@ -11906,6 +11907,7 @@
       const len = Math.hypot(vx, vy);
       if (this.empujon && this.empujon.hasta > this.time.now) { j.setVelocity(this.empujon.vx, this.empujon.vy); j.anims.stop(); }
       else if (len > 0.15) {
+        if (MUNDOS[this.zona] && zapActivas()) gastarZapatillas(dt);   // se gastan solo mientras caminas en un mundo
         const vel = desActivo('turbo') ? 255 : this.ventisca && !tiene('abrigo') ? 95 : zapActivas() && MUNDOS[this.zona] ? 230 : tiene('botas') ? 195 : 150;   // botas de viento > ventisca   // la ventisca hace caminar lento (salvo con abrigo)
         j.setVelocity((vx / Math.max(len, 1)) * vel, (vy / Math.max(len, 1)) * vel);
         this.dir = Math.abs(vx) > Math.abs(vy) ? (vx < 0 ? 'left' : 'right') : (vy < 0 ? 'up' : 'down');
