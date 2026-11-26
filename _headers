@@ -1,0 +1,9 @@
+# Cabeceras para Cloudflare Pages (las mismas que vercel.json)
+/juego/sw.js
+  Cache-Control: no-cache
+
+/juego/assets/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=604800
+
+/img/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=604800

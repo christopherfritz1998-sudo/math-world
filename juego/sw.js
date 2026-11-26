@@ -17,9 +17,13 @@ async function guardar(req, res) {
   }
   return res;
 }
-// imágenes, sonidos, fuentes y Phaser: se muestra lo guardado y se actualiza en segundo plano
+// imágenes, sonidos, fuentes y Phaser: se muestra lo guardado. Solo se vuelve a pedir a internet (en segundo plano)
+// si la copia tiene más de 7 días: antes se pedía cada archivo en cada visita y eso agotó el límite de solicitudes del hosting.
+const VIGENCIA = 7 * 24 * 3600 * 1000;
+const fresca = (r) => Date.now() - (Date.parse(r.headers.get('date') || '') || 0) < VIGENCIA;
 async function guardadoYActualiza(e) {
   const copia = await caches.match(e.request);
+  if (copia && fresca(copia)) return copia;
   const red = fetch(e.request).then((r) => guardar(e.request, r)).catch(() => null);
   if (copia) { e.waitUntil(red); return copia; }
   const r = await red;
